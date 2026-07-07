@@ -24,3 +24,15 @@ export type Level = "beginner" | "intermediate" | "advanced" | "elite";
 export function isSkill(value: string): value is Skill {
   return (SKILLS as readonly string[]).includes(value);
 }
+
+export const DISCIPLINES = ["indoor", "beach"] as const;
+export type Discipline = (typeof DISCIPLINES)[number];
+
+export const DISCIPLINE_LABEL: Record<Discipline, string> = {
+  indoor: "Indoor",
+  beach: "Beach",
+};
+
+export function isDiscipline(value: string): value is Discipline {
+  return (DISCIPLINES as readonly string[]).includes(value);
+}
