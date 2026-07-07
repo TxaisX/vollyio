@@ -1,0 +1,471 @@
+<title>What Makes Pros Pro — Sideout Rubric Study</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #0b1322;
+    --panel: #101b2e;
+    --panel-2: #16233b;
+    --line: rgba(233, 237, 244, 0.11);
+    --line-strong: rgba(233, 237, 244, 0.2);
+    --ink: #e9edf4;
+    --ink-dim: #96a3b8;
+    --ink-faint: #66748c;
+    --gold: #f4b740;
+    --gold-ink: #1a1204;
+    --teal: #37cfb2;
+    --coral: #fb6f63;
+    --shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+    --maxw: 1120px;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #eef1f7;
+      --panel: #ffffff;
+      --panel-2: #f2f5fa;
+      --line: rgba(14, 26, 43, 0.12);
+      --line-strong: rgba(14, 26, 43, 0.22);
+      --ink: #0e1a2b;
+      --ink-dim: #4b586e;
+      --ink-faint: #7c8aa0;
+      --gold: #b7810a;
+      --gold-ink: #fff8e8;
+      --teal: #0c9a83;
+      --coral: #cf4133;
+      --shadow: 0 18px 40px -28px rgba(20, 40, 70, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0b1322; --panel: #101b2e; --panel-2: #16233b;
+    --line: rgba(233, 237, 244, 0.11); --line-strong: rgba(233, 237, 244, 0.2);
+    --ink: #e9edf4; --ink-dim: #96a3b8; --ink-faint: #66748c;
+    --gold: #f4b740; --gold-ink: #1a1204; --teal: #37cfb2; --coral: #fb6f63;
+    --shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+  :root[data-theme="light"] {
+    --ground: #eef1f7; --panel: #ffffff; --panel-2: #f2f5fa;
+    --line: rgba(14, 26, 43, 0.12); --line-strong: rgba(14, 26, 43, 0.22);
+    --ink: #0e1a2b; --ink-dim: #4b586e; --ink-faint: #7c8aa0;
+    --gold: #b7810a; --gold-ink: #fff8e8; --teal: #0c9a83; --coral: #cf4133;
+    --shadow: 0 18px 40px -28px rgba(20, 40, 70, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(244, 183, 64, 0.06), transparent 55%),
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 88px);
+    opacity: 0.6;
+  }
+  .wrap { position: relative; z-index: 1; max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+  .label { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--ink-faint); }
+  .accent { color: var(--gold); }
+
+  /* ---------- header ---------- */
+  header.top {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-inner { max-width: var(--maxw); margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+  .brand b { font-weight: 800; letter-spacing: -0.02em; font-size: 18px; }
+  .brand .label { font-size: 10px; }
+
+  .seg { display: inline-flex; position: relative; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 2px; }
+  .seg button {
+    position: relative; z-index: 1; appearance: none; border: 0; background: transparent; cursor: pointer;
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; font-weight: 600;
+    color: var(--ink-dim); padding: 7px 16px; border-radius: 999px; transition: color 0.2s;
+  }
+  .seg button[aria-pressed="true"] { color: var(--gold-ink); }
+  .seg .thumb { position: absolute; z-index: 0; top: 4px; bottom: 4px; border-radius: 999px; background: var(--gold); transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--gold) 60%, transparent); }
+  .theme-btn { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-dim); width: 34px; height: 34px; border-radius: 9px; cursor: pointer; font-size: 15px; line-height: 1; display: grid; place-items: center; }
+  .theme-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 56px 0 30px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+  h1 { font-size: clamp(30px, 6vw, 54px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; margin: 16px 0 0; text-wrap: balance; max-width: 15ch; }
+  h1 .em { color: var(--gold); }
+  .lede { margin: 18px 0 0; max-width: 60ch; color: var(--ink-dim); font-size: clamp(16px, 2.2vw, 19px); }
+  .mode-line { margin-top: 22px; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em; }
+  .mode-line b { color: var(--teal); font-weight: 600; }
+
+  /* ---------- principles ---------- */
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 34px 0 8px; }
+  .principle { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .principle .k { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: 0.08em; }
+  .principle h3 { margin: 10px 0 6px; font-size: 16px; letter-spacing: -0.01em; }
+  .principle p { margin: 0; font-size: 13.5px; color: var(--ink-dim); line-height: 1.55; }
+
+  /* ---------- skill sections ---------- */
+  .skill { padding: 30px 0; border-top: 1px solid var(--line); }
+  .skill-head { display: flex; align-items: flex-start; gap: 16px; }
+  .tag { flex: none; font-family: var(--mono); font-weight: 700; font-size: 13px; letter-spacing: 0.06em; color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius: 9px; padding: 8px 10px; margin-top: 2px; }
+  .skill-head h2 { margin: 0; font-size: clamp(22px, 3.4vw, 30px); letter-spacing: -0.025em; font-weight: 800; }
+  .skill-head .sub { margin: 4px 0 0; color: var(--ink-dim); font-size: 15px; max-width: 62ch; }
+
+  .leverage { margin: 18px 0 4px; display: flex; gap: 12px; align-items: flex-start; background: color-mix(in srgb, var(--teal) 9%, var(--panel)); border: 1px solid color-mix(in srgb, var(--teal) 26%, transparent); border-left: 3px solid var(--teal); border-radius: 10px; padding: 12px 15px; }
+  .leverage .lab { font-family: var(--mono); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.12em; color: var(--teal); flex: none; padding-top: 2px; }
+  .leverage p { margin: 0; font-size: 14px; color: var(--ink); }
+  .leverage b { color: var(--teal); }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 18px; }
+  .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 13px; box-shadow: var(--shadow); }
+  .metric-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 11px; }
+  .metric-top h4 { margin: 0; font-size: 16px; letter-spacing: -0.01em; font-weight: 700; }
+  .metric-top .key { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); letter-spacing: 0.02em; white-space: nowrap; }
+  .row { display: flex; flex-direction: column; gap: 5px; }
+  .row .rl { font-family: var(--mono); text-transform: uppercase; font-size: 10px; letter-spacing: 0.13em; display: inline-flex; align-items: center; gap: 6px; }
+  .row .rl::before { content: ""; width: 7px; height: 7px; border-radius: 2px; }
+  .row.elite .rl { color: var(--teal); } .row.elite .rl::before { background: var(--teal); }
+  .row.sharp .rl { color: var(--gold); } .row.sharp .rl::before { background: var(--gold); }
+  .row p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-dim); }
+  .row.elite p { color: var(--ink); }
+  .watch { margin-top: 2px; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); }
+  .watch .wl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--coral); border: 1px solid color-mix(in srgb, var(--coral) 34%, transparent); border-radius: 6px; padding: 3px 6px; flex: none; }
+  .watch b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- closing ---------- */
+  .apply { border-top: 1px solid var(--line); padding: 34px 0 12px; }
+  .apply h2 { font-size: clamp(20px, 3vw, 26px); letter-spacing: -0.02em; margin: 6px 0 14px; }
+  .apply ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-width: 76ch; }
+  .apply li { display: flex; gap: 12px; font-size: 14.5px; color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px 15px; }
+  .apply li b { color: var(--ink); }
+  .apply li .n { font-family: var(--mono); color: var(--gold); font-size: 12px; flex: none; padding-top: 1px; }
+
+  .method { margin-top: 26px; padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: 12px; background: color-mix(in srgb, var(--panel) 60%, transparent); font-size: 13px; color: var(--ink-dim); }
+  .method b { color: var(--ink); }
+  .sources { margin-top: 18px; font-size: 12.5px; color: var(--ink-faint); }
+  .sources a { color: var(--ink-dim); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line-strong); word-break: break-word; }
+  .sources a:hover { color: var(--gold); }
+  footer { padding: 30px 0 60px; color: var(--ink-faint); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; }
+
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+
+  .fade { opacity: 0; transform: translateY(8px); animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fade { animation: none; opacity: 1; transform: none; }
+    .seg .thumb, .theme-btn { transition: none; }
+    * { scroll-behavior: auto !important; }
+  }
+  @media (max-width: 560px) {
+    .top-inner { gap: 10px; }
+    .brand { width: 100%; margin-right: 0; }
+    .hero { padding: 34px 0 22px; }
+  }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <b>Sideout</b>
+      <span class="label">Film Room · Rubric Study</span>
+    </div>
+    <div class="seg" role="group" aria-label="Discipline">
+      <span class="thumb" id="thumb"></span>
+      <button id="btn-indoor" aria-pressed="true" onclick="setMode('indoor')">Indoor</button>
+      <button id="btn-beach" aria-pressed="false" onclick="setMode('beach')">Beach</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme" onclick="toggleTheme()">◐</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <span class="eyebrow label"><span class="dot"></span> What makes pros pro</span>
+    <h1>The elite rep, <span class="em">every single time.</span></h1>
+    <p class="lede">A frame-by-frame breakdown of what separates elite players from everyone else — mapped directly onto Sideout's six skills and their five scored metrics, so each finding can sharpen a scoring anchor. Toggle the discipline; the whole study re-reads for it.</p>
+    <p class="mode-line">Viewing: <b id="modeLabel">Indoor · 6-person, hard floor</b></p>
+  </section>
+
+  <section class="principles" aria-label="Cross-cutting principles">
+    <div class="principle"><div class="k">01 · Consistency</div><h3>Boring-good, on repeat</h3><p>The pro edge isn't the highlight rep — it's the absence of the bad one. Reward rep-to-rep sameness over a single clean frame.</p></div>
+    <div class="principle"><div class="k">02 · Reading</div><h3>Won before contact</h3><p>Passing, blocking, digging and setting are decided by eye-sequencing and anticipation, not reaction speed. Pros are already moving as the ball is struck.</p></div>
+    <div class="principle"><div class="k">03 · Sequencing</div><h3>Legs to fingertips</h3><p>Power is a timed chain — legs → hips → trunk → shoulder → elbow → wrist. Arm-only effort is the amateur tell.</p></div>
+    <div class="principle"><div class="k">04 · Contact quality</div><h3>The last 50 ms</h3><p>Hand shape, platform stillness, contact point and height decide the outcome. Pros optimize the instant of contact above all.</p></div>
+    <div class="principle"><div class="k">05 · Balance</div><h3>Arrive early, land ready</h3><p>Elite players get stopped and balanced before contact and land prepared for the next play. Wasted motion and off-balance finishes cap a score.</p></div>
+  </section>
+
+  <div id="sections"></div>
+
+  <section class="apply">
+    <span class="label accent">Putting it to work</span>
+    <h2>How this sharpens the rubric</h2>
+    <ul>
+      <li><span class="n">A</span><span><b>Add a discipline switch to the rubric.</b> Several anchors flip on the beach — a whippy float swing, a broad-jump approach, or an indoor-legal hand set can be faults on sand. Pass <code>discipline</code> into <code>RUBRIC[skill]</code> so the coaching prompt scores the right game.</span></li>
+      <li><span class="n">B</span><span><b>Weight consistency and reading explicitly.</b> The current anchors mention rep-to-rep consistency; make it a named lever, and reward pre-contact reads (eye-sequencing, early first step) that the model can infer across frames.</span></li>
+      <li><span class="n">C</span><span><b>Score contact against intent, not a generic ideal.</b> Follow-through, swing, and hand shape should be judged relative to the shot chosen (float vs topspin, power vs cut, set vs bump-set) — the "sharpen the anchor" note on each card spells out how.</span></li>
+      <li><span class="n">D</span><span><b>Tune the highest-leverage metric per skill.</b> The teal callout in each section names the one metric that most drives the others — a strong candidate to weight when the model picks the single priority fix.</span></li>
+    </ul>
+
+    <div class="method">
+      <b>Method &amp; honesty note.</b> This study is synthesized from published biomechanics research and established coaching literature (sourced below), plus the technical consensus on elite technique — not from stepping through raw match footage frame by frame. Named players are <b>illustrative exemplars</b> of the specific trait beside them, not claims verified against a particular clip. Treat it as a rubric-design reference, and validate any anchor change against real scored analyses before shipping.
+    </div>
+
+    <div class="sources">
+      <strong style="color:var(--ink-dim)">Selected sources.</strong>
+      Kinematic predictors of jump-serve efficacy — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10402994/">PMC10402994</a>;
+      angular momentum &amp; arm-swing speed in the jump serve — <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11365485/">PMC11365485</a>;
+      Olympic elite spike arm-swing techniques 1984–2021 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9459771/">PMC9459771</a>;
+      serve-receive biomechanics — <a href="https://journal.foundae.com/index.php/jcss/article/view/601">J. Coaching &amp; Sports Sci.</a>;
+      10 keys to middle blocking &amp; reading the hitter — <a href="https://usavolleyball.org/resource/10-keys-to-middle-blocking/">USA Volleyball</a>,
+      <a href="https://usavolleyball.org/resource/so-you-want-to-be-a-great-defender-learn-to-read-the-hitter/">USA Volleyball (defense)</a>;
+      indoor vs beach setting &amp; hand-set legality — <a href="https://www.betteratbeach.com/blog/differences-setting-indoor-vs-beach-volleyball">betterAtBeach</a>,
+      <a href="http://www.vbref.org/ref/ODRULDIF.HTM">vbref rules</a>;
+      beach blocking &amp; peel defense — <a href="https://avp.com/news/blocking-in-beach-volleyball-101/">AVP</a>,
+      <a href="https://jvavolleyball.org/7-keys-blocking-beach-volleyball/">JVA (Dalhausser)</a>;
+      beach spike &amp; serve on sand — <a href="https://beachtraining.com/the-complete-guide-to-spiking-in-beach-volleyball/">Beach Training</a>.
+    </div>
+  </section>
+
+  <footer>Sideout · internal rubric study · synthesized for coaching-model calibration</footer>
+</main>
+
+<script>
+  // ---------- data ----------
+  // Each metric: key (app metric key), label, and per-discipline {elite, sharpen, watch}
+  const DATA = [
+    {
+      skill: "Serve", tag: "SRV",
+      sub: { indoor: "The only skill fully in your control — pros turn it into a weapon by making the toss a placement and the contact aggressive but repeatable.",
+             beach: "In wind, control beats raw pace. Elite servers flatten the toss and pick the serve (jump-float vs jump-topspin) to the conditions." },
+      leverage: { indoor: "Toss quality is the root — everything downstream (swing, contact, alignment) inherits the toss's variance.",
+                  beach: "Wind-management via toss + serve selection is the root; a great indoor toss can be a bad beach toss." },
+      metrics: [
+        { key: "toss_quality", label: "Toss quality",
+          indoor: { elite: "Released off a near-straight arm / fingertips with almost no spin, same peak height and same window in front of the hitting shoulder every rep — the approach creates rhythm, not the toss.", sharpen: "Weight repeatability-across-reps and low spin over single-rep placement. A wristy, spinning toss that lands once shouldn't reach ‘advanced.’", watch: "Wilfredo León · Ivan Zaytsev" },
+          beach:  { elite: "Lower, tighter toss to fight wind; jump-float servers toss just above shoulder height (often two hands) for a dead, spin-free ball they can control.", sharpen: "Reward a wind-adjusted low toss. A high, indoor-style toss in wind is a fault of judgment, not ‘advanced’ placement.", watch: "Jump-float specialists" } },
+        { key: "arm_swing", label: "Arm swing",
+          indoor: { elite: "Fast whip: high-and-back elbow load (bow-and-arrow), shoulder fires before elbow and wrist, hips and shoulders sequence into the arm — same tempo every rep.", sharpen: "Distinguish an arm-only ‘push’ from a sequenced load-and-fire; cite proximal→distal timing (shoulder→elbow→wrist) in the anchor.", watch: "León (jump-topspin)" },
+          beach:  { elite: "On a jump-float the swing is compact and checked — no whip; on a beach jump-topspin, indoor mechanics but jumping straight up.", sharpen: "Reward a controlled, checked swing on floats — a big whippy swing adds spin and is a fault, the opposite of the indoor topspin cue.", watch: "Beach float servers" } },
+        { key: "contact_point", label: "Contact point",
+          indoor: { elite: "Full extension, clearly in front of the hitting shoulder, at the jump peak: float = stiff dead-centered hand; topspin = hand behind-and-below center snapping up-and-over.", sharpen: "Reward contact height (reach + rising CoG predict ball velocity in the research) AND a hand shape matched to serve type.", watch: "León · float servers" },
+          beach:  { elite: "As high as possible, but priority is a centered, controlled contact in wind; the float hand is dead-centered and firm.", sharpen: "In wind a slightly lower but centered, controlled contact can be optimal — don't over-reward a reaching, spinning contact.", watch: "Beach jump-float" } },
+        { key: "follow_through", label: "Follow-through",
+          indoor: { elite: "Deliberate and matched to intent: checked/short on floats (no added spin), a full swing across the body on topspin; balanced finish inside the court.", sharpen: "Score follow-through relative to serve type, not ‘longer = better.’ A long flail on a float is a fault.", watch: "—" },
+          beach:  { elite: "On floats, minimal follow-through keeps the ball dead in the wind; balance held on the sand landing.", sharpen: "Explicitly reward a checked finish on beach floats; penalize a swing-through that spins the ball.", watch: "Beach float servers" } },
+        { key: "body_alignment", label: "Body alignment",
+          indoor: { elite: "Feet, hips and shoulders stacked and square to the target through the motion; clean weight transfer back-to-front or up into a balanced jump; tall posture at contact pointing down the target line.", sharpen: "Penalize hips opening to the sideline or torso collapse; reward a square base and a controlled landing inside the court.", watch: "Elite jump servers" },
+          beach:  { elite: "Must jump straight up and land balanced in sand; a square base still matters but the landing is more taxed.", sharpen: "Reward straight-up takeoff + balanced sand landing; drifting into the court on landing costs more on sand.", watch: "Beach servers" } }
+      ]
+    },
+    {
+      skill: "Pass", tag: "PAS",
+      sub: { indoor: "Serve-receive is a footwork skill disguised as an arm skill. Pros win it by beating the ball to the spot and holding a still, angled platform.",
+             beach: "Two passers cover the whole court against wind-blown serves — range, early reads and a soft high pass define elite beach receiving." },
+      leverage: { indoor: "Footwork — being stopped and balanced behind the ball before contact makes every other passing cue possible.",
+                  beach: "Court coverage & early commitment — with only two passers, the read and first step matter most." },
+      metrics: [
+        { key: "platform_angle", label: "Platform angle",
+          indoor: { elite: "Hands locked and wrists pressed down early, forearms flat and level forming one board; the angle is set before contact and held with almost no swing, every rep.", sharpen: "Reward early platform formation and minimal swing; penalize a platform that forms late or swings up past shoulder height.", watch: "Erik Shoji · Jenia Grebennikov" },
+          beach:  { elite: "Same still board, but against harder wind-affected serves; the angle is aimed at a two-person target and the platform stays quiet.", sharpen: "Beach allows an overhand receive on non-hard-driven serves — but when the forearm platform is used, score it exactly as indoor.", watch: "Elite beach passers" } },
+        { key: "body_posture", label: "Body posture",
+          indoor: { elite: "Consistently low and balanced — knees bent, hips loaded, back flat, shoulders over or ahead of the knees, weight moving forward through contact; stays down through the pass.", sharpen: "Reward staying low through contact (not popping up) and weight forward, not on the heels.", watch: "Liberos" },
+          beach:  { elite: "Loaded but a touch more patient — the ball travels slower in wind, so elite passers read longer before committing the platform.", sharpen: "Reward a balanced load with weight forward; a slightly higher read-posture is acceptable on beach if still loaded.", watch: "Beach passers" } },
+        { key: "footwork_to_ball", label: "Footwork to ball",
+          indoor: { elite: "Reads and releases early, shuffles without crossing the feet, beats the ball to the spot, and is stopped and balanced with the midline behind the ball before contact.", sharpen: "Reward ‘stopped before contact’ and getting the body behind the ball; penalize reaching, lunging, or contacting while still drifting.", watch: "Erik Shoji" },
+          beach:  { elite: "Only two passers cover a huge court — first-step explosiveness and an early read cover the ground a six-person receive never has to.", sharpen: "Reward court coverage and early commitment given the two-person receive; a late release is far more costly here.", watch: "Beach defenders" } },
+        { key: "angle_to_target", label: "Angle to target",
+          indoor: { elite: "Platform and hips oriented to the target, shoulder dropped appropriately, ball delivered on a repeatable line into the setter's zone rep after rep.", sharpen: "Reward directional consistency to a fixed target and correct geometry — angle the platform, don't swing the arms to steer.", watch: "Setter-fed passers" },
+          beach:  { elite: "Passed to the partner's spot (often mid-court) as a higher, softer ball that gives the setter time to move in wind.", sharpen: "Reward a higher, on-target ball — beach tempo is slower and the setter needs air time.", watch: "Beach receiving" } },
+        { key: "contact_control", label: "Contact control",
+          indoor: { elite: "Clean mid-forearm contact off a quiet platform that absorbs pace by giving slightly, driven by the legs not the arms — a high, soft, spin-free ball with a repeatable arc.", sharpen: "Reward a quiet platform that absorbs pace; penalize punching or swinging at the ball.", watch: "Liberos" },
+          beach:  { elite: "In wind, passers cushion even more and aim higher and softer; a flat or spinning pass gets punished by the wind.", sharpen: "Reward touch that accounts for wind — a higher, softer, dead-ball pass.", watch: "Beach passers" } }
+      ]
+    },
+    {
+      skill: "Set", tag: "SET",
+      sub: { indoor: "The offense's steering wheel. Elite setters arrive early, hide their intent, and deliver a spin-free ball on a repeatable line.",
+             beach: "One setter, stricter ball-handling, and wind — the beach set is higher, softer and often a bump-set, and legality is part of the skill." },
+      leverage: { indoor: "Hand shape / contact quality — clean, spin-free hands are the foundation and the thing refs and hitters feel first.",
+                  beach: "Release height & consistency — a stable, legal, high ball that gives the lone hitter time beats speed on sand." },
+      metrics: [
+        { key: "hand_shape", label: "Hand shape",
+          indoor: { elite: "Clean fingerpad contact, symmetric ten-finger load, thumbs back toward the brow, a triangular window above the forehead, ball leaving with little or no spin — an identical window rep to rep.", sharpen: "Reward a spin-free release and symmetric load; penalize palming or an uneven finger load.", watch: "Giannelli · Christenson · Bruno" },
+          beach:  { elite: "Beach hand-sets are judged far more strictly for spin and double-contact — but a legal set can have longer contact (‘deep dish’) and be played lower, so many top teams bump-set in wind to avoid a call.", sharpen: "Account for legality risk (excess spin = a fault the ref calls) and treat a clean bump-set as a valid, high-scoring choice — don't penalize a longer, guided, legal hand contact.", watch: "Beach hand-setters" } },
+        { key: "footwork", label: "Footwork",
+          indoor: { elite: "Beats the ball to the spot early, a balanced right-left plant into a stable base, weight controlled through contact, and a clean recovery step — consistently.", sharpen: "Reward arriving early and squaring before contact; penalize setting on the move.", watch: "Elite setters" },
+          beach:  { elite: "One setter covering the whole court off a dig — footwork is more improvised, often setting from a run or slightly off-balance.", sharpen: "Reward getting stopped when possible, but judge stability relative to the situation — beach setters must frequently set on the move.", watch: "Beach setters" } },
+        { key: "body_alignment", label: "Body alignment",
+          indoor: { elite: "Hips and shoulders square and level, contact centered over the forehead, and a neutral posture that hides front vs back until the release.", sharpen: "Reward deception (a neutral posture) and centered contact; penalize a lean or arch that telegraphs direction.", watch: "Micah Christenson" },
+          beach:  { elite: "Deception matters less against one blocker; a stable, square delivery and consistent height matter more, usually facing the partner.", sharpen: "Weight squared, stable delivery over disguise on the beach.", watch: "Beach setters" } },
+        { key: "release", label: "Release",
+          indoor: { elite: "A smooth load-and-extend through knees, elbows and wrists into a full symmetric follow-through — compact, quiet, on a clean repeatable trajectory.", sharpen: "Reward a leg-driven, quiet release; penalize an arm-only push or a flat ball.", watch: "Elite setters" },
+          beach:  { elite: "Higher and softer to give the hitter time in wind; a legally ‘guided,’ slightly longer contact is desirable, not a flaw.", sharpen: "Reward height, softness and a stable trajectory in wind; a fast flat set is riskier and rarely correct on sand.", watch: "Beach setters" } },
+        { key: "tempo_decision", label: "Tempo & decision",
+          indoor: { elite: "A decisive, well-disguised choice that matches tempo to the hitter and reads the block; contact timing places the ball in the hitter's window, and the reads repeat.", sharpen: "Reward set selection vs block movement and tempo match — but note this needs hitters and the block visible in-frame to judge.", watch: "Simone Giannelli" },
+          beach:  { elite: "One hitter, so the decision is placement — on/off the net, in/out, and giving the hitter room against the single blocker and the wind.", sharpen: "Judge ‘decision’ as placement for the partner vs one blocker and wind, not multi-hitter selection.", watch: "Beach setters" } }
+      ]
+    },
+    {
+      skill: "Attack", tag: "ATK",
+      sub: { indoor: "Where the kinetic chain is most visible. Pros convert a fast, well-spaced approach into apex contact and a whip-fast, sequenced swing.",
+             beach: "On sand you jump straight up and win with shot-making — cut, line, roll and pokey — as much as with power." },
+      leverage: { indoor: "Approach & jump timing — the slow-to-fast approach and apex contact are what unlock contact height and power.",
+                  beach: "Straight-up takeoff + shot versatility — sand punishes the broad jump and rewards the disguised shot." },
+      metrics: [
+        { key: "approach_footwork", label: "Approach footwork",
+          indoor: { elite: "Explosive, well-spaced, slow-to-fast tempo: a long penultimate step and a quick, hard heel-to-toe plant that converts horizontal speed into lift, feet angled to load the hips — a repeatable pattern.", sharpen: "Reward the lengthening penultimate step + quick last step (the ‘slow-to-fast’ signature); penalize even-paced steps or drifting into the net.", watch: "Yūji Nishida · Wilfredo León" },
+          beach:  { elite: "Take as many steps as the sand requires, but the takeoff is straight UP (not a broad jump) or you sink; a final powerful stride with an aggressive arm swing behind-and-up for lift.", sharpen: "Reward a straight-up takeoff and arm-driven lift on sand; a forward broad-jump approach — fine indoors — is a fault here.", watch: "Beach hitters" } },
+        { key: "jump_timing", label: "Jump timing",
+          indoor: { elite: "Takeoff precisely timed to the set so contact is at the apex in the ideal window; the ball is attacked at its highest playable point, and timing holds across reps.", sharpen: "Reward contact at the jump apex synced to the set; penalize contacting on the way down or broad-jumping forward.", watch: "Elite hitters" },
+          beach:  { elite: "Sets are higher and slower in wind — timing is about waiting on and adjusting to a wind-moved ball while still contacting high.", sharpen: "Reward adjusting to a wind-affected set and still meeting the ball high.", watch: "Beach hitters" } },
+        { key: "arm_swing", label: "Arm swing",
+          indoor: { elite: "Fast whip: high-and-back elbow load, a strong non-hitting-arm pull, late elbow-to-hand acceleration, and a crisp wrist snap for heavy topspin — efficient stretch-and-fire across reps.", sharpen: "Reward non-hitting-arm use, wrist snap/topspin, and proximal→distal sequencing; the Olympic arm-swing research separates elite whip from a push.", watch: "León · Paola Egonu · Nishida" },
+          beach:  { elite: "Same mechanics, but elite beach hitters win with disguised shot-making — a swing that can become a cut, line, roll or pokey at the last instant.", sharpen: "Reward shot versatility and disguise plus clean high contact, not only topspin power.", watch: "Beach shot artists" } },
+        { key: "contact_height", label: "Contact height",
+          indoor: { elite: "Full arm extension, clearly above and in front of the hitting shoulder at the top of the reach — the highest, most forward playable point for maximum downward angle, consistent across reps.", sharpen: "Reward reach and extension with contact in front; contact height (reach + CoG) drives both velocity and angle in the research.", watch: "Tall terminal hitters" },
+          beach:  { elite: "As high as possible, but wind and slower sets mean hitters can't always tee off — height is what preserves the downball and the shot menu.", sharpen: "Reward high contact that preserves shot options, even when a full swing isn't on.", watch: "Beach hitters" } },
+        { key: "power_followthrough", label: "Power & follow-through",
+          indoor: { elite: "An explosive full-body kinetic chain — legs, hips and core snap into the swing — with a long follow-through across the body driving the ball down and a controlled, balanced landing that repeats.", sharpen: "Reward hip/core engagement, a full follow-through, and a balanced landing; an arm-only swing that stalls at contact is the tell.", watch: "León · Egonu" },
+          beach:  { elite: "On sand the landing must be balanced (sinking or stumbling loses the next play), and power is often traded for placement — a controlled shot beats a swing hit out.", sharpen: "Reward a controlled finish and a balanced sand landing; weight shot-making over raw power.", watch: "Beach hitters" } }
+      ]
+    },
+    {
+      skill: "Block", tag: "BLK",
+      sub: { indoor: "A reading skill first, an athletic one second. Pros sequence their eyes setter→ball→hitter and press their hands into the opponent's air.",
+             beach: "A one-on-one chess match: take a zone, press to channel the ball to your partner, or peel off the net entirely when the set is bad." },
+      leverage: { indoor: "Read & timing — jumping on the right count off the hitter is what makes the press and footwork pay off.",
+                  beach: "The block-or-pull decision — committing to a zone or peeling correctly is the whole beach blocking skill." },
+      metrics: [
+        { key: "read_timing", label: "Read & timing",
+          indoor: { elite: "Transfers focus from setter to hitter and tunes takeoff to attack tempo — jumping with a quick set, a beat after the hitter on a high set — so the hands reach maximum penetration exactly as, or just after, the hitter contacts.", sharpen: "Reward eye-sequencing (setter→ball→hitter) and jumping after the hitter on high sets; penalize jumping on the set.", watch: "Srećko Lisinac · Max Holt" },
+          beach:  { elite: "One-on-one: read a single hitter, position ‘head on the ball,’ and decide pre-contact to take a zone (line or angle) — or peel off the net when the set is off.", sharpen: "Reward the correct block-vs-pull decision and zone commitment; staying at the net on a bad set is a fault (should peel).", watch: "Phil Dalhausser · Anders Mol" } },
+        { key: "hand_penetration", label: "Hand penetration",
+          indoor: { elite: "Shoulders shrugged, both hands reaching well onto the hitter's side, wrists firmly flexed and angled down-and-in, fingers wide and stiff, hands close enough that nothing splits the seam — the ball deflects straight down.", sharpen: "Reward the over-the-net press, a downward wrist angle, and sealed hands (no seam); penalize a vertical or backward reach.", watch: "Robertlandy Simón" },
+          beach:  { elite: "The same press, but the hands are angled to take a specific shot and channel the ball into the partner defender's zone — huge-reach blockers dominate.", sharpen: "Reward a press that channels to the partner's zone, not just any net touch.", watch: "Dalhausser · Mol" } },
+        { key: "lateral_footwork", label: "Lateral footwork",
+          indoor: { elite: "The right pattern for the distance (shuffle for short, crossover for long), decelerating to square hips and shoulders to the net before takeoff, planting both feet under the body, jumping vertically with no drift.", sharpen: "Reward squaring before takeoff and no sideways drift; penalize crossing the feet on the last step or drifting in the air.", watch: "Middle blockers" },
+          beach:  { elite: "Less lateral travel on the smaller net — footwork is about timing the jump and small adjustments off a mostly stationary read.", sharpen: "Weight jump verticality and squaring over long lateral travel on the beach.", watch: "Beach blockers" } },
+        { key: "body_position", label: "Body position",
+          indoor: { elite: "A compact athletic posture, shoulders and hips square to the net, minimal arm swing because the hands are pre-loaded high, a stable torso, and a block face angled to channel the ball to the middle of the court.", sharpen: "Reward pre-loaded high hands (no big arm swing) and a purposeful block-face angle; penalize open shoulders or an arm-swing jump.", watch: "Elite blockers" },
+          beach:  { elite: "Same compact posture, plus a block face deliberately angled to take one shot and leave the rest for the defender.", sharpen: "Reward intentional block-face angling tied to the defensive call.", watch: "Beach blockers" } },
+        { key: "landing_recovery", label: "Landing & recovery",
+          indoor: { elite: "Lands softly on the balls of both feet under control near the takeoff spot with no net or center-line contact, then immediately peels off the net and resets hands and eyes for the next play.", sharpen: "Reward a soft, balanced landing and an immediate transition; penalize net/center-line contact and a slow reset.", watch: "Elite blockers" },
+          beach:  { elite: "Land balanced on sand, then instantly transition — to defense, or the peel/pull to become the second back-court defender is a defined skill.", sharpen: "Reward a clean transition from block to the next beach role (peel to dig, or approach to attack).", watch: "Beach blockers" } }
+      ]
+    },
+    {
+      skill: "Dig", tag: "DIG",
+      sub: { indoor: "Defense is anticipation wearing a platform. Pros time a stopped split-step to the attacker's contact and are already reading line vs angle.",
+             beach: "Two players, a huge sand court, and legal overhand digs — elite beach defense is all-out reading, coverage and lay-outs." },
+      leverage: { indoor: "Read & anticipation — reading the hitter's arm (not the ball) is what turns a great athlete into a great digger.",
+                  beach: "Shot recognition + coverage — reading cut/line/pokey and playing what the block leaves defines beach defense." },
+      metrics: [
+        { key: "ready_position", label: "Ready position",
+          indoor: { elite: "A low balanced base — hips below shoulders, chest over knees, weight forward, light heels — with a well-timed stopped split-step landing just before attacker contact, so the player is momentarily still and loaded to explode any direction.", sharpen: "Reward the timed, stopped split-step at attacker contact; penalize being caught in motion or flat-footed.", watch: "Grebennikov · Shoji" },
+          beach:  { elite: "Starts more upright to read (the ball is slower), then drops into a load as the hitter swings — often after a pre-commit call with the blocker.", sharpen: "Reward read-then-load timing and coordination with the blocker's taken zone.", watch: "Beach defenders" } },
+        { key: "read_anticipation", label: "Read & anticipation",
+          indoor: { elite: "Early correct reads every rep — eyes track setter→ball→hitter's arm, and the first step commits to the right zone as or just before contact, matching the eventual ball path; as ready for a tip as a hard swing.", sharpen: "Reward reading the hitter's arm, shoulder and approach (not ball-watching) and equal readiness to tip and swing.", watch: "Jenia Grebennikov" },
+          beach:  { elite: "Reading is the whole game — the defender keys the hitter's arm and shoulders to pick line vs angle vs cut vs pokey, and plays the ball the block leaves open.", sharpen: "Reward shot-recognition breadth (cut/pokey/line) and playing the zone the block doesn't take.", watch: "Beach defenders" } },
+        { key: "platform_control", label: "Platform control",
+          indoor: { elite: "A firm, flat, still platform with contact centered between the wrists in front of the midline; the shoulders angle the ball to target with minimal swing — a high, controlled, playable ball toward the setter zone, rep after rep.", sharpen: "Reward a quiet platform and angle-to-target on defense; penalize swinging or punching at a hard-driven ball.", watch: "Liberos" },
+          beach:  { elite: "On hard-driven balls the rules allow an overhand ‘tomahawk’ or a momentarily-held hand dig; the platform still handles lower balls, aiming a high dig to the middle to buy setting time.", sharpen: "Recognize legal beach hard-driven techniques (tomahawk / overhand) as valid, and reward a high dig that buys time in wind.", watch: "Beach defenders" } },
+        { key: "movement_pursuit", label: "Movement & pursuit",
+          indoor: { elite: "An explosive first step and run-through that gets the body behind the ball — or a committed extension, dive or roll that keeps it alive — squaring and stopping the feet before contact whenever the play allows.", sharpen: "Reward efficient pursuit plus emergency skills (sprawl/roll) that still keep the ball playable.", watch: "Elite liberos" },
+          beach:  { elite: "Two players cover a huge sand court, so pursuit and all-out lay-out defense define elite beach digging — and sand allows aggressive diving.", sharpen: "Reward court coverage and committed lay-out digs given the two-person defense.", watch: "Beach defenders" } },
+        { key: "recovery", label: "Recovery",
+          indoor: { elite: "Immediately pushes back to a balanced base facing the net after every rep — even after rolls and extensions — transitioning cleanly, ready for the next contact with no wasted floor time.", sharpen: "Reward a fast reset after emergency touches; penalize staying down or watching the dig.", watch: "Liberos" },
+          beach:  { elite: "After a dig the defender must instantly transition to set or approach — with no libero to cover, recovery directly enables the next contact.", sharpen: "Reward dig→transition speed (to set the partner or attack).", watch: "Beach defenders" } }
+      ]
+    }
+  ];
+
+  const MODE_LABEL = { indoor: "Indoor · 6-person, hard floor", beach: "Beach · 2-person, sand & wind" };
+  let mode = "indoor";
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function render() {
+    const root = document.getElementById("sections");
+    root.innerHTML = DATA.map((s, i) => {
+      const sub = s.sub[mode];
+      const lev = s.leverage[mode];
+      const cards = s.metrics.map((m) => {
+        const c = m[mode];
+        return `
+          <article class="metric">
+            <div class="metric-top">
+              <h4>${esc(m.label)}</h4>
+              <span class="key">${esc(m.key)}</span>
+            </div>
+            <div class="row elite">
+              <span class="rl">Elite marker</span>
+              <p>${esc(c.elite)}</p>
+            </div>
+            <div class="row sharp">
+              <span class="rl">Sharpen the anchor</span>
+              <p>${esc(c.sharpen)}</p>
+            </div>
+            ${c.watch && c.watch !== "—" ? `<div class="watch"><span class="wl">Watch</span><b>${esc(c.watch)}</b></div>` : ""}
+          </article>`;
+      }).join("");
+      return `
+        <section class="skill fade" style="animation-delay:${i * 40}ms">
+          <div class="skill-head">
+            <span class="tag">${esc(s.tag)}</span>
+            <div>
+              <h2>${esc(s.skill)}</h2>
+              <p class="sub">${esc(sub)}</p>
+            </div>
+          </div>
+          <div class="leverage">
+            <span class="lab">Highest leverage</span>
+            <p>${esc(lev)}</p>
+          </div>
+          <div class="metrics">${cards}</div>
+        </section>`;
+    }).join("");
+  }
+
+  function moveThumb() {
+    const thumb = document.getElementById("thumb");
+    const active = document.getElementById(mode === "indoor" ? "btn-indoor" : "btn-beach");
+    thumb.style.width = active.offsetWidth + "px";
+    thumb.style.transform = "translateX(" + (active.offsetLeft - 4) + "px)";
+  }
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById("btn-indoor").setAttribute("aria-pressed", String(m === "indoor"));
+    document.getElementById("btn-beach").setAttribute("aria-pressed", String(m === "beach"));
+    document.getElementById("modeLabel").textContent = MODE_LABEL[m];
+    moveThumb();
+    render();
+  }
+
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = cur ? (cur === "dark" ? "light" : "dark") : (sysDark ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", next);
+  }
+
+  render();
+  window.addEventListener("load", moveThumb);
+  window.addEventListener("resize", moveThumb);
+  moveThumb();
+</script>
