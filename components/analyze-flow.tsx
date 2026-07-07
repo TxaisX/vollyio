@@ -175,7 +175,9 @@ export function AnalyzeFlow() {
           <input
             ref={videoInput}
             type="file"
-            accept="video/*"
+            // No `accept="video/*"`: some Android devices read the video
+            // wildcard as a capture intent and jump straight to the camera.
+            // Omitting it opens the file/gallery picker instead.
             hidden
             onChange={onVideoPicked}
           />
