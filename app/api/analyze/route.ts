@@ -169,6 +169,7 @@ export async function POST(req: NextRequest) {
     id: analysisId,
     user_id: user.id,
     skill,
+    discipline,
     source,
     duration_s,
     frame_count: frames.length,
@@ -187,15 +188,20 @@ export async function POST(req: NextRequest) {
     .select("rating, analyses_count")
     .eq("user_id", user.id)
     .eq("skill", skill)
+    .eq("discipline", discipline)
     .maybeSingle();
 
-  await supabase.from("skill_ratings").upsert({
-    user_id: user.id,
-    skill,
-    rating: updateRating(prev?.rating ?? null, result.overall_score),
-    analyses_count: (prev?.analyses_count ?? 0) + 1,
-    updated_at: new Date().toISOString(),
-  });
+  await supabase.from("skill_ratings").upsert(
+    {
+      user_id: user.id,
+      skill,
+      discipline,
+      rating: updateRating(prev?.rating ?? null, result.overall_score),
+      analyses_count: (prev?.analyses_count ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,skill,discipline" },
+  );
 
   const awarded = await awardXp(
     supabase,

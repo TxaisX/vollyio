@@ -7,6 +7,7 @@
    - `supabase/migrations/001_core.sql`
    - `supabase/migrations/002_analysis.sql`
    - `supabase/migrations/003_phase2.sql` (Phase 2 tables; optional until those features ship)
+   - `supabase/migrations/004_discipline.sql` (beach support: scopes skill ratings per discipline)
 4. Authentication → URL Configuration: set the Site URL and add the deployed domain as a redirect URL.
 
 ## 2. Environment
