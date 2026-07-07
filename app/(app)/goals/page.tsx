@@ -36,7 +36,9 @@ export default async function Goals() {
       supabase
         .from("skill_ratings")
         .select("skill, rating")
-        .eq("user_id", user!.id),
+        .eq("user_id", user!.id)
+        // Goals are indoor-scoped for now; beach goal tracking is a follow-up.
+        .eq("discipline", "indoor"),
     ]);
 
   const active = (activeData as Goal[] | null) ?? [];

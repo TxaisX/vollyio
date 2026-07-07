@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
     supabase
       .from("skill_ratings")
       .select("skill, rating, analyses_count")
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      // Coach context uses indoor ratings for now; per-discipline context is a follow-up.
+      .eq("discipline", "indoor"),
     supabase
       .from("analyses")
       .select("skill, overall_score, result, created_at")
