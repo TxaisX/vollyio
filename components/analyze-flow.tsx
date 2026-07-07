@@ -10,7 +10,13 @@ import {
   extractFramesFromPhotos,
   type Frame,
 } from "@/lib/frames";
-import { SKILL_LABEL, type Skill } from "@/lib/skills";
+import {
+  SKILL_LABEL,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  type Skill,
+  type Discipline,
+} from "@/lib/skills";
 import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
@@ -37,6 +43,7 @@ export function AnalyzeFlow() {
   const [duration, setDuration] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [useUpload, setUseUpload] = useState(false);
+  const [discipline, setDiscipline] = useState<Discipline>("indoor");
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
 
@@ -47,6 +54,7 @@ export function AnalyzeFlow() {
     setStatus({ kind: "sending" });
     const body: AnalyzeRequest = {
       skill,
+      discipline,
       source: src,
       duration_s: dur,
       frames: payloadFrames.map((f) => ({
@@ -148,6 +156,23 @@ export function AnalyzeFlow() {
       <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
         Film the rep.
       </h1>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
+          Discipline
+        </span>
+        {DISCIPLINES.map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => setDiscipline(d)}
+            aria-pressed={discipline === d}
+            className={`chip ${discipline === d ? "chip-active" : ""}`}
+          >
+            {DISCIPLINE_LABEL[d]}
+          </button>
+        ))}
+      </div>
 
       <div className="mt-8">
         <h2 className="mb-3 flex items-center gap-2 font-display text-sm font-bold">

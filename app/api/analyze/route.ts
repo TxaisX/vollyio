@@ -4,13 +4,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { coach, MODEL } from "@/lib/ai/client";
 import { analysisSchema } from "@/lib/ai/schema";
-import { RUBRIC } from "@/lib/ai/rubrics";
+import { getRubric } from "@/lib/ai/rubrics";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { updateRating } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
-import { SKILLS, SKILL_LABEL } from "@/lib/skills";
+import { SKILLS, SKILL_LABEL, DISCIPLINES } from "@/lib/skills";
 import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
 
 export const runtime = "nodejs";
@@ -18,6 +18,7 @@ export const maxDuration = 120;
 
 const bodySchema = z.object({
   skill: z.enum(SKILLS),
+  discipline: z.enum(DISCIPLINES).default("indoor"),
   source: z.enum(["video", "photos"]),
   duration_s: z.number().nullable(),
   frames: z
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!parsedBody.success) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const { skill, source, duration_s, frames } = parsedBody.data;
+  const { skill, discipline, source, duration_s, frames } = parsedBody.data;
 
   const supabase = await createClient();
   const {
@@ -96,7 +97,11 @@ export async function POST(req: NextRequest) {
         model: MODEL,
         max_tokens: 4096,
         system: [
-          { type: "text", text: RUBRIC[skill], cache_control: { type: "ephemeral" } },
+          {
+            type: "text",
+            text: getRubric(skill, discipline),
+            cache_control: { type: "ephemeral" },
+          },
         ],
         messages: [
           {
@@ -105,7 +110,7 @@ export async function POST(req: NextRequest) {
               ...content,
               {
                 type: "text",
-                text: `Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
+                text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
               },
             ],
           },
@@ -145,6 +150,8 @@ export async function POST(req: NextRequest) {
       );
     }
   }
+
+  result.discipline = discipline;
 
   const analysisId = crypto.randomUUID();
 

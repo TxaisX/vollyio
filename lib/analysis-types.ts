@@ -1,4 +1,4 @@
-import type { Skill } from "@/lib/skills";
+import type { Skill, Discipline } from "@/lib/skills";
 
 export type AnalyzeRequestFrame = {
   index: number;
@@ -8,6 +8,7 @@ export type AnalyzeRequestFrame = {
 
 export type AnalyzeRequest = {
   skill: Skill;
+  discipline: Discipline;
   source: "video" | "photos";
   duration_s: number | null;
   frames: AnalyzeRequestFrame[];
@@ -29,6 +30,7 @@ export type PriorityFix = {
 
 export type AnalysisResult = {
   skill: Skill;
+  discipline?: Discipline;
   overall_score: number;
   metrics: Metric[];
   insights: Insight[];
