@@ -99,10 +99,19 @@ export function AnalyzeFlow() {
     if (!file) return;
     setStatus({ kind: "reading" });
     try {
-      const { frames: f, duration_s } = await extractFrames(file);
-      setFrames(f);
-      setSource("video");
-      setDuration(duration_s);
+      // The gallery picker can return a still image as well as a video —
+      // handle whichever the player chose.
+      if (file.type.startsWith("image/")) {
+        const f = await extractFramesFromPhotos([file]);
+        setFrames(f);
+        setSource("photos");
+        setDuration(null);
+      } else {
+        const { frames: f, duration_s } = await extractFrames(file);
+        setFrames(f);
+        setSource("video");
+        setDuration(duration_s);
+      }
       setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
@@ -175,9 +184,10 @@ export function AnalyzeFlow() {
           <input
             ref={videoInput}
             type="file"
-            // No `accept="video/*"`: some Android devices read the video
-            // wildcard as a capture intent and jump straight to the camera.
-            // Omitting it opens the file/gallery picker instead.
+            // Lead with image/* so Android opens the media gallery picker
+            // rather than treating video/* as a capture intent and jumping
+            // straight to the camera. onVideoPicked handles either type.
+            accept="image/*,video/*"
             hidden
             onChange={onVideoPicked}
           />
