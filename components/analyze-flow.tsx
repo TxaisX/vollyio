@@ -15,6 +15,20 @@ import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
 
+function WorkingDots() {
+  return (
+    <span className="inline-flex gap-1" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal"
+          style={{ animationDelay: `${i * 200}ms` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function AnalyzeFlow() {
   const router = useRouter();
   const [skill, setSkill] = useState<Skill | null>(null);
@@ -51,8 +65,10 @@ export function AnalyzeFlow() {
         const { error } = await res.json().catch(() => ({ error: null }));
         throw new Error(error ?? "The coaching service is unavailable. Try again.");
       }
-      const { analysisId } = await res.json();
-      router.push(`/analysis/${analysisId}`);
+      const { analysisId, xpAwarded } = await res.json();
+      router.push(
+        `/analysis/${analysisId}${xpAwarded ? `?xp=${xpAwarded}` : ""}`,
+      );
     } catch (err) {
       setStatus({
         kind: "error",
@@ -79,6 +95,7 @@ export function AnalyzeFlow() {
 
   async function onVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setStatus({ kind: "reading" });
     try {
@@ -97,6 +114,7 @@ export function AnalyzeFlow() {
 
   async function onPhotosPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
     if (files.length === 0) return;
     setStatus({ kind: "reading" });
     try {
@@ -115,9 +133,14 @@ export function AnalyzeFlow() {
 
   return (
     <section className="max-w-xl">
-      <h1 className="font-display text-2xl font-bold">Analyze</h1>
+      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+        Analyze
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+        Film the rep.
+      </h1>
 
-      <div className="mt-6">
+      <div className="mt-8">
         <h2 className="mb-3 flex items-center gap-2 font-display text-sm font-bold">
           <span className="font-mono text-xs text-gold">01</span> Pick a skill
         </h2>
@@ -125,7 +148,7 @@ export function AnalyzeFlow() {
       </div>
 
       {skill && (
-        <div className="mt-8">
+        <div className="mt-8 animate-fade-up">
           <h2 className="mb-3 flex items-center gap-2 font-display text-sm font-bold">
             <span className="font-mono text-xs text-gold">02</span> Capture your{" "}
             {SKILL_LABEL[skill].toLowerCase()} rep
@@ -134,15 +157,16 @@ export function AnalyzeFlow() {
           {!useUpload ? (
             <Recorder onClip={onRecorded} onUnavailable={() => setUseUpload(true)} />
           ) : (
-            <div className="rounded-lg border border-dashed border-gold/40 p-6 text-center">
+            <div className="card border-dashed border-gold/40 p-8 text-center">
               <button
                 type="button"
                 onClick={() => videoInput.current?.click()}
-                className="font-display font-medium text-gold"
+                disabled={busy}
+                className="btn-ghost mx-auto text-sm"
               >
-                + Upload a clip
+                Upload a clip
               </button>
-              <p className="mt-1 text-xs text-chalk-dim">
+              <p className="mt-3 text-xs text-chalk-dim">
                 A few seconds, up to 45. Any angle you can get.
               </p>
             </div>
@@ -165,43 +189,66 @@ export function AnalyzeFlow() {
             onChange={onPhotosPicked}
           />
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-chalk-dim">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setUseUpload((v) => !v)}
-              className="text-gold underline"
+              disabled={busy}
+              className="chip"
             >
               {useUpload ? "Record in-app instead" : "Upload a clip instead"}
             </button>
             <button
               type="button"
               onClick={() => photoInput.current?.click()}
-              className="text-gold underline"
+              disabled={busy}
+              className="chip"
             >
               Use photos instead
             </button>
           </div>
 
           {frames.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-5 animate-fade-up">
               <Filmstrip frames={frames} />
-              {source === "photos" || useUpload ? (
+              {(source === "photos" || useUpload) && (
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => submit(frames, source, duration)}
-                  className="mt-4 w-full rounded-lg bg-gold py-3 font-display font-bold text-navy transition hover:bg-gold-dim disabled:opacity-40"
+                  className="btn-primary mt-4 w-full disabled:opacity-40"
                 >
                   Break it down
                 </button>
-              ) : null}
+              )}
             </div>
           )}
 
-          <div className="mt-3 min-h-5 font-mono text-sm">
-            {status.kind === "reading" && <span className="text-teal">Pulling key frames…</span>}
-            {status.kind === "sending" && <span className="text-teal">Sending to your coach…</span>}
-            {status.kind === "error" && <span className="text-coral">{status.message}</span>}
+          <div className="mt-4 min-h-6 font-mono text-sm" aria-live="polite">
+            {status.kind === "reading" && (
+              <span className="flex items-center gap-2.5 text-teal">
+                <WorkingDots /> Pulling key frames…
+              </span>
+            )}
+            {status.kind === "sending" && (
+              <span className="flex items-center gap-2.5 text-teal">
+                <WorkingDots /> Scoring your rep, frame by frame…
+              </span>
+            )}
+            {status.kind === "error" && (
+              <div className="animate-fade-up">
+                <span className="text-coral">{status.message}</span>
+                {frames.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => submit(frames, source, duration)}
+                    className="btn-ghost mt-3 block px-4 py-2 text-sm"
+                  >
+                    Send it again
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 export function Sparkline({
   values,
   width = 96,
@@ -7,6 +11,12 @@ export function Sparkline({
   width?: number;
   height?: number;
 }) {
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   if (values.length < 2) {
     return <div style={{ width, height }} className="rounded bg-line/40" />;
   }
@@ -26,6 +36,10 @@ export function Sparkline({
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={drawn ? 0 : 1}
+        style={{ transition: "stroke-dashoffset 1s var(--ease-court)" }}
       />
     </svg>
   );

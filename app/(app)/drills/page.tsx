@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { drillsForSkill } from "@/content/drills";
+import { Reveal } from "@/components/motion";
+import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL } from "@/lib/skills";
 import type { Level } from "@/lib/skills";
 
@@ -20,26 +22,38 @@ const LEVEL_CLASS: Record<Level, string> = {
 export default function Drills() {
   return (
     <section className="max-w-3xl">
-      <h1 className="font-display text-2xl font-bold">Drills</h1>
-      <p className="mt-2 text-sm text-chalk-dim">
-        Step-by-step work for every skill, beginner to elite.
-      </p>
+      <Reveal>
+        <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          Drills
+        </p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+          The library
+        </h1>
+        <p className="mt-2 text-sm text-chalk-dim">
+          Step-by-step work for every skill, beginner to elite.
+        </p>
+      </Reveal>
 
       <div className="mt-8 space-y-10">
-        {SKILLS.map((skill) => {
+        {SKILLS.map((skill, si) => {
           const drills = [...drillsForSkill(skill)].sort(
             (a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level],
           );
           if (drills.length === 0) return null;
           return (
-            <div key={skill}>
-              <h2 className="mb-3 font-display text-lg font-bold">{SKILL_LABEL[skill]}</h2>
+            <Reveal key={skill} delay={Math.min(si, 2) * 70}>
+              <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
+                <span className="text-gold">
+                  <SkillIcon skill={skill} className="h-5 w-5" />
+                </span>
+                {SKILL_LABEL[skill]}
+              </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {drills.map((d) => (
                   <Link
                     key={d.slug}
                     href={`/drills/${d.slug}`}
-                    className="rounded-lg border border-line bg-navy-light p-4 transition hover:border-gold/50"
+                    className="card card-lift p-4"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-display font-bold">{d.name}</span>
@@ -50,11 +64,13 @@ export default function Drills() {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-chalk-dim">{d.summary}</p>
-                    <p className="mt-2 font-mono text-[10px] text-chalk-dim">{d.duration_min} min</p>
+                    <p className="mt-2 font-mono text-[10px] text-chalk-dim">
+                      {d.duration_min} min
+                    </p>
                   </Link>
                 ))}
               </div>
-            </div>
+            </Reveal>
           );
         })}
       </div>

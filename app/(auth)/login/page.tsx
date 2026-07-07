@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Reveal } from "@/components/motion";
+import { SeamArcs } from "@/components/motif";
 import { login } from "../actions";
 
 export default async function Login({
@@ -9,40 +11,72 @@ export default async function Login({
   const { error, message } = await searchParams;
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-sm rounded-xl border border-line bg-navy-light p-6">
-        <h1 className="font-display text-xl font-bold">Log in</h1>
-        {message && <p className="mt-3 text-sm text-teal">{message}</p>}
-        {error && <p className="mt-3 text-sm text-coral">{error}</p>}
-        <form action={login} className="mt-5 flex flex-col gap-3">
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email"
-            className="rounded-lg border border-line bg-navy px-4 py-3 text-sm placeholder:text-chalk-dim focus:border-gold focus:outline-none"
-          />
-          <input
-            name="password"
-            type="password"
-            required
-            placeholder="Password"
-            className="rounded-lg border border-line bg-navy px-4 py-3 text-sm placeholder:text-chalk-dim focus:border-gold focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="mt-2 rounded-lg bg-gold px-4 py-3 font-display font-bold text-navy transition hover:bg-gold-dim"
-          >
-            Log in
-          </button>
-        </form>
-        <p className="mt-4 text-sm text-chalk-dim">
+    <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
+      <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.08} />
+      <Reveal className="relative w-full max-w-sm">
+        <Link
+          href="/"
+          className="mb-6 block text-center font-display text-2xl font-bold tracking-tight"
+        >
+          Sideout
+        </Link>
+        <div className="card p-7 shadow-lift">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            Welcome back
+          </p>
+          <h1 className="mt-2 font-display text-2xl font-bold">Log in</h1>
+          {message && <p className="mt-3 text-sm text-teal">{message}</p>}
+          {error && <p className="mt-3 text-sm text-coral">{error}</p>}
+          <form action={login} className="mt-6 flex flex-col gap-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@club.com"
+                className="input-field text-sm"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="input-field text-sm"
+              />
+            </div>
+            <button type="submit" className="btn-primary mt-2 w-full">
+              Log in
+            </button>
+          </form>
+        </div>
+        <p className="mt-5 text-center text-sm text-chalk-dim">
           New here?{" "}
-          <Link href="/signup" className="text-gold underline">
+          <Link
+            href="/signup"
+            className="text-gold underline-offset-4 transition-colors hover:underline"
+          >
             Create an account
           </Link>
         </p>
-      </div>
+      </Reveal>
     </main>
   );
 }

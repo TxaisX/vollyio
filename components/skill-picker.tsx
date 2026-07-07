@@ -1,6 +1,7 @@
 "use client";
 
 import { SKILLS, SKILL_LABEL, SKILL_BLURB, type Skill } from "@/lib/skills";
+import { SkillIcon } from "@/components/skill-icons";
 
 export function SkillPicker({
   value,
@@ -18,14 +19,20 @@ export function SkillPicker({
             key={skill}
             type="button"
             onClick={() => onChange(skill)}
-            className={`rounded-lg border p-4 text-left transition ${
-              active
-                ? "border-gold bg-gold/10"
-                : "border-line bg-navy-light hover:border-gold/50"
+            aria-pressed={active}
+            className={`card card-lift cursor-pointer p-4 text-left ${
+              active ? "border-gold bg-gold/10" : ""
             }`}
           >
-            <div className="font-display font-bold">{SKILL_LABEL[skill]}</div>
-            <div className="mt-1 text-xs text-chalk-dim">{SKILL_BLURB[skill]}</div>
+            <div className="flex items-center gap-2">
+              <span className={active ? "text-gold" : "text-chalk-dim"}>
+                <SkillIcon skill={skill} className="h-5 w-5" />
+              </span>
+              <span className="font-display font-bold">{SKILL_LABEL[skill]}</span>
+            </div>
+            <div className="mt-2 text-xs leading-relaxed text-chalk-dim">
+              {SKILL_BLURB[skill]}
+            </div>
           </button>
         );
       })}

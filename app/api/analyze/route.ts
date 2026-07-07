@@ -8,6 +8,7 @@ import { RUBRIC } from "@/lib/ai/rubrics";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { updateRating } from "@/lib/ratings";
+import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
 import { SKILLS, SKILL_LABEL } from "@/lib/skills";
 import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
@@ -189,5 +190,15 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   });
 
-  return NextResponse.json({ analysisId });
+  const awarded = await awardXp(
+    supabase,
+    user.id,
+    XP_AWARDS.analysis,
+    `analysis:${analysisId}`,
+  );
+
+  return NextResponse.json({
+    analysisId,
+    xpAwarded: awarded ? XP_AWARDS.analysis : 0,
+  });
 }

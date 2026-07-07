@@ -87,13 +87,9 @@ export function Recorder({
   }
 
   return (
-    <div className="rounded-lg border border-line bg-navy-light p-4">
+    <div className="card p-4">
       {phase === "idle" ? (
-        <button
-          type="button"
-          onClick={enable}
-          className="w-full rounded-lg bg-gold py-3 font-display font-bold text-navy transition hover:bg-gold-dim"
-        >
+        <button type="button" onClick={enable} className="btn-primary w-full">
           Record a rep
         </button>
       ) : (
@@ -103,24 +99,20 @@ export function Recorder({
             <video ref={videoRef} muted playsInline className="w-full" />
             {phase === "recording" && (
               <span className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-coral">
-                <span className="h-2 w-2 rounded-full bg-coral" />
+                <span className="h-2 w-2 animate-pulse-dot rounded-full bg-coral" />
                 {elapsed.toFixed(1)}s / {MAX_CLIP_SECONDS}s
               </span>
             )}
           </div>
           {phase === "ready" ? (
-            <button
-              type="button"
-              onClick={start}
-              className="rounded-lg bg-gold py-3 font-display font-bold text-navy transition hover:bg-gold-dim"
-            >
+            <button type="button" onClick={start} className="btn-primary w-full">
               Start
             </button>
           ) : (
             <button
               type="button"
               onClick={stop}
-              className="rounded-lg bg-coral py-3 font-display font-bold text-navy transition"
+              className="w-full rounded-control bg-coral py-3 font-display font-bold text-navy transition hover:brightness-110"
             >
               Stop &amp; analyze
             </button>
