@@ -176,7 +176,6 @@ export function AnalyzeFlow() {
             ref={videoInput}
             type="file"
             accept="video/*"
-            capture="environment"
             hidden
             onChange={onVideoPicked}
           />
