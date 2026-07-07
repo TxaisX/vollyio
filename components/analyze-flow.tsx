@@ -191,7 +191,15 @@ export function AnalyzeFlow() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setUseUpload((v) => !v)}
+              onClick={() => {
+                if (useUpload) {
+                  setUseUpload(false);
+                } else {
+                  // Skip the recorder — open the file picker straight away.
+                  setUseUpload(true);
+                  videoInput.current?.click();
+                }
+              }}
               disabled={busy}
               className="chip"
             >
