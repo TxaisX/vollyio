@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { RetryButton } from "./retry-button";
 
 export const metadata: Metadata = {
   title: "Offline",
@@ -13,6 +15,12 @@ export default function Offline() {
         Sideout needs a connection to analyze reps. Your saved analyses will be
         here when you're back online.
       </p>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+        <RetryButton />
+        <Link href="/dashboard" className="btn-ghost">
+          Back to dashboard
+        </Link>
+      </div>
     </main>
   );
 }

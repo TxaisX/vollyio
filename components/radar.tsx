@@ -12,11 +12,15 @@ export function Radar({
 }) {
   const cx = size / 2;
   const cy = size / 2;
-  const rMax = size * 0.36;
+  const rMax = size * 0.34;
   const n = SKILLS.length;
 
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDrawn(true);
+      return;
+    }
     const raf = requestAnimationFrame(() => setDrawn(true));
     return () => cancelAnimationFrame(raf);
   }, []);
@@ -30,20 +34,26 @@ export function Radar({
     SKILLS.map((_, i) => point(i, rMax * f).join(",")).join(" "),
   );
 
-  const filled = SKILLS.map((s, i) => {
-    const v = ratings[s];
-    return point(i, rMax * ((v ?? 0) / 100)).join(",");
-  }).join(" ");
+  const rated = SKILLS.map((s, i) => ({ s, i, v: ratings[s] })).filter(
+    (o): o is { s: Skill; i: number; v: number } => o.v != null,
+  );
+  const hasData = rated.length > 0;
 
-  const summary = SKILLS.filter((s) => ratings[s] != null)
-    .map((s) => `${SKILL_LABEL[s]} ${Math.round(ratings[s]!)}`)
+  const filled = rated
+    .map((o) =>
+      point(o.i, rMax * (Math.max(0, Math.min(100, o.v)) / 100)).join(","),
+    )
+    .join(" ");
+
+  const summary = rated
+    .map((o) => `${SKILL_LABEL[o.s]} ${Math.round(Math.max(0, Math.min(100, o.v)))}`)
     .join(", ");
 
   return (
     <svg
       width={size}
       height={size}
-      className="overflow-visible"
+      className="overflow-hidden"
       role="img"
       aria-label={
         summary
@@ -58,32 +68,44 @@ export function Radar({
         const [x, y] = point(i, rMax);
         return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--color-line)" />;
       })}
-      <g
-        style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          transform: drawn ? "scale(1)" : "scale(0.2)",
-          opacity: drawn ? 1 : 0,
-          transition:
-            "transform 0.8s var(--ease-court), opacity 0.5s var(--ease-court)",
-        }}
-      >
-        <polygon
-          points={filled}
-          fill="var(--color-gold)"
-          fillOpacity={0.25}
-          stroke="var(--color-gold)"
-          strokeWidth={2}
-        />
-        {SKILLS.map((s, i) => {
-          const v = ratings[s];
-          if (v == null) return null;
-          const [x, y] = point(i, rMax * (v / 100));
-          return <circle key={s} cx={x} cy={y} r={3} fill="var(--color-gold)" />;
-        })}
-      </g>
+      {hasData ? (
+        <g
+          style={{
+            transformOrigin: `${cx}px ${cy}px`,
+            transform: drawn ? "scale(1)" : "scale(0.2)",
+            opacity: drawn ? 1 : 0,
+            transition:
+              "transform 0.8s var(--ease-court), opacity 0.5s var(--ease-court)",
+          }}
+        >
+          <polygon
+            points={filled}
+            fill="var(--color-gold)"
+            fillOpacity={0.25}
+            stroke="var(--color-gold)"
+            strokeWidth={2}
+          />
+          {rated.map((o) => {
+            const [x, y] = point(o.i, rMax * (Math.max(0, Math.min(100, o.v)) / 100));
+            return <circle key={o.s} cx={x} cy={y} r={3} fill="var(--color-gold)" />;
+          })}
+        </g>
+      ) : (
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="font-mono"
+          style={{ fontSize: size * 0.055 }}
+          fill="var(--color-chalk-dim)"
+        >
+          No reps yet
+        </text>
+      )}
       {SKILLS.map((s, i) => {
-        const [x, y] = point(i, rMax * 1.18);
-        const rated = ratings[s] != null;
+        const [x, y] = point(i, rMax * 1.16);
+        const isRated = ratings[s] != null;
         return (
           <text
             key={s}
@@ -91,8 +113,9 @@ export function Radar({
             y={y}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="font-mono text-[10px]"
-            fill={rated ? "var(--color-chalk)" : "var(--color-chalk-dim)"}
+            className="font-mono"
+            style={{ fontSize: size * 0.052 }}
+            fill={isRated ? "var(--color-chalk)" : "var(--color-chalk-dim)"}
           >
             {SKILL_LABEL[s]}
           </text>

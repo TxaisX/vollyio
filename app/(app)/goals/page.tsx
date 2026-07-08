@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SKILL_LABEL, type Skill } from "@/lib/skills";
 import {
@@ -8,6 +9,11 @@ import {
 } from "@/components/goals";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Goals",
+  description: "Aim each training block at one number instead of vague reps.",
+};
 
 type DoneRow = { id: string; skill: Skill | null; title: string };
 type RatingRow = { skill: Skill; rating: number };
@@ -39,6 +45,8 @@ export default async function Goals() {
         .eq("user_id", user!.id),
     ]);
 
+  // Known gap (R-CGSH-2): failed fetches coerce to empty here rather than
+  // distinguishing a fetch error from a genuinely empty goals list.
   const active = (activeData as Goal[] | null) ?? [];
   const done = (doneData as DoneRow[] | null) ?? [];
   const ratings = Object.fromEntries(

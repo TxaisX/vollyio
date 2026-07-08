@@ -19,6 +19,7 @@ const icon = (paths: React.ReactNode) => (
     strokeLinejoin="round"
     className="h-5 w-5 shrink-0"
     aria-hidden
+    focusable="false"
   >
     {paths}
   </svg>
@@ -80,6 +81,8 @@ const TAB_NAV: NavItem[] = [
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze },
   { href: "/coach", label: "Coach", icon: ICONS.coach },
   { href: "/scoreboard", label: "Games", icon: ICONS.scoreboard },
+  { href: "/goals", label: "Goals", icon: ICONS.goals },
+  { href: "/history", label: "History", icon: ICONS.history },
   { href: "/drills", label: "Drills", icon: ICONS.drills },
 ];
 
@@ -90,29 +93,30 @@ function isActive(pathname: string, href: string) {
 export function SideNavLinks() {
   const pathname = usePathname();
   return (
-    <>
+    <ul className="flex flex-col gap-1">
       {SIDE_NAV.map((item) => {
         const active = isActive(pathname, item.href);
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={`relative flex items-center gap-3 rounded-control px-3 py-2.5 text-sm transition-colors ${
-              active
-                ? "bg-navy-lighter font-medium text-chalk"
-                : "text-chalk-dim hover:bg-navy-light hover:text-chalk"
-            }`}
-          >
-            {active && (
-              <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
-            )}
-            <span className={active ? "text-gold" : ""}>{item.icon}</span>
-            {item.label}
-          </Link>
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex min-h-11 items-center gap-3 rounded-control px-3 py-2.5 text-sm transition-colors ${
+                active
+                  ? "bg-navy-lighter font-medium text-chalk"
+                  : "text-chalk-dim hover:bg-navy-light hover:text-chalk"
+              }`}
+            >
+              {active && (
+                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
+              )}
+              <span className={active ? "text-gold" : ""}>{item.icon}</span>
+              {item.label}
+            </Link>
+          </li>
         );
       })}
-    </>
+    </ul>
   );
 }
 
@@ -120,29 +124,40 @@ export function TabBar() {
   const pathname = usePathname();
   return (
     <nav
+      aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 backdrop-blur-md md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex">
+      <ul className="flex">
         {TAB_NAV.map((item) => {
           const active = isActive(pathname, item.href);
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors ${
-                active ? "text-gold" : "text-chalk-dim"
-              }`}
-            >
-              {item.icon}
-              <span className="font-mono text-[9px] uppercase tracking-[0.08em]">
-                {item.label}
-              </span>
-            </Link>
+            <li key={item.href} className="flex-1">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 py-2 transition-colors ${
+                  active ? "text-gold" : "text-chalk-dim"
+                }`}
+              >
+                {/* Non-color active signal: a top indicator bar plus a
+                    heavier label, mirroring the sidebar's treatment. */}
+                {active && (
+                  <span className="absolute left-1/2 top-0 h-0.5 w-7 -translate-x-1/2 rounded-full bg-gold" />
+                )}
+                {item.icon}
+                <span
+                  className={`whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.02em] ${
+                    active ? "font-medium" : ""
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

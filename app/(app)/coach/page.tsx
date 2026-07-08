@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { CoachChat } from "@/components/coach-chat";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Coach",
+  description:
+    "Ask your coach anything. Every answer comes from your own scores and goals.",
+};
 
 type Row = {
   id: string;
@@ -23,6 +30,8 @@ export default async function Coach() {
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
+  // distinguishing a fetch error from a genuinely empty history.
   const messages = (((data as Row[] | null) ?? [])).slice().reverse();
 
   return (

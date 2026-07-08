@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, MODEL } from "@/lib/ai/client";
+import { coach, COACH_MODEL } from "@/lib/ai/client";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
 import { DRILLS, drillsForSkill } from "@/content/drills";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
@@ -158,12 +158,17 @@ export async function POST(req: NextRequest) {
             await new Promise((r) => setTimeout(r, 40));
           }
         } else {
-          const events = coach().messages.stream({
-            model: MODEL,
-            max_tokens: 1024,
-            system,
-            messages: chatMessages,
-          });
+          const events = coach().messages.stream(
+            {
+              model: COACH_MODEL,
+              max_tokens: 1024,
+              system,
+              messages: chatMessages,
+            },
+            // Exponential backoff on 429/5xx from the coaching service (CS-7);
+            // the SDK honors Retry-After and jitters between attempts.
+            { maxRetries: 4 },
+          );
           for await (const event of events) {
             if (
               event.type === "content_block_delta" &&

@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "echo \"No ESLint config this phase; type safety is enforced by the typecheck script.\"",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

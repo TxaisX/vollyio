@@ -17,47 +17,63 @@ export function MetricBar({
   const [drawn, setDrawn] = useState(false);
   const [shown, setShown] = useState(0);
 
+  const clamped = Math.max(0, Math.min(100, score));
+  const valueNow = Math.round(clamped);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setDrawn(true);
-      setShown(score);
+      setShown(valueNow);
       return;
     }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let raf = 0;
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
-        const t = setTimeout(() => {
+        timer = setTimeout(() => {
           setDrawn(true);
           const start = performance.now();
           const tick = (now: number) => {
             const p = Math.min(1, (now - start) / 800);
-            setShown(Math.round(score * (1 - Math.pow(1 - p, 3))));
-            if (p < 1) requestAnimationFrame(tick);
+            setShown(Math.round(clamped * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) raf = requestAnimationFrame(tick);
           };
-          requestAnimationFrame(tick);
+          raf = requestAnimationFrame(tick);
         }, delay);
-        return () => clearTimeout(t);
       },
       { threshold: 0.4 },
     );
     io.observe(el);
-    return () => io.disconnect();
-  }, [score, delay]);
+    return () => {
+      io.disconnect();
+      if (timer) clearTimeout(timer);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [clamped, valueNow, delay]);
 
   return (
     <div ref={ref}>
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm">{label}</span>
-        <span className="font-mono text-xs text-gold">{shown}</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-sm">{label}</span>
+        <span className="shrink-0 font-mono text-xs text-gold">{shown}</span>
       </div>
-      <div className="mt-1 h-1.5 rounded-full bg-line">
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuenow={valueNow}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuetext={`${valueNow} out of 100`}
+        className="mt-1 h-1.5 overflow-hidden rounded-full bg-line"
+      >
         <div
           className="h-full rounded-full bg-gold"
           style={{
-            width: drawn ? `${score}%` : "0%",
+            width: drawn ? `${clamped}%` : "0%",
             transition: "width 0.8s var(--ease-court)",
           }}
         />

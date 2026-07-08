@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/motion";
 
 type ChatMessage = {
@@ -25,7 +25,96 @@ function timeLabel(iso: string) {
   });
 }
 
-export function CoachChat({ initialMessages }: { initialMessages: ChatMessage[] }) {
+const INLINE =
+  /(\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`]+)`)/g;
+
+function renderInline(text: string, keyBase: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  let i = 0;
+  let m: RegExpExecArray | null;
+  INLINE.lastIndex = 0;
+  while ((m = INLINE.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[2] !== undefined || m[3] !== undefined) {
+      nodes.push(
+        <strong key={`${keyBase}-b${i}`} className="font-bold">
+          {m[2] ?? m[3]}
+        </strong>,
+      );
+    } else if (m[4] !== undefined || m[5] !== undefined) {
+      nodes.push(
+        <em key={`${keyBase}-i${i}`} className="italic">
+          {m[4] ?? m[5]}
+        </em>,
+      );
+    } else if (m[6] !== undefined) {
+      nodes.push(
+        <code
+          key={`${keyBase}-c${i}`}
+          className="rounded bg-navy px-1 py-0.5 font-mono text-[0.9em]"
+        >
+          {m[6]}
+        </code>,
+      );
+    }
+    last = m.index + m[0].length;
+    i++;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
+function AssistantContent({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/).filter((b) => b.trim() !== "");
+  return (
+    <div className="flex flex-col gap-2 text-sm leading-relaxed break-words">
+      {blocks.map((block, bi) => {
+        const lines = block.split("\n");
+        const isUL = lines.every((l) => /^\s*[-*]\s+/.test(l));
+        const isOL = lines.every((l) => /^\s*\d+\.\s+/.test(l));
+        if (isUL) {
+          return (
+            <ul key={bi} className="ml-4 list-disc space-y-1">
+              {lines.map((l, li) => (
+                <li key={li}>
+                  {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${bi}-${li}`)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (isOL) {
+          return (
+            <ol key={bi} className="ml-4 list-decimal space-y-1">
+              {lines.map((l, li) => (
+                <li key={li}>
+                  {renderInline(l.replace(/^\s*\d+\.\s+/, ""), `${bi}-${li}`)}
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        return (
+          <p key={bi}>
+            {lines.map((l, li) => (
+              <span key={li}>
+                {li > 0 && <br />}
+                {renderInline(l, `${bi}-${li}`)}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+export function CoachChat({
+  initialMessages,
+}: {
+  initialMessages: ChatMessage[];
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -99,7 +188,10 @@ export function CoachChat({ initialMessages }: { initialMessages: ChatMessage[] 
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
           if (lastMessage?.id === assistantId) {
-            return [...prev.slice(0, -1), { ...lastMessage, content: received }];
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMessage, content: received },
+            ];
           }
           return [
             ...prev,
@@ -151,10 +243,12 @@ export function CoachChat({ initialMessages }: { initialMessages: ChatMessage[] 
         {messages.length === 0 && (
           <Reveal>
             <div className="card p-5">
-              <p className="font-display font-bold">Your coach knows your game.</p>
+              <p className="font-display font-bold">
+                Your coach knows your game.
+              </p>
               <p className="mt-1 text-sm text-chalk-dim">
-                Ask about your scores, your priority fixes, or what to train next.
-                Every answer comes from your own analyses.
+                Ask about your scores, your priority fixes, or what to train
+                next. Every answer comes from your own analyses.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s) => (
@@ -173,35 +267,49 @@ export function CoachChat({ initialMessages }: { initialMessages: ChatMessage[] 
           </Reveal>
         )}
 
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
-          >
+        <div role="log" aria-live="polite" className="flex flex-col gap-4">
+          {messages.map((m) => (
             <div
-              className={
-                m.role === "user"
-                  ? "max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm text-navy"
-                  : "max-w-[85%] rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-2.5 text-sm text-chalk"
-              }
+              key={m.id}
+              className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
             >
-              <p className="whitespace-pre-wrap break-words">{m.content}</p>
+              <div
+                className={
+                  m.role === "user"
+                    ? "max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm text-navy"
+                    : "max-w-[85%] rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-2.5 text-sm text-chalk"
+                }
+              >
+                <span className="sr-only">
+                  {m.role === "user" ? "You:" : "Coach:"}
+                </span>
+                {m.role === "assistant" ? (
+                  <AssistantContent text={m.content} />
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                )}
+              </div>
+              <span
+                suppressHydrationWarning
+                className="mt-1 px-1 font-mono text-[10px] text-chalk-dim"
+              >
+                {timeLabel(m.created_at)}
+              </span>
             </div>
-            <span
-              suppressHydrationWarning
-              className="mt-1 px-1 font-mono text-[10px] text-chalk-dim"
-            >
-              {timeLabel(m.created_at)}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {waiting && (
           <div className="flex items-start">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-3.5">
+            <div
+              role="status"
+              aria-label="Coach is typing."
+              className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-3.5"
+            >
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
+                  aria-hidden="true"
                   className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-chalk-dim"
                   style={{
                     animationDuration: "1.2s",
@@ -218,12 +326,12 @@ export function CoachChat({ initialMessages }: { initialMessages: ChatMessage[] 
 
       <div className="sticky bottom-20 z-10 mt-auto bg-navy pb-1 pt-2 md:bottom-4">
         {error && (
-          <div className="mb-2 flex items-baseline gap-3 text-sm text-coral">
-            <span>{error}</span>
+          <div role="alert" className="mb-2 flex items-center gap-3">
+            <span className="text-sm text-coral">{error}</span>
             {failedText && (
               <button
                 type="button"
-                className="shrink-0 font-display font-bold underline underline-offset-2"
+                className="btn-ghost min-h-11 shrink-0 px-4 text-sm"
                 onClick={() => void send(failedText, false)}
               >
                 Retry

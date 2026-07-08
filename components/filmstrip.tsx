@@ -9,13 +9,21 @@ export function Filmstrip({
   highlight?: Set<number>;
   variant?: "strip" | "grid";
 }) {
+  if (frames.length === 0) {
+    return (
+      <div className="card border-dashed border-line p-6 text-center text-xs text-chalk-dim">
+        No frames to show for this rep.
+      </div>
+    );
+  }
+
   if (variant === "grid") {
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <ul role="list" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {frames.map((f) => {
           const on = highlight?.has(f.index);
           return (
-            <div
+            <li
               key={f.index}
               className={`relative overflow-hidden rounded-lg border-2 ${
                 on ? "border-gold" : "border-line"
@@ -34,19 +42,19 @@ export function Filmstrip({
               >
                 {f.time_s != null ? `${f.time_s}s` : f.index + 1}
               </span>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     );
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
+    <ul role="list" className="flex gap-2 overflow-x-auto pb-1">
       {frames.map((f) => {
         const on = highlight?.has(f.index);
         return (
-          <div
+          <li
             key={f.index}
             className={`relative w-24 shrink-0 overflow-hidden rounded-md border-2 ${
               on ? "border-gold" : "border-transparent"
@@ -56,7 +64,7 @@ export function Filmstrip({
             <img
               src={f.dataUrl}
               alt={`Frame ${f.index + 1}`}
-              className="block h-18 w-full object-cover"
+              className="block w-full object-cover"
               style={{ height: 72 }}
             />
             <span
@@ -66,9 +74,9 @@ export function Filmstrip({
             >
               {f.time_s != null ? `${f.time_s}s` : f.index + 1}
             </span>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

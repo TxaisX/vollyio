@@ -8,9 +8,15 @@ export function SeamArcs({
   return (
     <svg
       aria-hidden
+      focusable="false"
       viewBox="0 0 1200 600"
       fill="none"
       preserveAspectRatio="xMidYMid slice"
+      // Presentation-attribute defaults so the SVG fills its box instead of
+      // collapsing to the replaced-element default; any `w-*`/`h-*` class the
+      // caller passes still wins over these.
+      width="100%"
+      height="100%"
       className={className}
       style={{ opacity }}
     >

@@ -49,9 +49,12 @@ export function AnalyzeFlow() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [useUpload, setUseUpload] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const clipRef = useRef<Blob | null>(null);
+  const stepTwoRef = useRef<HTMLHeadingElement>(null);
+  const prevSkillRef = useRef<Skill | null>(skill);
 
   const busy = status.kind === "reading" || status.kind === "sending";
   const canSubmit = frames.length > 0 && (source === "photos" || useUpload);
@@ -63,8 +66,23 @@ export function AnalyzeFlow() {
     };
   }, [videoUrl]);
 
-  async function submit(payloadFrames: Frame[], src: "video" | "photos", dur: number | null) {
+  // Move focus into the revealed step-02 block the first time a skill is picked
+  // (null -> a value); re-picks leave focus where it is so roving arrow-key
+  // navigation in the skill radiogroup is not disrupted.
+  useEffect(() => {
+    const had = prevSkillRef.current;
+    prevSkillRef.current = skill;
+    if (!had && skill) stepTwoRef.current?.focus();
+  }, [skill]);
+
+  async function submit(
+    payloadFrames: Frame[],
+    src: "video" | "photos",
+    dur: number | null,
+    isRetry = false,
+  ) {
     if (!skill || payloadFrames.length === 0) return;
+    setRetrying(isRetry);
     setStatus({ kind: "sending" });
     const clip = src === "video" ? clipRef.current : null;
     const body: AnalyzeRequest = {
@@ -106,6 +124,7 @@ export function AnalyzeFlow() {
         `/analysis/${analysisId}${xpAwarded ? `?xp=${xpAwarded}` : ""}`,
       );
     } catch (err) {
+      setRetrying(false);
       setStatus({
         kind: "error",
         message: err instanceof Error ? err.message : "Something went wrong.",
@@ -211,7 +230,11 @@ export function AnalyzeFlow() {
 
           {skill && (
             <div className="mt-8 animate-fade-up">
-              <h2 className="mb-3 flex items-center gap-2 font-display text-sm font-bold">
+              <h2
+                ref={stepTwoRef}
+                tabIndex={-1}
+                className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
+              >
                 <span className="font-mono text-xs text-gold">02</span> Capture your{" "}
                 {SKILL_LABEL[skill].toLowerCase()} rep
               </h2>
@@ -266,7 +289,7 @@ export function AnalyzeFlow() {
                     }
                   }}
                   disabled={busy}
-                  className="chip"
+                  className="chip min-h-11"
                 >
                   {useUpload ? "Record in-app instead" : "Upload a clip instead"}
                 </button>
@@ -274,7 +297,7 @@ export function AnalyzeFlow() {
                   type="button"
                   onClick={() => photoInput.current?.click()}
                   disabled={busy}
-                  className="chip"
+                  className="chip min-h-11"
                 >
                   Use photos instead
                 </button>
@@ -308,19 +331,26 @@ export function AnalyzeFlow() {
             ) : (
               <div className="card border-dashed border-line p-10 text-center text-xs text-chalk-dim">
                 {busy
-                  ? "Working on your clip…"
-                  : "Your captured rep shows up here — full-size frames, and the clip to play back."}
+                  ? "Reading your rep…"
+                  : "Your captured rep shows up here, frame by frame."}
               </div>
             )}
 
             {canSubmit && (
               <button
                 type="button"
+                aria-busy={busy}
                 disabled={busy}
                 onClick={() => submit(frames, source, duration)}
                 className="btn-primary mt-4 w-full disabled:opacity-40"
               >
-                Break it down
+                {busy ? (
+                  <>
+                    <WorkingDots /> Break it down
+                  </>
+                ) : (
+                  "Break it down"
+                )}
               </button>
             )}
 
@@ -330,24 +360,30 @@ export function AnalyzeFlow() {
                   <WorkingDots /> Pulling key frames…
                 </span>
               )}
-              {status.kind === "sending" && (
+              {status.kind === "sending" && !retrying && (
                 <span className="flex items-center gap-2.5 text-teal">
                   <WorkingDots /> Scoring your rep, frame by frame…
                 </span>
               )}
               {status.kind === "error" && (
-                <div className="animate-fade-up">
-                  <span className="text-coral">{status.message}</span>
-                  {frames.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => submit(frames, source, duration)}
-                      className="btn-ghost mt-3 block px-4 py-2 text-sm"
-                    >
-                      Send it again
-                    </button>
+                <p className="animate-fade-up text-coral">{status.message}</p>
+              )}
+              {frames.length > 0 && (status.kind === "error" || retrying) && (
+                <button
+                  type="button"
+                  aria-busy={retrying}
+                  disabled={busy}
+                  onClick={() => submit(frames, source, duration, true)}
+                  className="btn-ghost mt-3 flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
+                >
+                  {retrying ? (
+                    <>
+                      <WorkingDots /> Scoring your rep, frame by frame…
+                    </>
+                  ) : (
+                    "Send it again"
                   )}
-                </div>
+                </button>
               )}
             </div>
           </div>

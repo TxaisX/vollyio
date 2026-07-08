@@ -18,7 +18,13 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 `npx tsc --noEmit` ; `next build` ; `node --test` — never trust a phase as done until green.
 
 ## Current position
-Phase 0 complete + committed. NEXT: Phase 1 (Jerry implements component/route fixes + section 7 view-transitions + section 10 visuals/on-page logo; Dave does boundaries, package.json scripts, viewTransition flag, tab branding, coaching-service discipline). Strategy: add sanctioned shared classes to globals.css first (Orchestrator), then fan out parallel agents on DISJOINT file sets (no two touch the same file; globals.css frozen after the pre-step), Dave-platform in parallel. Then Orchestrator runs tsc/build/test, then Phase 1 report-card round.
+Phase 1a DONE + integrated + build GREEN (tsc clean, next build 47 routes, node --test 6/0, viewTransition enabled). All 21 components + routes + api + boundaries landed. Orchestrator integration applied: tsconfig allowImportingTsExtensions; D-004 model split (COACH_MODEL=claude-sonnet-5, ANALYZE_MODEL=claude-opus-4-8) in lib/ai/client.ts + api routes; deleted stray zzpreview; regenerated favicon.ico as RGBA (Turbopack rejected RGB); promoted icon-btn shared class + wired xp-toast.
+REMAINING Phase 1 (Phase 1b, cross-agent wiring, then report cards):
+- Wiring gaps (small): dashboard Sparkline needs skill={skill} prop; analyze-flow h2 id="pick-a-skill" + SkillPicker labelledBy; goals.tsx null "—" placeholder → middot+sr-only (RING-2/D-003 precedent); confirm sidebar <nav> aria-label present.
+- On-page logo MARK graphic (G10.6-6/7): insert public/icon-mark.png into landing-nav + app-shell header (accessible name already set).
+- PWA reload copy: canonicalize Jerry-1's placeholder in copy.md (Lisa).
+- Phase 1b: section 7 view-transition layer (ViewTransition wrappers per route pair + ::view-transition CSS + reduced-motion block) — can touch globals.css.
+- Phase 1 report-card round (Jerry↔Dave) to pass bar; then Phase 2 Sierra.
 
 ## How to resume
 Read this file, then handoff.md, then the orchestration prompt. Continue from "Current position". Keep this file + ledger.md + reportcards.md + handoff.md updated every step.

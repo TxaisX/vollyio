@@ -7,6 +7,11 @@ export type BallPos = { x: number; y: number; visible: boolean };
 
 const FRAME_MS = 700;
 
+/** Consistent accessible name for a frame thumbnail across both strips. */
+function frameName(i: number, timeS: number | null) {
+  return timeS != null ? `Frame ${i + 1}, ${timeS}s` : `Frame ${i + 1}`;
+}
+
 type ViewerProps = {
   clipUrl: string | null;
   frames: PlayerFrame[];
@@ -45,7 +50,7 @@ function BallMarker({ pos }: { pos: BallPos }) {
       className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
       style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%` }}
     >
-      <span className="block h-6 w-6 rounded-full border-2 border-gold shadow-[0_0_0_2px_rgba(11,18,32,0.55)]" />
+      <span className="block h-6 w-6 rounded-full border-2 border-gold ring-2 ring-navy/55" />
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
     </span>
   );
@@ -126,7 +131,9 @@ function ClipPlayer({
                   type="button"
                   key={i}
                   onClick={() => seekTo(i)}
-                  title={f.time_s != null ? `Jump to ${f.time_s}s` : `Frame ${i + 1}`}
+                  aria-current={i === active ? "true" : undefined}
+                  aria-label={frameName(i, f.time_s)}
+                  title={frameName(i, f.time_s)}
                   className={`relative w-20 shrink-0 overflow-hidden rounded-md border-2 transition-transform hover:scale-[1.03] ${
                     i === active
                       ? "border-gold"
@@ -178,22 +185,57 @@ function FramePlayer({
     focusIndex != null && focusIndex >= 0 && focusIndex < frames.length ? focusIndex : 0,
   );
   const [playing, setPlaying] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  // Re-read reduced-motion on every change so auto-advance never starts (and
+  // settles paused) when the user turns motion off mid-session.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      setReduceMotion(mq.matches);
+      if (mq.matches) setPlaying(false);
+    };
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
-    if (!playing || frames.length === 0) return;
+    if (!playing || frames.length === 0 || reduceMotion) return;
     const id = setInterval(() => {
       setActive((i) => (i + 1) % frames.length);
     }, FRAME_MS);
     return () => clearInterval(id);
-  }, [playing, frames.length]);
+  }, [playing, frames.length, reduceMotion]);
+
+  if (frames.length === 0) {
+    return (
+      <div>
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          Frame by frame
+        </p>
+        <div className="card border-dashed border-line p-10 text-center text-sm text-chalk-dim">
+          No frames to show for this rep.
+        </div>
+      </div>
+    );
+  }
 
   const current = frames[active];
   const currentBall = ball?.get(active);
+  const announcement = current
+    ? `Frame ${active + 1} of ${frames.length}${
+        current.time_s != null ? `, ${current.time_s} seconds` : ""
+      }.`
+    : "";
 
   return (
     <div>
       <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
         Frame by frame
+      </p>
+      <p role="status" aria-live="polite" className="sr-only">
+        {announcement}
       </p>
 
       <div className="relative overflow-hidden rounded-lg bg-navy">
@@ -208,10 +250,16 @@ function FramePlayer({
           <div className="aspect-video w-full" />
         )}
         {currentBall && <BallMarker pos={currentBall} />}
-        <span className="absolute left-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk">
+        <span
+          aria-hidden
+          className="absolute left-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk"
+        >
           {current?.time_s != null ? `${current.time_s}s` : `Frame ${active + 1}`}
         </span>
-        <span className="absolute right-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk-dim">
+        <span
+          aria-hidden
+          className="absolute right-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk-dim"
+        >
           {active + 1} / {frames.length}
         </span>
       </div>
@@ -220,7 +268,8 @@ function FramePlayer({
         <button
           type="button"
           onClick={() => setPlaying((p) => !p)}
-          className="btn-primary px-5 py-2 text-sm"
+          disabled={reduceMotion}
+          className="btn-primary min-h-11 px-5 py-2 text-sm disabled:opacity-40"
         >
           {playing ? "Pause" : "Play"}
         </button>
@@ -230,7 +279,7 @@ function FramePlayer({
             setPlaying(false);
             setActive((i) => (i - 1 + frames.length) % frames.length);
           }}
-          className="chip"
+          className="chip min-h-11"
         >
           Prev
         </button>
@@ -240,7 +289,7 @@ function FramePlayer({
             setPlaying(false);
             setActive((i) => (i + 1) % frames.length);
           }}
-          className="chip"
+          className="chip min-h-11"
         >
           Next
         </button>
@@ -261,6 +310,9 @@ function FramePlayer({
                   setPlaying(false);
                   setActive(i);
                 }}
+                aria-current={i === active ? "true" : undefined}
+                aria-label={frameName(i, f.time_s)}
+                title={frameName(i, f.time_s)}
                 className={`relative w-20 shrink-0 overflow-hidden rounded-md border-2 transition-transform hover:scale-[1.03] ${
                   i === active
                     ? "border-gold"

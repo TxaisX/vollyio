@@ -25,7 +25,7 @@ const description =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Sideout — Volleyball Form Coach", template: "%s — Sideout" },
+  title: { default: "Sideout · Volleyball Form Coach", template: "%s · Sideout" },
   description,
   applicationName: "Sideout",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Sideout" },
@@ -34,12 +34,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Sideout",
-    title: "Sideout — Volleyball Form Coach",
+    title: "Sideout · Volleyball Form Coach",
     description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sideout — Volleyball Form Coach",
+    title: "Sideout · Volleyball Form Coach",
     description,
   },
 };

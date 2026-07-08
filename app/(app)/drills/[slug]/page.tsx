@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DRILLS, drillBySlug } from "@/content/drills";
@@ -8,6 +9,24 @@ import { SKILL_LABEL } from "@/lib/skills";
 
 export function generateStaticParams() {
   return DRILLS.map((d) => ({ slug: d.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const drill = drillBySlug(slug);
+  if (!drill) {
+    return { title: "Drill not found", robots: { index: false } };
+  }
+  return {
+    title: drill.name,
+    description: drill.summary,
+    openGraph: { title: `${drill.name} · Sideout`, description: drill.summary },
+    robots: { index: true, follow: true },
+  };
 }
 
 export default async function DrillDetail({

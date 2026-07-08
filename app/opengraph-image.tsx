@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Sideout — record a rep, get a frame-by-frame breakdown of every volleyball skill.";
+export const alt = "Sideout: record a rep and get a frame-by-frame breakdown of every volleyball skill.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -10,6 +10,8 @@ export default async function Image() {
   const font = await readFile(
     join(process.cwd(), "assets/SpaceGrotesk-Bold.otf"),
   );
+  const mark = await readFile(join(process.cwd(), "public/icon-mark.png"));
+  const markSrc = `data:image/png;base64,${mark.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -26,15 +28,19 @@ export default async function Image() {
           fontFamily: "Space Grotesk",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontSize: 34,
-            letterSpacing: 3,
-            color: "#e8b93b",
-          }}
-        >
-          SIDEOUT
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={markSrc} width={76} height={76} alt="" />
+          <div
+            style={{
+              display: "flex",
+              fontSize: 34,
+              letterSpacing: 3,
+              color: "#e8b93b",
+            }}
+          >
+            SIDEOUT
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 36 }}>

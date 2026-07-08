@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { login } from "../actions";
+import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
   title: "Log in",
@@ -80,9 +81,7 @@ export default async function Login({
                 className="input-field text-sm"
               />
             </div>
-            <button type="submit" className="btn-primary mt-2 w-full">
-              Log in
-            </button>
+            <SubmitButton idleLabel="Log in" pendingLabel="Logging in…" />
           </form>
         </div>
         <p className="mt-5 text-center text-sm text-chalk-dim">

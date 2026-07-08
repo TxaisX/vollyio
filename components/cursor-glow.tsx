@@ -13,9 +13,23 @@ export function CursorGlow() {
   const ref = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(false);
 
+  // Re-evaluate pointer-fine and reduced-motion whenever the user changes
+  // them mid-session, rather than capturing the decision once at mount.
   useEffect(() => {
-    if (!finePointer()) return;
-    setActive(true);
+    const fineMq = window.matchMedia("(pointer: fine)");
+    const reduceMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const evaluate = () => setActive(fineMq.matches && !reduceMq.matches);
+    evaluate();
+    fineMq.addEventListener("change", evaluate);
+    reduceMq.addEventListener("change", evaluate);
+    return () => {
+      fineMq.removeEventListener("change", evaluate);
+      reduceMq.removeEventListener("change", evaluate);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
     const el = ref.current;
     if (!el) return;
 
@@ -58,7 +72,7 @@ export function CursorGlow() {
       style={{
         transform: "translate(-600px, -600px)",
         background:
-          "radial-gradient(circle, rgb(232 185 59 / 0.07), transparent 60%)",
+          "radial-gradient(circle, color-mix(in oklab, var(--color-gold) 7%, transparent), transparent 60%)",
       }}
     />
   );
@@ -76,15 +90,30 @@ export function SpotlightGroup({
   useEffect(() => {
     const el = ref.current;
     if (!el || !finePointer()) return;
-    const move = (e: PointerEvent) => {
+
+    let raf = 0;
+    let px = 0;
+    let py = 0;
+    // Batch all per-card rect reads into a single rAF per pointer move
+    // instead of a synchronous layout read for every `.spot` on every event.
+    const apply = () => {
+      raf = 0;
       for (const card of el.querySelectorAll<HTMLElement>(".spot")) {
         const rect = card.getBoundingClientRect();
-        card.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-        card.style.setProperty("--my", `${e.clientY - rect.top}px`);
+        card.style.setProperty("--mx", `${px - rect.left}px`);
+        card.style.setProperty("--my", `${py - rect.top}px`);
       }
     };
+    const move = (e: PointerEvent) => {
+      px = e.clientX;
+      py = e.clientY;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
     el.addEventListener("pointermove", move, { passive: true });
-    return () => el.removeEventListener("pointermove", move);
+    return () => {
+      el.removeEventListener("pointermove", move);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (
@@ -108,6 +137,7 @@ export function Magnetic({
   useEffect(() => {
     const el = ref.current;
     if (!el || !finePointer()) return;
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
     const move = (e: PointerEvent) => {
       const rect = el.getBoundingClientRect();
       const dx = e.clientX - (rect.left + rect.width / 2);
@@ -117,13 +147,17 @@ export function Magnetic({
     const leave = () => {
       el.style.transition = "transform 0.35s var(--ease-court)";
       el.style.transform = "translate(0, 0)";
-      setTimeout(() => (el.style.transition = ""), 350);
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        el.style.transition = "";
+      }, 350);
     };
     el.addEventListener("pointermove", move, { passive: true });
     el.addEventListener("pointerleave", leave);
     return () => {
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerleave", leave);
+      if (resetTimer) clearTimeout(resetTimer);
     };
   }, [strength]);
 
