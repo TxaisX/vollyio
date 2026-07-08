@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sideout — Component-Perfection Orchestration: Before → After</title>
+<style>
+  :root{
+    --navy:#0f212c; --navy-light:#16303f; --navy-lighter:#1e3d4e;
+    --chalk:#f2efe6; --chalk-dim:#b9c4c9; --gold:#e8b93b; --teal:#6fbfae; --coral:#e2604f;
+    --line:rgb(242 239 230 / .12);
+    --sans:'Instrument Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--navy);color:var(--chalk);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:clamp(1.25rem,4vw,3rem)}
+  header{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+  h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:.6rem 0 0}
+  h1 .arrow{color:var(--gold)}
+  .lede{color:var(--chalk-dim);max-width:60ch;margin-top:1rem;font-size:1.05rem}
+  h2{font-size:1.5rem;letter-spacing:-.01em;margin:2.75rem 0 1rem;display:flex;align-items:baseline;gap:.6rem}
+  h2 .n{font-family:var(--mono);font-size:.9rem;color:var(--gold)}
+  h3{font-size:1.05rem;margin:1.4rem 0 .5rem}
+  p{margin:.5rem 0}
+  a{color:var(--gold)}
+  .grid{display:grid;gap:1rem}
+  @media(min-width:680px){.cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:repeat(3,1fr)}.cols-4{grid-template-columns:repeat(4,1fr)}}
+  .card{background:linear-gradient(160deg,var(--navy-light),color-mix(in oklab,var(--navy-light) 55%,var(--navy)));
+    border:1px solid var(--line);border-radius:1rem;padding:1.25rem}
+  .stat{display:flex;flex-direction:column;gap:.15rem}
+  .stat .num{font-size:clamp(2.2rem,6vw,3rem);font-weight:800;line-height:.9;color:var(--gold);
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .stat .lbl{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--chalk-dim)}
+  .tag{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--line);border-radius:999px;
+    padding:.2rem .7rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.03em;color:var(--chalk-dim)}
+  .before{border-left:2px solid var(--coral)}
+  .after{border-left:2px solid var(--teal)}
+  ul{margin:.4rem 0;padding-left:1.15rem}
+  li{margin:.3rem 0;color:var(--chalk-dim)}
+  li b{color:var(--chalk);font-weight:600}
+  .ba{display:grid;gap:1rem}
+  @media(min-width:680px){.ba{grid-template-columns:1fr 1fr}}
+  .col-h{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.5rem}
+  .col-h.b{color:var(--coral)} .col-h.a{color:var(--teal)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:.5rem}
+  th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:400}
+  td.mono{font-family:var(--mono);font-size:.82rem;color:var(--chalk-dim)}
+  .pass{color:var(--teal);font-weight:600}
+  .phase{position:relative;padding-left:1.4rem;border-left:1px solid var(--line);margin-left:.4rem}
+  .phase .dot{position:absolute;left:-.36rem;top:.35rem;width:.7rem;height:.7rem;border-radius:999px;background:var(--gold)}
+  .phase + .phase{margin-top:1.2rem}
+  footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:.85rem}
+  .live{display:inline-flex;align-items:center;gap:.5rem;background:var(--gold);color:var(--navy);
+    font-weight:700;border-radius:.6rem;padding:.55rem 1rem;text-decoration:none;font-size:.95rem}
+  .muted{color:var(--chalk-dim);font-size:.86rem}
+  code{font-family:var(--mono);font-size:.85em;color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Autonomous multi-agent orchestration · 2026-07-08</div>
+    <h1>Sideout: from working app <span class="arrow">→</span> impeccable</h1>
+    <p class="lede">A seven-agent orchestration took an already-shipping Next.js 16 volleyball-coaching app and closed every gap in a 21-component audit — token purity, accessibility, boundaries, metadata, branding — verified adversarially and deployed to production. No approval interrupts: the specialist agents were the approval gate.</p>
+    <p style="margin-top:1rem"><a class="live" href="https://sideout-jet.vercel.app">View it live →</a></p>
+  </header>
+
+  <section>
+    <div class="grid cols-4">
+      <div class="card stat"><span class="num">21</span><span class="lbl">Components perfected</span></div>
+      <div class="card stat"><span class="num">17</span><span class="lbl">Defects cleared</span></div>
+      <div class="card stat"><span class="num">47</span><span class="lbl">Routes, build green</span></div>
+      <div class="card stat"><span class="num">0</span><span class="lbl">Open blockers/majors</span></div>
+    </div>
+    <p class="muted" style="margin-top:.8rem">Gates: <code>tsc --noEmit</code> clean · <code>next build</code> 47 routes · <code>node --test</code> 6/0 · all public routes 200 · zero user-facing em dashes in served HTML.</p>
+  </section>
+
+  <h2><span class="n">01</span> The product, before</h2>
+  <p><b>Sideout</b> — record a volleyball rep, get a breakdown where every note points at the exact frame, run the one priority fix that buys the most, and watch a rolling rating move across six skills. Built for a player reviewing their own film on a phone. It already worked and shipped; the mission was to make what existed <em>impeccable</em>, not to redesign it. The design tokens (ten colors, three fonts) were law.</p>
+  <h3>What the audit found</h3>
+  <div class="grid cols-2">
+    <div class="card before">
+      <div class="col-h b">Cross-cutting gaps</div>
+      <ul>
+        <li><b>Token drift</b> — hardcoded gold in cursor-glow/score-ring, off-palette navy in clip-viewer, the whole palette hardcoded on the share-card canvas, an eleventh color in the sheen gradient.</li>
+        <li><b>Accessibility</b> — SVG data-visuals with no name, progress bars without <code>role=progressbar</code>, streaming surfaces with no live region, single-select modeled as toggles instead of a radiogroup, colour-only state.</li>
+        <li><b>Touch targets</b> — Log-in, tab bar, chips, several controls under 44px.</li>
+        <li><b>Focus</b> — dropped on step transitions and after submit; no skip link before fixed headers.</li>
+      </ul>
+    </div>
+    <div class="card before">
+      <div class="col-h b">Structure &amp; states</div>
+      <ul>
+        <li><b>No boundaries</b> — no <code>error.tsx</code>, no <code>not-found</code>, only the root layout set a title.</li>
+        <li><b>Silent failures</b> — Supabase fetch errors coerced to empty state via <code>?? []</code> on five routes.</li>
+        <li><b>No mobile nav</b> — landing section links unreachable below 768px.</li>
+        <li><b>Reduced-motion</b> — several rAF/JS effects never re-checked <code>matchMedia</code>; the clip auto-advance ignored it.</li>
+        <li><b>Branding</b> — full-bleed icons marked maskable (cropping); no on-page logo mark; no per-route metadata.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="n">02</span> How it was run</h2>
+  <p>The Orchestrator ran phases as isolated multi-agent workflows, integrating and running the gates between each, committing a checkpoint per phase. A session-scoped resume + a repo-committed state anchor carried the mission across a usage-limit reset mid-flight.</p>
+  <div style="margin-top:1rem">
+    <div class="phase"><span class="dot"></span><h3 style="margin-top:0">Phase 0 — Specify (Leon &amp; Lisa)</h3><p class="muted">A quality floor + a ~180-assertion acceptance spec, and every user-visible string + metadata in the project voice. Peer report-card round to the pass bar (both A-).</p></div>
+    <div class="phase"><span class="dot"></span><h3 style="margin-top:0">Phase 1 — Implement (Jerry ×5, Dave ×2)</h3><p class="muted">Eight agents on strictly disjoint file sets (globals.css frozen) fixed all 21 components + every route: boundaries, per-route metadata, coaching-service call discipline, accessibility contracts, 44px targets, reduced-motion self-guards, tab + on-page branding, the view-transition flag.</p></div>
+    <div class="phase"><span class="dot"></span><h3 style="margin-top:0">Phase 2 — Verify &amp; fix (Sierra + fix loop)</h3><p class="muted">Six adversarial audit lenses + a gates/smoke runner filed 17 defects (0 blocker, 8 major, 9 minor) into <code>docs/qa.md</code>. A targeted fix loop cleared all 17; re-verified green.</p></div>
+    <div class="phase"><span class="dot"></span><h3 style="margin-top:0">Ship — deploy + verify</h3><p class="muted">Pushed, deployed to production, and verified the live public domain serves the new build.</p></div>
+  </div>
+  <h3>Owner-authorized decisions</h3>
+  <table>
+    <tr><th>ID</th><th>Decision</th></tr>
+    <tr><td class="mono">D-001</td><td>Section 10 grants: animation/motion libraries and MCP servers become gated (not banned); colors &amp; fonts stay law. AGENTS.md amended in the same commit.</td></tr>
+    <tr><td class="mono">D-002</td><td>Adopt React <code>&lt;ViewTransition&gt;</code> (Next-native, not a 3rd-party lib) for navigation motion; <code>::view-transition-*</code> keyframes reduced-motion gated.</td></tr>
+    <tr><td class="mono">D-003</td><td>User-facing em-dash title separator → the on-brand middot. Zero user-facing em dashes.</td></tr>
+    <tr><td class="mono">D-004</td><td>Model tier per call: coach chat → Sonnet 5 (high-frequency), analyze → Opus 4.8 (quality-critical scoring).</td></tr>
+  </table>
+
+  <h2><span class="n">03</span> Before → after, by area</h2>
+  <div class="ba">
+    <div><div class="col-h b">Before</div><div class="card before"><ul>
+      <li>Hardcoded colors in 4 components + on canvas; 11th color in the sheen.</li>
+      <li>Data-visuals silent to screen readers; toggles instead of a radiogroup; colour-only state.</li>
+      <li>No error/not-found boundaries; one title for the whole app.</li>
+      <li>Fetch failures shown as empty states on 5 routes.</li>
+      <li>Sub-44px controls; no mobile nav; no skip link.</li>
+      <li>Cropping maskable icons; no on-page logo; em-dash titles.</li>
+    </ul></div></div>
+    <div><div class="col-h a">After</div><div class="card after"><ul>
+      <li><b>Zero</b> raw hex/rgb/named-color outside <code>@theme</code>; canvas reads the tokens; sheen expressed from gold+chalk.</li>
+      <li>Radar/ring/sparkline expose names + trend; real radiogroup with arrow-keys; live regions on chat/scoreboard/recorder; no colour-only state.</li>
+      <li><code>global-error</code>, <code>(app)/error</code>, per-dynamic-route <code>not-found</code>; every route sets its own title + <code>generateMetadata</code>.</li>
+      <li>Fetch errors throw to the boundary — a failure never masquerades as empty.</li>
+      <li>Every control ≥44px; real mobile menu; skip links on both shells.</li>
+      <li>Padded maskable icons + RGBA favicon (16/32/48) + on-page ring-and-sprout mark; OG share card; middot titles.</li>
+    </ul></div></div>
+  </div>
+
+  <h2><span class="n">04</span> Verified &amp; shipped</h2>
+  <div class="grid cols-2">
+    <div class="card"><div class="col-h a">Gates &amp; verdicts</div><ul>
+      <li><b class="pass">PASS</b> — every component + route (no open blocker/major).</li>
+      <li>tsc clean · next build 47 routes · node --test 6/0.</li>
+      <li>All 10 public routes 200, no 500s.</li>
+      <li>Live drive @375px: no horizontal overflow, skip link + logo mark, single h1.</li>
+    </ul></div>
+    <div class="card"><div class="col-h a">Live production</div>
+      <p><a href="https://sideout-jet.vercel.app">sideout-jet.vercel.app</a> — serving the new build: middot title, on-page mark, generated OG image, robots + sitemap, zero user-facing em dashes.</p>
+      <p class="muted">Deferred as enhancement (not floor): <code>&lt;ViewTransition&gt;</code> route-pair wrappers (flag enabled); numeric Lighthouse (structural perf/a11y audit passed, all findings fixed).</p>
+    </div>
+  </div>
+
+  <footer>
+    Artifacts: <code>docs/quality-floor.md</code> · <code>docs/acceptance.md</code> (~180 assertions) · <code>docs/copy.md</code> · <code>docs/metadata.md</code> · <code>docs/qa.md</code> · <code>docs/decisions.md</code> · <code>docs/reportcards.md</code> · <code>docs/ledger.md</code>. Branch <code>polish/multiagent-burst</code>.
+  </footer>
+</div>
+</body>
+</html>
