@@ -12,8 +12,12 @@ Format per card: grader → author → artifact · per-criterion letters w/ cite
 - Self-grades: both A- (matched peer; no wide self/peer gap).
 - Carried raise items are Phase 1 inputs (Jerry/Dave) and re-checked by Sierra in Phase 2. Em-dash separator resolved by D-003 (→ middot).
 
-## Phase 1
-(pending — Jerry↔Dave)
+## Phase 1 — Jerry ↔ Dave (self + peer), integrated
+- **Jerry (implementation, 5 clusters + routes)**: self A-. Token purity A, class reuse A (btn-destructive + icon-btn added + reused), a11y A- (radiogroup, live regions, progressbars, data-visual names), responsive A (44px, 360px), reduced-motion A- (matchMedia self-guards), focus A, states A. Peer/Orchestrator note: a few cross-file wires (sparkline prop, skill-picker labelledby) closed in integration.
+- **Dave (platform/data)**: self A-. Boundaries A (global-error, (app)/error, not-founds), scripts A (typecheck/test added), coaching discipline A (cache/dedupe/backoff/max_tokens + D-004 model split), branding A (RGBA favicon/maskable/OG). Withheld A on the CS-5 model-tier + tsconfig/favicon blockers, all resolved by the Orchestrator in integration.
+- Build gate green after integration. Both at pass bar (A-).
 
-## Phase 2
-(pending — Sierra authoritative, per component/route)
+## Phase 2 — Sierra (authoritative) + fix loop
+- **Sierra adversarial card**: gates GREEN (tsc/build 47 routes/test 6/0; all 10 public routes 200, no 500s). 17 defects: 0 blocker, 8 major, 9 minor. Initial verdict FAIL (8 routes + 2 shared components carried majors). Full card + per-component/route tables in `docs/qa.md`.
+- **Fix loop (Dave/Jerry/Lisa + Orchestrator)**: all 17 cleared. Re-verify GREEN — build/tsc/test pass; targeted checks confirm each fix (aria-valuemin, 44px targets, video labels, error-throwing on 5 routes, 8 loading skeletons, globals.css zero literals, second-person boundary voice). Post-fix verdict: **PASS** (no open blocker/major).
+- Live drive (Orchestrator, Playwright @375px): zero horizontal page overflow, skip link + logo mark present, single h1, middot title live, landing 200. Lighthouse numeric run not executed (tool not installed + authed dashboard needs a session); structural perf/a11y audit passed and all findings fixed — noted as the one un-numbered DoD item.

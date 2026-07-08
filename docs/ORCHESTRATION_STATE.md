@@ -17,7 +17,10 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 ## Gates the Orchestrator runs itself after every phase
 `npx tsc --noEmit` ; `next build` ; `node --test` — never trust a phase as done until green.
 
-## Current position
+## Current position (2026-07-08 ~12:25 PDT)
+PHASES 0-2 COMPLETE + committed (a85cb68, ba8b422, 67c9ce3, 84d9430, 304e10d, 55c4ec1, 8c8a8e7). All 17 Sierra defects cleared + re-verified (build/tsc/test green; live drive @375px clean; ledger + reportcards + qa.md updated). NEXT: (1) commit docs; (2) Phase 3 = deploy to prod + verify live (owner authorized prod deploys this session); (3) final before/after HTML breakdown (section 0 deliverable). Optional/deferred: view-transition ViewTransition wrappers (flag enabled = DoD "enabled" met; wrappers are section-7 enhancement), numeric Lighthouse (tool absent; structural audit passed).
+
+## (prior) Current position
 Phase 1a DONE + integrated + build GREEN (tsc clean, next build 47 routes, node --test 6/0, viewTransition enabled). All 21 components + routes + api + boundaries landed. Orchestrator integration applied: tsconfig allowImportingTsExtensions; D-004 model split (COACH_MODEL=claude-sonnet-5, ANALYZE_MODEL=claude-opus-4-8) in lib/ai/client.ts + api routes; deleted stray zzpreview; regenerated favicon.ico as RGBA (Turbopack rejected RGB); promoted icon-btn shared class + wired xp-toast.
 Phase 1a wiring + on-page logo mark DONE + committed (304e10d): Sparkline skill prop, skill-picker aria-labelledby, goals "—"→middot, mark in landing + app-shell home links, sidebar nav aria-label confirmed. Build green.
 Phase 2 (Sierra) DONE: docs/qa.md = 17 defects (0 blocker, 8 major, 9 minor), gates GREEN (tsc/build 47 routes/test 6/0, all 10 public routes 200). Orchestrator fixes DONE: globals.css token-purity D1(#f6d987)/D2(rgb variants)/D10(white)→color-mix on tokens (verified zero literals outside @theme); docs/frontend.md log (D9).
