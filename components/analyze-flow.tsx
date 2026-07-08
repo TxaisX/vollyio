@@ -243,6 +243,29 @@ export function AnalyzeFlow() {
     }
   }
 
+  function downloadEvalCase() {
+    if (!skill || frames.length === 0) return;
+    const payload = {
+      id: `${skill}-${discipline}-${Date.now()}`,
+      skill,
+      discipline,
+      frames: frames.map((f) => ({ time_s: f.time_s, data: f.dataUrl.split(",")[1] })),
+      expected: {
+        overall_min: 0,
+        overall_max: 100,
+        weakest_metric: "",
+        notes: "TODO: label this rep — expected score band + weakest metric.",
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${payload.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section className="max-w-xl">
       <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
@@ -350,7 +373,18 @@ export function AnalyzeFlow() {
           {frames.length > 0 && (
             <div className="mt-5 animate-fade-up">
               <Filmstrip frames={frames} />
-              {frameDebug && <FrameDebugPanel debug={frameDebug} />}
+              {frameDebug && (
+                <>
+                  <FrameDebugPanel debug={frameDebug} />
+                  <button
+                    type="button"
+                    onClick={downloadEvalCase}
+                    className="btn-ghost mt-3 text-xs"
+                  >
+                    Download eval case
+                  </button>
+                </>
+              )}
               {(source === "photos" || useUpload) && (
                 <button
                   type="button"
