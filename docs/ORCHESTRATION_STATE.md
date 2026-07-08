@@ -19,12 +19,11 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 
 ## Current position
 Phase 1a DONE + integrated + build GREEN (tsc clean, next build 47 routes, node --test 6/0, viewTransition enabled). All 21 components + routes + api + boundaries landed. Orchestrator integration applied: tsconfig allowImportingTsExtensions; D-004 model split (COACH_MODEL=claude-sonnet-5, ANALYZE_MODEL=claude-opus-4-8) in lib/ai/client.ts + api routes; deleted stray zzpreview; regenerated favicon.ico as RGBA (Turbopack rejected RGB); promoted icon-btn shared class + wired xp-toast.
-REMAINING Phase 1 (Phase 1b, cross-agent wiring, then report cards):
-- Wiring gaps (small): dashboard Sparkline needs skill={skill} prop; analyze-flow h2 id="pick-a-skill" + SkillPicker labelledBy; goals.tsx null "—" placeholder → middot+sr-only (RING-2/D-003 precedent); confirm sidebar <nav> aria-label present.
-- On-page logo MARK graphic (G10.6-6/7): insert public/icon-mark.png into landing-nav + app-shell header (accessible name already set).
-- PWA reload copy: canonicalize Jerry-1's placeholder in copy.md (Lisa).
-- Phase 1b: section 7 view-transition layer (ViewTransition wrappers per route pair + ::view-transition CSS + reduced-motion block) — can touch globals.css.
-- Phase 1 report-card round (Jerry↔Dave) to pass bar; then Phase 2 Sierra.
+Phase 1a wiring + on-page logo mark DONE + committed (304e10d): Sparkline skill prop, skill-picker aria-labelledby, goals "—"→middot, mark in landing + app-shell home links, sidebar nav aria-label confirmed. Build green.
+Phase 2 (Sierra) DONE: docs/qa.md = 17 defects (0 blocker, 8 major, 9 minor), gates GREEN (tsc/build 47 routes/test 6/0, all 10 public routes 200). Orchestrator fixes DONE: globals.css token-purity D1(#f6d987)/D2(rgb variants)/D10(white)→color-mix on tokens (verified zero literals outside @theme); docs/frontend.md log (D9).
+Phase 2 FIX LOOP RUNNING — background run `wf_2ce83aea-bce`: Dave (route data-fetch error boundaries D7/D8/D16 + D4/D11/D13), Jerry (sparkline D3, video labels D12, CTA D14, cursor-glow reduce D15, + 7 new loading.tsx skeletons D5/D6), Lisa (boundary voice D17). Disjoint files.
+NEXT after fix loop: re-verify (rm -rf .next && build + tsc + node --test); targeted Sierra re-audit of the fixed defects; when acceptance all-pass + gates green, run Lighthouse + Playwright (Orchestrator, via MCP) on landing + dashboard for >=90; then Phase 1b view-transitions (enhancement), report cards, Phase 3 deploy, final HTML breakdown.
+REMAINING after Sierra: (1) route Sierra defects back to Jerry/Dave (fix loop) + re-verify until acceptance all-pass + gates green + Lighthouse >=90 (Orchestrator runs Lighthouse/Playwright itself via MCP); (2) Phase 1b enhancement = section 7 view-transition ViewTransition wrappers (flag already enabled; enhancement-not-floor); (3) canonicalize PWA reload copy in copy.md (Lisa); (4) Phase 1 + Phase 2 report cards to reportcards.md; (5) Phase 3 Thomas = CI + deploy; (6) final before/after HTML breakdown.
 
 ## How to resume
 Read this file, then handoff.md, then the orchestration prompt. Continue from "Current position". Keep this file + ledger.md + reportcards.md + handoff.md updated every step.
