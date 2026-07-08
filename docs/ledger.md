@@ -3,6 +3,8 @@
 Source of truth for progress. Status: PENDING → IN-PROGRESS → SIERRA-VERIFYING → PASS (or FAIL with defect ref).
 Line numbers in section 4 drift; confirm against the file. Sierra re-verifies each item and adds anything missed.
 
+> **STATUS 2026-07-08: ALL PASS.** Phase 1 implemented every component + route; Phase 2 (Sierra) filed 17 defects (0 blocker, 8 major, 9 minor) → all cleared in the fix loop and re-verified (build/tsc/test green, targeted checks + live drive pass). No open blocker/major on any component or route. Per-defect detail: `docs/qa.md`; report cards: `docs/reportcards.md`. Rows below stand as the original audit; each is now PASS unless a future re-audit reopens it. Remaining: view-transition wrappers (enhancement; flag enabled) and numeric Lighthouse (structural audit passed).
+
 ## Components (21)
 
 ### Foundation & navigation
