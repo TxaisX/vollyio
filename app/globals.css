@@ -140,8 +140,8 @@ body {
       transform 0.2s var(--ease-court);
   }
   .btn-primary:hover {
-    background: color-mix(in oklab, var(--color-gold) 88%, white);
-    box-shadow: 0 0 36px -4px rgb(232 185 59 / 0.55);
+    background: color-mix(in oklab, var(--color-gold) 88%, var(--color-chalk));
+    box-shadow: 0 0 36px -4px color-mix(in oklab, var(--color-gold) 55%, transparent);
   }
   .btn-primary:active {
     transform: translateY(1px);
@@ -165,7 +165,7 @@ body {
   }
   .btn-ghost:hover {
     border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line));
-    background: rgb(242 239 230 / 0.04);
+    background: color-mix(in oklab, var(--color-chalk) 4%, transparent);
   }
 
   .btn-destructive {
@@ -186,7 +186,7 @@ body {
       transform 0.2s var(--ease-court);
   }
   .btn-destructive:hover {
-    background: color-mix(in oklab, var(--color-coral) 88%, white);
+    background: color-mix(in oklab, var(--color-coral) 88%, var(--color-chalk));
   }
   .btn-destructive:active {
     transform: translateY(1px);
@@ -208,7 +208,7 @@ body {
   }
   .icon-btn:hover {
     color: var(--color-chalk);
-    background: rgb(242 239 230 / 0.04);
+    background: color-mix(in oklab, var(--color-chalk) 4%, transparent);
   }
 
   .chip {
@@ -245,7 +245,7 @@ body {
     width: 100%;
     border-radius: var(--radius-control);
     border: 1px solid var(--color-line);
-    background: rgb(15 33 44 / 0.6);
+    background: color-mix(in oklab, var(--color-navy) 60%, transparent);
     padding: 0.75rem 1rem;
     color: var(--color-chalk);
     transition: border-color 0.2s ease;
@@ -262,9 +262,9 @@ body {
     background: linear-gradient(
       100deg,
       var(--color-gold) 0%,
-      #f6d987 25%,
+      color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk)) 25%,
       var(--color-chalk) 50%,
-      #f6d987 75%,
+      color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk)) 75%,
       var(--color-gold) 100%
     );
     background-size: 200% auto;
@@ -287,7 +287,7 @@ body {
     transition: opacity 0.4s ease;
     background: radial-gradient(
       420px circle at var(--mx, 50%) var(--my, 50%),
-      rgb(232 185 59 / 0.09),
+      color-mix(in oklab, var(--color-gold) 9%, transparent),
       transparent 65%
     );
   }
