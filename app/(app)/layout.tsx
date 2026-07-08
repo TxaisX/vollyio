@@ -1,12 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SideNavLinks, TabBar } from "@/components/app-nav";
 import { logout } from "@/app/(auth)/actions";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary"
+      >
+        Skip to content
+      </a>
       <nav className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line p-4 md:flex">
         <Link
           href="/dashboard"
@@ -36,7 +47,11 @@ export default function AppLayout({
           </button>
         </form>
       </nav>
-      <main className="min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
+      >
         {children}
       </main>
       <TabBar />

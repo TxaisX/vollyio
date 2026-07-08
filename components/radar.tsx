@@ -35,8 +35,22 @@ export function Radar({
     return point(i, rMax * ((v ?? 0) / 100)).join(",");
   }).join(" ");
 
+  const summary = SKILLS.filter((s) => ratings[s] != null)
+    .map((s) => `${SKILL_LABEL[s]} ${Math.round(ratings[s]!)}`)
+    .join(", ");
+
   return (
-    <svg width={size} height={size} className="overflow-visible">
+    <svg
+      width={size}
+      height={size}
+      className="overflow-visible"
+      role="img"
+      aria-label={
+        summary
+          ? `Skill ratings out of 100: ${summary}`
+          : "Skill ratings, no reps yet"
+      }
+    >
       {grid.map((pts, i) => (
         <polygon key={i} points={pts} fill="none" stroke="var(--color-line)" />
       ))}

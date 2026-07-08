@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { login } from "../actions";
+
+export const metadata: Metadata = {
+  title: "Log in",
+  description: "Log in to your Sideout account.",
+};
 
 export default async function Login({
   searchParams,
@@ -25,8 +31,16 @@ export default async function Login({
             Welcome back
           </p>
           <h1 className="mt-2 font-display text-2xl font-bold">Log in</h1>
-          {message && <p className="mt-3 text-sm text-teal">{message}</p>}
-          {error && <p className="mt-3 text-sm text-coral">{error}</p>}
+          {message && (
+            <p role="status" className="mt-3 text-sm text-teal">
+              {message}
+            </p>
+          )}
+          {error && (
+            <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
+              {error}
+            </p>
+          )}
           <form action={login} className="mt-6 flex flex-col gap-4">
             <div>
               <label
@@ -42,6 +56,8 @@ export default async function Login({
                 required
                 autoComplete="email"
                 placeholder="you@club.com"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "form-error" : undefined}
                 className="input-field text-sm"
               />
             </div>
@@ -59,6 +75,8 @@ export default async function Login({
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "form-error" : undefined}
                 className="input-field text-sm"
               />
             </div>

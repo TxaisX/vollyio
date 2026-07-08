@@ -39,12 +39,24 @@ export function Reveal({
   children,
   delay = 0,
   className = "",
+  immediate = false,
 }: {
   children: ReactNode;
   delay?: number;
   className?: string;
+  immediate?: boolean;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>();
+  if (immediate) {
+    return (
+      <div
+        className={`reveal-static ${className}`}
+        style={{ "--reveal-delay": `${delay}ms` } as CSSProperties}
+      >
+        {children}
+      </div>
+    );
+  }
   return (
     <div
       ref={ref}

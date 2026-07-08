@@ -145,9 +145,9 @@ export default async function Dashboard() {
       <div className="mt-6 grid gap-4 md:grid-cols-5">
         <Reveal delay={60} className="md:col-span-3">
           <div className="card flex h-full flex-wrap items-center justify-center gap-6 p-6">
-            <ScoreRing score={overall} label="Overall" />
+            <ScoreRing score={overall} size={150} label="Overall" />
             <div className="min-w-0">
-              <Radar ratings={ratings} size={220} />
+              <Radar ratings={ratings} size={196} />
             </div>
           </div>
         </Reveal>
