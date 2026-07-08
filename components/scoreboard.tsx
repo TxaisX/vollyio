@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { Reveal } from "@/components/motion";
 import { saveGame, type SaveGamePayload } from "@/app/(app)/scoreboard/actions";
 
@@ -40,7 +46,53 @@ function takesSet(score: number, opp: number, target: number) {
 }
 
 function snapshotOf(m: Match): Snapshot {
-  return { phase: m.phase, sets: m.sets, a: m.a, b: m.b, serving: m.serving, endedAt: m.endedAt };
+  return {
+    phase: m.phase,
+    sets: m.sets,
+    a: m.a,
+    b: m.b,
+    serving: m.serving,
+    endedAt: m.endedAt,
+  };
+}
+
+function computePoint(m: Match, team: Team): { next: Match; announce: string } {
+  const now = Date.now();
+  const history = [...m.history, snapshotOf(m)];
+  const a = team === "a" ? m.a + 1 : m.a;
+  const b = team === "b" ? m.b + 1 : m.b;
+  const name = team === "a" ? m.teamA : m.teamB;
+  const target = targetFor(m.sets.length, m.bestOf);
+  const score = team === "a" ? a : b;
+  const opp = team === "a" ? b : a;
+  if (!takesSet(score, opp, target)) {
+    return {
+      next: { ...m, a, b, serving: team, history },
+      announce: `Point ${name}. ${m.teamA} ${a}, ${m.teamB} ${b}.`,
+    };
+  }
+  const sets = [...m.sets, { a, b }];
+  const winsA = setsWonBy(sets, "a");
+  const winsB = setsWonBy(sets, "b");
+  const matchWon = setsWonBy(sets, team) >= (m.bestOf + 1) / 2;
+  const next: Match = {
+    ...m,
+    sets,
+    a: 0,
+    b: 0,
+    serving: team,
+    history,
+    phase: matchWon ? "match_over" : "set_over",
+    endedAt: matchWon ? now : null,
+  };
+  if (matchWon) {
+    const setLine = team === "a" ? `${winsA}–${winsB}` : `${winsB}–${winsA}`;
+    return { next, announce: `${name} wins the match, ${setLine}.` };
+  }
+  return {
+    next,
+    announce: `Set ${sets.length} to ${name}. Sets ${winsA} to ${winsB}.`,
+  };
 }
 
 function isCount(v: unknown): v is number {
@@ -48,14 +100,21 @@ function isCount(v: unknown): v is number {
 }
 
 function isSetScore(v: unknown): v is SetScore {
-  return typeof v === "object" && v !== null && isCount((v as SetScore).a) && isCount((v as SetScore).b);
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    isCount((v as SetScore).a) &&
+    isCount((v as SetScore).b)
+  );
 }
 
 function isSnapshot(v: unknown): v is Snapshot {
   if (typeof v !== "object" || v === null) return false;
   const s = v as Snapshot;
   return (
-    (s.phase === "live" || s.phase === "set_over" || s.phase === "match_over") &&
+    (s.phase === "live" ||
+      s.phase === "set_over" ||
+      s.phase === "match_over") &&
     Array.isArray(s.sets) &&
     s.sets.length <= 5 &&
     s.sets.every(isSetScore) &&
@@ -73,10 +132,21 @@ function loadStored(): Match | null {
     const parsed: unknown = JSON.parse(raw);
     if (!isSnapshot(parsed)) return null;
     const c = parsed as Match;
-    if (typeof c.teamA !== "string" || c.teamA.length < 1 || c.teamA.length > 30) return null;
-    if (typeof c.teamB !== "string" || c.teamB.length < 1 || c.teamB.length > 30) return null;
+    if (
+      typeof c.teamA !== "string" ||
+      c.teamA.length < 1 ||
+      c.teamA.length > 30
+    )
+      return null;
+    if (
+      typeof c.teamB !== "string" ||
+      c.teamB.length < 1 ||
+      c.teamB.length > 30
+    )
+      return null;
     if (c.bestOf !== 3 && c.bestOf !== 5) return null;
-    if (typeof c.startedAt !== "number" || !Number.isFinite(c.startedAt)) return null;
+    if (typeof c.startedAt !== "number" || !Number.isFinite(c.startedAt))
+      return null;
     return {
       phase: c.phase,
       sets: c.sets,
@@ -101,12 +171,24 @@ export function Scoreboard() {
   const [pop, setPop] = useState<Team | null>(null);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState("");
   const [saving, startSaving] = useTransition();
   const popTimer = useRef<number | null>(null);
+  const reduceRef = useRef(false);
 
   useEffect(() => {
     setMatch(loadStored());
     setReady(true);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reduceRef.current = mq.matches;
+    const onChange = () => {
+      reduceRef.current = mq.matches;
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   useEffect(() => {
@@ -129,6 +211,7 @@ export function Scoreboard() {
   function start(teamA: string, teamB: string, bestOf: 3 | 5) {
     setSaveError(null);
     setConfirmAbandon(false);
+    setAnnounce("");
     setMatch({
       phase: "live",
       sets: [],
@@ -145,66 +228,52 @@ export function Scoreboard() {
   }
 
   function point(team: Team) {
-    const now = Date.now();
-    setMatch((m) => {
-      if (!m || m.phase !== "live") return m;
-      const history = [...m.history, snapshotOf(m)];
-      const a = team === "a" ? m.a + 1 : m.a;
-      const b = team === "b" ? m.b + 1 : m.b;
-      const target = targetFor(m.sets.length, m.bestOf);
-      const score = team === "a" ? a : b;
-      const opp = team === "a" ? b : a;
-      if (!takesSet(score, opp, target)) {
-        return { ...m, a, b, serving: team, history };
-      }
-      const sets = [...m.sets, { a, b }];
-      const matchWon = setsWonBy(sets, team) >= (m.bestOf + 1) / 2;
-      return {
-        ...m,
-        sets,
-        a: 0,
-        b: 0,
-        serving: team,
-        history,
-        phase: matchWon ? "match_over" : "set_over",
-        endedAt: matchWon ? now : null,
-      };
-    });
-    setPop(team);
-    if (popTimer.current) window.clearTimeout(popTimer.current);
-    popTimer.current = window.setTimeout(() => setPop(null), 180);
+    const m = match;
+    if (!m || m.phase !== "live") return;
+    const { next, announce: msg } = computePoint(m, team);
+    setMatch(next);
+    setAnnounce(msg);
+    if (!reduceRef.current) {
+      setPop(team);
+      if (popTimer.current) window.clearTimeout(popTimer.current);
+      popTimer.current = window.setTimeout(() => setPop(null), 180);
+    }
   }
 
   function minusOne(team: Team) {
-    setMatch((m) => {
-      if (!m || m.phase !== "live") return m;
-      if ((team === "a" ? m.a : m.b) === 0) return m;
-      return {
-        ...m,
-        a: team === "a" ? m.a - 1 : m.a,
-        b: team === "b" ? m.b - 1 : m.b,
-        history: [...m.history, snapshotOf(m)],
-      };
-    });
+    const m = match;
+    if (!m || m.phase !== "live") return;
+    if ((team === "a" ? m.a : m.b) === 0) return;
+    const a = team === "a" ? m.a - 1 : m.a;
+    const b = team === "b" ? m.b - 1 : m.b;
+    const name = team === "a" ? m.teamA : m.teamB;
+    setMatch({ ...m, a, b, history: [...m.history, snapshotOf(m)] });
+    setAnnounce(
+      `Point removed from ${name}. ${m.teamA} ${a}, ${m.teamB} ${b}.`,
+    );
   }
 
   function undo() {
     setSaveError(null);
-    setMatch((m) => {
-      if (!m || m.history.length === 0) return m;
-      const snap = m.history[m.history.length - 1];
-      return { ...m, ...snap, history: m.history.slice(0, -1) };
-    });
+    const m = match;
+    if (!m || m.history.length === 0) return;
+    const snap = m.history[m.history.length - 1];
+    const next = { ...m, ...snap, history: m.history.slice(0, -1) };
+    setMatch(next);
+    setAnnounce(`Undone. ${m.teamA} ${next.a}, ${m.teamB} ${next.b}.`);
   }
 
   function abandon() {
     setConfirmAbandon(false);
     setSaveError(null);
+    setAnnounce("");
     setMatch(null);
   }
 
   function continueMatch() {
-    setMatch((m) => (m && m.phase === "set_over" ? { ...m, phase: "live" } : m));
+    setMatch((m) =>
+      m && m.phase === "set_over" ? { ...m, phase: "live" } : m,
+    );
   }
 
   function save() {
@@ -218,7 +287,10 @@ export function Scoreboard() {
       sets: match.sets,
       winner: winsA > winsB ? "a" : "b",
       started_at: new Date(match.startedAt).toISOString(),
-      duration_s: Math.max(0, Math.round(((match.endedAt ?? Date.now()) - match.startedAt) / 1000)),
+      duration_s: Math.max(
+        0,
+        Math.round(((match.endedAt ?? Date.now()) - match.startedAt) / 1000),
+      ),
     };
     startSaving(async () => {
       const result = await saveGame(payload);
@@ -231,183 +303,241 @@ export function Scoreboard() {
     });
   }
 
+  let body: ReactNode;
+
   if (!ready) {
-    return <div className="card min-h-[220px]" aria-hidden="true" />;
-  }
-
-  if (!match) {
-    return <Setup onStart={start} />;
-  }
-
-  const setIndex = match.sets.length;
-  const target = targetFor(setIndex, match.bestOf);
-  const setsToWin = (match.bestOf + 1) / 2;
-  const winsA = setsWonBy(match.sets, "a");
-  const winsB = setsWonBy(match.sets, "b");
-
-  const badgeFor = (team: Team): "set" | "match" | null => {
-    if (match.phase !== "live") return null;
-    const score = team === "a" ? match.a : match.b;
-    const opp = team === "a" ? match.b : match.a;
-    if (!takesSet(score + 1, opp, target)) return null;
-    const wins = team === "a" ? winsA : winsB;
-    return wins + 1 >= setsToWin ? "match" : "set";
-  };
-
-  if (match.phase === "match_over") {
-    const winner: Team = winsA > winsB ? "a" : "b";
-    const winnerName = winner === "a" ? match.teamA : match.teamB;
-    const setLine = winner === "a" ? `${winsA}–${winsB}` : `${winsB}–${winsA}`;
-    return (
-      <Reveal>
-        <div className="card p-6 text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">Match complete</p>
-          <h2 className="mt-3 font-display text-4xl font-bold">
-            <span className="text-sheen">{winnerName}</span> wins {setLine}
-          </h2>
-          <p className="mt-3 font-mono text-sm text-chalk-dim">
-            {match.sets.map((s) => `${s.a}-${s.b}`).join(" · ")}
-          </p>
-          {saveError && <p className="mt-3 text-sm text-coral">{saveError}</p>}
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <button type="button" className="btn-primary" onClick={save} disabled={saving}>
-              {saving ? "Saving" : "Save match"}
-            </button>
-            <button type="button" className="btn-ghost" onClick={abandon} disabled={saving}>
-              Discard
-            </button>
-          </div>
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={undo}
-              className="font-mono text-[10px] uppercase tracking-widest text-chalk-dim transition hover:text-chalk"
-            >
-              Undo last rally
-            </button>
-          </div>
-        </div>
-      </Reveal>
-    );
-  }
-
-  const lastSet = match.sets[match.sets.length - 1];
-
-  return (
-    <div>
-      {match.phase === "live" ? (
+    body = (
+      <div aria-hidden="true">
         <div className="grid grid-cols-2 gap-3">
-          <TapZone
-            name={match.teamA}
-            score={match.a}
-            serving={match.serving === "a"}
-            badge={badgeFor("a")}
-            popping={pop === "a"}
-            onPoint={() => point("a")}
-          />
-          <TapZone
-            name={match.teamB}
-            score={match.b}
-            serving={match.serving === "b"}
-            badge={badgeFor("b")}
-            popping={pop === "b"}
-            onPoint={() => point("b")}
-          />
+          <div className="card skeleton min-h-[38vh] md:min-h-[320px]" />
+          <div className="card skeleton min-h-[38vh] md:min-h-[320px]" />
         </div>
-      ) : (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="skeleton h-11 rounded-[var(--radius-control)] border border-line" />
+          <div className="skeleton h-11 rounded-[var(--radius-control)] border border-line" />
+          <div className="skeleton h-11 rounded-[var(--radius-control)] border border-line" />
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="skeleton h-2 w-12 rounded-full" />
+          <span className="skeleton h-3 w-24 rounded" />
+          <span className="skeleton h-2 w-12 rounded-full" />
+        </div>
+      </div>
+    );
+  } else if (!match) {
+    body = <Setup onStart={start} />;
+  } else {
+    const setIndex = match.sets.length;
+    const target = targetFor(setIndex, match.bestOf);
+    const setsToWin = (match.bestOf + 1) / 2;
+    const winsA = setsWonBy(match.sets, "a");
+    const winsB = setsWonBy(match.sets, "b");
+
+    const badgeFor = (team: Team): "set" | "match" | null => {
+      if (match.phase !== "live") return null;
+      const score = team === "a" ? match.a : match.b;
+      const opp = team === "a" ? match.b : match.a;
+      if (!takesSet(score + 1, opp, target)) return null;
+      const wins = team === "a" ? winsA : winsB;
+      return wins + 1 >= setsToWin ? "match" : "set";
+    };
+
+    if (match.phase === "match_over") {
+      const winner: Team = winsA > winsB ? "a" : "b";
+      const winnerName = winner === "a" ? match.teamA : match.teamB;
+      const setLine =
+        winner === "a" ? `${winsA}–${winsB}` : `${winsB}–${winsA}`;
+      body = (
         <Reveal>
-          <div className="card flex min-h-[38vh] flex-col items-center justify-center gap-4 p-6 text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">Set complete</p>
-            <p className="font-display text-3xl font-bold">
-              Set {match.sets.length} — {lastSet.a > lastSet.b ? match.teamA : match.teamB}{" "}
-              {Math.max(lastSet.a, lastSet.b)}:{Math.min(lastSet.a, lastSet.b)}
+          <div className="card p-6 text-center">
+            <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
+              Match complete
             </p>
-            {setIndex === match.bestOf - 1 && (
-              <p className="font-mono text-xs text-chalk-dim">Deciding set · first to 15</p>
+            <h2 className="mt-3 break-words font-display text-4xl font-bold">
+              <span className="text-sheen">{winnerName}</span> wins {setLine}
+            </h2>
+            <p className="mt-3 font-mono text-sm text-chalk-dim">
+              {match.sets.map((s) => `${s.a}-${s.b}`).join(" · ")}
+            </p>
+            {saveError && (
+              <p role="alert" className="mt-3 text-sm text-coral">
+                {saveError}
+              </p>
             )}
-            <button type="button" className="btn-primary" onClick={continueMatch}>
-              Continue
-            </button>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={save}
+                disabled={saving}
+              >
+                {saving ? "Saving" : "Save match"}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={abandon}
+                disabled={saving}
+              >
+                Discard
+              </button>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={undo}
+                className="inline-flex min-h-11 items-center px-3 font-mono text-[10px] uppercase tracking-widest text-chalk-dim transition hover:text-chalk"
+              >
+                Undo last rally
+              </button>
+            </div>
           </div>
         </Reveal>
-      )}
+      );
+    } else {
+      const lastSet = match.sets[match.sets.length - 1];
+      body = (
+        <div>
+          {match.phase === "live" ? (
+            <div className="grid grid-cols-2 gap-3">
+              <TapZone
+                name={match.teamA}
+                score={match.a}
+                serving={match.serving === "a"}
+                badge={badgeFor("a")}
+                popping={pop === "a"}
+                onPoint={() => point("a")}
+              />
+              <TapZone
+                name={match.teamB}
+                score={match.b}
+                serving={match.serving === "b"}
+                badge={badgeFor("b")}
+                popping={pop === "b"}
+                onPoint={() => point("b")}
+              />
+            </div>
+          ) : (
+            <Reveal>
+              <div className="card flex min-h-[38vh] flex-col items-center justify-center gap-4 p-6 text-center">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
+                  Set complete
+                </p>
+                <p className="font-display text-3xl font-bold">
+                  Set {match.sets.length} ·{" "}
+                  {lastSet.a > lastSet.b ? match.teamA : match.teamB}{" "}
+                  {Math.max(lastSet.a, lastSet.b)}:
+                  {Math.min(lastSet.a, lastSet.b)}
+                </p>
+                {setIndex === match.bestOf - 1 && (
+                  <p className="font-mono text-xs text-chalk-dim">
+                    Deciding set · first to 15
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={continueMatch}
+                >
+                  Continue
+                </button>
+              </div>
+            </Reveal>
+          )}
 
-      <div className="mt-3 grid grid-cols-3 items-center gap-2">
-        <button
-          type="button"
-          className="btn-ghost px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
-          onClick={() => minusOne("a")}
-          disabled={match.phase !== "live" || match.a === 0}
-          aria-label={`Remove a point from ${match.teamA}`}
-        >
-          −1
-        </button>
-        <button
-          type="button"
-          className="btn-ghost px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
-          onClick={undo}
-          disabled={match.history.length === 0}
-        >
-          <svg
-            viewBox="0 0 16 16"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M2.5 3v4h4" />
-            <path d="M2.9 7a5.2 5.2 0 1 0 1.5-3.3L2.5 5.5" />
-          </svg>
-          Undo
-        </button>
-        <button
-          type="button"
-          className="btn-ghost px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
-          onClick={() => minusOne("b")}
-          disabled={match.phase !== "live" || match.b === 0}
-          aria-label={`Remove a point from ${match.teamB}`}
-        >
-          −1
-        </button>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <SetDots total={setsToWin} won={winsA} team={match.teamA} />
-        <span className="font-mono text-xs text-chalk-dim">
-          Set {setIndex + 1} · to {target}
-        </span>
-        <SetDots total={setsToWin} won={winsB} team={match.teamB} />
-      </div>
-
-      <div className="mt-5 flex justify-center">
-        {confirmAbandon ? (
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="text-sm text-chalk-dim">Abandon this match?</span>
-            <button type="button" className="btn-ghost px-3 py-1.5 text-sm text-coral" onClick={abandon}>
-              Yes, abandon
+          <div className="mt-3 grid grid-cols-3 items-center gap-2">
+            <button
+              type="button"
+              className="btn-ghost min-h-11 px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
+              onClick={() => minusOne("a")}
+              disabled={match.phase !== "live" || match.a === 0}
+              aria-label={`Remove a point from ${match.teamA}`}
+            >
+              −1
             </button>
             <button
               type="button"
-              className="btn-ghost px-3 py-1.5 text-sm"
-              onClick={() => setConfirmAbandon(false)}
+              className="btn-ghost min-h-11 px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
+              onClick={undo}
+              disabled={match.history.length === 0}
             >
-              Keep playing
+              <svg
+                viewBox="0 0 16 16"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M2.5 3v4h4" />
+                <path d="M2.9 7a5.2 5.2 0 1 0 1.5-3.3L2.5 5.5" />
+              </svg>
+              Undo
+            </button>
+            <button
+              type="button"
+              className="btn-ghost min-h-11 px-3 py-2 text-sm disabled:pointer-events-none disabled:opacity-40"
+              onClick={() => minusOne("b")}
+              disabled={match.phase !== "live" || match.b === 0}
+              aria-label={`Remove a point from ${match.teamB}`}
+            >
+              −1
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            className="btn-ghost border-transparent px-3 py-1.5 text-sm text-chalk-dim"
-            onClick={() => setConfirmAbandon(true)}
-          >
-            Abandon match
-          </button>
-        )}
-      </div>
-    </div>
+
+          <div className="mt-4 flex items-center justify-between">
+            <SetDots total={setsToWin} won={winsA} team={match.teamA} />
+            <span className="font-mono text-xs text-chalk-dim">
+              Set {setIndex + 1} · to {target}
+            </span>
+            <SetDots total={setsToWin} won={winsB} team={match.teamB} />
+          </div>
+
+          <div className="mt-5 flex justify-center">
+            {confirmAbandon ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-sm text-chalk-dim">
+                  Abandon this match?
+                </span>
+                <button
+                  type="button"
+                  className="btn-ghost min-h-11 px-3 py-1.5 text-sm text-coral"
+                  onClick={abandon}
+                >
+                  Yes, abandon
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost min-h-11 px-3 py-1.5 text-sm"
+                  onClick={() => setConfirmAbandon(false)}
+                >
+                  Keep playing
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn-ghost min-h-11 border-transparent px-3 py-1.5 text-sm text-chalk-dim"
+                onClick={() => setConfirmAbandon(true)}
+              >
+                Abandon match
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+  }
+
+  return (
+    <>
+      <span role="status" aria-live="polite" className="sr-only">
+        {announce}
+      </span>
+      {body}
+    </>
   );
 }
 
@@ -426,11 +556,13 @@ function TapZone({
   popping: boolean;
   onPoint: () => void;
 }) {
+  const badgeText =
+    badge === "set" ? " Set point." : badge === "match" ? " Match point." : "";
   return (
     <button
       type="button"
       onClick={onPoint}
-      aria-label={`Point for ${name}`}
+      aria-label={`Point for ${name}${serving ? ", serving" : ""}. Score ${score}.${badgeText}`}
       className="card card-lift flex min-h-[38vh] touch-manipulation select-none flex-col items-center justify-center gap-3 px-2 py-6 md:min-h-[320px]"
     >
       <span className="flex max-w-full items-center gap-2 px-2">
@@ -463,9 +595,21 @@ function TapZone({
   );
 }
 
-function SetDots({ total, won, team }: { total: number; won: number; team: string }) {
+function SetDots({
+  total,
+  won,
+  team,
+}: {
+  total: number;
+  won: number;
+  team: string;
+}) {
   return (
-    <span className="flex items-center gap-1.5" role="img" aria-label={`${team}: ${won} of ${total} sets won`}>
+    <span
+      className="flex items-center gap-1.5"
+      role="img"
+      aria-label={`${team}: ${won} of ${total} sets won`}
+    >
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
@@ -476,7 +620,11 @@ function SetDots({ total, won, team }: { total: number; won: number; team: strin
   );
 }
 
-function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 | 5) => void }) {
+function Setup({
+  onStart,
+}: {
+  onStart: (teamA: string, teamB: string, bestOf: 3 | 5) => void;
+}) {
   const [teamA, setTeamA] = useState("Us");
   const [teamB, setTeamB] = useState("Them");
   const [bestOf, setBestOf] = useState<3 | 5>(3);
@@ -485,7 +633,9 @@ function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 
     <div className="card p-5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">Team A</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+            Team A
+          </span>
           <input
             className="input-field mt-1.5"
             value={teamA}
@@ -495,7 +645,9 @@ function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 
           />
         </label>
         <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">Team B</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+            Team B
+          </span>
           <input
             className="input-field mt-1.5"
             value={teamB}
@@ -506,10 +658,12 @@ function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 
         </label>
       </div>
       <div className="mt-4 flex items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">Best of</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+          Best of
+        </span>
         <button
           type="button"
-          className={`chip ${bestOf === 3 ? "chip-active" : ""}`}
+          className={`chip min-h-11 ${bestOf === 3 ? "chip-active" : ""}`}
           aria-pressed={bestOf === 3}
           onClick={() => setBestOf(3)}
         >
@@ -517,7 +671,7 @@ function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 
         </button>
         <button
           type="button"
-          className={`chip ${bestOf === 5 ? "chip-active" : ""}`}
+          className={`chip min-h-11 ${bestOf === 5 ? "chip-active" : ""}`}
           aria-pressed={bestOf === 5}
           onClick={() => setBestOf(5)}
         >
@@ -527,7 +681,13 @@ function Setup({ onStart }: { onStart: (teamA: string, teamB: string, bestOf: 3 
       <button
         type="button"
         className="btn-primary mt-6 w-full"
-        onClick={() => onStart(teamA.trim().slice(0, 30) || "Us", teamB.trim().slice(0, 30) || "Them", bestOf)}
+        onClick={() =>
+          onStart(
+            teamA.trim().slice(0, 30) || "Us",
+            teamB.trim().slice(0, 30) || "Them",
+            bestOf,
+          )
+        }
       >
         Start match
       </button>

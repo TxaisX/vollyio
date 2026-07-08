@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { drillsForSkill } from "@/content/drills";
 import { Reveal } from "@/components/motion";
 import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL } from "@/lib/skills";
 import type { Level } from "@/lib/skills";
+
+export const metadata: Metadata = {
+  title: "Drills",
+  description:
+    "Step-by-step drills for every volleyball skill, beginner to elite.",
+  robots: { index: true, follow: true },
+};
 
 const LEVEL_ORDER: Record<Level, number> = {
   beginner: 0,

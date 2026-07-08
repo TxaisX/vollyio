@@ -49,12 +49,7 @@ function GoalForm({
   const values = state?.status === "error" ? state.values : undefined;
 
   return (
-    <form
-      key={state?.key ?? 0}
-      action={formAction}
-      noValidate
-      className="space-y-4"
-    >
+    <form key={state?.key ?? 0} action={formAction} className="space-y-4">
       <input type="hidden" name="skill" value={skill ?? ""} />
 
       <div>
@@ -68,29 +63,60 @@ function GoalForm({
           defaultValue={values?.title}
           placeholder="Serve 8 of 10 past the ten-foot line"
           className="input-field"
+          aria-invalid={errors?.title ? true : undefined}
+          aria-describedby={errors?.title ? "goal-title-error" : undefined}
         />
         {errors?.title && (
-          <p className="mt-1.5 text-xs text-coral">{errors.title}</p>
+          <p id="goal-title-error" className="mt-1.5 text-xs text-coral">
+            {errors.title}
+          </p>
         )}
       </div>
 
       <div>
-        <span className={LABEL_CLASS}>Skill</span>
-        <div className="flex flex-wrap gap-2">
-          {SKILLS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={skill === s}
-              onClick={() => setSkill(skill === s ? null : s)}
-              className={`chip min-h-11 ${skill === s ? "chip-active" : ""}`}
-            >
-              {SKILL_LABEL[s]}
-            </button>
-          ))}
+        <span id="goal-skill-label" className={LABEL_CLASS}>
+          Skill
+        </span>
+        <div
+          role="group"
+          aria-labelledby="goal-skill-label"
+          aria-invalid={errors?.skill ? true : undefined}
+          aria-describedby={errors?.skill ? "goal-skill-error" : undefined}
+          className="flex flex-wrap gap-2"
+        >
+          {SKILLS.map((s) => {
+            const on = skill === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSkill(on ? null : s)}
+                className={`chip min-h-11 ${on ? "chip-active" : ""}`}
+              >
+                {on && (
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 8.5l3.5 3.5L13 5" />
+                  </svg>
+                )}
+                {SKILL_LABEL[s]}
+              </button>
+            );
+          })}
         </div>
         {errors?.skill && (
-          <p className="mt-1.5 text-xs text-coral">{errors.skill}</p>
+          <p id="goal-skill-error" className="mt-1.5 text-xs text-coral">
+            {errors.skill}
+          </p>
         )}
       </div>
 
@@ -110,9 +136,15 @@ function GoalForm({
             defaultValue={values?.target_rating}
             placeholder="75"
             className="input-field font-mono"
+            aria-invalid={errors?.target_rating ? true : undefined}
+            aria-describedby={
+              errors?.target_rating ? "goal-target-error" : undefined
+            }
           />
           {errors?.target_rating && (
-            <p className="mt-1.5 text-xs text-coral">{errors.target_rating}</p>
+            <p id="goal-target-error" className="mt-1.5 text-xs text-coral">
+              {errors.target_rating}
+            </p>
           )}
         </div>
         <div>
@@ -125,9 +157,13 @@ function GoalForm({
             type="date"
             defaultValue={values?.deadline}
             className="input-field scheme-dark font-mono"
+            aria-invalid={errors?.deadline ? true : undefined}
+            aria-describedby={errors?.deadline ? "goal-deadline-error" : undefined}
           />
           {errors?.deadline && (
-            <p className="mt-1.5 text-xs text-coral">{errors.deadline}</p>
+            <p id="goal-deadline-error" className="mt-1.5 text-xs text-coral">
+              {errors.deadline}
+            </p>
           )}
         </div>
       </div>
@@ -156,26 +192,47 @@ function GoalForm({
 
 export function NewGoal() {
   const [open, setOpen] = useState(false);
+  const [announce, setAnnounce] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="btn-ghost min-h-11 w-full sm:w-auto"
-      >
-        + New goal
-      </button>
-    );
-  }
+  useEffect(() => {
+    if (!open && restoreFocus.current) {
+      restoreFocus.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [open]);
 
   return (
-    <div className="card p-5">
-      <GoalForm
-        onCreated={() => setOpen(false)}
-        onCancel={() => setOpen(false)}
-      />
-    </div>
+    <>
+      {open ? (
+        <div className="card p-5">
+          <GoalForm
+            onCreated={() => {
+              restoreFocus.current = true;
+              setAnnounce("Goal added.");
+              setOpen(false);
+            }}
+            onCancel={() => setOpen(false)}
+          />
+        </div>
+      ) : (
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => {
+            setAnnounce("");
+            setOpen(true);
+          }}
+          className="btn-ghost min-h-11 w-full sm:w-auto"
+        >
+          + New goal
+        </button>
+      )}
+      <p role="status" aria-live="polite" className="sr-only">
+        {announce}
+      </p>
+    </>
   );
 }
 
@@ -279,7 +336,19 @@ export function ActiveGoalCard({
                 {rating != null ? Math.round(rating) : "—"} / {target}
               </span>
             </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-navy">
+            <div
+              role="progressbar"
+              aria-label={`${SKILL_LABEL[goal.skill!]} rating progress`}
+              aria-valuemin={0}
+              aria-valuemax={target}
+              aria-valuenow={rating != null ? Math.round(rating) : 0}
+              aria-valuetext={
+                rating != null
+                  ? `${Math.round(rating)} of ${target}`
+                  : `Not rated yet, target ${target}`
+              }
+              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-navy"
+            >
               <div
                 className="h-full rounded-full bg-gold"
                 style={{
@@ -289,9 +358,7 @@ export function ActiveGoalCard({
               />
             </div>
             {hit && (
-              <p className="mt-2 text-xs text-teal">
-                Target hit &mdash; mark it done
-              </p>
+              <p className="mt-2 text-xs text-teal">Target hit. Mark it done.</p>
             )}
           </div>
         )}

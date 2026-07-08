@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, MODEL } from "@/lib/ai/client";
+import { coach, ANALYZE_MODEL } from "@/lib/ai/client";
 import { analysisSchema } from "@/lib/ai/schema";
 import { RUBRIC } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       ]);
 
       const response = await coach().messages.parse({
-        model: MODEL,
+        model: ANALYZE_MODEL,
         max_tokens: 4096,
         system: [
           { type: "text", text: RUBRIC[skill], cache_control: { type: "ephemeral" } },
@@ -120,7 +120,11 @@ export async function POST(req: NextRequest) {
           },
         ],
         output_config: { format: zodOutputFormat(analysisSchema(skill)) },
-      });
+      },
+      // Exponential backoff on 429/5xx from the coaching service (CS-7);
+      // the SDK honors Retry-After and jitters between attempts.
+      { maxRetries: 4 },
+    );
 
       const raw = response.parsed_output;
       if (!raw) {
@@ -191,7 +195,7 @@ export async function POST(req: NextRequest) {
     clip_path: clipPath,
     overall_score: result.overall_score,
     result,
-    model: process.env.AI_MOCK === "true" ? "mock" : MODEL,
+    model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
   });
   if (insertError) {
     return NextResponse.json({ error: "Couldn't save your analysis." }, { status: 500 });

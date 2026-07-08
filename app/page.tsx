@@ -31,7 +31,7 @@ const STEPS = [
   {
     n: "03",
     title: "Run the fix",
-    body: "One priority fix per rep — the change that buys the most — with drills matched to it.",
+    body: "One priority fix per rep, the change that buys the most, with drills matched to it.",
   },
 ];
 
@@ -85,7 +85,7 @@ function MockAnalysisCard() {
           Priority fix · frame 5
         </p>
         <p className="mt-1 text-sm text-chalk">
-          Contact is behind your head — toss six inches further into the court.
+          Contact is behind your head. Toss six inches further into the court.
         </p>
       </div>
     </div>
@@ -144,9 +144,9 @@ export default function Landing() {
             </Reveal>
             <Reveal delay={160} immediate>
               <p className="mt-5 max-w-md text-lg text-chalk-dim">
-                Record a rep. Sideout breaks it down frame by frame — serve,
-                pass, set, attack, block, and defense — scored the way a coach
-                scores it.
+                Record a rep. Sideout breaks it down frame by frame across
+                serve, pass, set, attack, block, and defense, scored the way a
+                coach scores it.
               </p>
             </Reveal>
             <Reveal delay={240} immediate>
@@ -194,7 +194,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <section id="how" className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+        <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
           <Reveal>
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
               How it works
@@ -220,7 +220,7 @@ export default function Landing() {
           </SpotlightGroup>
         </section>
 
-        <section id="skills" className="border-t border-line">
+        <section id="skills" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <div className="flex items-end gap-4">
@@ -270,7 +270,7 @@ export default function Landing() {
                 <p className="mt-4 max-w-md text-chalk-dim">
                   No &ldquo;looks good&rdquo; feedback. Each insight is pinned
                   to the moment it happened, so you can see exactly what the
-                  score saw — and argue with it if you want. Every skill is
+                  score saw, and argue with it if you want. Every skill is
                   graded on the checkpoints a coach actually watches: on a
                   serve, that&rsquo;s toss, arm swing, contact, and
                   follow-through.
@@ -281,7 +281,7 @@ export default function Landing() {
               <div className="card p-6">
                 <div className="space-y-4">
                   {[
-                    ["0:00.4", "teal", "High, repeatable toss — keep it."],
+                    ["0:00.4", "teal", "High, repeatable toss. Keep it."],
                     ["0:01.2", "coral", "Elbow drops before contact. Power leaks here."],
                     ["0:01.6", "teal", "Clean wrist snap through the ball."],
                   ].map(([t, tone, text]) => (
@@ -310,7 +310,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="progress" className="border-t border-line">
+        <section id="progress" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
@@ -385,7 +385,7 @@ export default function Landing() {
                 </h2>
                 <p className="mt-4 max-w-md text-chalk-dim">
                   Ask anything. The coach answers from your own scores,
-                  breakdowns, and goals — not generic tips.
+                  breakdowns, and goals, not generic tips.
                 </p>
               </Reveal>
             </div>

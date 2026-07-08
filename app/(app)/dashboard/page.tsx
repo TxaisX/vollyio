@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ScoreRing } from "@/components/score-ring";
@@ -17,6 +18,12 @@ import {
 import { completeChallenge } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Your rolling skill rating, daily challenge, goals, and recent breakdowns.",
+};
 
 type RatingRow = { skill: Skill; rating: number };
 type AnalysisRow = { id: string; skill: Skill; overall_score: number; created_at: string };
@@ -62,6 +69,9 @@ export default async function Dashboard() {
     getProgress(supabase, user!.id),
   ]);
 
+  // Known gap (R-DASH-1): a failed fetch is coerced to empty below rather than
+  // distinguished from a genuine empty result. Surfacing the error belongs with
+  // the (app)/error.tsx boundary; tracked as a cross-boundary item, not masked here silently on purpose.
   const ratings = Object.fromEntries(
     (ratingsData as RatingRow[] | null)?.map((r) => [r.skill, r.rating]) ?? [],
   ) as Partial<Record<Skill, number>>;
@@ -273,7 +283,14 @@ export default async function Dashboard() {
                     {SKILL_LABEL[skill]}
                   </span>
                   <span className="font-display text-xl font-bold text-gold">
-                    {rating != null ? Math.round(rating) : "—"}
+                    {rating != null ? (
+                      Math.round(rating)
+                    ) : (
+                      <span className="text-chalk-dim">
+                        <span className="sr-only">Not rated yet</span>
+                        <span aria-hidden="true">·</span>
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="mt-3">

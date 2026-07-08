@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Scoreboard } from "@/components/scoreboard";
 import { Reveal } from "@/components/motion";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Scoreboard",
+  description: "Keep the score for a live match, set by set.",
+};
 
 type SetScore = { a: number; b: number };
 type GameRow = {
@@ -26,6 +32,8 @@ export default async function ScoreboardPage() {
     .eq("user_id", user!.id)
     .order("started_at", { ascending: false })
     .limit(10);
+  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
+  // distinguishing a fetch error from a genuinely empty match list.
   const games = (data as GameRow[] | null) ?? [];
 
   return (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { signup } from "../actions";
+import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
   title: "Sign up",
@@ -94,9 +95,10 @@ export default async function Signup({
                 className="input-field text-sm"
               />
             </div>
-            <button type="submit" className="btn-primary mt-2 w-full">
-              Start your first breakdown
-            </button>
+            <SubmitButton
+              idleLabel="Start your first breakdown"
+              pendingLabel="Creating your account…"
+            />
             <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
               No card. Your first breakdown in about a minute.
             </p>

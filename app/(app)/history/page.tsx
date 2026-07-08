@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Reveal } from "@/components/motion";
@@ -5,6 +6,11 @@ import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL, isSkill, type Skill } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "History",
+  description: "Every rep you have filmed, with the priority fix for each.",
+};
 
 type Row = {
   id: string;
@@ -36,6 +42,8 @@ export default async function History({
   if (activeSkill) query = query.eq("skill", activeSkill);
 
   const { data } = await query;
+  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
+  // distinguishing a fetch error from a genuinely empty history.
   const rows = (data as Row[] | null) ?? [];
 
   return (

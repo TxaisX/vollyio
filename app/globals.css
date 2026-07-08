@@ -192,6 +192,25 @@ body {
     transform: translateY(1px);
   }
 
+  .icon-btn {
+    display: inline-flex;
+    height: 2.75rem;
+    width: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: var(--color-chalk-dim);
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background 0.2s ease;
+  }
+  .icon-btn:hover {
+    color: var(--color-chalk);
+    background: rgb(242 239 230 / 0.04);
+  }
+
   .chip {
     display: inline-flex;
     align-items: center;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,44 @@ type Row = {
   created_at: string;
   result: AnalysisResult;
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { title: "Breakdown not found", robots: { index: false, follow: false } };
+  }
+
+  const { data } = await supabase
+    .from("analyses")
+    .select("skill, overall_score, result")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!data) {
+    return { title: "Breakdown not found", robots: { index: false, follow: false } };
+  }
+
+  const meta = data as Pick<Row, "skill" | "overall_score" | "result">;
+  const label = SKILL_LABEL[meta.skill];
+  const score = meta.overall_score;
+  const fix = meta.result?.priority_fix?.title;
+  return {
+    title: `${label} breakdown, ${score}/100`,
+    description: fix
+      ? `Your ${label.toLowerCase()} rep scored ${score} out of 100. Priority fix: ${fix}`
+      : `Your ${label.toLowerCase()} rep scored ${score} out of 100.`,
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AnalysisDetail({
   params,
@@ -53,6 +92,10 @@ export default async function AnalysisDetail({
     .from("frames")
     .createSignedUrls(row.frame_paths, 3600);
   const urls = signed?.map((s) => s.signedUrl) ?? [];
+  // Signed-URL failure: frames exist but none could be signed. Show a
+  // message instead of blank images; scores and notes still render below.
+  const framesFailed =
+    row.frame_paths.length > 0 && urls.filter(Boolean).length === 0;
 
   let clipUrl: string | null = null;
   if (row.clip_path) {
@@ -123,16 +166,25 @@ export default async function AnalysisDetail({
       </Reveal>
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-8">
-        {/* Player — right column on desktop, first thing on mobile */}
+        {/* Player: right column on desktop, first thing on mobile */}
         <div className="lg:order-2 lg:sticky lg:top-8">
           <Reveal delay={80}>
-            <ClipViewer
-              clipUrl={clipUrl}
-              frames={playerFrames}
-              ball={ball}
-              focusIndex={focusIndex}
-              contactIndex={contactIndex}
-            />
+            {framesFailed ? (
+              <div className="card p-6 text-center">
+                <p className="text-sm text-chalk-dim">
+                  These frames couldn&rsquo;t load right now. Your scores and
+                  notes are still below.
+                </p>
+              </div>
+            ) : (
+              <ClipViewer
+                clipUrl={clipUrl}
+                frames={playerFrames}
+                ball={ball}
+                focusIndex={focusIndex}
+                contactIndex={contactIndex}
+              />
+            )}
             {result.focus && (
               <div className="mt-3 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
@@ -146,7 +198,7 @@ export default async function AnalysisDetail({
           </Reveal>
         </div>
 
-        {/* Breakdown — left column on desktop */}
+        {/* Breakdown: left column on desktop */}
         <div className="mt-8 min-w-0 lg:order-1 lg:mt-0">
           <Reveal delay={140}>
             <p className="text-sm leading-relaxed text-chalk-dim">

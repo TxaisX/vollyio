@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SideNavLinks, TabBar } from "@/components/app-nav";
 import { logout } from "@/app/(auth)/actions";
+import { LogoutButton } from "./logout-button";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -18,33 +19,32 @@ export default function AppLayout({
       >
         Skip to content
       </a>
-      <nav className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line p-4 md:flex">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-navy/90 px-5 py-2 backdrop-blur-md md:hidden">
         <Link
           href="/dashboard"
-          className="mb-6 px-3 font-display text-xl font-bold tracking-tight"
+          aria-label="Sideout, home"
+          className="flex min-h-11 items-center font-display text-lg font-bold tracking-tight"
+        >
+          Sideout
+        </Link>
+        <form action={logout}>
+          <LogoutButton variant="mobile" />
+        </form>
+      </header>
+      <nav
+        aria-label="Primary"
+        className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line p-4 md:flex"
+      >
+        <Link
+          href="/dashboard"
+          aria-label="Sideout, home"
+          className="mb-6 flex min-h-11 items-center px-3 font-display text-xl font-bold tracking-tight"
         >
           Sideout
         </Link>
         <SideNavLinks />
         <form action={logout} className="mt-auto">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-sm text-chalk-dim transition-colors hover:bg-navy-light hover:text-chalk"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-              aria-hidden
-            >
-              <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M15 8l4 4-4 4M19 12H9" />
-            </svg>
-            Log out
-          </button>
+          <LogoutButton variant="sidebar" />
         </form>
       </nav>
       <main

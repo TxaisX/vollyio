@@ -40,13 +40,24 @@ const PATHS: Record<Skill, React.ReactNode> = {
   ),
 };
 
+const FALLBACK = (
+  <>
+    <circle cx="12" cy="12" r="7" />
+    <path d="M5.5 9.5c4 2 9 2 13 0M12 5c2 4 2 10 0 14" strokeDasharray="1 3" />
+  </>
+);
+
 export function SkillIcon({
   skill,
   className = "h-6 w-6",
+  label,
 }: {
   skill: Skill;
   className?: string;
+  label?: string;
 }) {
+  const glyph = PATHS[skill] ?? FALLBACK;
+  const labelled = label != null && label !== "";
   return (
     <svg
       viewBox="0 0 24 24"
@@ -56,9 +67,12 @@ export function SkillIcon({
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      aria-hidden
+      focusable="false"
+      role={labelled ? "img" : undefined}
+      aria-label={labelled ? label : undefined}
+      aria-hidden={labelled ? undefined : true}
     >
-      {PATHS[skill]}
+      {glyph}
     </svg>
   );
 }
