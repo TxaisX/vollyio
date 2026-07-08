@@ -86,10 +86,26 @@ export function SpotlightGroup({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState(false);
+
+  // Re-evaluate pointer-fine and reduced-motion whenever the user changes
+  // them mid-session so the spotlight stops the instant reduce is enabled.
+  useEffect(() => {
+    const fineMq = window.matchMedia("(pointer: fine)");
+    const reduceMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const evaluate = () => setActive(finePointer());
+    evaluate();
+    fineMq.addEventListener("change", evaluate);
+    reduceMq.addEventListener("change", evaluate);
+    return () => {
+      fineMq.removeEventListener("change", evaluate);
+      reduceMq.removeEventListener("change", evaluate);
+    };
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !finePointer()) return;
+    if (!el || !active) return;
 
     let raf = 0;
     let px = 0;
@@ -114,7 +130,7 @@ export function SpotlightGroup({
       el.removeEventListener("pointermove", move);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [active]);
 
   return (
     <div ref={ref} className={className}>
@@ -133,10 +149,26 @@ export function Magnetic({
   strength?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState(false);
+
+  // Re-evaluate pointer-fine and reduced-motion whenever the user changes
+  // them mid-session so the pull stops (and resets) the instant reduce is on.
+  useEffect(() => {
+    const fineMq = window.matchMedia("(pointer: fine)");
+    const reduceMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const evaluate = () => setActive(finePointer());
+    evaluate();
+    fineMq.addEventListener("change", evaluate);
+    reduceMq.addEventListener("change", evaluate);
+    return () => {
+      fineMq.removeEventListener("change", evaluate);
+      reduceMq.removeEventListener("change", evaluate);
+    };
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !finePointer()) return;
+    if (!el || !active) return;
     let resetTimer: ReturnType<typeof setTimeout> | undefined;
     const move = (e: PointerEvent) => {
       const rect = el.getBoundingClientRect();
@@ -158,8 +190,12 @@ export function Magnetic({
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerleave", leave);
       if (resetTimer) clearTimeout(resetTimer);
+      // Settle back to the origin instantly when the effect tears down
+      // (unmount, strength change, or reduce enabled mid-session).
+      el.style.transition = "";
+      el.style.transform = "";
     };
-  }, [strength]);
+  }, [active, strength]);
 
   return (
     <div ref={ref} className={`inline-block ${className}`}>

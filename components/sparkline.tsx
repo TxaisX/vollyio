@@ -56,9 +56,17 @@ export function Sparkline({
     )
     .join(" ");
 
-  const label = skill
-    ? `${SKILL_LABEL[skill]} rating trend over your last ${clean.length} reps.`
-    : `Rating trend over your last ${clean.length} reps.`;
+  const first = Math.round(clean[0]);
+  const last = Math.round(clean[clean.length - 1]);
+  const delta = last - first;
+  const trend =
+    delta > 0
+      ? `up ${delta} to ${last}`
+      : delta < 0
+        ? `down ${-delta} to ${last}`
+        : `flat at ${last}`;
+  const prefix = skill ? `${SKILL_LABEL[skill]} ` : "";
+  const label = `${prefix}rating trend, ${trend} over your last ${clean.length} reps.`;
 
   return (
     <svg width={width} height={height} role="img" aria-label={label}>

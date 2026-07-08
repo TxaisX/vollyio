@@ -41,9 +41,10 @@ export default async function History({
     .limit(100);
   if (activeSkill) query = query.eq("skill", activeSkill);
 
-  const { data } = await query;
-  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
-  // distinguishing a fetch error from a genuinely empty history.
+  const { data, error } = await query;
+
+  if (error) throw error;
+
   const rows = (data as Row[] | null) ?? [];
 
   return (
@@ -59,7 +60,7 @@ export default async function History({
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
             href="/history"
-            className={`chip ${!activeSkill ? "chip-active" : ""}`}
+            className={`chip min-h-11 ${!activeSkill ? "chip-active" : ""}`}
           >
             All
           </Link>
@@ -67,7 +68,7 @@ export default async function History({
             <Link
               key={s}
               href={`/history?skill=${s}`}
-              className={`chip ${activeSkill === s ? "chip-active" : ""}`}
+              className={`chip min-h-11 ${activeSkill === s ? "chip-active" : ""}`}
             >
               {SKILL_LABEL[s]}
             </Link>

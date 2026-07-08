@@ -24,8 +24,11 @@ export default async function Goals() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: activeData }, { data: doneData }, { data: ratingsData }] =
-    await Promise.all([
+  const [
+    { data: activeData, error: activeError },
+    { data: doneData, error: doneError },
+    { data: ratingsData, error: ratingsError },
+  ] = await Promise.all([
       supabase
         .from("goals")
         .select("id, skill, title, target_rating, deadline")
@@ -45,8 +48,9 @@ export default async function Goals() {
         .eq("user_id", user!.id),
     ]);
 
-  // Known gap (R-CGSH-2): failed fetches coerce to empty here rather than
-  // distinguishing a fetch error from a genuinely empty goals list.
+  const fetchError = activeError ?? doneError ?? ratingsError;
+  if (fetchError) throw fetchError;
+
   const active = (activeData as Goal[] | null) ?? [];
   const done = (doneData as DoneRow[] | null) ?? [];
   const ratings = Object.fromEntries(

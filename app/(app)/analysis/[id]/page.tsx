@@ -92,10 +92,13 @@ export default async function AnalysisDetail({
     .from("frames")
     .createSignedUrls(row.frame_paths, 3600);
   const urls = signed?.map((s) => s.signedUrl) ?? [];
-  // Signed-URL failure: frames exist but none could be signed. Show a
-  // message instead of blank images; scores and notes still render below.
+  // Signed-URL failure: any frame that could not be signed counts. Show a
+  // message instead of blank/broken images; scores and notes still render
+  // below. Guarding on a partial failure (not just an all-fail) avoids passing
+  // an empty-string img src to ClipViewer.
   const framesFailed =
-    row.frame_paths.length > 0 && urls.filter(Boolean).length === 0;
+    row.frame_paths.length > 0 &&
+    urls.filter(Boolean).length < row.frame_paths.length;
 
   let clipUrl: string | null = null;
   if (row.clip_path) {

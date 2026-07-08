@@ -137,7 +137,7 @@ The page is currently a dead end. Keep the shipped heading and body; add a forwa
 | PURPOSE | STRING |
 |---|---|
 | heading | `This didn't load.` |
-| body | `We couldn't load this page. Try again, or head back to your dashboard.` |
+| body | `The page ran into an error. Try again, or head back to your dashboard.` |
 | primary button (calls `reset()`) | `Try again` |
 | secondary link | `Back to dashboard` |
 
@@ -152,7 +152,7 @@ The page is currently a dead end. Keep the shipped heading and body; add a forwa
 | PURPOSE | STRING |
 |---|---|
 | heading | `Drill not found.` |
-| body | `We don't have a drill at this link. Browse the full library instead.` |
+| body | `There's no drill at this link. Browse the full library instead.` |
 | link | `All drills` (`/drills`) |
 
 ### app/not-found.tsx (top-level 404, optional but recommended for full coverage)

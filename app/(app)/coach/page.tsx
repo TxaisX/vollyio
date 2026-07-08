@@ -23,15 +23,15 @@ export default async function Coach() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("chat_messages")
     .select("id, role, content, created_at")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
-  // distinguishing a fetch error from a genuinely empty history.
+  if (error) throw error;
+
   const messages = (((data as Row[] | null) ?? [])).slice().reverse();
 
   return (
