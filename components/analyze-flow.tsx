@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillPicker } from "@/components/skill-picker";
 import { Recorder } from "@/components/recorder";
@@ -9,6 +9,7 @@ import {
   extractFrames,
   extractFramesFromPhotos,
   type Frame,
+  type FrameDebug,
 } from "@/lib/frames";
 import {
   SKILL_LABEL,
@@ -35,6 +36,77 @@ function WorkingDots() {
   );
 }
 
+const KIND_FILL: Record<string, string> = {
+  peak: "var(--color-gold)",
+  burst: "var(--color-chalk)",
+  context: "var(--color-chalk-dim)",
+};
+
+function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
+  const span = debug.curve.length
+    ? debug.curve[debug.curve.length - 1].t || 1
+    : 1;
+  const maxScore = Math.max(1, ...debug.curve.map((c) => c.score));
+  return (
+    <div className="card mt-4 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+        Frame debug
+      </p>
+      <p className="mt-1 font-mono text-[11px] text-chalk-dim">
+        {debug.fellBack ? "uniform fallback" : "motion-guided"} · scan {debug.scanMs}ms ·{" "}
+        {Math.round(debug.totalBytes / 1024)} KB · {debug.chosen.length} frames
+      </p>
+      {debug.curve.length > 0 && (
+        <svg
+          viewBox="0 0 100 26"
+          preserveAspectRatio="none"
+          className="mt-3 h-14 w-full"
+          aria-hidden
+        >
+          {debug.curve.map((c, i) => {
+            const h = (c.score / maxScore) * 22;
+            return (
+              <rect
+                key={i}
+                x={(c.t / span) * 100}
+                y={24 - h}
+                width={1.2}
+                height={h}
+                style={{ fill: "var(--color-teal)" }}
+              />
+            );
+          })}
+          {debug.chosen.map((c, i) => (
+            <circle
+              key={`c${i}`}
+              cx={(c.t / span) * 100}
+              cy={2.5}
+              r={1.2}
+              style={{ fill: KIND_FILL[c.kind] }}
+            />
+          ))}
+        </svg>
+      )}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {debug.chosen.map((c, i) => (
+          <span
+            key={i}
+            className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
+              c.kind === "peak"
+                ? "bg-gold text-navy"
+                : c.kind === "burst"
+                  ? "border border-line text-chalk"
+                  : "text-chalk-dim"
+            }`}
+          >
+            {c.t.toFixed(1)}s
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AnalyzeFlow() {
   const router = useRouter();
   const [skill, setSkill] = useState<Skill | null>(null);
@@ -44,8 +116,20 @@ export function AnalyzeFlow() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [useUpload, setUseUpload] = useState(false);
   const [discipline, setDiscipline] = useState<Discipline>("indoor");
+  const [frameDebug, setFrameDebug] = useState<FrameDebug | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const debugRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("debug")
+    ) {
+      debugRef.current = true;
+    }
+  }, []);
 
   const busy = status.kind === "reading" || status.kind === "sending";
 
@@ -88,10 +172,18 @@ export function AnalyzeFlow() {
   async function onRecorded(blob: Blob) {
     setStatus({ kind: "reading" });
     try {
-      const { frames: f, duration_s } = await extractFrames(blob);
+      const { frames: f, duration_s, debug } = await extractFrames(blob, {
+        debug: debugRef.current,
+      });
       setFrames(f);
       setSource("video");
       setDuration(duration_s);
+      if (debug) {
+        // Debug mode: inspect the selected frames instead of spending an API call.
+        setFrameDebug(debug);
+        setStatus({ kind: "idle" });
+        return;
+      }
       await submit(f, "video", duration_s);
     } catch (err) {
       setStatus({
@@ -115,10 +207,13 @@ export function AnalyzeFlow() {
         setSource("photos");
         setDuration(null);
       } else {
-        const { frames: f, duration_s } = await extractFrames(file);
+        const { frames: f, duration_s, debug } = await extractFrames(file, {
+          debug: debugRef.current,
+        });
         setFrames(f);
         setSource("video");
         setDuration(duration_s);
+        setFrameDebug(debug ?? null);
       }
       setStatus({ kind: "idle" });
     } catch (err) {
@@ -255,6 +350,7 @@ export function AnalyzeFlow() {
           {frames.length > 0 && (
             <div className="mt-5 animate-fade-up">
               <Filmstrip frames={frames} />
+              {frameDebug && <FrameDebugPanel debug={frameDebug} />}
               {(source === "photos" || useUpload) && (
                 <button
                   type="button"
