@@ -4,14 +4,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { coach, MODEL } from "@/lib/ai/client";
 import { analysisSchema } from "@/lib/ai/schema";
-import { RUBRIC } from "@/lib/ai/rubrics";
+import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { updateRating } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
-import { SKILLS, SKILL_LABEL, type Level } from "@/lib/skills";
+import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
 import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
 
 export const runtime = "nodejs";
@@ -19,6 +19,7 @@ export const maxDuration = 120;
 
 const bodySchema = z.object({
   skill: z.enum(SKILLS),
+  discipline: z.enum(DISCIPLINES).default("indoor"),
   source: z.enum(["video", "photos"]),
   duration_s: z.number().nullable(),
   has_clip: z.boolean().optional(),
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
   if (!parsedBody.success) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const { skill, source, duration_s, frames } = parsedBody.data;
+  const { skill, discipline, source, duration_s, frames } = parsedBody.data;
 
   const supabase = await createClient();
   const {
@@ -104,8 +105,16 @@ export async function POST(req: NextRequest) {
         model: MODEL,
         max_tokens: 4096,
         system: [
-          { type: "text", text: RUBRIC[skill], cache_control: { type: "ephemeral" } },
-          { type: "text", text: outputSpec(skill, level), cache_control: { type: "ephemeral" } },
+          {
+            type: "text",
+            text: getRubric(skill, discipline),
+            cache_control: { type: "ephemeral" },
+          },
+          {
+            type: "text",
+            text: outputSpec(skill, level),
+            cache_control: { type: "ephemeral" },
+          },
         ],
         messages: [
           {
@@ -114,7 +123,7 @@ export async function POST(req: NextRequest) {
               ...content,
               {
                 type: "text",
-                text: `Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
+                text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
               },
             ],
           },
@@ -162,6 +171,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  result.discipline = discipline;
+
   const analysisId = crypto.randomUUID();
 
   const wantsClip = source === "video" && parsedBody.data.has_clip === true;
@@ -183,6 +194,7 @@ export async function POST(req: NextRequest) {
     id: analysisId,
     user_id: user.id,
     skill,
+    discipline,
     source,
     duration_s,
     frame_count: frames.length,
@@ -202,15 +214,20 @@ export async function POST(req: NextRequest) {
     .select("rating, analyses_count")
     .eq("user_id", user.id)
     .eq("skill", skill)
+    .eq("discipline", discipline)
     .maybeSingle();
 
-  await supabase.from("skill_ratings").upsert({
-    user_id: user.id,
-    skill,
-    rating: updateRating(prev?.rating ?? null, result.overall_score),
-    analyses_count: (prev?.analyses_count ?? 0) + 1,
-    updated_at: new Date().toISOString(),
-  });
+  await supabase.from("skill_ratings").upsert(
+    {
+      user_id: user.id,
+      skill,
+      discipline,
+      rating: updateRating(prev?.rating ?? null, result.overall_score),
+      analyses_count: (prev?.analyses_count ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,skill,discipline" },
+  );
 
   const awarded = await awardXp(
     supabase,
