@@ -333,7 +333,7 @@ export function ActiveGoalCard({
                 Rating
               </span>
               <span className="font-mono text-xs text-chalk">
-                {rating != null ? Math.round(rating) : "—"} / {target}
+                {rating != null ? Math.round(rating) : "·"} / {target}
               </span>
             </div>
             <div

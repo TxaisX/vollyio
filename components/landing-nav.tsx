@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 const LINKS = [
@@ -66,8 +67,9 @@ export function LandingNav() {
         <Link
           href="/"
           aria-label="Sideout, home"
-          className="flex min-h-11 items-center font-display text-xl font-bold tracking-tight"
+          className="flex min-h-11 items-center gap-2 font-display text-xl font-bold tracking-tight"
         >
+          <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
           Sideout
         </Link>
 

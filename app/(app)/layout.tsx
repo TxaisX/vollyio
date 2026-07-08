@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SideNavLinks, TabBar } from "@/components/app-nav";
 import { logout } from "@/app/(auth)/actions";
 import { LogoutButton } from "./logout-button";
@@ -23,8 +24,9 @@ export default function AppLayout({
         <Link
           href="/dashboard"
           aria-label="Sideout, home"
-          className="flex min-h-11 items-center font-display text-lg font-bold tracking-tight"
+          className="flex min-h-11 items-center gap-2 font-display text-lg font-bold tracking-tight"
         >
+          <Image src="/icon-mark.png" alt="" width={24} height={24} className="h-6 w-6" />
           Sideout
         </Link>
         <form action={logout}>
@@ -38,8 +40,9 @@ export default function AppLayout({
         <Link
           href="/dashboard"
           aria-label="Sideout, home"
-          className="mb-6 flex min-h-11 items-center px-3 font-display text-xl font-bold tracking-tight"
+          className="mb-6 flex min-h-11 items-center gap-2 px-3 font-display text-xl font-bold tracking-tight"
         >
+          <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
           Sideout
         </Link>
         <SideNavLinks />
