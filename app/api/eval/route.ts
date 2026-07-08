@@ -109,7 +109,11 @@ async function runModel(c: EvalCase): Promise<ScoreInput | null> {
   return {
     overall_score: raw.overall_score,
     metrics: METRICS[c.skill].map((m) => ({ key: m.key, score: metricsMap[m.key].score })),
-    frameIndices: [...raw.insights.map((i) => i.frame_index), raw.priority_fix.frame_index],
+    frameIndices: [
+      ...raw.insights.map((i) => i.frame_index),
+      raw.focus.frame_index,
+      raw.contact_frame_index,
+    ],
     frameCount: c.frames.length,
   };
 }

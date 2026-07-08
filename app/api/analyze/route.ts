@@ -5,12 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { coach, MODEL } from "@/lib/ai/client";
 import { analysisSchema } from "@/lib/ai/schema";
 import { getRubric } from "@/lib/ai/rubrics";
+import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { updateRating } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
-import { SKILLS, SKILL_LABEL, DISCIPLINES } from "@/lib/skills";
+import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
 import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
 
 export const runtime = "nodejs";
@@ -21,6 +22,8 @@ const bodySchema = z.object({
   discipline: z.enum(DISCIPLINES).default("indoor"),
   source: z.enum(["video", "photos"]),
   duration_s: z.number().nullable(),
+  has_clip: z.boolean().optional(),
+  clip_ext: z.string().nullable().optional(),
   frames: z
     .array(
       z.object({
@@ -32,6 +35,11 @@ const bodySchema = z.object({
     .min(2)
     .max(MAX_FRAMES),
 });
+
+function safeClipExt(ext: string | null | undefined): string {
+  const e = (ext ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return e.length >= 2 && e.length <= 4 ? e : "webm";
+}
 
 export async function POST(req: NextRequest) {
   const parsedBody = bodySchema.safeParse(await req.json().catch(() => null));
@@ -74,7 +82,7 @@ export async function POST(req: NextRequest) {
     .select("level")
     .eq("id", user.id)
     .single();
-  const level = profile?.level ?? "beginner";
+  const level = (profile?.level ?? "beginner") as Level;
 
   let result: AnalysisResult;
 
@@ -102,6 +110,11 @@ export async function POST(req: NextRequest) {
             text: getRubric(skill, discipline),
             cache_control: { type: "ephemeral" },
           },
+          {
+            type: "text",
+            text: outputSpec(skill, level),
+            cache_control: { type: "ephemeral" },
+          },
         ],
         messages: [
           {
@@ -127,6 +140,7 @@ export async function POST(req: NextRequest) {
       }
 
       const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
+      const top = raw.changes[0];
       result = {
         skill,
         overall_score: raw.overall_score,
@@ -135,10 +149,16 @@ export async function POST(req: NextRequest) {
           score: metricsMap[m.key].score,
           note: metricsMap[m.key].note,
         })),
+        ball_track: raw.ball_track,
+        contact_frame_index: raw.contact_frame_index,
+        focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },
         insights: raw.insights.map((i) => ({ ...i, time_s: timeAt(i.frame_index) })),
+        changes: raw.changes,
         priority_fix: {
-          ...raw.priority_fix,
-          time_s: timeAt(raw.priority_fix.frame_index),
+          title: top.title,
+          detail: top.detail,
+          frame_index: raw.focus.frame_index,
+          time_s: timeAt(raw.focus.frame_index),
         },
         drill_slugs: raw.drill_slugs,
         summary: raw.summary,
@@ -154,6 +174,11 @@ export async function POST(req: NextRequest) {
   result.discipline = discipline;
 
   const analysisId = crypto.randomUUID();
+
+  const wantsClip = source === "video" && parsedBody.data.has_clip === true;
+  const clipPath = wantsClip
+    ? `${user.id}/${analysisId}/clip.${safeClipExt(parsedBody.data.clip_ext)}`
+    : null;
 
   const framePaths: string[] = [];
   for (const f of frames) {
@@ -175,6 +200,7 @@ export async function POST(req: NextRequest) {
     frame_count: frames.length,
     frame_paths: framePaths,
     thumb_path: framePaths[0] ?? null,
+    clip_path: clipPath,
     overall_score: result.overall_score,
     result,
     model: process.env.AI_MOCK === "true" ? "mock" : MODEL,
@@ -212,6 +238,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     analysisId,
+    clipPath,
     xpAwarded: awarded ? XP_AWARDS.analysis : 0,
   });
 }
