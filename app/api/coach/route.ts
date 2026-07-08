@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { coach, MODEL } from "@/lib/ai/client";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
 import { DRILLS, drillsForSkill } from "@/content/drills";
+import { techniqueFor } from "@/content/technique";
+import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
 
 export const runtime = "nodejs";
@@ -88,7 +90,9 @@ export async function POST(req: NextRequest) {
     supabase
       .from("skill_ratings")
       .select("skill, rating, analyses_count")
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      // Coach context uses indoor ratings for now; per-discipline context is a follow-up.
+      .eq("discipline", "indoor"),
     supabase
       .from("analyses")
       .select("skill, overall_score, result, created_at")
@@ -111,6 +115,23 @@ export async function POST(req: NextRequest) {
   const level = (profile?.level as Level) ?? "beginner";
   const ratings = (ratingsData as RatingRow[] | null) ?? [];
 
+  // Enrich with "what good looks like" for the player's weakest 1-2 skills.
+  const techniqueNotes = [...ratings]
+    .sort((a, b) => a.rating - b.rating)
+    .slice(0, 2)
+    .map((r) => {
+      const v = techniqueFor(r.skill, "indoor");
+      return {
+        skill: r.skill,
+        overview: v.overview,
+        highest_leverage: `${metricLabel(r.skill, v.highest_leverage_metric)} — ${v.highest_leverage_note}`,
+        elite_markers: METRICS[r.skill].map((m) => ({
+          metric: m.label,
+          marker: v.metrics[m.key].elite_marker,
+        })),
+      };
+    });
+
   const context: CoachContext = {
     player: { display_name: profile?.display_name ?? null, level },
     skill_ratings: ratings,
@@ -132,6 +153,7 @@ export async function POST(req: NextRequest) {
       skill: d.skill,
       level: d.level,
     })),
+    ...(techniqueNotes.length > 0 ? { technique_notes: techniqueNotes } : {}),
   };
 
   const history = (((historyData as HistoryRow[] | null) ?? [])).slice().reverse();
