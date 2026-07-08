@@ -10,6 +10,8 @@ export type AnalyzeRequest = {
   skill: Skill;
   source: "video" | "photos";
   duration_s: number | null;
+  has_clip?: boolean;
+  clip_ext?: string | null;
   frames: AnalyzeRequestFrame[];
 };
 
@@ -27,12 +29,39 @@ export type PriorityFix = {
   time_s: number | null;
 };
 
+export type BallMark = {
+  frame_index: number;
+  x: number; // normalized 0-1, origin top-left
+  y: number; // normalized 0-1, origin top-left
+  visible: boolean;
+};
+
+export type Focus = {
+  frame_index: number;
+  label: string;
+  why: string;
+  time_s: number | null;
+};
+
+export type Change = {
+  title: string;
+  detail: string;
+  target_metric: string;
+  expected_gain: number;
+  difficulty: "quick" | "moderate" | "long-term";
+  timeframe: string;
+};
+
 export type AnalysisResult = {
   skill: Skill;
   overall_score: number;
   metrics: Metric[];
+  ball_track: BallMark[];
+  contact_frame_index: number;
+  focus: Focus;
   insights: Insight[];
-  priority_fix: PriorityFix;
+  changes: Change[];
+  priority_fix: PriorityFix; // derived from changes[0] for back-compat readers
   drill_slugs: string[];
   summary: string;
 };
