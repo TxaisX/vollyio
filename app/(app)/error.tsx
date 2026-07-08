@@ -19,7 +19,7 @@ export default function AppError({
       <div className="card w-full max-w-sm p-8">
         <h1 className="font-display text-2xl font-bold">This didn&apos;t load.</h1>
         <p className="mt-3 text-sm text-chalk-dim">
-          We couldn&apos;t load this page. Try again, or head back to your
+          The page ran into an error. Try again, or head back to your
           dashboard.
         </p>
         <div className="mt-6 flex flex-col gap-3">

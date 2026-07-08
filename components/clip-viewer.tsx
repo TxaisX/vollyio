@@ -110,6 +110,7 @@ function ClipPlayer({
         <video
           ref={videoRef}
           src={clipUrl}
+          aria-label="Your analyzed rep"
           controls
           playsInline
           preload="metadata"

@@ -26,14 +26,15 @@ export default async function ScoreboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("games")
     .select("id, team_a, team_b, sets, winner, started_at")
     .eq("user_id", user!.id)
     .order("started_at", { ascending: false })
     .limit(10);
-  // Known gap (R-CGSH-2): a failed fetch coerces to empty here rather than
-  // distinguishing a fetch error from a genuinely empty match list.
+
+  if (error) throw error;
+
   const games = (data as GameRow[] | null) ?? [];
 
   return (

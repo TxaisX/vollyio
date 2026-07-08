@@ -41,10 +41,10 @@ export default async function Dashboard() {
   } = await supabase.auth.getUser();
 
   const [
-    { data: profile },
-    { data: ratingsData },
-    { data: analysesData },
-    { data: goalsData },
+    { data: profile, error: profileError },
+    { data: ratingsData, error: ratingsError },
+    { data: analysesData, error: analysesError },
+    { data: goalsData, error: goalsError },
     progress,
   ] = await Promise.all([
     supabase
@@ -69,9 +69,10 @@ export default async function Dashboard() {
     getProgress(supabase, user!.id),
   ]);
 
-  // Known gap (R-DASH-1): a failed fetch is coerced to empty below rather than
-  // distinguished from a genuine empty result. Surfacing the error belongs with
-  // the (app)/error.tsx boundary; tracked as a cross-boundary item, not masked here silently on purpose.
+  const fetchError =
+    profileError ?? ratingsError ?? analysesError ?? goalsError;
+  if (fetchError) throw fetchError;
+
   const ratings = Object.fromEntries(
     (ratingsData as RatingRow[] | null)?.map((r) => [r.skill, r.rating]) ?? [],
   ) as Partial<Record<Skill, number>>;
@@ -136,6 +137,7 @@ export default async function Dashboard() {
                 className="block h-1 w-16 overflow-hidden rounded-full bg-line/60"
                 role="progressbar"
                 aria-valuenow={progress.into}
+                aria-valuemin={0}
                 aria-valuemax={progress.span}
                 aria-label="XP to next level"
               >
@@ -200,7 +202,7 @@ export default async function Dashboard() {
                 </p>
               ) : (
                 <form action={completeChallenge} className="mt-3">
-                  <button type="submit" className="btn-primary w-full py-2.5 text-sm">
+                  <button type="submit" className="btn-primary w-full min-h-11 py-2.5 text-sm">
                     Mark complete
                   </button>
                 </form>

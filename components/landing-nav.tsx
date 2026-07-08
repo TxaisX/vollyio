@@ -95,7 +95,7 @@ export function LandingNav() {
           >
             Log in
           </Link>
-          <Link href="/signup" className="btn-primary px-4 py-2.5 text-sm">
+          <Link href="/signup" className="btn-primary min-h-11 px-4 py-2.5 text-sm">
             Get started
           </Link>
         </div>
