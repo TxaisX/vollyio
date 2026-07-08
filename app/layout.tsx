@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { PwaRegister } from "@/components/pwa-register";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const instrument = Instrument_Sans({
@@ -16,13 +17,31 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
+  preload: false,
 });
 
+const description =
+  "Record a rep, get frame-by-frame form analysis for every volleyball skill.";
+
 export const metadata: Metadata = {
-  title: "Sideout — Volleyball Form Coach",
-  description:
-    "Record a rep, get frame-by-frame form analysis for every volleyball skill.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Sideout — Volleyball Form Coach", template: "%s — Sideout" },
+  description,
+  applicationName: "Sideout",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Sideout" },
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: "Sideout",
+    title: "Sideout — Volleyball Form Coach",
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sideout — Volleyball Form Coach",
+    description,
+  },
 };
 
 export const viewport: Viewport = {

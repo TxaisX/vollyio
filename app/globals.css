@@ -26,7 +26,7 @@
 
   --animate-fade-up: fade-up 0.6s var(--ease-court) both;
   --animate-marquee: marquee 32s linear infinite;
-  --animate-sheen: sheen 7s linear infinite;
+  --animate-sheen: sheen 7s linear 2;
   --animate-pulse-dot: pulse-dot 2.4s ease-in-out infinite;
 
   @keyframes fade-up {
@@ -264,6 +264,32 @@ body {
     opacity: 1;
     transform: none;
   }
+
+  .reveal-static {
+    animation: fade-up 0.6s var(--ease-court) both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
+  .stat-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-line);
+    padding: 0.25rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-chalk-dim);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -278,5 +304,8 @@ body {
   .reveal {
     opacity: 1;
     transform: none;
+  }
+  .reveal-static {
+    animation: none;
   }
 }

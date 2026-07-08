@@ -26,7 +26,7 @@ const STEPS = [
   {
     n: "02",
     title: "Get the breakdown",
-    body: "Five metrics scored 0–100, timestamped insights, and every note tied to the exact frame it happened in.",
+    body: "Each metric scored 0–100, timestamped insights, and every note tied to the exact frame it happened in.",
   },
   {
     n: "03",
@@ -40,7 +40,7 @@ function MockAnalysisCard() {
     <div className="card spot rotate-1 p-5 shadow-lift md:p-6">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
-          Serve · 8 frames
+          Serve · 5 frames
         </span>
         <span className="rounded-full bg-gold px-2.5 py-0.5 font-display text-xs font-bold text-navy">
           78
@@ -51,7 +51,7 @@ function MockAnalysisCard() {
           <div
             key={t}
             className={`h-14 flex-1 rounded-md border ${
-              i === 2 ? "border-gold" : "border-line"
+              i === 4 ? "border-gold" : "border-line"
             } bg-gradient-to-b from-navy-lighter to-navy-light`}
           >
             <span className="block px-1.5 pt-1 font-mono text-[9px] text-chalk-dim">
@@ -93,34 +93,63 @@ function MockAnalysisCard() {
 }
 
 export default function Landing() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Sideout",
+    applicationCategory: "SportsApplication",
+    operatingSystem: "Web, iOS, Android",
+    description:
+      "Record a rep, get frame-by-frame form analysis for every volleyball skill.",
+    featureList: [
+      "Frame-by-frame breakdown",
+      "Six skills scored 0-100",
+      "One priority fix per rep",
+      "Rolling skill rating",
+      "Coach chat",
+    ],
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  };
   return (
     <div className="relative overflow-x-clip">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary"
+      >
+        Skip to content
+      </a>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <CursorGlow />
       <LandingNav />
 
-      <main className="relative">
+      <main id="main" tabIndex={-1} className="relative">
         <section className="relative mx-auto grid max-w-6xl gap-12 px-5 pb-20 pt-32 md:grid-cols-2 md:items-center md:gap-10 md:px-8 md:pb-28 md:pt-44">
           <SeamArcs className="absolute inset-0 -z-10 h-full w-full" />
           <div>
-            <Reveal>
+            <Reveal immediate>
               <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
                 AI volleyball coach
               </p>
             </Reveal>
-            <Reveal delay={80}>
+            <Reveal delay={80} immediate>
               <h1 className="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
                 Fix the one thing{" "}
                 <span className="text-sheen">holding your game back.</span>
               </h1>
             </Reveal>
-            <Reveal delay={160}>
+            <Reveal delay={160} immediate>
               <p className="mt-5 max-w-md text-lg text-chalk-dim">
                 Record a rep. Sideout breaks it down frame by frame — serve,
                 pass, set, attack, block, and defense — scored the way a coach
                 scores it.
               </p>
             </Reveal>
-            <Reveal delay={240}>
+            <Reveal delay={240} immediate>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Magnetic>
                   <Link href="/signup" className="btn-primary text-base">
@@ -132,14 +161,11 @@ export default function Landing() {
                 </a>
               </div>
             </Reveal>
-            <Reveal delay={320}>
+            <Reveal delay={320} immediate>
               <div className="mt-8 flex flex-wrap gap-2">
                 {["Six skills", "Frame-cited feedback", "Free to start"].map(
                   (chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-line px-3 py-1 font-mono text-[11px] text-chalk-dim"
-                    >
+                    <span key={chip} className="tag">
                       {chip}
                     </span>
                   ),
@@ -147,14 +173,14 @@ export default function Landing() {
               </div>
             </Reveal>
           </div>
-          <Reveal delay={200} className="md:justify-self-end">
+          <Reveal delay={200} immediate className="md:justify-self-end">
             <SpotlightGroup>
               <MockAnalysisCard />
             </SpotlightGroup>
           </Reveal>
         </section>
 
-        <div className="overflow-hidden border-y border-line py-3">
+        <div aria-hidden="true" className="overflow-hidden border-y border-line py-3">
           <div className="flex w-max animate-marquee gap-8 whitespace-nowrap">
             {[...MARQUEE, ...MARQUEE].map((item, i) => (
               <span
@@ -197,12 +223,17 @@ export default function Landing() {
         <section id="skills" className="border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-                Six skills
-              </p>
-              <h2 className="mt-3 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
-                The whole game, not just your swing.
-              </h2>
+              <div className="flex items-end gap-4">
+                <span className="stat-num text-gold text-6xl md:text-7xl">6</span>
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                    Skills scored
+                  </p>
+                  <h2 className="mt-2 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
+                    The whole game, not just your swing.
+                  </h2>
+                </div>
+              </div>
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {SKILLS.map((skill, i) => (
@@ -239,7 +270,10 @@ export default function Landing() {
                 <p className="mt-4 max-w-md text-chalk-dim">
                   No &ldquo;looks good&rdquo; feedback. Each insight is pinned
                   to the moment it happened, so you can see exactly what the
-                  score saw — and argue with it if you want.
+                  score saw — and argue with it if you want. Every skill is
+                  graded on the checkpoints a coach actually watches: on a
+                  serve, that&rsquo;s toss, arm swing, contact, and
+                  follow-through.
                 </p>
               </Reveal>
             </div>
@@ -267,7 +301,7 @@ export default function Landing() {
                   ))}
                 </div>
                 <div className="mt-5 border-t border-line pt-4">
-                  <span className="rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase text-chalk-dim">
+                  <span className="tag uppercase">
                     Cited: frame 6 · t=1.2s
                   </span>
                 </div>
@@ -312,7 +346,7 @@ export default function Landing() {
               </Reveal>
               <Reveal delay={140}>
                 <div className="card card-lift spot flex h-full flex-col justify-center p-6">
-                  <span className="font-display text-5xl font-bold text-gold">
+                  <span className="stat-num text-gold text-5xl">
                     <CountUp to={12} />
                   </span>
                   <p className="mt-2 font-display font-bold">day streak</p>
@@ -341,6 +375,20 @@ export default function Landing() {
 
         <section className="border-t border-line">
           <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:items-center md:px-8 md:py-28">
+            <div>
+              <Reveal>
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                  Coach chat
+                </p>
+                <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+                  A coach that has actually seen you play.
+                </h2>
+                <p className="mt-4 max-w-md text-chalk-dim">
+                  Ask anything. The coach answers from your own scores,
+                  breakdowns, and goals — not generic tips.
+                </p>
+              </Reveal>
+            </div>
             <Reveal>
               <div className="card p-6">
                 <div className="space-y-3">
@@ -361,20 +409,6 @@ export default function Landing() {
                 </div>
               </div>
             </Reveal>
-            <div className="md:order-first md:text-left">
-              <Reveal>
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-                  Coach chat
-                </p>
-                <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
-                  A coach that has actually seen you play.
-                </h2>
-                <p className="mt-4 max-w-md text-chalk-dim">
-                  Ask anything. The coach answers from your own scores,
-                  breakdowns, and goals — not generic tips.
-                </p>
-              </Reveal>
-            </div>
           </div>
         </section>
 
@@ -388,15 +422,19 @@ export default function Landing() {
               <p className="mx-auto mt-4 max-w-md text-chalk-dim">
                 The next rep you film is the first one that counts.
               </p>
+              <p className="mx-auto mt-3 max-w-md font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+                For volleyball players who film their reps and want them scored
+                like a coach would.
+              </p>
               <div className="mt-8 flex justify-center">
                 <Magnetic>
                   <Link href="/signup" className="btn-primary text-base">
-                    Get started free
+                    Start your first breakdown
                   </Link>
                 </Magnetic>
               </div>
               <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
-                No card. No cap on watching yourself get better.
+                No card. Your first breakdown is free.
               </p>
             </Reveal>
           </div>
@@ -423,12 +461,18 @@ export default function Landing() {
         </div>
       </footer>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 p-3 backdrop-blur-md md:hidden">
+      <div
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 px-3 pt-3 backdrop-blur-md md:hidden"
+      >
         <Link href="/signup" className="btn-primary w-full py-3.5">
           Start your first breakdown
         </Link>
       </div>
-      <div className="h-20 md:hidden" />
+      <div
+        className="md:hidden"
+        style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }}
+      />
     </div>
   );
 }

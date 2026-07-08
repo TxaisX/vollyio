@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { signup } from "../actions";
+
+export const metadata: Metadata = {
+  title: "Sign up",
+  description: "Create your Sideout account and get your first breakdown free.",
+};
 
 export default async function Signup({
   searchParams,
@@ -27,7 +33,11 @@ export default async function Signup({
           <h1 className="mt-2 font-display text-2xl font-bold">
             Create your account
           </h1>
-          {error && <p className="mt-3 text-sm text-coral">{error}</p>}
+          {error && (
+            <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
+              {error}
+            </p>
+          )}
           <form action={signup} className="mt-6 flex flex-col gap-4">
             <div>
               <label
@@ -59,6 +69,8 @@ export default async function Signup({
                 required
                 autoComplete="email"
                 placeholder="you@club.com"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "form-error" : undefined}
                 className="input-field text-sm"
               />
             </div>
@@ -77,12 +89,17 @@ export default async function Signup({
                 minLength={8}
                 autoComplete="new-password"
                 placeholder="8+ characters"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "form-error" : undefined}
                 className="input-field text-sm"
               />
             </div>
             <button type="submit" className="btn-primary mt-2 w-full">
-              Get started
+              Start your first breakdown
             </button>
+            <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+              No card. Your first breakdown in about a minute.
+            </p>
           </form>
         </div>
         <p className="mt-5 text-center text-sm text-chalk-dim">

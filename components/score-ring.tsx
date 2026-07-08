@@ -46,7 +46,7 @@ export function ScoreRing({
       className="relative inline-flex items-center justify-center"
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -72,7 +72,10 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="font-display text-2xl font-bold">
+        <span
+          className="font-display font-bold"
+          style={{ fontSize: size * 0.26 }}
+        >
           {score == null ? "—" : shown}
         </span>
         {label && (

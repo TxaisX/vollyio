@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Offline",
+  robots: { index: false, follow: false },
+};
+
 export default function Offline() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
