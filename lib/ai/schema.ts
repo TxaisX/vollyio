@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Skill } from "@/lib/skills";
-import { METRICS } from "@/lib/ai/metrics";
+import { METRICS, metricKeys } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
 
 export function analysisSchema(skill: Skill) {
@@ -16,9 +16,28 @@ export function analysisSchema(skill: Skill) {
   const slugSchema =
     slugs.length > 0 ? z.enum(slugs as [string, ...string[]]) : z.string();
 
+  const keys = metricKeys(skill);
+  const metricKeySchema = z.enum(keys as [string, ...string[]]);
+
   return z.object({
     overall_score: z.number().int().min(0).max(100),
     metrics: z.object(metricShape),
+    ball_track: z
+      .array(
+        z.object({
+          frame_index: z.number().int(),
+          x: z.number().min(0).max(1),
+          y: z.number().min(0).max(1),
+          visible: z.boolean(),
+        }),
+      )
+      .min(2),
+    contact_frame_index: z.number().int(),
+    focus: z.object({
+      frame_index: z.number().int(),
+      label: z.string(),
+      why: z.string(),
+    }),
     insights: z
       .array(
         z.object({
@@ -29,11 +48,19 @@ export function analysisSchema(skill: Skill) {
       )
       .min(3)
       .max(6),
-    priority_fix: z.object({
-      title: z.string(),
-      detail: z.string(),
-      frame_index: z.number().int(),
-    }),
+    changes: z
+      .array(
+        z.object({
+          title: z.string(),
+          detail: z.string(),
+          target_metric: metricKeySchema,
+          expected_gain: z.number().int().min(1).max(40),
+          difficulty: z.enum(["quick", "moderate", "long-term"]),
+          timeframe: z.string(),
+        }),
+      )
+      .min(1)
+      .max(3),
     drill_slugs: z.array(slugSchema).min(1).max(3),
     summary: z.string(),
   });
