@@ -8,7 +8,7 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 
 ## Phase tracker
 - [x] Kickoff: read AGENTS.md / CLAUDE.md / globals.css; create /docs; seed ledger/decisions/reportcards/assets/tooling; record section 10 AGENTS.md amendments in Decision Log + edit AGENTS.md.
-- [ ] Phase 0 (Leon + Lisa): quality-floor.md, acceptance.md, copy.md, metadata.md + Phase 0 report-card round to pass bar.
+- [x] Phase 0 (Leon + Lisa): quality-floor.md, acceptance.md (348 lines, ~180 assertions), copy.md, metadata.md. Both A-, pass bar met round 1. Cards in reportcards.md; em-dash separator ruled D-003 (→ middot). Carried raise items = Phase 1 inputs.
 - [ ] Phase 1 (Jerry + Dave): implement fixes + boundaries/scripts/view-transition flag + report-card round.
 - [ ] Phase 2 (Sierra): adversarial verify; loop to Jerry/Dave until acceptance all-pass + 3 gates green + Lighthouse >=90.
 - [ ] Phase 3 (Thomas): CI gates, preview, production deploy (owner delegated the section 9 gate to agents).
@@ -18,7 +18,7 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 `npx tsc --noEmit` ; `next build` ; `node --test` — never trust a phase as done until green.
 
 ## Current position
-Kickoff complete. NEXT: launch Phase 0 (Leon + Lisa in parallel via Workflow), then integrate + report cards.
+Phase 0 complete + committed. NEXT: Phase 1 (Jerry implements component/route fixes + section 7 view-transitions + section 10 visuals/on-page logo; Dave does boundaries, package.json scripts, viewTransition flag, tab branding, coaching-service discipline). Strategy: add sanctioned shared classes to globals.css first (Orchestrator), then fan out parallel agents on DISJOINT file sets (no two touch the same file; globals.css frozen after the pre-step), Dave-platform in parallel. Then Orchestrator runs tsc/build/test, then Phase 1 report-card round.
 
 ## How to resume
 Read this file, then handoff.md, then the orchestration prompt. Continue from "Current position". Keep this file + ledger.md + reportcards.md + handoff.md updated every step.
