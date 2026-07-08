@@ -62,6 +62,16 @@
   }
 }
 
+@keyframes skeleton {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
 body {
   background: var(--color-navy);
   color: var(--color-chalk);
@@ -88,6 +98,15 @@ body {
       var(--color-navy-light),
       color-mix(in oklab, var(--color-navy-light) 55%, var(--color-navy))
     );
+  }
+
+  .skeleton {
+    animation: skeleton 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
   }
 
   .card-lift {
