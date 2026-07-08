@@ -168,6 +168,30 @@ body {
     background: rgb(242 239 230 / 0.04);
   }
 
+  .btn-destructive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    background: var(--color-coral);
+    color: var(--color-navy);
+    font-family: var(--font-display);
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      box-shadow 0.3s var(--ease-court),
+      transform 0.2s var(--ease-court);
+  }
+  .btn-destructive:hover {
+    background: color-mix(in oklab, var(--color-coral) 88%, white);
+  }
+  .btn-destructive:active {
+    transform: translateY(1px);
+  }
+
   .chip {
     display: inline-flex;
     align-items: center;
