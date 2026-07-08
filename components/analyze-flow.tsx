@@ -222,10 +222,13 @@ export function AnalyzeFlow() {
         {/* Controls */}
         <div className="min-w-0">
           <div>
-            <h2 className="mb-3 flex items-center gap-2 font-display text-sm font-bold">
+            <h2
+              id="pick-a-skill"
+              className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
+            >
               <span className="font-mono text-xs text-gold">01</span> Pick a skill
             </h2>
-            <SkillPicker value={skill} onChange={setSkill} />
+            <SkillPicker value={skill} onChange={setSkill} labelledBy="pick-a-skill" />
           </div>
 
           {skill && (

@@ -294,7 +294,7 @@ export default async function Dashboard() {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <Sparkline values={series} />
+                  <Sparkline values={series} skill={skill} />
                 </div>
               </Link>
             );
