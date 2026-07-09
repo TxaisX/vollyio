@@ -10,8 +10,15 @@ import {
   extractFrames,
   extractFramesFromPhotos,
   type Frame,
+  type FrameDebug,
 } from "@/lib/frames";
-import { SKILL_LABEL, type Skill } from "@/lib/skills";
+import {
+  SKILL_LABEL,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  type Skill,
+  type Discipline,
+} from "@/lib/skills";
 import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
@@ -40,6 +47,77 @@ function WorkingDots() {
   );
 }
 
+const KIND_FILL: Record<string, string> = {
+  peak: "var(--color-gold)",
+  burst: "var(--color-chalk)",
+  context: "var(--color-chalk-dim)",
+};
+
+function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
+  const span = debug.curve.length
+    ? debug.curve[debug.curve.length - 1].t || 1
+    : 1;
+  const maxScore = Math.max(1, ...debug.curve.map((c) => c.score));
+  return (
+    <div className="card mt-4 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+        Frame debug
+      </p>
+      <p className="mt-1 font-mono text-[11px] text-chalk-dim">
+        {debug.fellBack ? "uniform fallback" : "motion-guided"} · scan {debug.scanMs}ms ·{" "}
+        {Math.round(debug.totalBytes / 1024)} KB · {debug.chosen.length} frames
+      </p>
+      {debug.curve.length > 0 && (
+        <svg
+          viewBox="0 0 100 26"
+          preserveAspectRatio="none"
+          className="mt-3 h-14 w-full"
+          aria-hidden
+        >
+          {debug.curve.map((c, i) => {
+            const h = (c.score / maxScore) * 22;
+            return (
+              <rect
+                key={i}
+                x={(c.t / span) * 100}
+                y={24 - h}
+                width={1.2}
+                height={h}
+                style={{ fill: "var(--color-teal)" }}
+              />
+            );
+          })}
+          {debug.chosen.map((c, i) => (
+            <circle
+              key={`c${i}`}
+              cx={(c.t / span) * 100}
+              cy={2.5}
+              r={1.2}
+              style={{ fill: KIND_FILL[c.kind] }}
+            />
+          ))}
+        </svg>
+      )}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {debug.chosen.map((c, i) => (
+          <span
+            key={i}
+            className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
+              c.kind === "peak"
+                ? "bg-gold text-navy"
+                : c.kind === "burst"
+                  ? "border border-line text-chalk"
+                  : "text-chalk-dim"
+            }`}
+          >
+            {c.t.toFixed(1)}s
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AnalyzeFlow() {
   const router = useRouter();
   const [skill, setSkill] = useState<Skill | null>(null);
@@ -50,11 +128,24 @@ export function AnalyzeFlow() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [useUpload, setUseUpload] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [discipline, setDiscipline] = useState<Discipline>("indoor");
+  const [frameDebug, setFrameDebug] = useState<FrameDebug | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const debugRef = useRef(false);
   const clipRef = useRef<Blob | null>(null);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
   const prevSkillRef = useRef<Skill | null>(skill);
+
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("debug")
+    ) {
+      debugRef.current = true;
+    }
+  }, []);
 
   const busy = status.kind === "reading" || status.kind === "sending";
   const canSubmit = frames.length > 0 && (source === "photos" || useUpload);
@@ -87,6 +178,7 @@ export function AnalyzeFlow() {
     const clip = src === "video" ? clipRef.current : null;
     const body: AnalyzeRequest = {
       skill,
+      discipline,
       source: src,
       duration_s: dur,
       has_clip: !!clip,
@@ -137,10 +229,18 @@ export function AnalyzeFlow() {
     setVideoUrl(null);
     clipRef.current = blob;
     try {
-      const { frames: f, duration_s } = await extractFrames(blob);
+      const { frames: f, duration_s, debug } = await extractFrames(blob, {
+        debug: debugRef.current,
+      });
       setFrames(f);
       setSource("video");
       setDuration(duration_s);
+      if (debug) {
+        // Debug mode: inspect the selected frames instead of spending an API call.
+        setFrameDebug(debug);
+        setStatus({ kind: "idle" });
+        return;
+      }
       await submit(f, "video", duration_s);
     } catch (err) {
       setStatus({
@@ -166,10 +266,13 @@ export function AnalyzeFlow() {
         setVideoUrl(null);
         clipRef.current = null;
       } else {
-        const { frames: f, duration_s } = await extractFrames(file);
+        const { frames: f, duration_s, debug } = await extractFrames(file, {
+          debug: debugRef.current,
+        });
         setFrames(f);
         setSource("video");
         setDuration(duration_s);
+        setFrameDebug(debug ?? null);
         setVideoUrl(URL.createObjectURL(file));
         clipRef.current = file;
       }
@@ -203,6 +306,29 @@ export function AnalyzeFlow() {
     }
   }
 
+  function downloadEvalCase() {
+    if (!skill || frames.length === 0) return;
+    const payload = {
+      id: `${skill}-${discipline}-${Date.now()}`,
+      skill,
+      discipline,
+      frames: frames.map((f) => ({ time_s: f.time_s, data: f.dataUrl.split(",")[1] })),
+      expected: {
+        overall_min: 0,
+        overall_max: 100,
+        weakest_metric: "",
+        notes: "TODO: label this rep — expected score band + weakest metric.",
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${payload.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section className="max-w-xl lg:max-w-none">
       <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
@@ -211,6 +337,23 @@ export function AnalyzeFlow() {
       <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
         Film the rep.
       </h1>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
+          Discipline
+        </span>
+        {DISCIPLINES.map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => setDiscipline(d)}
+            aria-pressed={discipline === d}
+            className={`chip ${discipline === d ? "chip-active" : ""}`}
+          >
+            {DISCIPLINE_LABEL[d]}
+          </button>
+        ))}
+      </div>
 
       <div
         className={
@@ -338,6 +481,19 @@ export function AnalyzeFlow() {
                   ? "Reading your rep…"
                   : "Your captured rep shows up here, frame by frame."}
               </div>
+            )}
+
+            {frameDebug && (
+              <>
+                <FrameDebugPanel debug={frameDebug} />
+                <button
+                  type="button"
+                  onClick={downloadEvalCase}
+                  className="btn-ghost mt-3 text-xs"
+                >
+                  Download eval case
+                </button>
+              </>
             )}
 
             {canSubmit && (

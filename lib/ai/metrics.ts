@@ -1,5 +1,8 @@
 import type { Skill } from "@/lib/skills";
 
+// The five-metric taxonomy per skill is intentionally shared across disciplines
+// (indoor and beach) so that stored analyses and skill_ratings stay comparable.
+// Only the 0-100 scoring anchors differ by discipline; that lives in RUBRIC, not here.
 export const METRICS: Record<Skill, { key: string; label: string }[]> = {
   serve: [
     { key: "toss_quality", label: "Toss quality" },

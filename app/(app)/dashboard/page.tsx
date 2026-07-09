@@ -10,7 +10,16 @@ import { SkillIcon } from "@/components/skill-icons";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { overallScore } from "@/lib/ratings";
-import { SKILLS, SKILL_LABEL, type Skill, type Level } from "@/lib/skills";
+import {
+  SKILLS,
+  SKILL_LABEL,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  isDiscipline,
+  type Skill,
+  type Level,
+  type Discipline,
+} from "@/lib/skills";
 import {
   getProgress,
   dailyChallenge,
@@ -36,8 +45,16 @@ type GoalRow = {
   target_rating: number | null;
 };
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ discipline?: string }>;
+}) {
   const supabase = await createClient();
+  const { discipline: rawDiscipline } = await searchParams;
+  const discipline: Discipline = isDiscipline(rawDiscipline ?? "")
+    ? (rawDiscipline as Discipline)
+    : "indoor";
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -54,11 +71,16 @@ export default async function Dashboard() {
       .select("display_name, level")
       .eq("id", user!.id)
       .single(),
-    supabase.from("skill_ratings").select("skill, rating").eq("user_id", user!.id),
+    supabase
+      .from("skill_ratings")
+      .select("skill, rating")
+      .eq("user_id", user!.id)
+      .eq("discipline", discipline),
     supabase
       .from("analyses")
       .select("id, skill, overall_score, created_at")
       .eq("user_id", user!.id)
+      .eq("discipline", discipline)
       .order("created_at", { ascending: false })
       .limit(40),
     supabase
@@ -112,6 +134,18 @@ export default async function Dashboard() {
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
               {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
             </h1>
+            <div className="mt-3 flex items-center gap-2">
+              {DISCIPLINES.map((d) => (
+                <Link
+                  key={d}
+                  href={d === "indoor" ? "/dashboard" : `/dashboard?discipline=${d}`}
+                  aria-current={discipline === d ? "page" : undefined}
+                  className={`chip ${discipline === d ? "chip-active" : ""}`}
+                >
+                  {DISCIPLINE_LABEL[d]}
+                </Link>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5">

@@ -64,12 +64,19 @@ const ICONS = {
       <path d="M9 5V4a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 4v1M9 11.5h6M9 15.5h4" />
     </>,
   ),
+  learn: icon(
+    <>
+      <path d="M12 6.5C10.5 5 8 4.5 4 5v13c4-.5 6.5 0 8 1.5 1.5-1.5 4-2 8-1.5V5c-4-.5-6.5 0-8 1.5Z" />
+      <path d="M12 6.5V19" />
+    </>,
+  ),
 } as const;
 
 const SIDE_NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: ICONS.dashboard },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze },
   { href: "/coach", label: "Coach", icon: ICONS.coach },
+  { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Scoreboard", icon: ICONS.scoreboard },
   { href: "/goals", label: "Goals", icon: ICONS.goals },
   { href: "/history", label: "History", icon: ICONS.history },
@@ -80,6 +87,7 @@ const TAB_NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: ICONS.dashboard },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze },
   { href: "/coach", label: "Coach", icon: ICONS.coach },
+  { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Games", icon: ICONS.scoreboard },
   { href: "/goals", label: "Goals", icon: ICONS.goals },
   { href: "/history", label: "History", icon: ICONS.history },
