@@ -14,14 +14,22 @@ Sideout — volleyball skill-analysis + AI coaching web app. Next.js 16.2.10 (Ap
 ## Key decisions / standing rules
 See `AGENTS.md` + `docs/decisions.md` D-001: no attribution trailers, no vendor names in UI (AI = "the coaching service"), design tokens locked in `app/globals.css` @theme (navy/chalk/gold/teal; Space Grotesk / Instrument Sans / IBM Plex Mono), middleware is `proxy.ts` not `middleware.ts`, dependency budget gated via the 10.5 viability gate.
 
-## Open questions / loose ends
-- **Migration tracking is empty** (`list_migrations` → `[]`) though all 7 tables exist → schema applied out-of-band (SQL editor / `execute_sql`), not via tracked migrations. Future migration workflow must account for this.
-- **`supabase/migrations/005_clips.sql` NOT applied** — no `clips` table in DB. Untracked in git.
-- **Two files numbered `004`**: `004_discipline.sql` (referenced in SETUP.md) and `004_xp_events_index.sql` (untracked). Naming collision to resolve.
-- **Untracked in git**: `.agents/`, `.claude/`, `.mcp.json.bak`, `The fix is a full restart of Claude Code.md`, `sideout-perfection-orchestration-prompt.md`, `skills-lock.json`, `004_xp_events_index.sql`, `005_clips.sql`. Decide keep-vs-gitignore-vs-commit.
+## Orchestration doc gaps — CLOSED (branch `docs/close-orchestration-gaps`, commit 3306212, not pushed)
+- **`docs/backend.md`** written (Dave's data/state/platform layer). **`docs/deploy.md`** written (Thomas's deploy + CI).
+- **D-004** (coaching-service model split) recorded in `docs/decisions.md`.
+- **`docs/ledger.md`** Status column reconciled to its ALL-PASS header; section-10 grants set to final state.
+- **CI now exists**: `.github/workflows/ci.yml` runs tsc + test + build on push/PR (the DoD's machine floor).
+- **`/learn` + `/api/eval` audited** (`docs/qa-learn-eval.md`) and fixed: metadata/boundaries/44px targets on Learn, em-dash sweep of `content/technique.ts` (0 remain), `/api/eval` fidelity + retries + error masking + citation validation.
+- **Git triaged**: spec, HANDOFF, migrations now tracked; local agent tooling (`.agents/`, `.claude/`, `skills-lock.json`, `.mcp.json.bak`, the restart note) gitignored.
+
+## Remaining loose ends (informational, not blocking)
+- **Migration tracking still empty** (`list_migrations` → `[]`) — schema applied out-of-band; documented in `backend.md`. A future migration workflow must account for it.
+- **`005_clips.sql` still NOT applied** — no `clips` table live (file now tracked). Apply when the clip feature ships.
+- **Two `004_*` migrations** (`004_discipline.sql`, `004_xp_events_index.sql`) — order-independent; fold into one ordinal if the sequence is ever rebased.
+- **Numeric Lighthouse not in CI** (tool not installed); verified manually 99/100. Optional `@lhci/cli` job later.
 
 ## Exact next step
-Awaiting direction. No task in flight.
+Review branch `docs/close-orchestration-gaps` and **merge to `master` + push** when ready (not pushed this session; CI will run on push). Nothing else in flight.
 
 ## Run / deploy quickref
 `npm run dev` (:3000) · `npm run build` · `npm run typecheck` · `node --test` · `vercel deploy [--prod]`. Build hits `EPERM: unlink .next/...` (OneDrive lock) → `Remove-Item -Recurse -Force .next` and rebuild.
@@ -30,3 +38,4 @@ Awaiting direction. No task in flight.
 
 ## Session log
 - **2026-07-08** — Verified Supabase MCP connectivity (resolved stale-connection bug), inventoried the 7 public tables + migrations, established this in-repo handoff. Read-only; no source edits.
+- **2026-07-08 (2)** — Closed the orchestration doc + CI gaps (see section above): wrote backend.md/deploy.md/qa-learn-eval.md, recorded D-004, reconciled ledger, added CI, audited + fixed `/learn` and `/api/eval`, git-triaged untracked files. Gates green (tsc / test 18-0 / build 55 routes). Committed to branch `docs/close-orchestration-gaps` (3306212); not pushed/merged.
