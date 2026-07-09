@@ -1,0 +1,46 @@
+name: CI
+
+# The machine-enforced quality floor promised in the orchestration DoD (section 9):
+# the same three gates the Orchestrator ran by hand after every phase now run on
+# every push to master and every pull request. Keep this in lockstep with the
+# local gates documented in docs/deploy.md.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# One run per ref; a newer push cancels an in-flight run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: typecheck · test · build
+    runs-on: ubuntu-latest
+    env:
+      # Build must never call the paid coaching service or need real secrets.
+      AI_MOCK: 'true'
+      # Public client vars are read at build time; placeholders keep next build green.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Unit tests (node --test)
+        run: npm run test
+
+      - name: Production build (next build)
+        run: npm run build

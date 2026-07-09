@@ -41,3 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# local agent tooling and skill packs (not project source)
+/.agents/
+/.claude/
+/skills-lock.json
+/.mcp.json.bak
+
+# scratch / troubleshooting notes
+/The fix is a full restart of Claude Code.md

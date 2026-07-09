@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { techniqueFor } from "@/content/technique";
 import { Reveal } from "@/components/motion";
@@ -10,6 +11,12 @@ import {
   isDiscipline,
   type Discipline,
 } from "@/lib/skills";
+
+export const metadata: Metadata = {
+  title: "Learn",
+  description:
+    "See what good looks like for every skill: the cues, the phases, and what each score rewards.",
+};
 
 export default async function Learn({
   searchParams,
@@ -32,7 +39,7 @@ export default async function Learn({
           What good looks like
         </h1>
         <p className="mt-2 text-sm text-chalk-dim">
-          The whole game, broken down — the cues, the phases, and how the score
+          The whole game, broken down: the cues, the phases, and how the score
           reads each skill.
         </p>
         <div className="mt-5 flex items-center gap-2">
@@ -41,7 +48,7 @@ export default async function Learn({
               key={d}
               href={d === "indoor" ? "/learn" : `/learn?discipline=${d}`}
               aria-current={discipline === d ? "page" : undefined}
-              className={`chip ${discipline === d ? "chip-active" : ""}`}
+              className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
             >
               {DISCIPLINE_LABEL[d]}
             </Link>

@@ -20,23 +20,23 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
     byDiscipline: {
       indoor: {
         overview:
-          "The only skill fully in your control — pros turn it into a weapon by making the toss a placement and the contact aggressive but repeatable.",
+          "The only skill fully in your control · pros turn it into a weapon by making the toss a placement and the contact aggressive but repeatable.",
         highest_leverage_metric: "toss_quality",
         highest_leverage_note:
-          "The toss is the root — every downstream cue (swing, contact, alignment) inherits the toss's variance, so a repeatable toss lifts the whole serve.",
+          "The toss is the root · every downstream cue (swing, contact, alignment) inherits the toss's variance, so a repeatable toss lifts the whole serve.",
         phases: [
           { name: "Stance & toss", detail: "Set a square stance and place a repeatable toss in front of the hitting shoulder." },
           { name: "Load", detail: "Coil into a high-elbow, bow-and-arrow backswing as the toss peaks." },
-          { name: "Contact", detail: "Strike at full reach in front of the shoulder — dead-centered for a float, up-and-over for topspin." },
+          { name: "Contact", detail: "Strike at full reach in front of the shoulder · dead-centered for a float, up-and-over for topspin." },
           { name: "Finish", detail: "Match the follow-through to the serve type and land balanced inside the court." },
         ],
         metrics: {
           toss_quality: {
             key: "toss_quality",
             what: "How repeatable and well-placed your toss is.",
-            why: "The toss sets up everything after it — a toss that varies forces the swing to adjust, so a wild toss caps every other metric.",
+            why: "The toss sets up everything after it · a toss that varies forces the swing to adjust, so a wild toss caps every other metric.",
             elite_marker:
-              "Released off a near-straight arm or the fingertips with almost no spin, at the same peak height and window in front of the hitting shoulder every rep — the approach creates the rhythm, not the toss.",
+              "Released off a near-straight arm or the fingertips with almost no spin, at the same peak height and window in front of the hitting shoulder every rep · the approach creates the rhythm, not the toss.",
             common_faults: [
               "Flicking the toss off a bent wrist so it spins and varies",
               "Releasing behind, or too far in front of, the hitting shoulder",
@@ -54,7 +54,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
           arm_swing: {
             key: "arm_swing",
             what: "The speed and sequencing of the hitting arm.",
-            why: "A sequenced whip — not an arm-only push — is where pace and topspin come from.",
+            why: "A sequenced whip, not an arm-only push, is where pace and topspin come from.",
             elite_marker:
               "A fast, whip-like swing: a high-and-back elbow load, the shoulder firing before the elbow and wrist, and hips and shoulders sequencing into the arm at the same tempo every rep.",
             common_faults: [
@@ -76,7 +76,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Where and how you strike the ball.",
             why: "Contact height and hand shape decide the serve's speed, movement, and control.",
             elite_marker:
-              "Contact at full extension, clearly in front of the hitting shoulder — a stiff, dead-centered hand for a float; a hand behind-and-below center snapping up-and-over for topspin.",
+              "Contact at full extension, clearly in front of the hitting shoulder · a stiff, dead-centered hand for a float; a hand behind-and-below center snapping up-and-over for topspin.",
             common_faults: [
               "Contacting low or behind the head",
               "A loose, wrapping hand that spins the ball",
@@ -94,16 +94,16 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
           follow_through: {
             key: "follow_through",
             what: "What the hand does after contact.",
-            why: "It must match the serve type — a long finish spins a float; a checked hand kills a topspin's drop.",
+            why: "It must match the serve type · a long finish spins a float; a checked hand kills a topspin's drop.",
             elite_marker:
-              "Deliberate and matched to intent every rep — crisply checked and short on floats (no added spin), a full swing across the body on topspin — finishing balanced inside the court.",
+              "Deliberate and matched to intent every rep · crisply checked and short on floats (no added spin), a full swing across the body on topspin, finishing balanced inside the court.",
             common_faults: [
               "A long, loose flail that adds spin to a float",
               "Losing balance after contact",
             ],
             anchors: {
               developing:
-                "Follow-through is absent or contradicts the serve type — a long loose flail on a float, or a chopped hand on a topspin — and balance is lost after contact.",
+                "Follow-through is absent or contradicts the serve type: a long loose flail on a float, or a chopped hand on a topspin. Balance is lost after contact.",
               solid:
                 "Follow-through mostly matches intent (short checked on floats, swing-through on topspin) with a generally balanced finish, slightly inconsistent rep to rep.",
               advanced:
@@ -133,7 +133,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
       },
       beach: {
         overview:
-          "In wind, control beats raw pace. Elite servers flatten the toss and pick the serve — jump-float or jump-topspin — to the conditions.",
+          "In wind, control beats raw pace. Elite servers flatten the toss and pick the serve (jump-float or jump-topspin) to the conditions.",
         highest_leverage_metric: "toss_quality",
         highest_leverage_note:
           "Wind-management through the toss and serve selection is the root; a great indoor toss can be a bad beach toss.",
@@ -142,7 +142,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
         phases: [
           { name: "Read the wind & pick the serve", detail: "Choose jump-float or jump-topspin for the conditions and flatten the toss." },
           { name: "Toss & load", detail: "Place a low, tight, spin-free toss and load a high elbow." },
-          { name: "Contact", detail: "Strike a centered, controlled ball — dead-hand float or up-and-over topspin — as high as control allows." },
+          { name: "Contact", detail: "Strike a centered, controlled ball (dead-hand float or up-and-over topspin) as high as control allows." },
           { name: "Finish", detail: "Check the finish on floats and land balanced in the sand, not drifting into the court." },
         ],
         metrics: {
@@ -151,7 +151,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How repeatable and wind-proof your toss is.",
             why: "In wind a high or spinning toss moves unpredictably, so a low, tight toss is what keeps the serve controllable.",
             elite_marker:
-              "A lower, tighter toss to fight the wind — jump-float servers toss just above shoulder height (often two-handed) for a dead, spin-free ball they can control.",
+              "A lower, tighter toss to fight the wind · jump-float servers toss just above shoulder height (often two-handed) for a dead, spin-free ball they can control.",
             common_faults: [
               "A high, indoor-style toss the wind pushes around",
               "Spin off a bent wrist that the wind exaggerates",
@@ -186,7 +186,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Where and how you strike the ball, prioritizing control.",
             why: "In wind a slightly lower but centered, controlled contact beats a reaching, spinning one.",
             elite_marker:
-              "As high as possible, but the priority is a centered, controlled contact in wind — the float hand dead-centered and firm.",
+              "As high as possible, but the priority is a centered, controlled contact in wind · the float hand dead-centered and firm.",
             common_faults: [
               "A wristy hand that spins the float",
               "Reaching for height at the cost of control",
@@ -279,14 +279,14 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How low and loaded your base is.",
             why: "Staying low with weight forward lets the legs, not the arms, control the ball.",
             elite_marker:
-              "Consistently low and balanced — knees bent, hips loaded, back flat, shoulders over or ahead of the knees, weight moving forward through contact.",
+              "Consistently low and balanced · knees bent, hips loaded, back flat, shoulders over or ahead of the knees, weight moving forward through contact.",
             common_faults: ["Standing tall with straight legs", "Weight on the heels, rocking backward"],
             anchors: {
               developing: "Upright and tall with straight legs; weight on the heels or rocking backward; hips high, little knee bend.",
               solid:
                 "A genuine athletic stance with bent knees and a forward lean, weight over the balls of the feet, though posture pops upright on some reps.",
               advanced:
-                "Consistently low and balanced — knees bent, hips loaded, back flat, shoulders over or ahead of the knees, weight moving forward through contact.",
+                "Consistently low and balanced · knees bent, hips loaded, back flat, shoulders over or ahead of the knees, weight moving forward through contact.",
             },
           },
           footwork_to_ball: {
@@ -337,7 +337,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
       },
       beach: {
         overview:
-          "Two passers cover the whole court against wind-blown serves — range, early reads, and a soft high pass define elite beach receiving.",
+          "Two passers cover the whole court against wind-blown serves · range, early reads, and a soft high pass define elite beach receiving.",
         highest_leverage_metric: "footwork_to_ball",
         highest_leverage_note:
           "With only two passers, the early read and first step cover ground a six-person receive never has to.",
@@ -369,7 +369,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How loaded your base is while reading the wind.",
             why: "The ball travels slower in wind, so you can read a touch longer, but the base must stay loaded.",
             elite_marker:
-              "Loaded but a touch more patient — reading longer before committing the platform because the ball travels slower in wind.",
+              "Loaded but a touch more patient · reading longer before committing the platform because the ball travels slower in wind.",
             common_faults: ["Standing tall to watch the ball", "Committing the platform too early"],
             anchors: {
               developing: "Tall, straight-legged, weight on the heels.",
@@ -491,13 +491,13 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How the ball is pushed out of the hands.",
             why: "A quiet, leg-driven release delivers a clean, repeatable ball instead of a flat push.",
             elite_marker:
-              "A smooth load-and-extend through knees, elbows, and wrists into a full, symmetric follow-through — compact, quiet, on a clean repeatable trajectory.",
+              "A smooth load-and-extend through knees, elbows, and wrists into a full, symmetric follow-through · compact, quiet, on a clean repeatable trajectory.",
             common_faults: ["A stiff, arm-only punch with no leg drive", "Locked wrists producing a flat, fluttering ball"],
             anchors: {
               developing: "A stiff punch or arm-only push with no leg drive; wrists locked; the ball flutters or comes out flat; follow-through absent or asymmetric.",
               solid: "A coordinated leg-to-hand extension with a reasonably quiet release; a catchable arc; minor push or a slightly late finish on some reps.",
               advanced:
-                "A smooth load-and-extend through knees, elbows, and wrists into a full, symmetric follow-through — compact, quiet, on a clean repeatable trajectory.",
+                "A smooth load-and-extend through knees, elbows, and wrists into a full, symmetric follow-through · compact, quiet, on a clean repeatable trajectory.",
             },
           },
           tempo_decision: {
@@ -519,7 +519,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
       },
       beach: {
         overview:
-          "One setter, stricter ball-handling, and wind — the beach set is higher, softer, and often a bump-set, and legality is part of the skill.",
+          "One setter, stricter ball-handling, and wind · the beach set is higher, softer, and often a bump-set, and legality is part of the skill.",
         highest_leverage_metric: "release",
         highest_leverage_note:
           "A stable, legal, high ball that gives the lone hitter time beats speed on sand.",
@@ -537,13 +537,13 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How clean and legal the ball leaves your hands.",
             why: "Beach referees judge spin and double-contact strictly, so a clean or bump-set delivery is what avoids a fault.",
             elite_marker:
-              "Beach hand-sets are judged strictly for spin and doubles — but a legal set can have a longer, guided contact ('deep dish') and be played lower, and many top teams bump-set in wind to avoid a call.",
+              "Beach hand-sets are judged strictly for spin and doubles, but a legal set can have a longer, guided contact ('deep dish') and be played lower, and many top teams bump-set in wind to avoid a call.",
             common_faults: ["Visible spin a referee would whistle", "A double-contact on an off-balance set"],
             anchors: {
               developing: "Palm contact or heavy spin on release (a beach lift or double a referee would call).",
               solid: "Fingerpad contact with a recognizable window and only minor spin, or a clean bump-set.",
               advanced:
-                "Clean, spin-free delivery every rep — either a symmetric fingerpad hand-set with a longer legal guide, or a controlled, accurate bump-set chosen for the wind.",
+                "Clean, spin-free delivery every rep · either a symmetric fingerpad hand-set with a longer legal guide, or a controlled, accurate bump-set chosen for the wind.",
             },
           },
           footwork: {
@@ -551,7 +551,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How you get to the ball off a dig, often on the move.",
             why: "One setter covers the whole court, so stability is judged relative to how far the dig pulled you.",
             elite_marker:
-              "One setter covering the whole court off a dig — footwork is more improvised, often setting from a run or slightly off-balance, but stopped and squared when possible.",
+              "One setter covering the whole court off a dig · footwork is more improvised, often setting from a run or slightly off-balance, but stopped and squared when possible.",
             common_faults: ["Setting flat-footed and late", "Badly off-balance when it could have been stopped"],
             anchors: {
               developing: "Sets flat-footed and late, or badly off-balance.",
@@ -576,7 +576,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
           },
           release: {
             key: "release",
-            what: "How the ball is delivered — high and soft for the lone hitter.",
+            what: "How the ball is delivered · high and soft for the lone hitter.",
             why: "A high, soft, stable ball gives the single hitter time to attack against wind and the block.",
             elite_marker:
               "A smooth, leg-driven release delivering a high, soft, stable ball (a legally guided, longer contact is desirable) that gives the lone hitter time in wind.",
@@ -591,15 +591,15 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
           tempo_decision: {
             key: "tempo_decision",
             what: "Where you place the set for one hitter versus one blocker.",
-            why: "With a single hitter, the decision is placement — on/off the net, in/out, and room from the block and wind.",
+            why: "With a single hitter, the decision is placement · on/off the net, in/out, and room from the block and wind.",
             elite_marker:
-              "Decisive placement for the single partner-hitter versus the one blocker and the wind — on or off the net, in or out, giving the hitter room.",
+              "Decisive placement for the single partner-hitter versus the one blocker and the wind · on or off the net, in or out, giving the hitter room.",
             common_faults: ["Placement that ignores the block and wind", "A ball the hitter can't use"],
             anchors: {
               developing: "Predetermined placement that ignores the block and wind; the ball arrives where the hitter cannot use it.",
               solid: "A reasonable location and height for the situation, slightly telegraphed or off on some reps.",
               advanced:
-                "Decisive placement for the single partner-hitter versus the one blocker and the wind — on or off the net, in or out, giving the hitter room.",
+                "Decisive placement for the single partner-hitter versus the one blocker and the wind · on or off the net, in or out, giving the hitter room.",
             },
           },
         },
@@ -629,7 +629,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "The step pattern and rhythm of your approach.",
             why: "A slow-to-fast approach with a hard final plant is what converts run-up speed into a vertical jump.",
             elite_marker:
-              "An explosive, well-spaced approach with a distinct slow-to-fast tempo — a long penultimate step and a quick, hard heel-to-toe plant converting speed into lift.",
+              "An explosive, well-spaced approach with a distinct slow-to-fast tempo · a long penultimate step and a quick, hard heel-to-toe plant converting speed into lift.",
             common_faults: ["Even-paced steps with no acceleration", "Drifting or broad-jumping into the net"],
             anchors: {
               developing: "A wrong or inconsistent step pattern; even-paced steps with no acceleration; feet plant flat, or the hitter drifts into the net.",
@@ -647,7 +647,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
               "Takeoff precisely timed to the set so contact is at the apex in the ideal window, attacking the ball at its highest playable point every rep.",
             common_faults: ["Jumping too early and hitting on the way down", "Broad-jumping forward instead of up"],
             anchors: {
-              developing: "Clearly mistimed — jumps well before or after the set; contacts on the way down or broad-jumps forward rather than up.",
+              developing: "Clearly mistimed · jumps well before or after the set; contacts on the way down or broad-jumps forward rather than up.",
               solid: "Takeoff roughly synced so the hitter meets the ball near the top of the jump; contact near peak with slight early or late error.",
               advanced:
                 "Takeoff precisely timed so contact is at the apex in the ideal window, attacking the ball at its highest playable point; timing holds across reps.",
@@ -673,7 +673,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How high and how far in front you contact.",
             why: "Higher, more-forward contact gives a steeper downward angle and more of the court to hit.",
             elite_marker:
-              "Contact at full arm extension, clearly above and in front of the hitting shoulder at the top of the reach — the highest, most forward playable point.",
+              "Contact at full arm extension, clearly above and in front of the hitting shoulder at the top of the reach · the highest, most forward playable point.",
             common_faults: ["Contacting behind or beside the head", "A bent arm at contact, below full reach"],
             anchors: {
               developing: "Contacts the ball low, behind, or beside the head; the arm is bent at contact; the ball is played below full reach.",
@@ -687,7 +687,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How the whole body drives through the swing and lands.",
             why: "The legs-hips-core chain and a full follow-through drive the ball down; a balanced landing keeps you in the play.",
             elite_marker:
-              "An explosive full-body kinetic chain — legs, hips, and core snapping into the swing — with a long follow-through across the body driving the ball down and a controlled, balanced landing.",
+              "An explosive full-body kinetic chain (legs, hips, and core snapping into the swing) with a long follow-through across the body driving the ball down and a controlled, balanced landing.",
             common_faults: ["An arm-only swing that stalls at contact", "A short follow-through or an off-balance landing"],
             anchors: {
               developing: "An arm-only swing that decelerates or stops at contact; no core or hip engagement; a short, cut-off follow-through; an off-balance landing.",
@@ -701,7 +701,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
       },
       beach: {
         overview:
-          "On sand you jump straight up and win with shot-making — cut, line, roll, and pokey — as much as with power.",
+          "On sand you jump straight up and win with shot-making (cut, line, roll, and pokey) as much as with power.",
         highest_leverage_metric: "approach_footwork",
         highest_leverage_note:
           "Sand punishes the broad jump and rewards a straight-up takeoff plus shot versatility.",
@@ -899,7 +899,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Reading one hitter and choosing to block or peel.",
             why: "In a one-on-one, deciding pre-contact to take a zone or pull off the net is the core skill.",
             elite_marker:
-              "One-on-one: reads a single hitter, lines the head up with the ball, and decides pre-contact to take a zone (line or angle) — or peels off the net when the set is off.",
+              "One-on-one: reads a single hitter, lines the head up with the ball, and decides pre-contact to take a zone (line or angle), or peels off the net when the set is off.",
             common_faults: ["Staying at the net on a bad set that should be peeled", "Jumping on the set"],
             anchors: {
               developing: "Jumps on the set or on a fixed cue, or stays at the net on a bad set that should be peeled.",
@@ -914,7 +914,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "The press, angled to channel the ball to the defender.",
             why: "On beach the hands take one shot and steer the ball into the partner defender's zone.",
             elite_marker:
-              "The same press as indoors, but the hands are angled to take a specific shot and channel the ball into the partner defender's zone — huge-reach blockers dominate.",
+              "The same press as indoors, but the hands are angled to take a specific shot and channel the ball into the partner defender's zone · huge-reach blockers dominate.",
             common_faults: ["Reaching vertically or splitting the seam", "Not channeling to the partner's zone"],
             anchors: {
               developing: "Hands stay on the blocker's side, reach vertically or backward, or split the seam.",
@@ -957,13 +957,13 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Landing on sand and transitioning to the next role.",
             why: "After the block the beach player must instantly become a defender or attacker.",
             elite_marker:
-              "Lands softly and balanced on the sand, then instantly transitions — to defense, or peels to become the second back-court defender, a defined beach skill.",
+              "Lands softly and balanced on the sand, then instantly transitions to defense, or peels to become the second back-court defender, a defined beach skill.",
             common_faults: ["Landing off-balance in the sand", "A slow transition off the net"],
             anchors: {
               developing: "Lands stiff or off-balance, into the net, or unable to make a next play.",
               solid: "Lands balanced on two feet and absorbs with the knees, but transitions slowly.",
               advanced:
-                "Lands softly and balanced on the sand, then instantly transitions — to defense, or peels to become the second back-court defender.",
+                "Lands softly and balanced on the sand, then instantly transitions to defense, or peels to become the second back-court defender.",
             },
           },
         },
@@ -993,7 +993,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Your loaded stance and split-step timing.",
             why: "A stopped, loaded split-step at the hitter's contact lets you explode in any direction.",
             elite_marker:
-              "A low, loaded base — hips below shoulders, weight forward on light heels — with a well-timed, stopped split-step landing an instant before every attacker contact.",
+              "A low, loaded base (hips below shoulders, weight forward on light heels) with a well-timed, stopped split-step landing an instant before every attacker contact.",
             common_faults: ["A tall stance with weight on the heels", "No split-step, or one that lands after contact"],
             anchors: {
               developing: "Stance tall or narrow; weight on the heels or flat-footed; hands low or clasped rigid; little or no split-step, or the split lands after contact.",
@@ -1008,7 +1008,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "How early and how well you read the attack.",
             why: "Reading the hitter's arm before contact is what lets you move to the ball instead of chasing it.",
             elite_marker:
-              "Early, correct reads every rep — eyes tracking setter, ball, then the hitter's arm; the first step commits to the right zone as or just before contact; as ready for a tip as a hard swing.",
+              "Early, correct reads every rep · eyes tracking setter, ball, then the hitter's arm; the first step commits to the right zone as or just before contact; as ready for a tip as a hard swing.",
             common_faults: ["Ball-watching instead of reading the arm", "Committing the wrong direction"],
             anchors: {
               developing: "Eyes fixed on the ball only; reacts after the ball crosses the net, moves the wrong direction, or is caught flat and late.",
@@ -1064,7 +1064,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
       },
       beach: {
         overview:
-          "Two players, a huge sand court, and legal overhand digs — elite beach defense is all-out reading, coverage, and lay-outs.",
+          "Two players, a huge sand court, and legal overhand digs · elite beach defense is all-out reading, coverage, and lay-outs.",
         highest_leverage_metric: "read_anticipation",
         highest_leverage_note:
           "Reading cut, line, and pokey and playing what the block leaves is what defines beach defense.",
@@ -1138,13 +1138,13 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
             what: "Transitioning off the dig with no libero to cover.",
             why: "In a two-person game the digger must instantly become the setter or attacker.",
             elite_marker:
-              "Instantly transitions after the dig — with no libero to cover, the defender must be ready to set the partner or approach to attack — pushing back to a balanced base every rep.",
+              "Instantly transitions after the dig, pushing back to a balanced base every rep. With no libero to cover, the defender must be ready to set the partner or approach to attack.",
             common_faults: ["Staying down after a lay-out", "Slow to transition to the next contact"],
             anchors: {
               developing: "Stays down or is slow, unable to make the next play.",
               solid: "Regains a base after most reps, slow after emergency touches.",
               advanced:
-                "Instantly transitions after the dig — ready to set the partner or approach to attack — pushing back to a balanced base every rep, including after lay-outs.",
+                "Instantly transitions after the dig, ready to set the partner or approach to attack, pushing back to a balanced base every rep, including after lay-outs.",
             },
           },
         },
@@ -1168,7 +1168,7 @@ export function metricKnowledge(
   return techniqueFor(skill, discipline).metrics[key];
 }
 
-/** Drills that train a given metric — derived from each drill's focus_metrics. */
+/** Drills that train a given metric, derived from each drill's focus_metrics. */
 export function drillsForMetric(skill: Skill, key: string): Drill[] {
   return drillsForSkill(skill).filter((d) => d.focus_metrics.includes(key));
 }
