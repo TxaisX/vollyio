@@ -43,3 +43,7 @@ REMAINING after Sierra: (1) route Sierra defects back to Jerry/Dave (fix loop) +
 
 ## How to resume
 Read this file, then handoff.md, then the orchestration prompt. Continue from "Current position". Keep this file + ledger.md + reportcards.md + handoff.md updated every step.
+
+## MERGED TO MASTER (2026-07-08 ~17:40 PDT)
+`master` fast-forwarded to the mission tip (e3e81ae) and pushed. Master had diverged (+8 parallel commits: beach discipline, knowledge-core/Learn, content-aware frame sampling, eval harness, ball-tracking) — merged cleanly into polish, ONE real conflict (analyze-flow useState block: kept retrying + discipline + frameDebug) + one reconciliation (app/api/eval MODEL -> ANALYZE_MODEL per D-004). Merged tree green: tsc 0, next build 55 routes, node --test 18/0. Redeployed merged master to prod (sideout-5utsbctv0) — live: landing + middot title + /learn (master's new route) all 200. Both workstreams live together.
+NOTE: master's new surfaces (/learn, /api/eval) were added in parallel and did NOT go through this perfection mission's audit — a future pass could extend the quality floor to them. MISSION + MERGE COMPLETE.
