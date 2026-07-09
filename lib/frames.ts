@@ -1,11 +1,37 @@
+import { MAX_FRAMES, MAX_BODY_BYTES } from "@/lib/analysis-types";
+import {
+  buildProbeTimes,
+  findPeaks,
+  planFrameTimes,
+  type PlannedFrame,
+  type FrameKind,
+} from "./frame-select";
+
 export const MAX_FRAME_DIM = 768;
 export const MAX_CLIP_SECONDS = 45;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Content-aware sampler tuning (video only; the photo path is unchanged).
+const VIDEO_FRAME_DIM = 960; // final video frames render larger than photos
+const VIDEO_JPEG_QUALITY = 0.7;
+const SCAN_DIM = 144; // tiny throwaway canvas for the motion scan
+const PROBE_COUNT = 24;
+const SCAN_TIME_BUDGET_MS = 6000;
+const SHORT_CLIP_SECONDS = 6; // below this, skip the scan and sample uniformly
+const NOISE_FLOOR = 12; // per-pixel luminance diff below this is treated as noise
 
 export type Frame = {
   index: number;
   time_s: number | null;
   dataUrl: string;
+};
+
+export type FrameDebug = {
+  curve: { t: number; score: number }[];
+  chosen: { t: number; kind: FrameKind }[];
+  scanMs: number;
+  fellBack: boolean;
+  totalBytes: number;
 };
 
 function sampleFractions(duration: number): number[] {
@@ -16,9 +42,9 @@ function sampleFractions(duration: number): number[] {
   return Array.from({ length: count }, (_, i) => inset + (span * i) / (count - 1));
 }
 
-function scaledSize(w: number, h: number): [number, number] {
-  if (w > h && w > MAX_FRAME_DIM) return [MAX_FRAME_DIM, Math.round((h * MAX_FRAME_DIM) / w)];
-  if (h > MAX_FRAME_DIM) return [Math.round((w * MAX_FRAME_DIM) / h), MAX_FRAME_DIM];
+function scaledSize(w: number, h: number, maxDim = MAX_FRAME_DIM): [number, number] {
+  if (w > h && w > maxDim) return [maxDim, Math.round((h * maxDim) / w)];
+  if (h > maxDim) return [Math.round((w * maxDim) / h), maxDim];
   return [w, h];
 }
 
@@ -33,10 +59,22 @@ export function videoErrorMessage(video: HTMLVideoElement): string {
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve) => {
-    const onSeeked = () => {
+    // Seeking to the current time fires no 'seeked' event — resolve immediately.
+    if (Math.abs(video.currentTime - time) < 1e-3) {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       video.removeEventListener("seeked", onSeeked);
       resolve();
     };
+    const onSeeked = () => finish();
+    // Safety net: a missed 'seeked' event must never wedge extraction.
+    const timer = setTimeout(finish, 3000);
     video.addEventListener("seeked", onSeeked);
     video.currentTime = time;
   });
@@ -74,36 +112,188 @@ export function loadVideo(src: string): Promise<HTMLVideoElement> {
   });
 }
 
-export async function extractFramesFromVideo(video: HTMLVideoElement): Promise<Frame[]> {
-  const duration = video.duration;
-  const [width, height] = scaledSize(
-    video.videoWidth || 640,
-    video.videoHeight || 360,
-  );
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
-  const fractions = sampleFractions(duration);
-  const frames: Frame[] = [];
+function b64Bytes(dataUrl: string): number {
+  const comma = dataUrl.indexOf(",");
+  return comma < 0 ? dataUrl.length : dataUrl.length - comma - 1;
+}
 
-  for (let i = 0; i < fractions.length; i++) {
-    const t = Math.min(duration * fractions[i], Math.max(duration - 0.05, 0));
-    await seekTo(video, t);
-    ctx.drawImage(video, 0, 0, width, height);
-    frames.push({
-      index: i,
-      time_s: Math.round(t * 10) / 10,
-      dataUrl: canvas.toDataURL("image/jpeg", 0.6),
+// Pass A: seek through probe timestamps and score motion by luminance
+// frame-differencing on a tiny canvas. Throws on time budget → uniform fallback.
+async function scanMotion(
+  video: HTMLVideoElement,
+  probeTimes: number[],
+): Promise<number[]> {
+  const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  const motion = new Array(probeTimes.length).fill(0);
+  let prev: Uint8Array | null = null;
+  const start = Date.now();
+
+  for (let i = 0; i < probeTimes.length; i++) {
+    if (Date.now() - start > SCAN_TIME_BUDGET_MS) throw new Error("scan-timeout");
+    await seekTo(video, probeTimes[i]);
+    ctx.drawImage(video, 0, 0, w, h);
+    const { data } = ctx.getImageData(0, 0, w, h);
+    const lum = new Uint8Array(w * h);
+    for (let p = 0, q = 0; p < data.length; p += 4, q++) {
+      lum[q] = (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) >> 8;
+    }
+    if (prev) {
+      let acc = 0;
+      for (let q = 0; q < lum.length; q++) {
+        const d = Math.abs(lum[q] - prev[q]);
+        if (d > NOISE_FLOOR) acc += d;
+      }
+      motion[i] = acc / lum.length;
+    }
+    prev = lum;
+  }
+  return motion;
+}
+
+type Rendered = { time_s: number; dataUrl: string; kind: FrameKind };
+
+async function renderPlanned(
+  video: HTMLVideoElement,
+  planned: PlannedFrame[],
+  dim: number,
+  quality: number,
+): Promise<Rendered[]> {
+  const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, dim);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  const out: Rendered[] = [];
+  for (const pf of planned) {
+    await seekTo(video, pf.timeS);
+    ctx.drawImage(video, 0, 0, w, h);
+    out.push({
+      // Read the ACTUAL post-seek frame time so time_s matches the image the
+      // model sees (the route maps frame_index → time_s from this value).
+      time_s: Math.round(video.currentTime * 10) / 10,
+      dataUrl: canvas.toDataURL("image/jpeg", quality),
+      kind: pf.kind,
     });
   }
+  return out;
+}
+
+// Render the planned frames and hold the request under MAX_BODY_BYTES.
+async function finalizePlanned(
+  video: HTMLVideoElement,
+  planned: PlannedFrame[],
+): Promise<{ frames: Frame[]; chosen: { t: number; kind: FrameKind }[]; totalBytes: number }> {
+  const budget = MAX_BODY_BYTES * 0.9;
+  let rendered = await renderPlanned(video, planned, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY);
+  let total = rendered.reduce((a, r) => a + b64Bytes(r.dataUrl), 0);
+
+  // Over budget → re-encode everything smaller and cheaper (one extra pass).
+  if (total > budget) {
+    rendered = await renderPlanned(video, planned, MAX_FRAME_DIM, 0.6);
+    total = rendered.reduce((a, r) => a + b64Bytes(r.dataUrl), 0);
+  }
+  // Still over → drop the heaviest context frames (never a peak/burst, never
+  // below the 2-frame minimum the route requires).
+  while (total > budget && rendered.length > 2 && rendered.some((r) => r.kind === "context")) {
+    let worst = -1;
+    let worstBytes = -1;
+    rendered.forEach((r, i) => {
+      if (r.kind !== "context") return;
+      const b = b64Bytes(r.dataUrl);
+      if (b > worstBytes) {
+        worstBytes = b;
+        worst = i;
+      }
+    });
+    rendered.splice(worst, 1);
+    total = rendered.reduce((a, r) => a + b64Bytes(r.dataUrl), 0);
+  }
+
+  const frames = rendered.map((r, index) => ({
+    index,
+    time_s: r.time_s,
+    dataUrl: r.dataUrl,
+  }));
+  const chosen = rendered.map((r) => ({ t: r.time_s, kind: r.kind }));
+  return { frames, chosen, totalBytes: total };
+}
+
+async function sampleContentAware(
+  video: HTMLVideoElement,
+  wantDebug: boolean,
+): Promise<{ frames: Frame[]; debug?: FrameDebug } | null> {
+  const duration = video.duration;
+  const probeTimes = buildProbeTimes(duration, PROBE_COUNT);
+  const scanStart = Date.now();
+  const motion = await scanMotion(video, probeTimes);
+  const scanMs = Date.now() - scanStart;
+
+  const peaks = findPeaks(motion, probeTimes);
+  if (peaks.length === 0) return null;
+
+  const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
+  const planned = planFrameTimes(duration, peaks, coarseInterval, MAX_FRAMES);
+  if (planned.length < 2) return null;
+
+  const { frames, chosen, totalBytes } = await finalizePlanned(video, planned);
+  const debug: FrameDebug | undefined = wantDebug
+    ? {
+        curve: probeTimes.map((t, i) => ({
+          t: Math.round(t * 10) / 10,
+          score: Math.round(motion[i] * 100) / 100,
+        })),
+        chosen,
+        scanMs,
+        fellBack: false,
+        totalBytes,
+      }
+    : undefined;
+  return { frames, debug };
+}
+
+async function sampleUniform(video: HTMLVideoElement): Promise<Frame[]> {
+  const duration = video.duration;
+  const planned: PlannedFrame[] = sampleFractions(duration).map((frac) => ({
+    timeS: Math.min(duration * frac, Math.max(duration - 0.05, 0)),
+    kind: "context" as const,
+  }));
+  const { frames } = await finalizePlanned(video, planned);
   return frames;
 }
 
-export async function extractFrames(source: File | Blob): Promise<{
-  frames: Frame[];
-  duration_s: number;
-}> {
+export async function extractFramesFromVideo(
+  video: HTMLVideoElement,
+  opts?: { debug?: boolean },
+): Promise<{ frames: Frame[]; debug?: FrameDebug }> {
+  if (video.duration > SHORT_CLIP_SECONDS) {
+    try {
+      const result = await sampleContentAware(video, opts?.debug ?? false);
+      if (result) return result;
+    } catch {
+      // Any failure (slow seeks, decode, getImageData) degrades to uniform.
+    }
+  }
+  const frames = await sampleUniform(video);
+  const debug: FrameDebug | undefined = opts?.debug
+    ? {
+        curve: [],
+        chosen: frames.map((f) => ({ t: f.time_s ?? 0, kind: "context" as const })),
+        scanMs: 0,
+        fellBack: true,
+        totalBytes: frames.reduce((a, f) => a + b64Bytes(f.dataUrl), 0),
+      }
+    : undefined;
+  return { frames, debug };
+}
+
+export async function extractFrames(
+  source: File | Blob,
+  opts?: { debug?: boolean },
+): Promise<{ frames: Frame[]; duration_s: number; debug?: FrameDebug }> {
   const url = URL.createObjectURL(source);
   try {
     const video = await loadVideo(url);
@@ -112,8 +302,8 @@ export async function extractFrames(source: File | Blob): Promise<{
         `That clip is ${Math.round(video.duration)}s. Trim it to ${MAX_CLIP_SECONDS} seconds or less and try again.`,
       );
     }
-    const frames = await extractFramesFromVideo(video);
-    return { frames, duration_s: video.duration };
+    const { frames, debug } = await extractFramesFromVideo(video, opts);
+    return { frames, duration_s: video.duration, debug };
   } finally {
     URL.revokeObjectURL(url);
   }
