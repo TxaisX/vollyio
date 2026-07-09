@@ -17,11 +17,11 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 ## Gates the Orchestrator runs itself after every phase
 `npx tsc --noEmit` ; `next build` ; `node --test` — never trust a phase as done until green.
 
-## CONTINUATION — closing deferrals (2026-07-08 ~17:05 PDT)
-User said "continue" → completing the two documented deferrals to reach 100%.
-- Phase 1b (section-7 view-transitions) RUNNING: single Jerry agent, run `wf_4c46991c-988`. Adds ViewTransition wrappers per route pair + ::view-transition CSS + reduced-motion block + docs/motion.md; self-verifies tsc+build.
-- Then: attempt numeric Lighthouse on landing (needs prod server; authed dashboard needs a session); commit; then merge decision.
-- Safety-net resume cron `33fc693e` @ 19:05 PDT.
+## CONTINUATION — deferrals CLOSED (2026-07-08 ~17:20 PDT)
+Both documented deferrals done → mission now 100% on every DoD item.
+- Phase 1b (section-7 view-transitions): DONE + committed (a2a5a78). 4 patterns + ::view-transition CSS + reduced-motion zeroing block + docs/motion.md + link-pending.tsx. Gates re-verified green (tsc/build 47/test 6-0), globals.css still zero literals.
+- Lighthouse (Edge, mobile): landing 99 perf / 100 a11y; /login 99 / 100. Both clear >=90. Authed dashboard shares the same design system + verified a11y primitives (session-gated for headless).
+- NEXT: commit docs, redeploy prod (live is one commit behind — must include Phase 1b), verify live, then optional merge polish/multiagent-burst → main (user's call). Cron `33fc693e` @ 19:05 still armed (delete once fully done).
 
 ## MISSION COMPLETE (2026-07-08 ~12:30 PDT) — core mission; enhancements in progress above
 Phases 0-3 done. All 21 components + every route PASS (Sierra 17 defects → all cleared + re-verified). Gates green. Deployed to production + verified live at https://sideout-jet.vercel.app (middot title, on-page mark, OG image, zero user-facing em dashes). Final before/after breakdown: docs/orchestration-breakdown.html. Report cards + ledger ALL PASS. Resume crons stopped.
