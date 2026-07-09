@@ -126,7 +126,10 @@ export function TabBar() {
     <nav
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 backdrop-blur-md md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        viewTransitionName: "app-tabbar",
+      }}
     >
       <ul className="flex">
         {TAB_NAV.map((item) => {

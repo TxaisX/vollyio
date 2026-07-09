@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { LinkPending } from "@/components/link-pending";
 import { ScoreRing } from "@/components/score-ring";
 import { Radar } from "@/components/radar";
 import { Sparkline } from "@/components/sparkline";
@@ -177,9 +179,11 @@ export default async function Dashboard() {
               </div>
               <Link
                 href={`/drills/${challenge.slug}`}
-                className="mt-2 block font-display text-lg font-bold leading-snug transition-colors hover:text-gold"
+                transitionTypes={["nav-forward"]}
+                className="relative mt-2 block font-display text-lg font-bold leading-snug transition-colors hover:text-gold"
               >
                 {challenge.name}
+                <LinkPending />
               </Link>
               <p className="mt-1 font-mono text-[11px] uppercase text-chalk-dim">
                 {SKILL_LABEL[challenge.skill]} · {challenge.duration_min} min
@@ -358,9 +362,19 @@ export default async function Dashboard() {
                     </span>
                     {SKILL_LABEL[a.skill]}
                   </span>
-                  <span className="font-display font-bold text-gold">
-                    {a.overall_score}
-                  </span>
+                  {/* Morph source: this score travels into the breakdown's
+                      score ring when the row is opened (matches the row on
+                      /history). share="morph" + default="none" keeps it inert
+                      on every other transition. */}
+                  <ViewTransition
+                    name={`rep-${a.id}`}
+                    share="morph"
+                    default="none"
+                  >
+                    <span className="font-display font-bold text-gold">
+                      {a.overall_score}
+                    </span>
+                  </ViewTransition>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"

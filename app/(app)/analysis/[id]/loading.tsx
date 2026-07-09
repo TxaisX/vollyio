@@ -1,9 +1,12 @@
+import { ViewTransition } from "react";
+
 function Sk({ className = "" }: { className?: string }) {
   return <span className={`skeleton block rounded bg-chalk/10 ${className}`} />;
 }
 
 export default function AnalysisLoading() {
   return (
+    <ViewTransition exit="vt-reveal-out">
     <section className="max-w-6xl" aria-busy>
       {/* Score header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -59,5 +62,6 @@ export default function AnalysisLoading() {
         </div>
       </div>
     </section>
+    </ViewTransition>
   );
 }

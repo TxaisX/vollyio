@@ -1,3 +1,5 @@
+import { ViewTransition } from "react";
+
 function Sk({ className = "" }: { className?: string }) {
   return <span className={`skeleton block rounded bg-chalk/10 ${className}`} />;
 }
@@ -12,6 +14,7 @@ const BUBBLES = [
 
 export default function CoachLoading() {
   return (
+    <ViewTransition exit="vt-reveal-out">
     <section
       className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-2xl flex-col md:min-h-[calc(100dvh-4.5rem)]"
       aria-busy
@@ -42,5 +45,6 @@ export default function CoachLoading() {
         <Sk className="h-11 w-11 shrink-0 rounded-control" />
       </div>
     </section>
+    </ViewTransition>
   );
 }
