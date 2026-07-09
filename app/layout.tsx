@@ -59,7 +59,9 @@ export default function RootLayout({
       lang="en"
       className={`${instrument.variable} ${spaceGrotesk.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* Browser extensions (e.g. Grammarly) inject attributes on <body> before
+          React hydrates; suppress only this element's own attribute mismatch. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <PwaRegister />
         {children}
       </body>
