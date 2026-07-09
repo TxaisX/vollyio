@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DRILLS, drillBySlug } from "@/content/drills";
@@ -39,10 +40,31 @@ export default async function DrillDetail({
   if (!drill) notFound();
 
   return (
-    <section className="max-w-xl">
+    // Directional slide: arriving from the drills list (tagged nav-forward)
+    // slides this content in from the right; the back link below (nav-back)
+    // slides it out to the right on return. Untyped arrivals (a drill link
+    // elsewhere) fall to default="none" and just swap. The app header and nav
+    // are anchored in globals.css, so only this content moves. The drill title
+    // inside carries its own morph name, so it lifts out of the slide and
+    // travels from the card instead.
+    <ViewTransition
+      enter={{
+        "nav-forward": "vt-nav-forward",
+        "nav-back": "vt-nav-back",
+        default: "none",
+      }}
+      exit={{
+        "nav-forward": "vt-nav-forward",
+        "nav-back": "vt-nav-back",
+        default: "none",
+      }}
+      default="none"
+    >
+      <section className="max-w-xl">
       <Reveal>
         <Link
           href="/drills"
+          transitionTypes={["nav-back"]}
           className="inline-flex items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
         >
           <svg
@@ -63,9 +85,11 @@ export default async function DrillDetail({
           <SkillIcon skill={drill.skill} className="h-4 w-4" />
           {SKILL_LABEL[drill.skill]} · {drill.level}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-          {drill.name}
-        </h1>
+        <ViewTransition name={`drill-${slug}`} share="morph" default="none">
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+            {drill.name}
+          </h1>
+        </ViewTransition>
         <p className="mt-2 text-sm text-chalk-dim">{drill.summary}</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -122,6 +146,7 @@ export default async function DrillDetail({
           </div>
         </Reveal>
       )}
-    </section>
+      </section>
+    </ViewTransition>
   );
 }

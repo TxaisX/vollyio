@@ -20,7 +20,10 @@ export default function AppLayout({
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-navy/90 px-5 py-2 backdrop-blur-md md:hidden">
+      <header
+        style={{ viewTransitionName: "app-topbar" }}
+        className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-navy/90 px-5 py-2 backdrop-blur-md md:hidden"
+      >
         <Link
           href="/dashboard"
           aria-label="Sideout, home"
@@ -35,6 +38,7 @@ export default function AppLayout({
       </header>
       <nav
         aria-label="Primary"
+        style={{ viewTransitionName: "app-sidebar" }}
         className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line p-4 md:flex"
       >
         <Link

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Reveal } from "@/components/motion";
@@ -76,24 +77,33 @@ export default async function History({
         </div>
       </Reveal>
 
-      {rows.length === 0 ? (
-        <Reveal delay={80}>
-          <div className="card mt-8 p-8 text-center">
-            <p className="font-display font-bold">Nothing here yet.</p>
-            <p className="mt-1 text-sm text-chalk-dim">
-              {activeSkill
-                ? `No ${SKILL_LABEL[activeSkill].toLowerCase()} reps logged.`
-                : "No reps logged yet."}
-            </p>
-            <Link href="/analyze" className="btn-primary mt-5 inline-flex text-sm">
-              Film a rep
-            </Link>
-          </div>
-        </Reveal>
-      ) : (
-        <Reveal delay={80}>
-          <ul className="mt-6 divide-y divide-line">
-            {rows.map((r) => (
+      {/* Same-route crossfade: the skill filter changes ?skill= on the same
+          /history route. Keying the ViewTransition on the active filter lets
+          React crossfade the list in place (share="auto") instead of a hard
+          swap, while the heading and chips above stay put. The Reveal around
+          it stays mounted across filters, so this only animates the swap. */}
+      <Reveal delay={80}>
+        <ViewTransition
+          key={activeSkill ?? "all"}
+          name="history-list"
+          share="auto"
+          default="none"
+        >
+          {rows.length === 0 ? (
+            <div className="card mt-8 p-8 text-center">
+              <p className="font-display font-bold">Nothing here yet.</p>
+              <p className="mt-1 text-sm text-chalk-dim">
+                {activeSkill
+                  ? `No ${SKILL_LABEL[activeSkill].toLowerCase()} reps logged.`
+                  : "No reps logged yet."}
+              </p>
+              <Link href="/analyze" className="btn-primary mt-5 inline-flex text-sm">
+                Film a rep
+              </Link>
+            </div>
+          ) : (
+            <ul className="mt-6 divide-y divide-line">
+              {rows.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/analysis/${r.id}`}
@@ -111,9 +121,19 @@ export default async function History({
                         <SkillIcon skill={r.skill} className="h-3 w-3" />
                         {SKILL_LABEL[r.skill]}
                       </span>
-                      <span className="font-display text-sm font-bold text-gold">
-                        {r.overall_score}
-                      </span>
+                      {/* Shared-element morph source: this score appears to
+                          travel into the breakdown's score ring when the row
+                          is opened. share="morph" so it only fires on that
+                          shared navigation, not on the filter crossfade. */}
+                      <ViewTransition
+                        name={`rep-${r.id}`}
+                        share="morph"
+                        default="none"
+                      >
+                        <span className="font-display text-sm font-bold text-gold">
+                          {r.overall_score}
+                        </span>
+                      </ViewTransition>
                     </div>
                     {r.result?.priority_fix?.title && (
                       <p className="mt-1 text-sm text-chalk">
@@ -135,10 +155,11 @@ export default async function History({
                   </svg>
                 </Link>
               </li>
-            ))}
-          </ul>
-        </Reveal>
-      )}
+              ))}
+            </ul>
+          )}
+        </ViewTransition>
+      </Reveal>
     </section>
   );
 }

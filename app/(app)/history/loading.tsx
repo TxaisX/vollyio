@@ -1,3 +1,5 @@
+import { ViewTransition } from "react";
+
 function Sk({ className = "" }: { className?: string }) {
   return <span className={`skeleton block rounded bg-chalk/10 ${className}`} />;
 }
@@ -6,6 +8,7 @@ const CHIP_W = ["w-14", "w-24", "w-24", "w-20", "w-28", "w-28", "w-24"];
 
 export default function HistoryLoading() {
   return (
+    <ViewTransition exit="vt-reveal-out">
     <section className="max-w-2xl" aria-busy>
       <Sk className="h-3 w-20" />
       <Sk className="mt-2 h-9 w-56 max-w-full" />
@@ -29,5 +32,6 @@ export default function HistoryLoading() {
         ))}
       </ul>
     </section>
+    </ViewTransition>
   );
 }

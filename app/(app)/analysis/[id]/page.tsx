@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { ShareCard } from "@/components/share-card";
 import { XpToast } from "@/components/xp-toast";
 import { ClipViewer } from "@/components/clip-viewer";
+import { LinkPending } from "@/components/link-pending";
 import { SKILL_LABEL, type Skill } from "@/lib/skills";
 import type { AnalysisResult } from "@/lib/analysis-types";
 
@@ -163,7 +165,20 @@ export default async function AnalysisDetail({
               fixTitle={result.priority_fix.title}
               date={dateLabel}
             />
-            <ScoreRing score={row.overall_score} size={84} />
+            {/* Morph target: the row score from /history or the dashboard
+                recent list lands here, appearing to travel into the ring.
+                share="morph" + default="none" keeps it inert on the Suspense
+                reveal and every unrelated transition. When the breakdown
+                streams behind its skeleton first, this simply yields to that
+                reveal — the morph is a best-effort continuity cue, never a
+                dependency. */}
+            <ViewTransition
+              name={`rep-${row.id}`}
+              share="morph"
+              default="none"
+            >
+              <ScoreRing score={row.overall_score} size={84} />
+            </ViewTransition>
           </div>
         </div>
       </Reveal>
@@ -311,13 +326,15 @@ export default async function AnalysisDetail({
                     <Link
                       key={slug}
                       href={`/drills/${slug}`}
-                      className="card card-lift p-4"
+                      transitionTypes={["nav-forward"]}
+                      className="card card-lift relative p-4"
                     >
                       <div className="font-display font-bold">{drill.name}</div>
                       <div className="mt-1 text-xs text-chalk-dim">{drill.summary}</div>
                       <div className="mt-2 font-mono text-[10px] uppercase text-chalk-dim">
                         {drill.duration_min} min · {drill.level}
                       </div>
+                      <LinkPending />
                     </Link>
                   );
                 })}

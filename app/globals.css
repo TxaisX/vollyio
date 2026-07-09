@@ -333,6 +333,28 @@ body {
     letter-spacing: 0.04em;
     color: var(--color-chalk-dim);
   }
+
+  /* Pending-nav hint for links into a dynamic route with no loading.tsx.
+     Absolutely placed and fixed-size so it never shifts layout; the 100ms
+     delay on the visible state keeps fast prefetched navigations from
+     flashing it. Paired with useLinkStatus (see components/link-pending). */
+  .vt-link-pending {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-gold);
+    box-shadow: var(--shadow-glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s var(--ease-court);
+  }
+  .vt-link-pending[data-pending] {
+    opacity: 1;
+    transition-delay: 0.1s;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -350,5 +372,150 @@ body {
   }
   .reveal-static {
     animation: none;
+  }
+}
+
+/* ==========================================================================
+   View transitions (section 7 / decision D-002)
+
+   The framework-native React <ViewTransition> layer for navigation and
+   content-change motion. Every rule below is scoped to the ::view-transition-*
+   pseudo-elements only; none of it reaches into component styles. It is a
+   progressive enhancement behind experimental.viewTransition — browsers with
+   no support render the app normally with instant swaps. Enter/exit sit in the
+   150-210ms band; 400ms is reserved only for morph and directional travel.
+   Every keyframe is named so the layer stays auditable. The reduced-motion
+   block at the bottom zeros every duration and delay (the highest-risk
+   surface, non-negotiable).
+   ========================================================================== */
+
+/* Named, auditable keyframes for the view-transition layer only. */
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes vt-slide-y {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes vt-travel {
+  from {
+    translate: var(--vt-x, 0);
+  }
+  to {
+    translate: 0;
+  }
+}
+@keyframes vt-morph-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
+
+/* Only the elements we name move. The page "root" swaps instantly so a
+   navigation never stacks a full-page crossfade on top of the template.tsx
+   fade-up baseline (VT-NODOUBLE). Named groups below opt back into motion. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* App-shell anchors: the mobile header and both nav landmarks hold still so
+   only content moves during a directional slide. Distinct names because the
+   sidebar and the tab bar both live in the DOM across breakpoints. */
+::view-transition-group(app-topbar),
+::view-transition-group(app-sidebar),
+::view-transition-group(app-tabbar) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-topbar),
+::view-transition-old(app-sidebar),
+::view-transition-old(app-tabbar) {
+  display: none;
+}
+::view-transition-new(app-topbar),
+::view-transition-new(app-sidebar),
+::view-transition-new(app-tabbar) {
+  animation: none;
+}
+
+/* Suspense reveal: the skeleton dissolves out (fast, so it yields) and the
+   resolved content settles in (gentler, delayed until the skeleton is gone). */
+::view-transition-old(.vt-reveal-out) {
+  animation:
+    150ms var(--ease-court) both vt-fade reverse,
+    150ms var(--ease-court) both vt-slide-y reverse;
+}
+::view-transition-new(.vt-reveal-in) {
+  animation:
+    200ms var(--ease-court) 150ms both vt-fade,
+    260ms var(--ease-court) both vt-slide-y;
+}
+
+/* Directional slide: horizontal travel encodes forward (deeper) vs back. The
+   400ms travel is the only place that leaves the enter/exit band (D-002); the
+   fade itself stays inside it. */
+::view-transition-old(.vt-nav-forward) {
+  --vt-x: -56px;
+  animation:
+    150ms var(--ease-court) both vt-fade reverse,
+    400ms var(--ease-court) both vt-travel reverse;
+}
+::view-transition-new(.vt-nav-forward) {
+  --vt-x: 56px;
+  animation:
+    200ms var(--ease-court) 150ms both vt-fade,
+    400ms var(--ease-court) both vt-travel;
+}
+::view-transition-old(.vt-nav-back) {
+  --vt-x: 56px;
+  animation:
+    150ms var(--ease-court) both vt-fade reverse,
+    400ms var(--ease-court) both vt-travel reverse;
+}
+::view-transition-new(.vt-nav-back) {
+  --vt-x: -56px;
+  animation:
+    200ms var(--ease-court) 150ms both vt-fade,
+    400ms var(--ease-court) both vt-travel;
+}
+
+/* Shared-element morph: a score / a drill title appears to travel into the
+   breakdown. The blur hides pixel interpolation across the 400ms morph. */
+::view-transition-group(.vt-morph) {
+  animation-duration: 400ms;
+}
+::view-transition-image-pair(.vt-morph) {
+  animation-name: vt-morph-blur;
+  animation-duration: 400ms;
+}
+
+/* Same-route crossfade: the /history skill filter swaps the list in place
+   (share="auto" drives React's default crossfade; this just paces it). */
+::view-transition-group(history-list) {
+  animation-duration: 220ms;
+}
+
+/* Reduced motion is non-negotiable here and this is the highest-risk surface.
+   Zero every ::view-transition-* duration and delay so reduce users get an
+   instant swap: no slide, no morph, no crossfade. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

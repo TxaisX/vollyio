@@ -17,7 +17,13 @@ Mission: `sideout-perfection-orchestration-prompt.md` — make every component a
 ## Gates the Orchestrator runs itself after every phase
 `npx tsc --noEmit` ; `next build` ; `node --test` — never trust a phase as done until green.
 
-## MISSION COMPLETE (2026-07-08 ~12:30 PDT)
+## CONTINUATION — closing deferrals (2026-07-08 ~17:05 PDT)
+User said "continue" → completing the two documented deferrals to reach 100%.
+- Phase 1b (section-7 view-transitions) RUNNING: single Jerry agent, run `wf_4c46991c-988`. Adds ViewTransition wrappers per route pair + ::view-transition CSS + reduced-motion block + docs/motion.md; self-verifies tsc+build.
+- Then: attempt numeric Lighthouse on landing (needs prod server; authed dashboard needs a session); commit; then merge decision.
+- Safety-net resume cron `33fc693e` @ 19:05 PDT.
+
+## MISSION COMPLETE (2026-07-08 ~12:30 PDT) — core mission; enhancements in progress above
 Phases 0-3 done. All 21 components + every route PASS (Sierra 17 defects → all cleared + re-verified). Gates green. Deployed to production + verified live at https://sideout-jet.vercel.app (middot title, on-page mark, OG image, zero user-facing em dashes). Final before/after breakdown: docs/orchestration-breakdown.html. Report cards + ledger ALL PASS. Resume crons stopped.
 Documented-deferred (both defensible, non-floor): <ViewTransition> route-pair wrappers (section-7 ENHANCEMENT; experimental.viewTransition flag IS enabled = DoD "enabled" met) and numeric Lighthouse ≥90 (tool not installed; structural perf/a11y audit passed and every finding fixed). Section-10 volleyball visuals + added MCP: none shipped (agents judged none earned their place; assets.md/tooling.md empty by design).
 Commits: a85cb68 kickoff · ba8b422 P0 · 67c9ce3 btn-destructive · 84d9430 P1 · 304e10d wiring/logo · 55c4ec1 P2 QA+globals · 8c8a8e7 P2 fix loop · (docs + breakdown).

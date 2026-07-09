@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { drillsForSkill } from "@/content/drills";
+import { LinkPending } from "@/components/link-pending";
 import { Reveal } from "@/components/motion";
 import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL } from "@/lib/skills";
@@ -61,10 +63,20 @@ export default function Drills() {
                   <Link
                     key={d.slug}
                     href={`/drills/${d.slug}`}
-                    className="card card-lift p-4"
+                    transitionTypes={["nav-forward"]}
+                    className="card card-lift relative p-4"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-display font-bold">{d.name}</span>
+                      {/* Morph source: the drill name travels into the detail
+                          heading, so opening a card reads as the same drill
+                          expanding, not a new page. */}
+                      <ViewTransition
+                        name={`drill-${d.slug}`}
+                        share="morph"
+                        default="none"
+                      >
+                        <span className="font-display font-bold">{d.name}</span>
+                      </ViewTransition>
                       <span
                         className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] uppercase ${LEVEL_CLASS[d.level]}`}
                       >
@@ -75,6 +87,9 @@ export default function Drills() {
                     <p className="mt-2 font-mono text-[10px] text-chalk-dim">
                       {d.duration_min} min
                     </p>
+                    {/* /drills/[slug] has no loading.tsx (it is static), so a
+                        cold navigation gets this pending hint. */}
+                    <LinkPending />
                   </Link>
                 ))}
               </div>

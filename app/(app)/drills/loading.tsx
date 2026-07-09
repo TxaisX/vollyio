@@ -1,9 +1,12 @@
+import { ViewTransition } from "react";
+
 function Sk({ className = "" }: { className?: string }) {
   return <span className={`skeleton block rounded bg-chalk/10 ${className}`} />;
 }
 
 export default function DrillsLoading() {
   return (
+    <ViewTransition exit="vt-reveal-out">
     <section className="max-w-3xl" aria-busy>
       <Sk className="h-3 w-16" />
       <Sk className="mt-2 h-9 w-48 max-w-full" />
@@ -30,5 +33,6 @@ export default function DrillsLoading() {
         ))}
       </div>
     </section>
+    </ViewTransition>
   );
 }
