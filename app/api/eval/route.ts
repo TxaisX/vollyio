@@ -4,6 +4,7 @@ import path from "node:path";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { coach, ANALYZE_MODEL } from "@/lib/ai/client";
 import { getRubric } from "@/lib/ai/rubrics";
+import { outputSpec } from "@/lib/ai/output-spec";
 import { analysisSchema } from "@/lib/ai/schema";
 import { METRICS } from "@/lib/ai/metrics";
 import {
@@ -12,6 +13,7 @@ import {
   isDiscipline,
   type Skill,
   type Discipline,
+  type Level,
 } from "@/lib/skills";
 import {
   checkCase,
@@ -21,17 +23,33 @@ import {
 } from "@/lib/eval-score";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
-// through the SAME scoring path as /api/analyze (getRubric + analysisSchema) and
-// reports agreement + run-to-run stability, so frame/prompt changes can be
-// measured. Never exposed in production. Requires ANTHROPIC_API_KEY.
+// through the SAME scoring path as /api/analyze — identical system blocks
+// (getRubric + outputSpec) and the case's player level — and reports agreement
+// + run-to-run stability, so frame/prompt changes can be measured against what
+// production actually runs. Never exposed in production. Requires
+// ANTHROPIC_API_KEY.
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
+
+const LEVELS: readonly Level[] = [
+  "beginner",
+  "intermediate",
+  "advanced",
+  "elite",
+];
+function toLevel(value: unknown): Level {
+  return typeof value === "string" &&
+    (LEVELS as readonly string[]).includes(value)
+    ? (value as Level)
+    : "intermediate";
+}
 
 type EvalCase = {
   id: string;
   skill: Skill;
   discipline: Discipline;
+  level: Level;
   frames: { time_s: number | null; data: string }[];
   expected: EvalExpectation;
 };
@@ -58,6 +76,7 @@ async function loadCases(): Promise<EvalCase[]> {
           id: typeof c.id === "string" ? c.id : f,
           skill: c.skill,
           discipline: c.discipline,
+          level: toLevel(c.level),
           frames: c.frames,
           expected: (c.expected ?? {}) as EvalExpectation,
         });
@@ -81,26 +100,44 @@ async function runModel(c: EvalCase): Promise<ScoreInput | null> {
     },
   ]);
 
-  const response = await coach().messages.parse({
-    model: ANALYZE_MODEL,
-    max_tokens: 4096,
-    system: [{ type: "text", text: getRubric(c.skill, c.discipline), cache_control: { type: "ephemeral" } }],
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...content,
-          {
-            type: "text",
-            text: `Discipline: ${c.discipline}. Player level: intermediate. Analyze this ${SKILL_LABEL[
-              c.skill
-            ].toLowerCase()} rep sequence across the whole clip.`,
-          },
-        ],
-      },
-    ],
-    output_config: { format: zodOutputFormat(analysisSchema(c.skill)) },
-  });
+  // Identical system array + level threading to /api/analyze, so the harness
+  // measures the shipped prompt rather than a variant of it.
+  const response = await coach().messages.parse(
+    {
+      model: ANALYZE_MODEL,
+      max_tokens: 4096,
+      system: [
+        {
+          type: "text",
+          text: getRubric(c.skill, c.discipline),
+          cache_control: { type: "ephemeral" },
+        },
+        {
+          type: "text",
+          text: outputSpec(c.skill, c.level),
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...content,
+            {
+              type: "text",
+              text: `Discipline: ${c.discipline}. Player level: ${c.level}. Analyze this ${SKILL_LABEL[
+                c.skill
+              ].toLowerCase()} rep sequence across the whole clip.`,
+            },
+          ],
+        },
+      ],
+      output_config: { format: zodOutputFormat(analysisSchema(c.skill)) },
+    },
+    // Match /api/analyze (CS-7): exponential backoff on 429/5xx; the SDK honors
+    // Retry-After and jitters between attempts.
+    { maxRetries: 4 },
+  );
 
   const raw = response.parsed_output;
   if (!raw) return null;
@@ -113,6 +150,7 @@ async function runModel(c: EvalCase): Promise<ScoreInput | null> {
       ...raw.insights.map((i) => i.frame_index),
       raw.focus.frame_index,
       raw.contact_frame_index,
+      ...raw.ball_track.map((b) => b.frame_index),
     ],
     frameCount: c.frames.length,
   };
@@ -163,7 +201,10 @@ export async function GET(req: NextRequest) {
         stability: runs > 1 ? checkStability(overalls) : undefined,
       });
     } catch (e) {
-      results.push({ id: c.id, error: e instanceof Error ? e.message : "run failed" });
+      // Never surface the raw SDK message (it can name the vendor or model id);
+      // log server-side and return a fixed string.
+      console.error(`[eval] case ${c.id} failed`, e);
+      results.push({ id: c.id, error: "run failed" });
     }
   }
 

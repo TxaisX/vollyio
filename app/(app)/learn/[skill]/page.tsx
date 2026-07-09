@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { techniqueFor, drillsForMetric } from "@/content/technique";
@@ -17,6 +18,25 @@ import {
 
 export function generateStaticParams() {
   return SKILLS.map((skill) => ({ skill }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ skill: string }>;
+}): Promise<Metadata> {
+  const { skill } = await params;
+  if (!isSkill(skill)) {
+    return { title: "Skill not found", robots: { index: false } };
+  }
+  const label = SKILL_LABEL[skill];
+  const description = techniqueFor(skill, "indoor").overview;
+  return {
+    title: label,
+    description,
+    openGraph: { title: `${label} · Sideout`, description },
+    robots: { index: true, follow: true },
+  };
 }
 
 const ANCHOR_BANDS = [
@@ -49,7 +69,7 @@ export default async function LearnSkill({
       <Reveal>
         <Link
           href={`/learn${q}`}
-          className="inline-flex items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
+          className="inline-flex min-h-11 items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
         >
           <svg
             viewBox="0 0 24 24"
@@ -80,7 +100,7 @@ export default async function LearnSkill({
               key={d}
               href={`/learn/${skill}${d === "indoor" ? "" : `?discipline=${d}`}`}
               aria-current={discipline === d ? "page" : undefined}
-              className={`chip ${discipline === d ? "chip-active" : ""}`}
+              className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
             >
               {DISCIPLINE_LABEL[d]}
             </Link>
@@ -173,7 +193,7 @@ export default async function LearnSkill({
                     </p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {drills.map((d) => (
-                        <Link key={d.slug} href={`/drills/${d.slug}`} className="chip">
+                        <Link key={d.slug} href={`/drills/${d.slug}`} className="chip min-h-11">
                           {d.name}
                         </Link>
                       ))}
