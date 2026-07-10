@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       return {
         skill: r.skill,
         overview: v.overview,
-        highest_leverage: `${metricLabel(r.skill, v.highest_leverage_metric)} — ${v.highest_leverage_note}`,
+        highest_leverage: `${metricLabel(r.skill, v.highest_leverage_metric)}: ${v.highest_leverage_note}`,
         elite_markers: METRICS[r.skill].map((m) => ({
           metric: m.label,
           marker: v.metrics[m.key].elite_marker,

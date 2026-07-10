@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { SideNavLinks, TabBar } from "@/components/app-nav";
+import { SeamArcs } from "@/components/motif";
 import { logout } from "@/app/(auth)/actions";
 import { LogoutButton } from "./logout-button";
 
@@ -39,7 +40,7 @@ export default function AppLayout({
       <nav
         aria-label="Primary"
         style={{ viewTransitionName: "app-sidebar" }}
-        className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line p-4 md:flex"
+        className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line bg-navy/90 p-4 backdrop-blur-xl md:flex"
       >
         <Link
           href="/dashboard"
@@ -57,9 +58,15 @@ export default function AppLayout({
       <main
         id="main"
         tabIndex={-1}
-        className="min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
+        className="relative isolate min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
       >
-        {children}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-y-0 right-0 -z-10 hidden w-[min(72rem,78vw)] overflow-hidden md:block"
+        >
+          <SeamArcs className="h-full w-full animate-drift" opacity={0.035} />
+        </div>
+        <div className="relative z-0">{children}</div>
       </main>
       <TabBar />
     </div>

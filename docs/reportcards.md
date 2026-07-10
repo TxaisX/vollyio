@@ -23,3 +23,18 @@ Format per card: grader → author → artifact · per-criterion letters w/ cite
 - Live drive (Orchestrator, Playwright @375px): zero horizontal page overflow, skip link + logo mark present, single h1, middot title live, landing 200.
 - **Lighthouse (Edge, mobile):** landing **99 performance / 100 accessibility**; /login **99 / 100** (app-shell surface). Both clear the >=90 gate. The authed /dashboard is session-gated for a headless run but shares the identical design system + the Sierra-verified a11y primitives (progressbars, data-visual names, radiogroup, live regions).
 - Phase 1b (section-7 view-transitions): implemented + gates re-verified green; docs/motion.md maps the route-pair patterns.
+
+## 2026-07-09 re-verification — Sierra authoritative
+- **Sierra → Orchestrator** (current master + D-005 motion patch): token purity A, class reuse A, accessibility A, responsive A-, reduced motion A, focus A, states A, machine enforcement A- · **overall A-** · pass.
+- Evidence: component/route contract scan, policy lint, `tsc --noEmit`, 18/18 Node tests, and a production build generating 55 routes all pass. D-005 documents every added keyframe; `CountUp` cancels and settles when reduced motion changes; no user-facing em dashes remain in the linted surface.
+- Raise-to-A: repeat numeric Lighthouse on an authenticated dashboard session when a reusable test account is available. The last recorded landing and app-shell checks remain 99 performance / 100 accessibility.
+
+## 2026-07-09 UI motion pass — Sierra authoritative
+- **Sierra → Orchestrator** (D-006 Learn + reward system): layout A, responsive A, token purity A, accessibility A, reduced motion A, interaction feedback A- · **overall A-** · pass.
+- Evidence: desktop and exact 390px captures show complete Learn cards; exact 360px metrics report document/card bounds inside the viewport; reduced-motion emulation reports 0.01ms transitions, zero delay, visible reveals, and instant scrolling. Policy lint, TypeScript, 18/18 tests, and the 55-route build pass.
+- Raise-to-A: add automated browser interaction coverage for milestone toasts and set/match transitions when a browser test dependency clears the tooling gate.
+
+## 2026-07-10 premium surface pass — Sierra authoritative
+- **Sierra → Orchestrator** (D-007 landing/auth/app campaign): product signal A, visual hierarchy A, volleyball specificity A, responsive A, token purity A, accessibility A, reduced motion A, performance A- · **overall A** · pass.
+- Evidence: generated asset register complete; 63.1 KiB responsive WebP; desktop landing/login and exact 390px landing captures inspected; exact 360px metrics show document width 360 and next-section proof visible; reduced-motion duration 0.01ms with zero delay. Policy lint, TypeScript, 18/18 tests, and 55-route production build pass.
+- Raise-to-A+: repeat numeric Lighthouse against the production deployment after this uncommitted campaign patch is reviewed and shipped.

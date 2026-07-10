@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sideout · Report Card · 2026-07-10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f212c;
+    --navy-light: #16303f;
+    --navy-lighter: #1e3d4e;
+    --chalk: #f2efe6;
+    --chalk-dim: #b9c4c9;
+    --gold: #e8b93b;
+    --gold-dim: #c79c2e;
+    --teal: #6fbfae;
+    --coral: #e2604f;
+    --line: rgb(242 239 230 / 0.12);
+    --ease-court: cubic-bezier(0.22, 1, 0.36, 1);
+    --sans: "Instrument Sans", system-ui, sans-serif;
+    --display: "Space Grotesk", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--navy);
+    color: var(--chalk);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(28px, 4.5vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 8px 0 4px;
+  }
+  .grader-line {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--chalk-dim);
+  }
+  .grader-line b { color: var(--chalk); font-weight: 500; }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--navy-light), color-mix(in oklab, var(--navy-light) 55%, var(--navy)));
+    padding: 32px;
+    margin: 32px 0;
+  }
+  .overall {
+    text-align: center;
+    padding: 12px 28px;
+  }
+  .overall .letter {
+    font-family: var(--display);
+    font-size: 96px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--gold);
+  }
+  .overall .verdict {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-top: 8px;
+  }
+  .hero p { color: var(--chalk-dim); max-width: 56ch; }
+  .hero p + p { margin-top: 10px; }
+  .hero .passbar { font-size: 14px; }
+
+  .gates { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 32px; }
+  .gate {
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px solid color-mix(in oklab, var(--teal) 40%, var(--line));
+    border-radius: 999px;
+    padding: 7px 16px;
+    color: var(--teal);
+    background: color-mix(in oklab, var(--teal) 8%, transparent);
+  }
+  .gate b { color: var(--chalk); font-weight: 500; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .stat {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--navy-light);
+  }
+  .stat .num { font-family: var(--display); font-size: 28px; font-weight: 700; color: var(--chalk); }
+  .stat .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--chalk-dim); margin-top: 2px; }
+
+  h2 {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 18px;
+  }
+  h2 .sub { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--chalk-dim); letter-spacing: 0.1em; margin-left: 12px; }
+
+  .criteria { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 48px; }
+  .crit {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--navy-light);
+    padding: 22px;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+    transition: border-color 0.3s var(--ease-court);
+  }
+  .crit:hover { border-color: color-mix(in oklab, var(--gold) 35%, var(--line)); }
+  .crit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .crit-head h3 { font-family: var(--display); font-size: 17px; font-weight: 700; }
+  .crit .grade {
+    font-family: var(--display);
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .grade.a { color: var(--gold); }
+  .grade.b { color: var(--teal); }
+  .grade.c { color: var(--coral); }
+  .crit p { font-size: 14px; color: var(--chalk-dim); }
+  .crit p code, .raise li code, .hero code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    color: var(--chalk);
+    background: rgb(242 239 230 / 0.07);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .crit .flag { color: var(--coral); font-weight: 600; }
+
+  .raise {
+    border: 1px solid color-mix(in oklab, var(--gold) 30%, var(--line));
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--gold) 5%, var(--navy-light));
+    padding: 26px;
+    margin-bottom: 40px;
+  }
+  .raise ol { margin: 6px 0 0 20px; display: grid; gap: 10px; }
+  .raise li { font-size: 14.5px; color: var(--chalk-dim); }
+  .raise li::marker { color: var(--gold); font-family: var(--mono); }
+  .raise li b { color: var(--chalk); font-weight: 600; }
+
+  .scale {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--chalk-dim);
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    display: grid;
+    gap: 6px;
+  }
+  .scale span { color: var(--gold); }
+
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; }
+    .overall { order: -1; padding: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crit { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Sideout · Report Card</div>
+  <h1>Session Audit · 2026-07-10</h1>
+  <div class="grader-line">auditor → repo · <b>master @ d8dae40</b> (even with origin) + uncommitted D-005/06/07 patch (34 modified, 3 untracked)</div>
+
+  <div class="hero">
+    <div>
+      <p class="passbar">Pass bar per <code>docs/reportcards.md</code>: every artifact at A- or better, no criterion below B. Seven criteria graded; lowest is B (git state). <b style="color:var(--chalk)">Bar met.</b></p>
+      <p>All four machine gates were re-run live this session rather than read from the session log, and all four pass. The single drag on the grade is that the entire D-005/06/07 product, motion, and hardening patch sits uncommitted, with three untracked paths that the patch depends on.</p>
+    </div>
+    <div class="overall">
+      <div class="letter">A-</div>
+      <div class="verdict">Pass</div>
+    </div>
+  </div>
+
+  <div class="gates">
+    <div class="gate">policy lint · <b>PASS</b></div>
+    <div class="gate">tsc --noEmit · <b>clean</b></div>
+    <div class="gate">tests · <b>18/18</b></div>
+    <div class="gate">production build · <b>exit 0 · 55 routes</b></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num">55</div><div class="label">built routes</div></div>
+    <div class="stat"><div class="num">23</div><div class="label">components</div></div>
+    <div class="stat"><div class="num">12.8k</div><div class="label">lines of source</div></div>
+    <div class="stat"><div class="num">7</div><div class="label">runtime deps</div></div>
+    <div class="stat"><div class="num">7/7</div><div class="label">tables with RLS</div></div>
+    <div class="stat"><div class="num">18</div><div class="label">docs files</div></div>
+  </div>
+
+  <h2>Per-criterion grades <span class="sub">letters w/ cited justification</span></h2>
+  <div class="criteria">
+
+    <div class="crit">
+      <div class="crit-head"><h3>Machine gates</h3><div class="grade a">A</div></div>
+      <p>All four gates re-run live this session: <code>npm run lint</code> (policy lint passes), <code>tsc --noEmit</code> (zero errors), <code>node --test</code> (18/18 across ratings EWMA, frame select, eval score), and <code>next build</code> (exit 0, full route table generated). The DoD machine floor holds on today's working tree, patch included.</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Documentation &amp; ops</h3><div class="grade a">A</div></div>
+      <p>18 files in <code>docs/</code> including a decision log through D-007, an in-repo handoff current to today, backend and deploy docs, a reconciled ledger, and CI that mirrors the local gates. The repo explains itself: state, decisions, and known loose ends are all written down and match what the audit found.</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Security posture</h3><div class="grade a">A-</div></div>
+      <p><code>.env.local</code> is untracked, RLS is enabled on all 7 public tables, the coaching-service key lives server-side only, and <code>/api/eval</code> masks errors and validates citations. Held back from A: the schema was applied out-of-band, migration tracking is empty, and <code>005_clips.sql</code> is unapplied; reproducibility currently rests on docs rather than migrations.</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Dependency health</h3><div class="grade a">A-</div></div>
+      <p>Budget held deliberately small: 7 runtime dependencies, additions gated via D-001/10.5. <code>npm audit</code> reports 2 moderate advisories, both the same transitive <code>postcss</code> copy bundled inside the framework; no direct fix short of a framework bump. Version drift is minor (react 19.2.4 vs 19.2.7, one supabase-js patch).</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Recorded product quality</h3><div class="grade a">A-</div></div>
+      <p>Recorded, not re-verified this session: Lighthouse 99 perf / 100 a11y on landing and login, Sierra pass cards through the D-007 premium surface, token purity and reduced-motion at A. Numeric Lighthouse is still not in CI, and the authed dashboard has never been measured numerically; both are carried raise-to items.</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Test depth</h3><div class="grade b">B+</div></div>
+      <p>18/18 green, but all three test files sit in <code>lib/</code> and cover pure logic only. Zero component, route, or browser automation exists; two prior Sierra cards already carry this as a raise-to. The QA record is strong but manual, so regressions in interactive surfaces would not be caught by the gates.</p>
+    </div>
+
+    <div class="crit">
+      <div class="crit-head"><h3>Git state</h3><div class="grade b">B</div></div>
+      <p>34 modified files plus 3 untracked paths sit uncommitted as the D-005/06/07 patch. <span class="flag">The untracked paths are load-bearing:</span> <code>scripts/lint.mjs</code> backs the new lint gate the modified CI workflow now calls, and <code>reward-toast.tsx</code> + <code>volleyball-hero.webp</code> are referenced by modified pages. Committing without adding those three breaks CI on push. Branch otherwise even with <code>origin/master</code>; history is clean.</p>
+    </div>
+
+  </div>
+
+  <div class="raise">
+    <h2>Raise-to list</h2>
+    <ol>
+      <li><b>Commit the D-005/06/07 patch with the three untracked paths explicitly added</b> (<code>scripts/</code>, <code>components/reward-toast.tsx</code>, <code>public/volleyball-hero.webp</code>), then push and watch CI run its new lint step end-to-end.</li>
+      <li><b>Add browser interaction coverage</b> for milestone toasts and set/match transitions once a browser test dependency clears the 10.5 gate; this raise-to has now been carried on three consecutive cards.</li>
+      <li><b>Establish a migration workflow</b> that reconciles the out-of-band schema, and apply <code>005_clips.sql</code> when the clip feature ships.</li>
+      <li><b>Put numeric Lighthouse in CI</b> and measure the authed dashboard with a reusable test session.</li>
+      <li><b>Clear the transitive postcss advisories</b> at the next framework bump; not directly actionable today.</li>
+    </ol>
+  </div>
+
+  <div class="scale">
+    <div><span>Scale</span> · A impeccable · B solid (minor, floor intact) · C works but breaches floor · D partial · F missing/broken</div>
+    <div><span>Evidence</span> · run live 2026-07-10: npm run lint · npm run typecheck · npm test · npm run build · git status/log · npm audit · npm outdated · file census</div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -13,6 +13,7 @@ import {
   createGoal,
 } from "@/app/(app)/goals/actions";
 import { Reveal } from "@/components/motion";
+import { RewardMark, RewardToast } from "@/components/reward-toast";
 import { SKILLS, SKILL_LABEL, type Skill } from "@/lib/skills";
 
 export type Goal = {
@@ -229,9 +230,13 @@ export function NewGoal() {
           + New goal
         </button>
       )}
-      <p role="status" aria-live="polite" className="sr-only">
-        {announce}
-      </p>
+      {announce && (
+        <RewardToast
+          title="Goal added"
+          detail="Your target is set."
+          onDismiss={() => setAnnounce("")}
+        />
+      )}
     </>
   );
 }
@@ -303,6 +308,7 @@ export function ActiveGoalCard({
   delay?: number;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [intent, setIntent] = useState<"complete" | "abandon" | null>(null);
   const [pending, startTransition] = useTransition();
   const mounted = useMounted();
 
@@ -315,7 +321,14 @@ export function ActiveGoalCard({
 
   return (
     <Reveal delay={delay}>
-      <div className="card card-lift spot p-5">
+      <div
+        className={`card card-lift spot relative p-5 ${
+          pending && intent === "complete" ? "reward-completing" : ""
+        }`}
+      >
+        {pending && intent === "complete" && (
+          <RewardMark className="absolute right-4 top-4" />
+        )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <h3 className="font-display text-lg font-bold">{goal.title}</h3>
           {goal.skill && (
@@ -372,7 +385,10 @@ export function ActiveGoalCard({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => startTransition(() => abandonGoal(goal.id))}
+                onClick={() => {
+                  setIntent("abandon");
+                  startTransition(() => abandonGoal(goal.id));
+                }}
                 className="btn-ghost min-h-11 px-4 py-2 text-sm text-coral disabled:opacity-60"
               >
                 Abandon
@@ -390,10 +406,13 @@ export function ActiveGoalCard({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => startTransition(() => completeGoal(goal.id))}
+                onClick={() => {
+                  setIntent("complete");
+                  startTransition(() => completeGoal(goal.id));
+                }}
                 className="btn-primary min-h-11 px-5 py-2 text-sm disabled:opacity-60"
               >
-                Done
+                {pending && intent === "complete" ? "Completing" : "Done"}
               </button>
               <button
                 type="button"

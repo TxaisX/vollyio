@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Reveal } from "@/components/motion";
+import { RewardMark, RewardToast } from "@/components/reward-toast";
 import { saveGame, type SaveGamePayload } from "@/app/(app)/scoreboard/actions";
 
 type Team = "a" | "b";
@@ -171,6 +172,10 @@ export function Scoreboard() {
   const [pop, setPop] = useState<Team | null>(null);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [reward, setReward] = useState<{
+    title: string;
+    detail: string;
+  } | null>(null);
   const [announce, setAnnounce] = useState("");
   const [saving, startSaving] = useTransition();
   const popTimer = useRef<number | null>(null);
@@ -210,6 +215,7 @@ export function Scoreboard() {
 
   function start(teamA: string, teamB: string, bestOf: 3 | 5) {
     setSaveError(null);
+    setReward(null);
     setConfirmAbandon(false);
     setAnnounce("");
     setMatch({
@@ -296,6 +302,11 @@ export function Scoreboard() {
       const result = await saveGame(payload);
       if (result.ok) {
         setSaveError(null);
+        const winnerName = payload.winner === "a" ? match.teamA : match.teamB;
+        setReward({
+          title: "Match saved",
+          detail: `${winnerName} wins ${winsA}-${winsB}.`,
+        });
         setMatch(null);
       } else {
         setSaveError(result.error);
@@ -349,7 +360,8 @@ export function Scoreboard() {
         winner === "a" ? `${winsA}–${winsB}` : `${winsB}–${winsA}`;
       body = (
         <Reveal>
-          <div className="card p-6 text-center">
+          <div className="card reward-panel p-6 text-center">
+            <RewardMark className="mx-auto" />
             <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
               Match complete
             </p>
@@ -419,7 +431,8 @@ export function Scoreboard() {
             </div>
           ) : (
             <Reveal>
-              <div className="card flex min-h-[38vh] flex-col items-center justify-center gap-4 p-6 text-center">
+              <div className="card reward-panel flex min-h-[38vh] flex-col items-center justify-center gap-4 p-6 text-center">
+                <RewardMark />
                 <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
                   Set complete
                 </p>
@@ -537,6 +550,13 @@ export function Scoreboard() {
         {announce}
       </span>
       {body}
+      {reward && (
+        <RewardToast
+          title={reward.title}
+          detail={reward.detail}
+          onDismiss={() => setReward(null)}
+        />
+      )}
     </>
   );
 }
@@ -581,12 +601,12 @@ function TapZone({
       </span>
       <span className="flex h-5 items-center">
         {badge === "set" && (
-          <span className="rounded bg-navy-lighter px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-chalk-dim">
+          <span className="reward-earned rounded bg-navy-lighter px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-chalk-dim">
             Set point
           </span>
         )}
         {badge === "match" && (
-          <span className="rounded bg-gold/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-gold">
+          <span className="reward-earned rounded bg-gold/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-gold">
             Match point
           </span>
         )}
@@ -613,7 +633,9 @@ function SetDots({
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
-          className={`h-2 w-2 rounded-full ${i < won ? "bg-gold" : "border border-line"}`}
+          className={`h-2 w-2 rounded-full ${
+            i < won ? "set-dot-won bg-gold" : "border border-line"
+          }`}
         />
       ))}
     </span>

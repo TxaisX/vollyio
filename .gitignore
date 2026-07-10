@@ -50,3 +50,8 @@ next-env.d.ts
 
 # scratch / troubleshooting notes
 /The fix is a full restart of Claude Code.md
+
+# local build output and agent tooling
+/dist/
+.codex/
+.openai/

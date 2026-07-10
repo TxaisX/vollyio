@@ -157,12 +157,12 @@ export function Recorder({
           ref={enableBtnRef}
           type="button"
           onClick={enable}
-          className="btn-primary min-h-11 w-full"
+          className="btn-primary animate-fade-up min-h-11 w-full"
         >
           Record a rep
         </button>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="animate-fade-up flex flex-col gap-3">
           <div className="relative overflow-hidden rounded-lg bg-navy">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video

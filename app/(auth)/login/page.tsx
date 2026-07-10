@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
@@ -19,15 +20,25 @@ export default async function Login({
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
-      <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.08} />
+      <Image
+        src="/volleyball-hero.webp"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="hero-photo object-cover object-[70%_center]"
+      />
+      <div aria-hidden="true" className="auth-photo-shade absolute inset-0" />
+      <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.12} />
       <Reveal className="relative w-full max-w-sm">
         <Link
           href="/"
-          className="mb-6 block text-center font-display text-2xl font-bold tracking-tight"
+          className="mb-6 flex min-h-11 items-center justify-center gap-2 font-display text-2xl font-bold tracking-tight"
         >
+          <Image src="/icon-mark.png" alt="" width={30} height={30} />
           Sideout
         </Link>
-        <div className="card p-7 shadow-lift">
+        <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
             Welcome back
           </p>
