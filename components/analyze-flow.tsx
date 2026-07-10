@@ -72,7 +72,7 @@ function trackBoxAt(
   timeS: number,
 ): { left: number; top: number; width: number; height: number } | null {
   let best: LandmarkFrame | null = null;
-  let bestD = 0.7;
+  let bestD = 0.4;
   for (const f of track.frames) {
     const d = Math.abs(f.t - timeS);
     if (d < bestD) {
@@ -81,6 +81,22 @@ function trackBoxAt(
     }
   }
   return best ? boxFromPts(best.pts) : null;
+}
+
+type Box = { left: number; top: number; width: number; height: number };
+
+function boxOverlap(a: Box, b: Box): number {
+  const x = Math.max(
+    0,
+    Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left),
+  );
+  const y = Math.max(
+    0,
+    Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top),
+  );
+  const inter = x * y;
+  const union = a.width * a.height + b.width * b.height - inter;
+  return union > 0 ? inter / union : 0;
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -893,6 +909,12 @@ export function AnalyzeFlow() {
                   .filter(
                     (b): b is { id: number; box: NonNullable<typeof b.box> } =>
                       b.box != null,
+                  )
+                  // Tracks are strongest-first; hide a box that mostly covers
+                  // the same pixels as a stronger one (duplicate detections).
+                  .filter(
+                    (b, i, arr) =>
+                      !arr.slice(0, i).some((o) => boxOverlap(o.box, b.box) > 0.45),
                   );
                 if (boxes.length < 2) return null;
                 return (

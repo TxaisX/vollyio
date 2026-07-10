@@ -352,6 +352,30 @@ function personExtent(pts: Landmark[]): number {
   return Math.max(0.02, bottom - top);
 }
 
+// The detector can fire two or three overlapping detections on one body,
+// which would each become their own track and crowd out real players.
+// Collapse detections whose hip centers sit within a fraction of their own
+// body size to the most visible one.
+export function dedupePersons(persons: Landmark[][]): Landmark[][] {
+  if (persons.length <= 1) return persons;
+  const meanVis = (pts: Landmark[]) =>
+    pts.reduce((a, p) => a + p.v, 0) / pts.length;
+  const ranked = [...persons].sort((a, b) => meanVis(b) - meanVis(a));
+  const kept: Landmark[][] = [];
+  for (const pts of ranked) {
+    const c = personCenter(pts);
+    const h = personExtent(pts);
+    const duplicate = kept.some((other) => {
+      const oc = personCenter(other);
+      const oh = personExtent(other);
+      const dist = Math.hypot(c.x - oc.x, c.y - oc.y);
+      return dist < 0.4 * Math.min(h, oh);
+    });
+    if (!duplicate) kept.push(pts);
+  }
+  return kept;
+}
+
 type OpenTrack = {
   id: number;
   frames: LandmarkFrame[];
@@ -368,7 +392,8 @@ export function buildTracks(personFrames: PersonFrame[], maxTracks = 4): PersonT
   const open: OpenTrack[] = [];
   let nextId = 0;
 
-  for (const frame of sorted) {
+  for (const rawFrame of sorted) {
+    const frame = { t: rawFrame.t, persons: dedupePersons(rawFrame.persons) };
     const assignments: { cost: number; person: number; track: OpenTrack }[] = [];
     frame.persons.forEach((pts, person) => {
       const c = personCenter(pts);
