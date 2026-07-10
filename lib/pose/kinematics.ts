@@ -352,6 +352,62 @@ function personExtent(pts: Landmark[]): number {
   return Math.max(0.02, bottom - top);
 }
 
+// ---------------------------------------------------------------------------
+// Focus region: crop-zoomed detection around a framed player. Detecting on a
+// crop makes a small, distant athlete large enough for the pose model to see.
+
+export type FocusRegion = { left: number; top: number; width: number; height: number };
+
+// Map landmarks detected inside a crop back to full-frame coordinates. z is
+// scaled by the crop width to stay in the same units as full-frame depth.
+export function mapRegionPersons(persons: Landmark[][], region: FocusRegion): Landmark[][] {
+  return persons.map((pts) =>
+    pts.map((p) => ({
+      x: region.left + p.x * region.width,
+      y: region.top + p.y * region.height,
+      z: p.z * region.width,
+      v: p.v,
+    })),
+  );
+}
+
+// Generous detection window around a followed player: sized from the user's
+// frame so movement between detections stays inside, clamped to the frame.
+export function focusRegionAround(
+  cx: number,
+  cy: number,
+  box: FocusRegion | null,
+): FocusRegion {
+  const width = Math.min(1, Math.max(0.45, (box?.width ?? 0.3) * 2.5));
+  const height = Math.min(1, Math.max(0.45, (box?.height ?? 0.4) * 2.2));
+  return {
+    left: Math.min(Math.max(0, cx - width / 2), 1 - width),
+    top: Math.min(Math.max(0, cy - height / 2), 1 - height),
+    width,
+    height,
+  };
+}
+
+// Best-effort hip center of one detected person; null when too little of the
+// body is visible to place them.
+export function hipCenter(pts: Landmark[]): { x: number; y: number } | null {
+  const lh = pts[LM.leftHip];
+  const rh = pts[LM.rightHip];
+  if (lh.v >= 0.4 && rh.v >= 0.4) return mid(lh, rh);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of pts) {
+    if (p.v < 0.4) continue;
+    xs.push(p.x);
+    ys.push(p.y);
+  }
+  if (xs.length < 6) return null;
+  return {
+    x: xs.reduce((a, b) => a + b, 0) / xs.length,
+    y: ys.reduce((a, b) => a + b, 0) / ys.length,
+  };
+}
+
 // The detector can fire two or three overlapping detections on one body,
 // which would each become their own track and crowd out real players.
 // Collapse detections whose hip centers sit within a fraction of their own

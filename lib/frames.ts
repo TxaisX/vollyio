@@ -16,7 +16,13 @@ import type {
   PersonTrack,
 } from "./pose/types";
 import { buildMeasurementsBlock } from "./pose/metrics";
-import { buildTracks, dedupePersons } from "./pose/kinematics";
+import {
+  buildTracks,
+  dedupePersons,
+  focusRegionAround,
+  hipCenter,
+  type FocusRegion,
+} from "./pose/kinematics";
 import { LM } from "./pose/types";
 import type { Skill } from "./skills";
 
@@ -83,10 +89,55 @@ export type ExtractOpts = {
     engine: PoseEngine;
     skill: Skill;
     // A user-pinned focus player: normalized hip-center position at a clip
-    // time. Track selection anchors to this instead of the activity ranking.
-    target?: { x: number; y: number; t: number };
+    // time. Track selection anchors to this instead of the activity ranking,
+    // and detection zooms into a region around it so a small, distant player
+    // still registers. box is the user's drawn frame, when they drew one.
+    target?: { x: number; y: number; t: number; box?: FocusRegion };
   };
 };
+
+// Follows the framed player through the capture passes: detection runs on a
+// padded crop around their last known position, re-centering on every hit.
+// A few consecutive misses widen back to the full frame; a full-frame hit
+// near the last known position re-tightens the zoom.
+function createFocusTracker(target: NonNullable<ExtractOpts["pose"]>["target"]): {
+  region(): FocusRegion | undefined;
+  update(frame: PersonFrame | null): void;
+} | null {
+  if (!target) return null;
+  const box = target.box ?? null;
+  let region: FocusRegion | null = focusRegionAround(target.x, target.y, box);
+  let misses = 0;
+  let lastX = target.x;
+  let lastY = target.y;
+  return {
+    region: () => region ?? undefined,
+    update(frame) {
+      const persons = frame?.persons ?? [];
+      let best: { x: number; y: number } | null = null;
+      let bestD = Infinity;
+      for (const pts of persons) {
+        const c = hipCenter(pts);
+        if (!c) continue;
+        const d = Math.hypot(c.x - lastX, c.y - lastY);
+        if (d < bestD) {
+          bestD = d;
+          best = c;
+        }
+      }
+      if (!best) {
+        if (region && ++misses >= 3) region = null;
+        return;
+      }
+      // On a widened (full-frame) pass, only re-lock near the lost position.
+      if (!region && bestD > 0.3) return;
+      misses = 0;
+      lastX = best.x;
+      lastY = best.y;
+      region = focusRegionAround(best.x, best.y, box);
+    },
+  };
+}
 
 // The opening of the clip: a rendered frame from the first seconds plus any
 // people detected in it, so the player can frame who to follow. persons is
@@ -259,6 +310,7 @@ async function scanMotion(
   video: HTMLVideoElement,
   probeTimes: number[],
   engine?: PoseEngine,
+  tracker?: ReturnType<typeof createFocusTracker>,
 ): Promise<{ motion: number[]; poseFrames: PersonFrame[] }> {
   const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
   const canvas = document.createElement("canvas");
@@ -291,8 +343,13 @@ async function scanMotion(
 
     if (engine && Date.now() - start <= POSE_PROBE_BUDGET_MS) {
       try {
-        const frame = await engine.detectPersonsFromVideo(video, video.currentTime);
+        const frame = await engine.detectPersonsFromVideo(
+          video,
+          video.currentTime,
+          tracker?.region(),
+        );
         if (frame) poseFrames.push(frame);
+        tracker?.update(frame);
       } catch {
         // Probe landmarks are optional; the luminance scan is the contract.
       }
@@ -333,6 +390,7 @@ async function captureDenseWindows(
   engine: PoseEngine,
   peakTimes: number[],
   duration: number,
+  tracker?: ReturnType<typeof createFocusTracker>,
 ): Promise<{ frames: PersonFrame[]; denseFps: number | null; denseMs: number }> {
   const frames: PersonFrame[] = [];
   const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
@@ -365,11 +423,16 @@ async function captureDenseWindows(
       const presented = await nextVideoFrame(video);
       if (!presented) break;
       try {
-        const frame = await engine.detectPersonsFromVideo(video, video.currentTime);
+        const frame = await engine.detectPersonsFromVideo(
+          video,
+          video.currentTime,
+          tracker?.region(),
+        );
         if (frame) {
           frames.push(frame);
           captured++;
         }
+        tracker?.update(frame);
       } catch {
         break;
       }
@@ -480,7 +543,14 @@ async function sampleContentAware(
   const duration = video.duration;
   const probeTimes = buildProbeTimes(duration, PROBE_COUNT);
   const scanStart = Date.now();
-  const { motion, poseFrames } = await scanMotion(video, probeTimes, pose?.engine);
+  // Each chronological pass gets its own tracker so both start from the
+  // user's anchor rather than wherever the previous pass ended.
+  const { motion, poseFrames } = await scanMotion(
+    video,
+    probeTimes,
+    pose?.engine,
+    createFocusTracker(pose?.target),
+  );
   const scanMs = Date.now() - scanStart;
 
   const peaks = findPeaks(motion, probeTimes);
@@ -504,6 +574,7 @@ async function sampleContentAware(
         pose.engine,
         peaks.map((p) => p.timeS),
         duration,
+        createFocusTracker(pose.target),
       );
       denseMs = dense.denseMs;
       denseFps = dense.denseFps;
