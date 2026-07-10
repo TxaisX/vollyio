@@ -117,9 +117,17 @@ async function markFocusFrames(
             const style = getComputedStyle(document.documentElement);
             const gold = style.getPropertyValue("--color-gold").trim();
             const navy = style.getPropertyValue("--color-navy").trim();
-            const x = cx * canvas.width;
-            const y = cy * canvas.height;
-            const r = Math.min(16, Math.max(5, bodyH * canvas.height * 0.07));
+            // Cropped frames: place the ring in the crop's coordinate space.
+            const crop = f.crop;
+            const nx = crop ? (cx - crop.left) / crop.width : cx;
+            const ny = crop ? (cy - crop.top) / crop.height : cy;
+            if (nx < 0.02 || nx > 0.98 || ny < 0.02 || ny > 0.98) {
+              return resolve(null);
+            }
+            const x = nx * canvas.width;
+            const y = ny * canvas.height;
+            const bodyHRel = crop ? bodyH / crop.height : bodyH;
+            const r = Math.min(24, Math.max(5, bodyHRel * canvas.height * 0.07));
             // Dark halo first so the ring reads on any background.
             ctx.lineWidth = Math.max(4.5, r * 0.45);
             ctx.strokeStyle = navy;
@@ -171,9 +179,16 @@ function keypointsForFrames(landmarks: LandmarkFrame[], sent: Frame[]): FrameKey
       }
     }
     if (!best) continue;
+    // Cropped frames carry their window; overlays live in that window's space.
+    const c = f.crop;
     out.push({
       frame_index: f.index,
-      pts: best.pts.flatMap((p) => [r3(p.x), r3(p.y), r3(p.z), r3(p.v)]),
+      pts: best.pts.flatMap((p) => [
+        r3(c ? (p.x - c.left) / c.width : p.x),
+        r3(c ? (p.y - c.top) / c.height : p.y),
+        r3(p.z),
+        r3(p.v),
+      ]),
     });
   }
   return out;
