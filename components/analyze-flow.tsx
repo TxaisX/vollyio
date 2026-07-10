@@ -16,7 +16,6 @@ import {
   type OpeningPlayers,
 } from "@/lib/frames";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
-import { buildMeasurementsBlock } from "@/lib/pose/metrics";
 import {
   LM,
   type Landmark,
@@ -66,38 +65,7 @@ function boxFromPts(
   return { left, top, width: right - left, height: bottom - top };
 }
 
-// Same box for a track near a moment in the clip.
-function trackBoxAt(
-  track: PersonTrack,
-  timeS: number,
-): { left: number; top: number; width: number; height: number } | null {
-  let best: LandmarkFrame | null = null;
-  let bestD = 0.4;
-  for (const f of track.frames) {
-    const d = Math.abs(f.t - timeS);
-    if (d < bestD) {
-      bestD = d;
-      best = f;
-    }
-  }
-  return best ? boxFromPts(best.pts) : null;
-}
-
 type Box = { left: number; top: number; width: number; height: number };
-
-function boxOverlap(a: Box, b: Box): number {
-  const x = Math.max(
-    0,
-    Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left),
-  );
-  const y = Math.max(
-    0,
-    Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top),
-  );
-  const inter = x * y;
-  const union = a.width * a.height + b.width * b.height - inter;
-  return union > 0 ? inter / union : 0;
-}
 
 // Stamp a small gold tracking ring at the focus athlete's hips in each frame,
 // so the player sees who is being tracked and the coaching service is told
@@ -367,108 +335,93 @@ export function AnalyzeFlow() {
   const prevSkillRef = useRef<Skill | null>(skill);
   const poseRef = useRef<PoseEngine | null>(null);
   const captureRef = useRef<Capture | null>(null);
-  // Mirrors captureRef's track state for rendering the focus-player picker.
-  const [playerTracks, setPlayerTracks] = useState<PersonTrack[]>([]);
-  const [playerChoice, setPlayerChoice] = useState<number | null>(null);
-  // Pre-analysis pause: several people are on screen, waiting for the tap.
+  // Pre-analysis pause: the opening frame is up, waiting for the player to
+  // frame who to follow.
   const [openingPick, setOpeningPick] = useState<
     (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // Cropped card per tracked player for the post-analysis switcher.
-  const [trackCards, setTrackCards] = useState<{ id: number; thumb: string }[]>([]);
-  // Unmarked originals of the send frames, re-stamped when the player changes.
-  const rawFramesRef = useRef<Frame[]>([]);
+  // Kept after analysis so the player can reframe and re-run tracking.
+  const [lastOpening, setLastOpening] = useState<
+    (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
+  >(null);
+  // The draggable, resizable frame over the opening image (normalized).
+  const [frameBox, setFrameBox] = useState<Box | null>(null);
+  const frameStageRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    mode: "move" | "resize";
+    pointerId: number;
+    startX: number;
+    startY: number;
+    start: Box;
+  } | null>(null);
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
+  // Start the frame over the first detected person, else centered.
   useEffect(() => {
-    if (playerTracks.length <= 1 || frames.length === 0 || source !== "video") {
-      setTrackCards([]);
+    if (!openingPick) {
+      setFrameBox(null);
+      dragRef.current = null;
       return;
     }
-    const refTrack = playerTracks[0];
-    const midT = refTrack.frames[Math.floor(refTrack.frames.length / 2)]?.t ?? 0;
-    let display = frames[0];
-    for (const f of frames) {
-      if (
-        f.time_s != null &&
-        Math.abs(f.time_s - midT) < Math.abs((display.time_s ?? 1e9) - midT)
-      ) {
-        display = f;
-      }
-    }
-    if (display.time_s == null) {
-      setTrackCards([]);
-      return;
-    }
-    let cancelled = false;
-    const img = new Image();
-    img.onload = () => {
-      if (cancelled) return;
-      const cards: { id: number; thumb: string }[] = [];
-      const taken: Box[] = [];
-      for (const t of playerTracks) {
-        const box = trackBoxAt(t, display.time_s!);
-        if (!box) continue;
-        // Hide a card that mostly covers a stronger track's pixels.
-        if (taken.some((o) => boxOverlap(o, box) > 0.45)) continue;
-        const sw = box.width * img.naturalWidth;
-        const sh = box.height * img.naturalHeight;
-        if (sw < 8 || sh < 8) continue;
-        const scale = 200 / sh;
-        const tw = Math.max(24, Math.round(sw * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = tw;
-        canvas.height = 200;
-        canvas
-          .getContext("2d")!
-          .drawImage(
-            img,
-            box.left * img.naturalWidth,
-            box.top * img.naturalHeight,
-            sw,
-            sh,
-            0,
-            0,
-            tw,
-            200,
-          );
-        taken.push(box);
-        cards.push({ id: t.id, thumb: canvas.toDataURL("image/jpeg", 0.75) });
-      }
-      setTrackCards(cards);
-    };
-    img.src = display.dataUrl;
-    return () => {
-      cancelled = true;
-    };
-  }, [playerTracks, frames, source]);
+    const first = openingPick.persons[0] ? boxFromPts(openingPick.persons[0]) : null;
+    setFrameBox(first ?? { left: 0.35, top: 0.18, width: 0.3, height: 0.6 });
+  }, [openingPick]);
 
-  // Follow a different athlete: recompute the measurements from that track
-  // without re-extracting anything.
-  function selectTrack(trackId: number) {
-    const capture = captureRef.current;
-    if (!capture) return;
-    const track = capture.tracks.find((t) => t.id === trackId);
-    if (!track || capture.selectedTrackId === trackId) return;
-    capture.selectedTrackId = trackId;
-    capture.landmarks = track.frames;
-    capture.measurements = buildMeasurementsBlock(
-      capture.skill,
-      track.frames,
-      capture.denseFps,
-    );
-    setPlayerChoice(trackId);
-    // Move the tracking ring onto the newly chosen athlete.
-    const raw = rawFramesRef.current;
-    if (raw.length > 0) {
-      void markFocusFrames(raw, track.frames).then(({ frames: stamped, marked }) => {
-        if (captureRef.current?.selectedTrackId !== trackId) return;
-        markedRef.current = marked > 0;
-        setMarkerShown(marked > 0);
-        setFrames(marked > 0 ? stamped : raw);
+  function onFramePointerDown(e: React.PointerEvent, mode: "move" | "resize") {
+    if (!frameBox) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = {
+      mode,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      start: frameBox,
+    };
+  }
+
+  function onFramePointerMove(e: React.PointerEvent) {
+    const drag = dragRef.current;
+    const rect = frameStageRef.current?.getBoundingClientRect();
+    if (!drag || !rect || e.pointerId !== drag.pointerId) return;
+    const dx = (e.clientX - drag.startX) / rect.width;
+    const dy = (e.clientY - drag.startY) / rect.height;
+    if (drag.mode === "move") {
+      setFrameBox({
+        ...drag.start,
+        left: Math.min(Math.max(0, drag.start.left + dx), 1 - drag.start.width),
+        top: Math.min(Math.max(0, drag.start.top + dy), 1 - drag.start.height),
+      });
+    } else {
+      setFrameBox({
+        ...drag.start,
+        width: Math.min(Math.max(0.08, drag.start.width + dx), 1 - drag.start.left),
+        height: Math.min(Math.max(0.08, drag.start.height + dy), 1 - drag.start.top),
       });
     }
+  }
+
+  function onFramePointerUp(e: React.PointerEvent) {
+    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
+  }
+
+  function onFrameKeyDown(e: React.KeyboardEvent) {
+    if (!frameBox) return;
+    const step = e.shiftKey ? 0.05 : 0.02;
+    let { left, top } = frameBox;
+    if (e.key === "ArrowLeft") left -= step;
+    else if (e.key === "ArrowRight") left += step;
+    else if (e.key === "ArrowUp") top -= step;
+    else if (e.key === "ArrowDown") top += step;
+    else return;
+    e.preventDefault();
+    setFrameBox({
+      ...frameBox,
+      left: Math.min(Math.max(0, left), 1 - frameBox.width),
+      top: Math.min(Math.max(0, top), 1 - frameBox.height),
+    });
   }
   const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
@@ -699,9 +652,6 @@ export function AnalyzeFlow() {
               skill,
             }
           : null;
-      setPlayerTracks(poseCapture?.tracks ?? []);
-      setPlayerChoice(poseCapture?.selectedTrackId ?? null);
-      rawFramesRef.current = f;
       let shown = f;
       markedRef.current = false;
       if (captureRef.current && captureRef.current.landmarks.length >= 8) {
@@ -737,13 +687,13 @@ export function AnalyzeFlow() {
     }
   }
 
-  // Shared entry for recorded and uploaded clips: when several people are on
-  // screen in the opening seconds, pause and let the user pin their player
-  // before any analysis runs.
+  // Shared entry for recorded and uploaded clips: pause on the opening frame
+  // so the player can frame who to follow before any analysis runs.
   async function handleVideo(blob: Blob, isRecorded: boolean) {
     setStatus({ kind: "reading" });
     setFrameDebug(null);
     setOpeningPick(null);
+    setLastOpening(null);
     clipRef.current = blob;
     setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
     try {
@@ -751,21 +701,16 @@ export function AnalyzeFlow() {
       poseRef.current = engine;
       if (engine && skill) {
         const opening = await detectOpeningPlayers(blob, engine);
-        if (
-          opening &&
-          opening.persons.length >= 2 &&
-          opening.duration_s <= MAX_CLIP_SECONDS + 0.5
-        ) {
+        if (opening && opening.duration_s <= MAX_CLIP_SECONDS + 0.5) {
           captureRef.current = null;
-          setPlayerTracks([]);
-          setPlayerChoice(null);
           setFrames([]);
-          rawFramesRef.current = [];
           markedRef.current = false;
           setMarkerShown(false);
           setSource("video");
           setDuration(opening.duration_s);
-          setOpeningPick({ ...opening, blob, isRecorded });
+          const pick = { ...opening, blob, isRecorded };
+          setLastOpening(pick);
+          setOpeningPick(pick);
           setStatus({ kind: "idle" });
           return;
         }
@@ -779,21 +724,46 @@ export function AnalyzeFlow() {
     }
   }
 
-  function pickOpeningPlayer(index: number | null) {
+  // The frame is confirmed: aim tracking at the framed person. If a detected
+  // person's hips sit inside the box, snap the anchor to them; otherwise the
+  // box center is the anchor.
+  function confirmFraming() {
+    const opening = openingPick;
+    const box = frameBox;
+    if (!opening || !box) return;
+    setOpeningPick(null);
+    setStatus({ kind: "reading" });
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    let target = { x: cx, y: cy, t: opening.timeS };
+    let bestD = Infinity;
+    for (const pts of opening.persons) {
+      const lh = pts[LM.leftHip];
+      const rh = pts[LM.rightHip];
+      if (lh.v < 0.4 || rh.v < 0.4) continue;
+      const hx = (lh.x + rh.x) / 2;
+      const hy = (lh.y + rh.y) / 2;
+      const inside =
+        hx >= box.left &&
+        hx <= box.left + box.width &&
+        hy >= box.top &&
+        hy <= box.top + box.height;
+      if (!inside) continue;
+      const d = Math.hypot(hx - cx, hy - cy);
+      if (d < bestD) {
+        bestD = d;
+        target = { x: hx, y: hy, t: opening.timeS };
+      }
+    }
+    void runVideoExtraction(opening.blob, opening.isRecorded, target);
+  }
+
+  function skipFraming() {
     const opening = openingPick;
     if (!opening) return;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    let target: { x: number; y: number; t: number } | undefined;
-    if (index != null && opening.persons[index]) {
-      const pts = opening.persons[index];
-      target = {
-        x: (pts[LM.leftHip].x + pts[LM.rightHip].x) / 2,
-        y: (pts[LM.leftHip].y + pts[LM.rightHip].y) / 2,
-        t: opening.timeS,
-      };
-    }
-    void runVideoExtraction(opening.blob, opening.isRecorded, target);
+    void runVideoExtraction(opening.blob, opening.isRecorded);
   }
 
   async function onRecorded(blob: Blob) {
@@ -811,7 +781,7 @@ export function AnalyzeFlow() {
       if (file.type.startsWith("image/")) {
         const f = await extractFramesFromPhotos([file]);
         setFrames(f);
-        rawFramesRef.current = [];
+        setLastOpening(null);
         markedRef.current = false;
         setMarkerShown(false);
         setSource("photos");
@@ -839,7 +809,7 @@ export function AnalyzeFlow() {
     try {
       const f = await extractFramesFromPhotos(files);
       setFrames(f);
-      rawFramesRef.current = [];
+      setLastOpening(null);
       markedRef.current = false;
       setMarkerShown(false);
       setSource("photos");
@@ -1024,105 +994,115 @@ export function AnalyzeFlow() {
               </div>
             )}
 
-            {openingPick && (
+            {openingPick && frameBox && (
               <div className="card mb-3 p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Pick the player to focus on. Every measurement and score comes
-                  from them.
+                  Drag the box over your player. Pull the corner to resize.
                 </p>
-                <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
-                  {openingPick.thumbs.map((thumb, i) => (
+                <div
+                  ref={frameStageRef}
+                  className="relative mt-3 select-none overflow-hidden rounded-lg bg-navy"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={openingPick.dataUrl}
+                    alt="Opening frame. Frame the player to analyze."
+                    className="block w-full"
+                    draggable={false}
+                  />
+                  <div
+                    role="group"
+                    aria-label="Player frame. Drag to move, or use the arrow keys."
+                    tabIndex={0}
+                    onPointerDown={(e) => onFramePointerDown(e, "move")}
+                    onPointerMove={onFramePointerMove}
+                    onPointerUp={onFramePointerUp}
+                    onPointerCancel={onFramePointerUp}
+                    onKeyDown={onFrameKeyDown}
+                    className="absolute cursor-move rounded-xl border-2 border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    style={{
+                      left: `${frameBox.left * 100}%`,
+                      top: `${frameBox.top * 100}%`,
+                      width: `${frameBox.width * 100}%`,
+                      height: `${frameBox.height * 100}%`,
+                      touchAction: "none",
+                      boxShadow:
+                        "0 0 0 9999px color-mix(in srgb, var(--color-navy) 55%, transparent)",
+                    }}
+                  >
                     <button
-                      key={i}
                       type="button"
-                      onClick={() => pickOpeningPlayer(i)}
-                      aria-label={`Focus on player ${i + 1}`}
-                      className="group shrink-0 text-center"
+                      aria-label="Resize the frame"
+                      onPointerDown={(e) => onFramePointerDown(e, "resize")}
+                      onPointerMove={onFramePointerMove}
+                      onPointerUp={onFramePointerUp}
+                      onPointerCancel={onFramePointerUp}
+                      className="absolute -bottom-4 -right-4 flex h-11 w-11 cursor-nwse-resize items-center justify-center rounded-full bg-gold text-navy shadow-lift"
+                      style={{ touchAction: "none" }}
                     >
-                      <span className="block h-40 overflow-hidden rounded-lg border-2 border-line bg-navy transition-colors group-hover:border-gold group-focus-visible:border-gold">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="h-full w-auto object-cover"
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M9.5 2H14v4.5M6.5 14H2V9.5M14 2 9 7M2 14l5-5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
                         />
-                      </span>
-                      <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-wide text-chalk-dim transition-colors group-hover:text-gold">
-                        Player {i + 1}
-                      </span>
+                      </svg>
                     </button>
-                  ))}
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => pickOpeningPlayer(null)}
-                  className="chip mt-3 min-h-11"
+                  onClick={confirmFraming}
+                  className="btn-primary mt-4 min-h-11 w-full"
                 >
-                  Let the app decide
+                  Analyze this athlete
                 </button>
-              </div>
-            )}
-
-            {trackCards.length > 1 && source === "video" && frames.length > 0 && (
-              <div className="card mb-3 p-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
-                  Focus player
-                </p>
-                <p className="mt-1 text-xs text-chalk-dim">
-                  Analyzing the highlighted player. Pick another to switch.
-                </p>
-                <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
-                  {trackCards.map(({ id, thumb }, i) => {
-                    const selected = (playerChoice ?? playerTracks[0]?.id) === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => selectTrack(id)}
-                        disabled={busy}
-                        aria-pressed={selected}
-                        aria-label={`Focus on player ${i + 1}${
-                          selected ? " (analyzing)" : ""
-                        }`}
-                        className="group shrink-0 text-center disabled:opacity-40"
-                      >
-                        <span
-                          className={`block h-40 overflow-hidden rounded-lg border-2 bg-navy transition-colors ${
-                            selected
-                              ? "border-gold shadow-lift"
-                              : "border-line group-hover:border-gold/70"
-                          }`}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={thumb} alt="" className="h-full w-auto object-cover" />
-                        </span>
-                        <span
-                          className={`mt-1.5 block font-mono text-[10px] uppercase tracking-wide ${
-                            selected ? "text-gold" : "text-chalk-dim"
-                          }`}
-                        >
-                          {selected ? `Player ${i + 1} · analyzing` : `Player ${i + 1}`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  onClick={skipFraming}
+                  className="btn-ghost mt-2 min-h-11 w-full"
+                >
+                  Skip and analyze the whole frame
+                </button>
               </div>
             )}
 
             {frames.length > 0 ? (
               <div className="reward-earned">
-                {markerShown && (
-                  <p className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
-                    <span
-                      aria-hidden
-                      className="inline-block h-2.5 w-2.5 rounded-full border-2 border-gold"
-                    />
-                    The gold ring marks the tracked player in every frame.
-                  </p>
+                {(markerShown || (lastOpening && source === "video")) && (
+                  <div className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
+                    {markerShown && (
+                      <>
+                        <span
+                          aria-hidden
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border-2 border-gold"
+                        />
+                        <span>
+                          The gold ring marks the tracked player in every frame.
+                        </span>
+                      </>
+                    )}
+                    {lastOpening && source === "video" && !openingPick && (
+                      <button
+                        type="button"
+                        onClick={() => setOpeningPick(lastOpening)}
+                        disabled={busy}
+                        className="chip ml-auto shrink-0"
+                      >
+                        Reframe player
+                      </button>
+                    )}
+                  </div>
                 )}
                 <Filmstrip frames={frames} variant="grid" />
               </div>
