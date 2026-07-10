@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Phase 1 Build Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0f212c; --navy-light:#16303f; --navy-lighter:#1e3d4e;
+    --chalk:#f2efe6; --chalk-dim:#b9c4c9;
+    --gold:#e8b93b; --gold-dim:#c79c2e;
+    --teal:#6fbfae; --coral:#e2604f;
+    --line:rgba(242,239,230,.12);
+    --sans:"Instrument Sans",system-ui,sans-serif;
+    --display:"Space Grotesk",sans-serif;
+    --mono:"IBM Plex Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--navy);color:var(--chalk);font-family:var(--sans);line-height:1.6;font-size:16px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{color:var(--gold)}
+
+  header.hero{padding:72px 0 40px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--navy-light),var(--navy) 85%)}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+  h1{font-family:var(--display);font-size:clamp(30px,5vw,46px);font-weight:700;line-height:1.1;margin:12px 0 10px}
+  .sub{color:var(--chalk-dim);max-width:64ch;font-size:17px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;color:var(--chalk-dim)}
+  .chip.gold{border-color:var(--gold-dim);color:var(--gold)}
+  .chip.teal{border-color:var(--teal);color:var(--teal)}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:28px 0 0}
+  .stat{background:var(--navy-light);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .stat b{display:block;font-family:var(--display);font-size:26px;color:var(--gold)}
+  .stat span{font-size:13px;color:var(--chalk-dim)}
+
+  nav.toc{position:sticky;top:0;z-index:5;background:rgba(15,33,44,.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+  nav.toc .wrap{display:flex;gap:20px;padding-top:12px;padding-bottom:12px}
+  nav.toc a{font-family:var(--mono);font-size:12px;color:var(--chalk-dim)}
+  nav.toc a:hover{color:var(--gold)}
+
+  section{padding:52px 0 8px}
+  .snum{font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:.14em}
+  h2{font-family:var(--display);font-size:26px;margin:6px 0 18px}
+  h3{font-family:var(--display);font-size:18px;margin:22px 0 10px;color:var(--chalk)}
+  p{margin:0 0 14px;color:var(--chalk-dim);max-width:74ch}
+  p strong,li strong{color:var(--chalk)}
+  ul,ol{margin:0 0 16px 20px;color:var(--chalk-dim)}
+  li{margin-bottom:6px}
+
+  .card{background:var(--navy-light);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:16px}
+  .card h3{margin-top:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+
+  .callout{border-left:3px solid var(--coral);background:color-mix(in srgb,var(--coral) 8%,var(--navy-light));
+    border-radius:0 12px 12px 0;padding:18px 22px;margin:18px 0}
+  .callout.gold{border-left-color:var(--gold);background:color-mix(in srgb,var(--gold) 7%,var(--navy-light))}
+  .callout p{margin:0;color:var(--chalk)}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:16px 0}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:640px}
+  th{font-family:var(--display);text-align:left;font-size:13px;letter-spacing:.04em;color:var(--gold);
+    background:var(--navy-lighter);padding:11px 14px;border-bottom:1px solid var(--line)}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);color:var(--chalk-dim);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td:first-child{color:var(--chalk);white-space:nowrap}
+  td code,li code,p code{font-family:var(--mono);font-size:.88em;color:var(--teal);
+    background:rgba(111,191,174,.08);padding:1px 5px;border-radius:5px}
+
+  .tier{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .tier.hi{color:var(--teal);border:1px solid var(--teal)}
+  .tier.med{color:var(--gold);border:1px solid var(--gold-dim)}
+  .tier.low{color:var(--coral);border:1px solid var(--coral)}
+
+  pre{background:#0a1821;border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--chalk-dim);margin:16px 0}
+  pre .k{color:var(--gold)} pre .s{color:var(--teal)} pre .n{color:var(--chalk)}
+
+  .flow{display:flex;flex-direction:column;gap:0;margin:20px 0}
+  .fbox{background:var(--navy-light);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+  .fbox b{font-family:var(--display);color:var(--chalk);display:block;font-size:15px}
+  .fbox span{font-size:13.5px;color:var(--chalk-dim)}
+  .fbox .fb{font-family:var(--mono);font-size:12px;color:var(--gold);display:block;margin-top:4px}
+  .farrow{text-align:center;color:var(--gold);font-family:var(--mono);padding:4px 0;font-size:14px}
+
+  .mile{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .mile:last-child{border-bottom:none}
+  .mile .m{flex:0 0 44px;font-family:var(--display);font-weight:700;color:var(--navy);
+    background:var(--gold);border-radius:10px;height:36px;display:flex;align-items:center;justify-content:center}
+  .mile div p{margin:2px 0 0;font-size:14px}
+  .mile div .gate{font-family:var(--mono);font-size:12px;color:var(--teal)}
+
+  .accept{counter-reset:ac;list-style:none;margin-left:0}
+  .accept li{counter-increment:ac;position:relative;padding:12px 16px 12px 52px;background:var(--navy-light);
+    border:1px solid var(--line);border-radius:10px;margin-bottom:10px;color:var(--chalk-dim)}
+  .accept li::before{content:counter(ac);position:absolute;left:14px;top:12px;font-family:var(--display);
+    font-weight:700;color:var(--gold);border:1px solid var(--gold-dim);border-radius:8px;
+    width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px}
+
+  footer{border-top:1px solid var(--line);margin-top:56px;padding:26px 0 40px}
+  footer p{font-family:var(--mono);font-size:12px;color:var(--chalk-dim);margin:0}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Sideout Engineering Spec</div>
+    <h1>CV Phase 1: Measurement-Grounded Analysis</h1>
+    <p class="sub">On-device pose estimation runs during frame extraction, computes biomechanical measurements per rep, and grounds the coaching-service scoring in measured values instead of visual guesses. Every analysis banks dense keypoints and a 24-frame set as the future training corpus.</p>
+    <div class="chips">
+      <span class="chip gold">Status: approved for build</span>
+      <span class="chip">Decisions locked 2026-07-10</span>
+      <span class="chip teal">Response schema frozen</span>
+      <span class="chip">Web first</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>8</b><span>locked decisions</span></div>
+      <div class="stat"><b>7</b><span>new modules</span></div>
+      <div class="stat"><b>6</b><span>skills covered</span></div>
+      <div class="stat"><b>M0&ndash;M7</b><span>gated milestones</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#goal">Goal</a><a href="#decisions">Decisions</a><a href="#prereq">Prerequisite</a>
+    <a href="#arch">Architecture</a><a href="#modules">Modules</a><a href="#wire">Wire shape</a>
+    <a href="#catalog">Metric catalog</a><a href="#storage">Storage</a><a href="#degrade">Degradation</a>
+    <a href="#dlog">Decision Log</a><a href="#testing">Testing</a><a href="#build">Build order</a><a href="#accept">Acceptance</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="goal">
+  <div class="snum">01</div>
+  <h2>Goal and non-goals</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>In scope</h3>
+      <ul>
+        <li>Pose estimation in a hand-rolled worker at the frame-extraction seam</li>
+        <li>Rep detection and a per-rep measurements block sent with the frames</li>
+        <li>Grounded rubric scoring for all six skills, confidence-gated</li>
+        <li>24 frames stored permanently plus dense keypoints, corpus-ready</li>
+        <li>Skeleton overlays on the filmstrip and the clip player</li>
+        <li>Training-consent choice at first upload</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Deferred, explicitly</h3>
+      <ul>
+        <li>Real ball detection (Phase 1.5, fed by this corpus)</li>
+        <li>Court calibration and absolute metric units (Phase 1.5+)</li>
+        <li>Storage-first frame upload past the request cap (Phase 1.5)</li>
+        <li>Focus-player identification (Phase 3)</li>
+        <li>Live per-rep practice feedback (Phase 2)</li>
+        <li>Native app; any response-schema change</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="decisions">
+  <div class="snum">02</div>
+  <h2>Locked decisions</h2>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>Decision</th></tr>
+    <tr><td>1</td><td>Ball detection deferred. <code>ball_track</code> stays model-sourced with a provenance marker. Contact detection comes from wrist kinematics.</td></tr>
+    <tr><td>2</td><td>Two-stage capture: pose on the 24 existing probes finds peaks, then dense pose at 24 to 30fps in windows of about &plusmn;1s around each peak via muted segment playback with <code>requestVideoFrameCallback</code>.</td></tr>
+    <tr><td>3</td><td>Units are body-relative plus absolute seconds. Every metric ships as <code>{value, unit, confidence}</code>. No fake absolute distances, ever.</td></tr>
+    <tr><td>4</td><td>All six skills get measurements, gated by confidence: any metric below threshold is omitted entirely, never sent as a weak number. Three rep-detector families: swing (serve, attack), jump (block), platform/posture (pass, dig, set).</td></tr>
+    <tr><td>5</td><td>Dense keypoints stored as <code>keypoints.json</code> in the frames bucket. 24 frames captured and stored permanently as corpus; the best 12 go to the model within the 4MB request cap.</td></tr>
+    <tr><td>6</td><td>Web application first. Floor: Safari 16.4+ / Chrome 110+ on modern phones, with automatic fallback to the existing pipeline everywhere else. Nobody is ever blocked.</td></tr>
+    <tr><td>7</td><td>Response schema frozen. Measurements are input-only. Existing eval cases pass unmodified.</td></tr>
+    <tr><td>8</td><td>Training consent is an explicit opt-in/opt-out choice at first upload. <code>profiles.training_consent</code> defaults to false, is changeable in settings, and corpus queries hard-filter on it.</td></tr>
+  </table></div>
+</section>
+
+<section id="prereq">
+  <div class="snum">03</div>
+  <h2>Hard prerequisite</h2>
+  <div class="callout">
+    <p><strong>Apply <code>supabase/migrations/005_clips.sql</code> to the live project before any Phase 1 code merges.</strong> Raw clip persistence is assumed by the overlay work and the corpus. Verify by uploading a clip in production and confirming the object lands in the clips bucket with <code>analyses.clip_path</code> set.</p>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="snum">04</div>
+  <h2>Architecture</h2>
+  <div class="flow">
+    <div class="fbox"><b>Capture / upload</b><span><code>components/analyze-flow.tsx</code>: record, upload clip, or photos. Consent gate fires on first upload.</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Extraction, stage 1</b><span><code>lib/frames.ts</code>: pose on 24 probe frames, motion score = normalized wrist speed, peaks located.</span><span class="fb">fallback: existing luminance scan, unchanged</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Extraction, stage 2</b><span>Muted playback of &plusmn;1.2s windows around each peak, dense landmarks via <code>requestVideoFrameCallback</code>, global budget about 8s.</span><span class="fb">fallback: skip window, no measurements for it</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Measurement</b><span><code>lib/pose/kinematics.ts</code> + <code>lib/pose/metrics.ts</code>: reps, joint angles, tempo, jump, each as {value, unit, confidence}; below-threshold metrics omitted.</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Analysis request</b><span><code>POST /api/analyze</code>: 12 pose-selected frames + optional measurements block. System prompts stay byte-stable and cached; measurements ride in the user turn.</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Persistence</b><span>Route stores result + measurements + 12-frame keypoints, predetermines <code>keypoints_path</code> and <code>stored_frame_paths</code>. Client post-uploads keypoints.json and frames 13 to 24, non-fatal, same pattern as the clip.</span></div>
+    <div class="farrow">&darr;</div>
+    <div class="fbox"><b>Results</b><span><code>analysis/[id]</code>: filmstrip skeleton overlay from the row; clip player lazy-loads keypoints.json by signed URL; ball marker shows its estimated provenance.</span></div>
+  </div>
+  <p>The pose engine loads lazily on the analyze flow only. Nothing else in the app pays its cost.</p>
+</section>
+
+<section id="modules">
+  <div class="snum">05</div>
+  <h2>New and modified modules</h2>
+  <h3>New</h3>
+  <div class="tablewrap"><table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>lib/pose/types.ts</code></td><td>Shared DOM-free types: <code>LandmarkFrame</code>, <code>RepWindow</code>, <code>Measurement</code>, versioned <code>MeasurementsBlock</code>, constants.</td></tr>
+    <tr><td><code>lib/pose/engine.ts</code></td><td>Lazy idempotent <code>loadPoseEngine()</code> resolving null on unsupported or failed load; <code>detect(bitmap, timeS)</code>; worker handshake with a main-thread fallback when OffscreenCanvas is unavailable.</td></tr>
+    <tr><td><code>lib/pose/pose-worker.ts</code></td><td>Hand-rolled web worker hosting the WASM landmarker; transferred ImageBitmaps in, landmark frames out.</td></tr>
+    <tr><td><code>lib/pose/kinematics.ts</code></td><td>Pure math: smoothing, velocities, joint angles, body-unit normalization, standing baseline, the three rep-detector families. Node-testable.</td></tr>
+    <tr><td><code>lib/pose/metrics.ts</code></td><td>Per-skill metric definitions, confidence model (landmark visibility &times; detector fit), omission thresholds, emits the block.</td></tr>
+    <tr><td><code>public/pose/</code></td><td>Self-hosted, pinned WASM runtime and lite landmarker model, roughly 4 to 6MB, never fetched from a third-party CDN at runtime.</td></tr>
+    <tr><td><code>006_cv_phase1.sql</code></td><td>Schema additions, section 08.</td></tr>
+  </table></div>
+  <h3>Modified</h3>
+  <div class="tablewrap"><table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>lib/frames.ts</code></td><td>Stage 1 swap behind the existing time-budget discipline; stage 2 dense windows; store/send planning (24/12); return gains <code>landmarks</code> and <code>storedFrames</code>. Body-cap ladder applies to the send set only.</td></tr>
+    <tr><td><code>lib/frame-select.ts</code></td><td>Stays pure. <code>planFrameTimes</code> extends for store-versus-send and externally supplied contact times. Existing tests unchanged.</td></tr>
+    <tr><td><code>components/analyze-flow.tsx</code></td><td>Consent dialog on first upload; sends measurements flags; post-response non-fatal upload of keypoints.json (gzip when available) and frames x12 to x23.</td></tr>
+    <tr><td><code>app/api/analyze/route.ts</code></td><td>Optional <code>measurements</code>, <code>has_keypoints</code>, <code>extra_frame_count</code> in the body schema; measurements text block appended to the user turn; persists measurements, 12-frame keypoints, <code>ball_track_source</code>; predetermines and returns storage paths. Requests without measurements behave exactly as today.</td></tr>
+    <tr><td><code>lib/ai/output-spec.ts</code></td><td>Static grounding section: measured values are ground truth, cite them in notes, score visually where nothing was measured, never contradict a measurement.</td></tr>
+    <tr><td><code>lib/ai/rubrics/</code></td><td>Each of the 12 rubric strings gains an append-only measured-checkpoints appendix mapping metric keys to the existing anchors.</td></tr>
+    <tr><td><code>components/clip-viewer.tsx</code></td><td>Skeleton overlays (filmstrip from the row, clip player from lazy-loaded keypoints.json); estimated affordance on the ball marker.</td></tr>
+    <tr><td><code>dashboard</code></td><td>One settings row: the training-consent toggle.</td></tr>
+  </table></div>
+</section>
+
+<section id="wire">
+  <div class="snum">06</div>
+  <h2>Measurements block, wire shape v1</h2>
+<pre>{
+  <span class="k">"version"</span>: 1,
+  <span class="k">"capture"</span>: { <span class="k">"dense_fps"</span>: 27, <span class="k">"coverage"</span>: <span class="s">"windows"</span>, <span class="k">"engine"</span>: <span class="s">"pose-landmarker-lite"</span> },
+  <span class="k">"units"</span>: <span class="s">"body-relative: heights in standing-body-heights, widths in shoulder-widths,
+            angles in degrees, time in seconds"</span>,
+  <span class="k">"reps"</span>: [
+    {
+      <span class="k">"start_s"</span>: 3.2, <span class="k">"contact_s"</span>: 4.1, <span class="k">"end_s"</span>: 4.9, <span class="k">"detector"</span>: <span class="s">"swing"</span>,
+      <span class="k">"metrics"</span>: {
+        <span class="k">"contact_height"</span>:          { <span class="k">"value"</span>: <span class="n">1.28</span>, <span class="k">"unit"</span>: <span class="s">"body_heights"</span>,    <span class="k">"confidence"</span>: <span class="n">0.91</span> },
+        <span class="k">"elbow_angle_at_contact"</span>:  { <span class="k">"value"</span>: <span class="n">158</span>,  <span class="k">"unit"</span>: <span class="s">"deg"</span>,             <span class="k">"confidence"</span>: <span class="n">0.86</span> },
+        <span class="k">"approach_tempo"</span>:          { <span class="k">"value"</span>: [<span class="n">0.61</span>, <span class="n">0.55</span>, <span class="n">0.34</span>, <span class="n">0.30</span>], <span class="k">"unit"</span>: <span class="s">"s_between_steps"</span>, <span class="k">"confidence"</span>: <span class="n">0.78</span> },
+        <span class="k">"jump_height"</span>:             { <span class="k">"value"</span>: <span class="n">0.21</span>, <span class="k">"unit"</span>: <span class="s">"body_heights"</span>,    <span class="k">"confidence"</span>: <span class="n">0.83</span> }
+      }
+    }
+  ],
+  <span class="k">"session"</span>: { <span class="k">"rep_count"</span>: 4, <span class="k">"contact_height_stddev"</span>: <span class="n">0.05</span> },
+  <span class="k">"omitted_below_confidence"</span>: [<span class="s">"toss_drift"</span>]
+}</pre>
+  <ul>
+    <li>Metrics below threshold appear only in <code>omitted_below_confidence</code>, names only, never values.</li>
+    <li>Empty <code>reps</code> means the block is not sent at all.</li>
+    <li>Server validation failure logs and proceeds as a no-measurements request. It never 400s the analysis.</li>
+  </ul>
+</section>
+
+<section id="catalog">
+  <div class="snum">07</div>
+  <h2>Metric catalog v1</h2>
+  <p>Confidence thresholds default to 0.7 with per-metric overrides in <code>lib/pose/metrics.ts</code>. bh = body heights, sw = shoulder widths. The tier asymmetry is by design: set and dig are expected to omit often.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Skill</th><th>Detector</th><th>Tier</th><th>Metrics</th></tr>
+    <tr><td>serve</td><td>swing</td><td><span class="tier hi">high</span></td><td>toss_release_height (bh), toss_drift (sw), contact_height (bh), elbow_angle_at_contact (deg), arm_extension_at_contact (deg), follow_through_direction (deg), rep_tempo_consistency (s), body_rotation (deg)</td></tr>
+    <tr><td>attack</td><td>swing</td><td><span class="tier hi">high</span></td><td>approach_tempo (s list), penultimate_step_length (bh), arms_back_on_plant (bool), jump_height (bh), contact_height (bh), elbow_angle_at_contact (deg), landing_knee_flexion (deg)</td></tr>
+    <tr><td>block</td><td>jump</td><td><span class="tier med">medium</span></td><td>jump_height (bh), hand_spacing (sw), verticality_drift (deg), landing_knee_flexion (deg), hands_above_head_duration (s)</td></tr>
+    <tr><td>pass</td><td>platform</td><td><span class="tier med">medium</span></td><td>platform_angle (deg), platform_still_before_contact (s), knee_flexion_at_contact (deg), footwork_pattern (shuffle/cross), torso_lean (deg)</td></tr>
+    <tr><td>set</td><td>platform</td><td><span class="tier low">lower</span></td><td>hands_above_forehead (bool), elbow_extension_symmetry (deg delta), leg_to_arm_sequence_lag (s), shoulder_squareness (deg)</td></tr>
+    <tr><td>dig</td><td>platform</td><td><span class="tier low">lower</span></td><td>lunge_depth (bh), platform_angle (deg), recovery_time (s), base_width (sw)</td></tr>
+  </table></div>
+</section>
+
+<section id="storage">
+  <div class="snum">08</div>
+  <h2>Storage and migration</h2>
+<pre><span class="k">alter table</span> public.profiles
+  <span class="k">add column</span> training_consent <span class="n">boolean not null default false</span>,
+  <span class="k">add column</span> training_consent_at <span class="n">timestamptz</span>;
+
+<span class="k">alter table</span> public.analyses
+  <span class="k">add column</span> keypoints_path <span class="n">text</span>,
+  <span class="k">add column</span> stored_frame_paths <span class="n">text[] not null default</span> <span class="s">'{}'</span>;</pre>
+  <ul>
+    <li>No new buckets or policies. <code>keypoints.json</code> and <code>x*.jpg</code> live under the existing frames bucket at <code>${user.id}/${analysisId}/</code>, covered by the existing own-folder RLS. Verify during M0 that the insert policy admits the browser client (same auth context as the route).</li>
+    <li>Corpus queries: <code>analyses</code> joined to <code>profiles</code> on <code>user_id</code>, filtered on <code>training_consent</code>. Skill, discipline, confidences, and paths are all already on the row. No separate corpus table.</li>
+  </ul>
+</section>
+
+<section id="degrade">
+  <div class="snum">09</div>
+  <h2>Degradation matrix</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Condition</th><th>Behavior</th></tr>
+    <tr><td>Engine assets fail, unsupported browser, old device</td><td>Luminance scan, no measurements, vision-only scoring. Identical to today.</td></tr>
+    <tr><td>Stage 1 exceeds scan budget</td><td>Fall back to luminance scan mid-flight (existing throw path).</td></tr>
+    <tr><td>Stage 2 fails or exceeds budget</td><td>Keep stage 1 peaks, send no (or partial) measurements. Frames still improve via pose peaks.</td></tr>
+    <tr><td>Zero reps detected</td><td>No measurements block; frame plan as today.</td></tr>
+    <tr><td>Measurements fail server validation</td><td>Log, proceed as a no-measurements request.</td></tr>
+    <tr><td>Keypoints or extra-frames upload fails</td><td>Non-fatal, same as the clip upload today. Overlay handles absence.</td></tr>
+  </table></div>
+  <div class="callout gold">
+    <p><strong>Invariant:</strong> no Phase 1 code path may make an analysis fail that would have succeeded before Phase 1.</p>
+  </div>
+</section>
+
+<section id="dlog">
+  <div class="snum">10</div>
+  <h2>Decision Log entries to record</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>D-008: pose engine dependency</h3>
+      <p>Admit the pose library (Google-published, Apache-2.0, pinned exact version) under the D-001 10.5 gate. Analyze flow only, lazy-loaded; WASM and model assets self-hosted under <code>public/pose/</code>. Same entry clarifies scope of the vendor-name rule: it governs UI, user-visible errors, and marketing surfaces; package.json, imports, and engineering docs may name dependencies. UI copy calls the capability "motion tracking".</p>
+    </div>
+    <div class="card">
+      <h3>D-009: training corpus and consent</h3>
+      <p>24 frames plus keypoints stored permanently per analysis as a future training corpus. Explicit opt-in/opt-out at first upload, default false, settings toggle, corpus access hard-filtered on the flag. Youth-footage rationale recorded.</p>
+    </div>
+  </div>
+</section>
+
+<section id="testing">
+  <div class="snum">11</div>
+  <h2>Testing and verification</h2>
+  <ul>
+    <li><code>node --test</code> on kinematics and metrics with recorded landmark fixtures per skill (a made serve, a shank, an occluded dig), asserting values, confidences, and omission behavior.</li>
+    <li>Extended <code>frame-select</code> tests for store/send planning.</li>
+    <li>Eval harness: every existing case passes byte-identically (schema frozen). New measurement-bearing cases replayed through <code>/api/eval</code>; grounded versus ungrounded comparison on the same frames is the M7 quality signal.</li>
+    <li><code>AI_MOCK=true</code> unchanged; the mock ignores measurements.</li>
+    <li>Device matrix: recent iPhone Safari, recent Android Chrome, one old device proving the fallback, desktop. Added extraction wall-clock p50 under ~12s on a mid-tier phone.</li>
+    <li>Full production build plus the repo quality-floor checks at every milestone.</li>
+  </ul>
+</section>
+
+<section id="build">
+  <div class="snum">12</div>
+  <h2>Build order</h2>
+  <div class="card">
+    <div class="mile"><div class="m">M0</div><div><strong>Apply 005 live; verify clip persistence and the frames-bucket client insert policy</strong><p class="gate">Gate: live upload shows the clip; a client-side test object writes successfully</p></div></div>
+    <div class="mile"><div class="m">M1</div><div><strong>D-008/D-009 entries; engine, worker, self-hosted assets; feature detection</strong><p class="gate">Gate: landmarks render in a dev harness on desktop and phone</p></div></div>
+    <div class="mile"><div class="m">M2</div><div><strong>Kinematics and metrics pure libraries with fixtures</strong><p class="gate">Gate: node --test green; omission rule proven in tests</p></div></div>
+    <div class="mile"><div class="m">M3</div><div><strong>frames.ts two-stage integration; 24/12 planning; degradation paths</strong><p class="gate">Gate: old pipeline byte-identical when the engine is absent; budgets hold on a phone</p></div></div>
+    <div class="mile"><div class="m">M4</div><div><strong>Route: measurements input, prompt grounding, storage paths, migration 006</strong><p class="gate">Gate: existing evals pass; new measurement evals added; build green</p></div></div>
+    <div class="mile"><div class="m">M5</div><div><strong>Overlays and ball-track provenance</strong><p class="gate">Gate: visual QA on real clips; reduced-motion pass</p></div></div>
+    <div class="mile"><div class="m">M6</div><div><strong>Consent dialog, settings toggle, copy entries</strong><p class="gate">Gate: flag persisted; corpus query filtering verified</p></div></div>
+    <div class="mile"><div class="m">M7</div><div><strong>Eval comparison run, device matrix, quality-floor sweep</strong><p class="gate">Gate: grounded at or above ungrounded on the eval set; zero regressions</p></div></div>
+  </div>
+  <p>Each milestone is a commit. M0 and M4 carry deploy-order notes in <code>docs/deploy.md</code>.</p>
+</section>
+
+<section id="accept">
+  <div class="snum">13</div>
+  <h2>Acceptance criteria</h2>
+  <ol class="accept">
+    <li>A serve or attack clip on a modern phone produces a measurements block with at least contact, tempo, and jump metrics at confidence &ge; 0.7, and the returned analysis cites measured values in its metric notes.</li>
+    <li>All six skills produce keypoints and skeleton overlays; low-confidence metrics are absent from the payload, not present with low values.</li>
+    <li>An old browser or failed engine load reproduces today's exact behavior with no user-visible error.</li>
+    <li>A fresh analysis has 24 frames and keypoints.json in storage, with <code>stored_frame_paths</code> and <code>keypoints_path</code> set; the corpus query returns only consented rows.</li>
+    <li>Every pre-existing eval case passes unmodified; the grounded eval run scores at or above the ungrounded baseline.</li>
+    <li>No new colors, fonts, or vendor names in UI; the request body stays under the cap; hand-rolled worker and service worker only.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Sideout &middot; CV Phase 1 build specification &middot; companion to docs/cv-phase1-spec.md &middot; decisions locked 2026-07-10</p>
+  </div>
+</footer>
+
+</body>
+</html>

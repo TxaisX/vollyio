@@ -1,5 +1,6 @@
 import type { Level, Skill } from "@/lib/skills";
 import { METRICS } from "@/lib/ai/metrics";
+import { MEASUREMENT_CATALOG } from "@/lib/pose/metrics";
 
 const CONTACT_MOMENT: Record<Skill, string> = {
   serve: "the frame where the hand strikes the ball",
@@ -29,22 +30,32 @@ const RETURN_SCALE: Record<Level, string> = {
  */
 export function outputSpec(skill: Skill, level: Level): string {
   const keys = METRICS[skill].map((m) => m.key);
+  const measured = MEASUREMENT_CATALOG[skill]
+    .map((m) => `${m.key} (${m.unit})`)
+    .join(", ");
   return [
+    "MEASURED DATA (when provided)",
+    "The user turn may include a JSON block of measurements computed by on-device motion tracking over the full clip, not just these frames. Treat those values as trusted ground truth: they observed the continuous motion you cannot see between frames.",
+    "When a measurement covers a checkpoint you are scoring, base that part of the score on the measured value and cite the number in the metric note (e.g. \"measured contact at 1.24 body heights\").",
+    "Checkpoints that may arrive measured for this skill: " + measured + ".",
+    "Anything absent from the block was not measured confidently; assess it visually as usual. Never contradict a measured value with a visual guess, and never invent measurements that were not provided.",
+    "Units are body-relative (standing body heights, shoulder widths) plus degrees and seconds; treat them as consistent within the clip.",
+    "",
     "BALL TRACKING",
     "For every frame you were given, add one ball_track entry keyed by that frame's index.",
     "Give the ball's location as x and y normalized to the frame: x and y are each between 0 and 1, with the origin (0,0) at the TOP-LEFT corner, x increasing right and y increasing down.",
-    "If the ball is out of frame, occluded, or too motion-blurred to locate in a frame, set visible to false for that frame and give your best-guess x and y as 0.5, 0.5 — never invent a confident position you cannot see.",
+    "If the ball is out of frame, occluded, or too motion-blurred to locate in a frame, set visible to false for that frame and give your best-guess x and y as 0.5, 0.5. Never invent a confident position you cannot see.",
     "",
     "CONTACT FRAME",
     `Set contact_frame_index to the frame index showing ${CONTACT_MOMENT[skill]}. If contact is not visible in any frame, choose the frame closest to it.`,
     "",
     "FOCUS",
-    "Set focus to the SINGLE frame this athlete should study first to improve — usually the contact frame or the moment the key flaw is clearest. Give a 2-4 word label and a one-sentence why, tied to what that frame shows.",
+    "Set focus to the SINGLE frame this athlete should study first to improve, usually the contact frame or the moment the key flaw is clearest. Give a 2-4 word label and a one-sentence why, tied to what that frame shows.",
     "",
     "CHANGES (realistic returns)",
     "Return 1 to 3 changes, ranked most-impactful first. The first change is the highest-leverage fix from your analysis.",
     `Each change targets exactly one metric via target_metric, chosen ONLY from these keys for this skill: ${keys.join(", ")}.`,
-    "expected_gain is the realistic number of points that metric would rise if the player makes this one change within the stated timeframe. Keep it honest and modest — roughly 3 to 25 points — not a jump to a perfect score.",
+    "expected_gain is the realistic number of points that metric would rise if the player makes this one change within the stated timeframe. Keep it honest and modest, roughly 3 to 25 points, not a jump to a perfect score.",
     "difficulty is one of: quick, moderate, long-term. timeframe is a short human phrase (e.g. \"1-2 practices\", \"2-3 weeks\").",
     RETURN_SCALE[level],
     "",

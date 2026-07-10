@@ -3,9 +3,15 @@ import {
   buildProbeTimes,
   findPeaks,
   planFrameTimes,
+  planExtraStoreTimes,
+  type Peak,
   type PlannedFrame,
   type FrameKind,
 } from "./frame-select";
+import type { PoseEngine } from "./pose/engine";
+import type { LandmarkFrame, MeasurementsBlock } from "./pose/types";
+import { buildMeasurementsBlock } from "./pose/metrics";
+import type { Skill } from "./skills";
 
 export const MAX_FRAME_DIM = 768;
 export const MAX_CLIP_SECONDS = 45;
@@ -20,6 +26,14 @@ const SCAN_TIME_BUDGET_MS = 6000;
 const SHORT_CLIP_SECONDS = 6; // below this, skip the scan and sample uniformly
 const NOISE_FLOOR = 12; // per-pixel luminance diff below this is treated as noise
 
+// Motion-tracking capture tuning. Tracking is strictly additive: any failure
+// or budget overrun degrades to the exact pre-existing pipeline.
+export const STORE_FRAMES = 24; // stored permanently; only the send set ships to the model
+const POSE_PROBE_BUDGET_MS = 4000; // probe landmarks stop consuming time after this
+const DENSE_WINDOW_S = 1.2; // dense capture reaches this far around each peak
+const DENSE_WINDOW_MAX_FRAMES = 48;
+const DENSE_TOTAL_BUDGET_MS = 9000;
+
 export type Frame = {
   index: number;
   time_s: number | null;
@@ -32,6 +46,28 @@ export type FrameDebug = {
   scanMs: number;
   fellBack: boolean;
   totalBytes: number;
+  poseProbeCount?: number;
+  denseCount?: number;
+  denseMs?: number;
+  repContacts?: number[];
+};
+
+export type PoseCapture = {
+  landmarks: LandmarkFrame[];
+  measurements: MeasurementsBlock | null;
+  denseFps: number | null;
+};
+
+export type VideoExtraction = {
+  frames: Frame[];
+  extras: Frame[];
+  pose: PoseCapture | null;
+  debug?: FrameDebug;
+};
+
+export type ExtractOpts = {
+  debug?: boolean;
+  pose?: { engine: PoseEngine; skill: Skill };
 };
 
 function sampleFractions(duration: number): number[] {
@@ -118,17 +154,22 @@ function b64Bytes(dataUrl: string): number {
 }
 
 // Pass A: seek through probe timestamps and score motion by luminance
-// frame-differencing on a tiny canvas. Throws on time budget → uniform fallback.
+// frame-differencing on a tiny canvas. Throws on time budget → uniform
+// fallback. When a tracking engine is provided, the same seek pass also
+// collects a probe landmark frame until the pose sub-budget runs out; that
+// part is best-effort garnish and can never fail the scan.
 async function scanMotion(
   video: HTMLVideoElement,
   probeTimes: number[],
-): Promise<number[]> {
+  engine?: PoseEngine,
+): Promise<{ motion: number[]; poseFrames: LandmarkFrame[] }> {
   const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const motion = new Array(probeTimes.length).fill(0);
+  const poseFrames: LandmarkFrame[] = [];
   let prev: Uint8Array | null = null;
   const start = Date.now();
 
@@ -150,8 +191,120 @@ async function scanMotion(
       motion[i] = acc / lum.length;
     }
     prev = lum;
+
+    if (engine && Date.now() - start <= POSE_PROBE_BUDGET_MS) {
+      try {
+        const frame = await engine.detectFromVideo(video, video.currentTime);
+        if (frame) poseFrames.push(frame);
+      } catch {
+        // Probe landmarks are optional; the luminance scan is the contract.
+      }
+    }
   }
-  return motion;
+  return { motion, poseFrames };
+}
+
+// Wait until the video presents its next frame; falls back to a short timer
+// when requestVideoFrameCallback is unavailable.
+function nextVideoFrame(video: HTMLVideoElement, timeoutMs = 400): Promise<boolean> {
+  return new Promise((resolve) => {
+    type WithRvfc = HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: () => void) => number;
+    };
+    const rvfc = (video as WithRvfc).requestVideoFrameCallback;
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    if (typeof rvfc === "function") {
+      rvfc.call(video, () => finish(true));
+    } else {
+      finish(false);
+    }
+  });
+}
+
+// Stage 2: play short muted segments around each peak and collect dense
+// landmark frames. Serial detection while the video plays in real time; the
+// effective capture rate is whatever the device manages inside the budget.
+async function captureDenseWindows(
+  video: HTMLVideoElement,
+  engine: PoseEngine,
+  peakTimes: number[],
+  duration: number,
+): Promise<{ frames: LandmarkFrame[]; denseFps: number | null; denseMs: number }> {
+  const frames: LandmarkFrame[] = [];
+  const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
+  const started = Date.now();
+  let coveredS = 0;
+
+  const sorted = [...peakTimes].sort((a, b) => a - b);
+  let lastEnd = 0;
+  for (const peak of sorted) {
+    if (Date.now() >= deadline) break;
+    const startS = Math.max(0.05, peak - DENSE_WINDOW_S, lastEnd);
+    const endS = Math.min(duration - 0.05, peak + DENSE_WINDOW_S);
+    if (endS - startS < 0.3) continue;
+    lastEnd = endS;
+
+    try {
+      await seekTo(video, startS);
+      await video.play();
+    } catch {
+      continue;
+    }
+
+    let captured = 0;
+    while (
+      !video.ended &&
+      video.currentTime < endS &&
+      captured < DENSE_WINDOW_MAX_FRAMES &&
+      Date.now() < deadline
+    ) {
+      const presented = await nextVideoFrame(video);
+      if (!presented) break;
+      try {
+        const frame = await engine.detectFromVideo(video, video.currentTime);
+        if (frame) {
+          frames.push(frame);
+          captured++;
+        }
+      } catch {
+        break;
+      }
+    }
+    video.pause();
+    coveredS += Math.max(0, Math.min(video.currentTime, endS) - startS);
+  }
+
+  const denseMs = Date.now() - started;
+  const denseFps = coveredS > 0.2 ? Math.round((frames.length / coveredS) * 10) / 10 : null;
+  return { frames, denseFps, denseMs };
+}
+
+// Snap luminance peaks to measured rep contacts when tracking found reps
+// close by; contact instants are where the frames must land.
+function refinePeaks(peaks: Peak[], contacts: number[]): Peak[] {
+  if (contacts.length === 0) return peaks;
+  const used = new Set<number>();
+  return peaks.map((peak) => {
+    let best = -1;
+    let bestD = 0.8;
+    contacts.forEach((c, i) => {
+      const d = Math.abs(c - peak.timeS);
+      if (!used.has(i) && d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    if (best < 0) return peak;
+    used.add(best);
+    return { timeS: contacts[best], score: peak.score };
+  });
 }
 
 type Rendered = { time_s: number; dataUrl: string; kind: FrameKind };
@@ -225,21 +378,67 @@ async function finalizePlanned(
 async function sampleContentAware(
   video: HTMLVideoElement,
   wantDebug: boolean,
-): Promise<{ frames: Frame[]; debug?: FrameDebug } | null> {
+  pose?: ExtractOpts["pose"],
+): Promise<VideoExtraction | null> {
   const duration = video.duration;
   const probeTimes = buildProbeTimes(duration, PROBE_COUNT);
   const scanStart = Date.now();
-  const motion = await scanMotion(video, probeTimes);
+  const { motion, poseFrames } = await scanMotion(video, probeTimes, pose?.engine);
   const scanMs = Date.now() - scanStart;
 
   const peaks = findPeaks(motion, probeTimes);
   if (peaks.length === 0) return null;
 
+  // Stage 2 + measurement: strictly additive, every failure leaves the
+  // luminance plan untouched.
+  let landmarks: LandmarkFrame[] = poseFrames;
+  let measurements: MeasurementsBlock | null = null;
+  let denseFps: number | null = null;
+  let denseMs = 0;
+  let contacts: number[] = [];
+  if (pose) {
+    try {
+      const dense = await captureDenseWindows(
+        video,
+        pose.engine,
+        peaks.map((p) => p.timeS),
+        duration,
+      );
+      denseMs = dense.denseMs;
+      denseFps = dense.denseFps;
+      landmarks = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
+      measurements = buildMeasurementsBlock(pose.skill, landmarks, denseFps);
+      contacts = (measurements?.reps ?? [])
+        .map((r) => r.contact_s)
+        .filter((c): c is number => c != null);
+    } catch {
+      measurements = null;
+    }
+  }
+
   const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
-  const planned = planFrameTimes(duration, peaks, coarseInterval, MAX_FRAMES);
+  const planned = planFrameTimes(duration, refinePeaks(peaks, contacts), coarseInterval, MAX_FRAMES);
   if (planned.length < 2) return null;
 
   const { frames, chosen, totalBytes } = await finalizePlanned(video, planned);
+
+  // Extra frames for permanent storage; never part of the request body, so
+  // no byte budget applies. Failure to render extras is non-fatal.
+  let extras: Frame[] = [];
+  try {
+    const extraPlan = planExtraStoreTimes(duration, planned, STORE_FRAMES);
+    if (extraPlan.length > 0) {
+      const renderedExtras = await renderPlanned(video, extraPlan, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY);
+      extras = renderedExtras.map((r, i) => ({
+        index: frames.length + i,
+        time_s: r.time_s,
+        dataUrl: r.dataUrl,
+      }));
+    }
+  } catch {
+    extras = [];
+  }
+
   const debug: FrameDebug | undefined = wantDebug
     ? {
         curve: probeTimes.map((t, i) => ({
@@ -250,9 +449,19 @@ async function sampleContentAware(
         scanMs,
         fellBack: false,
         totalBytes,
+        poseProbeCount: poseFrames.length,
+        denseCount: landmarks.length,
+        denseMs,
+        repContacts: contacts.map((c) => Math.round(c * 10) / 10),
       }
     : undefined;
-  return { frames, debug };
+
+  return {
+    frames,
+    extras,
+    pose: pose ? { landmarks, measurements, denseFps } : null,
+    debug,
+  };
 }
 
 async function sampleUniform(video: HTMLVideoElement): Promise<Frame[]> {
@@ -267,11 +476,11 @@ async function sampleUniform(video: HTMLVideoElement): Promise<Frame[]> {
 
 export async function extractFramesFromVideo(
   video: HTMLVideoElement,
-  opts?: { debug?: boolean },
-): Promise<{ frames: Frame[]; debug?: FrameDebug }> {
+  opts?: ExtractOpts,
+): Promise<VideoExtraction> {
   if (video.duration > SHORT_CLIP_SECONDS) {
     try {
-      const result = await sampleContentAware(video, opts?.debug ?? false);
+      const result = await sampleContentAware(video, opts?.debug ?? false, opts?.pose);
       if (result) return result;
     } catch {
       // Any failure (slow seeks, decode, getImageData) degrades to uniform.
@@ -287,13 +496,13 @@ export async function extractFramesFromVideo(
         totalBytes: frames.reduce((a, f) => a + b64Bytes(f.dataUrl), 0),
       }
     : undefined;
-  return { frames, debug };
+  return { frames, extras: [], pose: null, debug };
 }
 
 export async function extractFrames(
   source: File | Blob,
-  opts?: { debug?: boolean },
-): Promise<{ frames: Frame[]; duration_s: number; debug?: FrameDebug }> {
+  opts?: ExtractOpts,
+): Promise<VideoExtraction & { duration_s: number }> {
   const url = URL.createObjectURL(source);
   try {
     const video = await loadVideo(url);
@@ -302,8 +511,8 @@ export async function extractFrames(
         `That clip is ${Math.round(video.duration)}s. Trim it to ${MAX_CLIP_SECONDS} seconds or less and try again.`,
       );
     }
-    const { frames, debug } = await extractFramesFromVideo(video, opts);
-    return { frames, duration_s: video.duration, debug };
+    const extraction = await extractFramesFromVideo(video, opts);
+    return { ...extraction, duration_s: video.duration };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -323,7 +532,7 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () =>
-      reject(new Error("Could not decode that image — it may be corrupted or unsupported."));
+      reject(new Error("Could not decode that image. It may be corrupted or unsupported."));
     img.src = dataUrl;
   });
 }
@@ -348,7 +557,7 @@ export async function extractFramesFromPhotos(files: File[]): Promise<Frame[]> {
   const bad = files.find((f) => !ALLOWED_IMAGE_TYPES.includes(f.type));
   if (bad) {
     throw new Error(
-      `"${bad.name}" isn't a JPG, PNG, or WEBP. iPhone photos are often HEIC — pick "Most Compatible" in Settings > Camera > Formats, or take a screenshot instead.`,
+      `"${bad.name}" isn't a JPG, PNG, or WEBP. iPhone photos are often HEIC. Pick "Most Compatible" in Settings > Camera > Formats, or take a screenshot instead.`,
     );
   }
   const raw = await Promise.all(files.map(readDataUrl));

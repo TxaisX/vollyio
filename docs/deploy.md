@@ -28,18 +28,19 @@ Model routing (D-004) is env-driven server-side: `COACH_MODEL` (fast conversatio
 
 ## The gates
 
-Three machine gates define the quality floor. They are identical in three places — keep them in lockstep:
+Four machine gates define the quality floor. Keep the local scripts, CI workflow, and this document in lockstep:
 
-1. **`npm run typecheck`** — `tsc --noEmit`
-2. **`npm run test`** — `node --test`
-3. **`npm run build`** — `next build`
+1. **`npm run lint`** — dependency-free policy checks for token purity, player-facing copy, vendor names, and debug code
+2. **`npm run typecheck`** — `tsc --noEmit`
+3. **`npm run test`** — `node --test`
+4. **`npm run build`** — `next build`
 
 Where they run:
-- **Locally** — the Orchestrator ran all three by hand after every phase; run them before any deploy.
-- **CI** — `.github/workflows/ci.yml` runs all three on every push to `master` and every pull request, with `AI_MOCK=true` and placeholder public Supabase vars so the build never needs real secrets or a paid call. A newer push cancels an in-flight run on the same ref.
+- **Locally** — run all four before any deploy.
+- **CI** — `.github/workflows/ci.yml` runs all four on every push to `master` and every pull request, with `AI_MOCK=true` and placeholder public Supabase vars so the build never needs real secrets or a paid call. A newer push cancels an in-flight run on the same ref.
 - **Vercel** — `next build` runs again on the platform during deploy.
 
-Last full-tree green (merged master, e3e81ae): `tsc` 0 errors · `next build` 55 routes · `node --test` 18/0.
+Last full-tree green (2026-07-09 worktree): policy lint pass · `tsc` 0 errors · `next build` 55 routes · `node --test` 18/0.
 
 ## Deploy
 
@@ -68,3 +69,14 @@ Vercel keeps every deployment immutable. To roll back, promote the last-good dep
 
 ## Build gotcha
 `EPERM: unlink .next/...` on Windows means OneDrive locked a build file: `Remove-Item -Recurse -Force .next` and rebuild. (CI on Linux is unaffected.)
+
+## CV Phase 1 (2026-07-10)
+
+- Migrations `005_clips.sql` (verified) and `006_cv_phase1.sql` (applied) are
+  live; both are idempotent. 006 must be live before this code deploys (the
+  analyze route writes `keypoints_path` / `stored_frame_paths`).
+- `public/pose/` ships ~39 MB of WASM runtime + landmarker model as static
+  assets, fetched lazily by the analyze flow only. Nothing enters the page
+  bundle; first analyze on a device downloads ~11 MB (SIMD wasm) + 5.8 MB
+  (model) once, then browser-cached.
+- New pinned dependency `@mediapipe/tasks-vision@0.10.35` (Decision Log D-008).

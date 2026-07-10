@@ -4,6 +4,7 @@ import {
   buildProbeTimes,
   findPeaks,
   planFrameTimes,
+  planExtraStoreTimes,
 } from "./frame-select.ts";
 
 const MAX_FRAMES = 12;
@@ -84,4 +85,30 @@ test("planFrameTimes never exceeds the frame budget with multiple peaks", () => 
 
 test("planFrameTimes returns nothing without peaks", () => {
   assert.deepEqual(planFrameTimes(24, [], 0.94, MAX_FRAMES), []);
+});
+
+test("planExtraStoreTimes widens bursts and fills gaps without duplicates", () => {
+  const duration = 30;
+  const peaks = [
+    { timeS: 8, score: 20 },
+    { timeS: 16, score: 15 },
+  ];
+  const sendPlan = planFrameTimes(duration, peaks, 1.2, MAX_FRAMES);
+  assert.ok(sendPlan.length >= 2);
+  const extras = planExtraStoreTimes(duration, sendPlan, 24);
+  assert.ok(extras.length > 0);
+  assert.ok(sendPlan.length + extras.length <= 24);
+  const all = [...sendPlan, ...extras].map((f) => f.timeS).sort((a, b) => a - b);
+  for (let i = 1; i < all.length; i++) {
+    assert.ok(all[i] - all[i - 1] >= 0.05, `times too close: ${all[i - 1]} vs ${all[i]}`);
+  }
+  for (const f of extras) {
+    assert.ok(f.timeS >= 0.05 && f.timeS <= duration - 0.05);
+  }
+});
+
+test("planExtraStoreTimes returns nothing when the send plan already fills the budget", () => {
+  const peaks = [{ timeS: 5, score: 20 }];
+  const sendPlan = planFrameTimes(20, peaks, 1.2, MAX_FRAMES);
+  assert.deepEqual(planExtraStoreTimes(20, sendPlan, sendPlan.length), []);
 });

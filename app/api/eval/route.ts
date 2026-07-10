@@ -21,6 +21,8 @@ import {
   type EvalExpectation,
   type ScoreInput,
 } from "@/lib/eval-score";
+import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
+import type { MeasurementsBlock } from "@/lib/pose/types";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
 // through the SAME scoring path as /api/analyze — identical system blocks
@@ -52,6 +54,10 @@ type EvalCase = {
   level: Level;
   frames: { time_s: number | null; data: string }[];
   expected: EvalExpectation;
+  // Optional motion-tracking block captured with the case; lets the harness
+  // compare grounded vs vision-only scoring on identical frames
+  // (?measurements=off replays all cases without their blocks).
+  measurements: MeasurementsBlock | null;
 };
 
 async function loadCases(): Promise<EvalCase[]> {
@@ -79,6 +85,7 @@ async function loadCases(): Promise<EvalCase[]> {
           level: toLevel(c.level),
           frames: c.frames,
           expected: (c.expected ?? {}) as EvalExpectation,
+          measurements: sanitizeMeasurements(c.measurements),
         });
       }
     } catch {
@@ -88,17 +95,28 @@ async function loadCases(): Promise<EvalCase[]> {
   return cases;
 }
 
-async function runModel(c: EvalCase): Promise<ScoreInput | null> {
+async function runModel(c: EvalCase, useMeasurements: boolean): Promise<ScoreInput | null> {
   const content = c.frames.flatMap((f, i) => [
     {
       type: "text" as const,
-      text: f.time_s != null ? `Frame ${i} — t=${f.time_s}s` : `Frame ${i}`,
+      text: f.time_s != null ? `Frame ${i}, t=${f.time_s}s` : `Frame ${i}`,
     },
     {
       type: "image" as const,
       source: { type: "base64" as const, media_type: "image/jpeg" as const, data: f.data },
     },
   ]);
+
+  // Mirrors /api/analyze exactly so the harness measures the shipped prompt.
+  const measuredBlock =
+    useMeasurements && c.measurements
+      ? [
+          {
+            type: "text" as const,
+            text: `Measured data from on-device motion tracking (trusted ground truth; observed the full clip, not just these frames):\n${JSON.stringify(c.measurements)}`,
+          },
+        ]
+      : [];
 
   // Identical system array + level threading to /api/analyze, so the harness
   // measures the shipped prompt rather than a variant of it.
@@ -123,6 +141,7 @@ async function runModel(c: EvalCase): Promise<ScoreInput | null> {
           role: "user",
           content: [
             ...content,
+            ...measuredBlock,
             {
               type: "text",
               text: `Discipline: ${c.discipline}. Player level: ${c.level}. Analyze this ${SKILL_LABEL[
@@ -160,10 +179,10 @@ export async function GET(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  const runs = Math.max(
-    1,
-    Math.min(3, Number(new URL(req.url).searchParams.get("runs")) || 1),
-  );
+  const url = new URL(req.url);
+  const runs = Math.max(1, Math.min(3, Number(url.searchParams.get("runs")) || 1));
+  // ?measurements=off replays every case vision-only for A/B comparison.
+  const useMeasurements = url.searchParams.get("measurements") !== "off";
 
   const cases = await loadCases();
   if (cases.length === 0) {
@@ -180,7 +199,7 @@ export async function GET(req: NextRequest) {
       const overalls: number[] = [];
       let last: ScoreInput | null = null;
       for (let r = 0; r < runs; r++) {
-        const out = await runModel(c);
+        const out = await runModel(c, useMeasurements);
         if (!out) break;
         overalls.push(out.overall_score);
         last = out;
@@ -199,6 +218,7 @@ export async function GET(req: NextRequest) {
         checks,
         pass: checks.every((x) => x.ok),
         stability: runs > 1 ? checkStability(overalls) : undefined,
+        grounded: useMeasurements && c.measurements != null,
       });
     } catch (e) {
       // Never surface the raw SDK message (it can name the vendor or model id);
@@ -215,5 +235,11 @@ export async function GET(req: NextRequest) {
     ? Math.round((scored.filter((r) => r.pass).length / scored.length) * 100) / 100
     : 0;
 
-  return NextResponse.json({ cases: cases.length, runs, passRate, results });
+  return NextResponse.json({
+    cases: cases.length,
+    runs,
+    measurements: useMeasurements ? "on" : "off",
+    passRate,
+    results,
+  });
 }

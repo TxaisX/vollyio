@@ -107,6 +107,55 @@ export function findPeaks(motion: number[], probeTimes: number[]): Peak[] {
  * approach → contact → follow-through) plus a few context frames for chronology.
  * Returns at most `maxFrames`, sorted ascending; [] if nothing usable.
  */
+/**
+ * Plan extra timestamps to render for permanent storage beyond the send set:
+ * wider bursts around each peak first, then midpoints of the largest gaps.
+ * Returns only the additional frames (deduped against the send plan), capped
+ * at storeCount minus the send plan size, sorted ascending.
+ */
+export function planExtraStoreTimes(
+  duration: number,
+  sendPlan: PlannedFrame[],
+  storeCount: number,
+): PlannedFrame[] {
+  const total = Math.max(0, storeCount - sendPlan.length);
+  if (total === 0 || sendPlan.length === 0) return [];
+  const taken = sendPlan.map((f) => f.timeS);
+  const out: PlannedFrame[] = [];
+  const push = (t: number, kind: FrameKind): boolean => {
+    const c = clamp(t, 0.05, Math.max(0.05, duration - 0.05));
+    if (out.length >= total) return false;
+    if (taken.some((x) => Math.abs(x - c) < DEDUPE_S)) return false;
+    out.push({ timeS: c, kind });
+    taken.push(c);
+    return true;
+  };
+
+  const peaks = sendPlan.filter((f) => f.kind === "peak");
+  const offsets = [0.18, -0.18, 0.32, -0.32, 0.5, -0.5];
+  for (const off of offsets) {
+    for (const p of peaks) push(p.timeS + off, "burst");
+  }
+
+  // Fill the largest remaining gaps with context frames for chronology.
+  while (out.length < total) {
+    const points = [0, ...[...taken].sort((a, b) => a - b), duration];
+    let bestGap = 0;
+    let bestT = -1;
+    for (let i = 1; i < points.length; i++) {
+      const gap = points[i] - points[i - 1];
+      if (gap > bestGap) {
+        bestGap = gap;
+        bestT = points[i - 1] + gap / 2;
+      }
+    }
+    if (bestT < 0 || bestGap < DEDUPE_S * 3) break;
+    if (!push(bestT, "context")) break;
+  }
+
+  return out.sort((a, b) => a.timeS - b.timeS);
+}
+
 export function planFrameTimes(
   duration: number,
   peaks: Peak[],

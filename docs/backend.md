@@ -77,7 +77,7 @@ The single client is a lazily-cached coaching-service SDK client (`lib/ai/client
 - **`next.config.ts`** sets `turbopack.root` and `experimental.viewTransition: true` (the flag the section-7 motion layer depends on; progressive enhancement, never a hard dependency).
 - **Env** (`.env.example`, no secret committed): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public), `ANTHROPIC_API_KEY` (server-only), `NEXT_PUBLIC_SITE_URL`, and two optional flags — `AI_MOCK`, `BILLING_ENABLED`.
 - **Ratings math** is an EWMA with `ALPHA = 0.35` (`lib/ratings.ts`); XP levels use a quadratic cumulative curve and streaks are pinned to `America/Los_Angeles` so a server region change can't reset one (`lib/progression.ts:23-35`).
-- **Migrations** apply in filename order; note there are two `004_` files (`004_discipline.sql`, `004_xp_events_index.sql`) — a duplicate ordinal that is order-independent (one adds columns/re-keys, the other adds an index) but worth folding into a single ordinal if the sequence is ever rebased. Note also that `list_migrations` on the live project returns empty: the schema was applied out-of-band (SQL editor / MCP), not through tracked migrations, and `005_clips.sql` is present on disk but not yet applied (no `clips` table live).
+- **Migrations** apply in filename order; note there are two `004_` files (`004_discipline.sql`, `004_xp_events_index.sql`) — a duplicate ordinal that is order-independent (one adds columns/re-keys, the other adds an index) but worth folding into a single ordinal if the sequence is ever rebased. Note also that `list_migrations` on the live project returns empty: the schema was applied out-of-band (SQL editor / MCP), not through tracked migrations, and `005_clips.sql` was verified applied to the live project on 2026-07-10 (clips bucket, `clip_path`, and all three object policies present); `006_cv_phase1.sql` was applied the same day (`profiles.training_consent`, `profiles.training_consent_at`, `analyses.keypoints_path`, `analyses.stored_frame_paths`).
 
 ## Spec deltas
 
@@ -89,3 +89,46 @@ Gaps between what the orchestration spec (section 3 discipline + Dave's DoD, pro
 - **Server-action double-submit is guarded client-side, not server-side.** The DoD says "no server action can double-submit"; in practice that rests on pending submit buttons (`useFormStatus`) plus semantic guards (`awardXp` reason-dedupe, goal `status='active'` filters). There is no server-side idempotency token on `createGoal` or `saveGame`.
 - **Billing is scaffolded but dormant.** `profiles.plan` / `stripe_customer_id` exist and `canAnalyze` reads `plan`, but no Stripe integration ships; entitlements degrade to a raw analysis count and the whole gate is off unless `BILLING_ENABLED=true`.
 - **MCP / `tooling.md` is out of scope for this doc.** Dave's section-10 half (MCP installs into `.mcp.json`, documented in `docs/tooling.md`) shipped nothing (none earned the gate), so `backend.md` has no MCP surface to document — tracked in `tooling.md`, intentionally empty.
+
+## 8. CV Phase 1 additions (2026-07-10)
+
+Companion spec: `docs/cv-phase1-spec.md` (HTML twin `cv-phase1-spec.html`).
+
+- **Schema** (`006_cv_phase1.sql`, applied live): `profiles.training_consent`
+  (boolean, default false) + `training_consent_at`; `analyses.keypoints_path`
+  (text) + `stored_frame_paths` (text[], default `{}`). No new buckets or
+  policies; `keypoints.json` and extra frames `x12.jpg`..`x23.jpg` live under
+  the existing `frames` bucket per-analysis prefix.
+- **`POST /api/analyze` contract additions** (all optional; requests without
+  them are byte-identical to the pre-CV contract): `measurements` (validated by
+  `lib/ai/measurements-schema.ts`; invalid blocks are dropped, never 400),
+  `frame_keypoints` (per-sent-frame flat landmark arrays), `has_keypoints`,
+  `extra_frame_count` (0-12). The route appends one measured-data text block to
+  the user turn when measurements are present (system blocks stay byte-stable
+  and cached), persists `measurements` + `frame_keypoints` +
+  `ball_track_source: "model_estimate"` inside `result`, predetermines
+  `keypoints_path` / `stored_frame_paths`, and returns `keypointsPath` +
+  `storedFramePaths` for the client's background uploads.
+- **Client uploads**: after the response, `analyze-flow.tsx` fire-and-forgets
+  `keypoints.json` and the extra frames to the returned paths through the
+  browser client (same own-folder RLS as the clip upload; navigation does not
+  wait).
+- **Consent**: first analysis triggers a blocking opt-in/opt-out dialog that
+  writes `training_consent(_at)`; the dashboard Settings card
+  (`setTrainingConsent` server action) can flip it any time. Corpus queries
+  must join `profiles` and filter on `training_consent = true`.
+- **Eval harness**: cases may carry a `measurements` block;
+  `GET /api/eval?measurements=off` replays every case vision-only for grounded
+  vs ungrounded comparison. The debug-mode "Download eval case" button now
+  embeds the captured block. No labeled cases are recorded yet: capture real
+  footage at `/analyze?debug` to seed `evals/cases/`.
+- **On-device pipeline** (client only): `lib/pose/engine.ts` (lazy loader,
+  worker + main-thread fallback, null on unsupported), `lib/pose/pose-worker.ts`
+  (WASM landmarker), `lib/pose/kinematics.ts` + `lib/pose/metrics.ts` (pure,
+  node-tested: rep detectors, metric catalog, confidence gating with
+  omit-below-threshold), assets self-hosted under `public/pose/`.
+  Spec deviations, both recorded here deliberately: stage 1 keeps the luminance
+  scan as the peak finder (inter-probe wrist speed is aliased at ~1.8s probe
+  spacing; pose refines peaks to measured contact instants instead), and
+  `keypoints.json` uploads uncompressed (rounded to 3 decimals) so the results
+  page can read it without a decompression path.
