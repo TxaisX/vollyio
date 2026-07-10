@@ -88,61 +88,15 @@ export type ExtractOpts = {
   };
 };
 
-// The opening-of-clip cast: who is on screen in the first seconds, plus a
-// rendered frame and one cropped card per person to choose from. Null when
-// nothing can be detected (no engine support, unreadable video, nobody
-// visible).
+// The opening of the clip: a rendered frame from the first seconds plus any
+// people detected in it, so the player can frame who to follow. persons is
+// empty when nobody was detected yet; null only when the video is unreadable.
 export type OpeningPlayers = {
   dataUrl: string;
   timeS: number;
   persons: LandmarkFrame["pts"][];
-  // Cropped, sized-down image of each person, aligned with persons[].
-  thumbs: string[];
   duration_s: number;
 };
-
-// Padded normalized bounding box around one person's visible landmarks.
-function personBounds(
-  pts: LandmarkFrame["pts"],
-): { left: number; top: number; width: number; height: number } | null {
-  const xs: number[] = [];
-  const ys: number[] = [];
-  for (const p of pts) {
-    if (p.v < 0.4) continue;
-    xs.push(p.x);
-    ys.push(p.y);
-  }
-  if (xs.length < 6) return null;
-  const pad = 0.05;
-  const left = Math.max(0, Math.min(...xs) - pad);
-  const top = Math.max(0, Math.min(...ys) - pad);
-  const right = Math.min(1, Math.max(...xs) + pad);
-  const bottom = Math.min(1, Math.max(...ys) + pad);
-  return { left, top, width: right - left, height: bottom - top };
-}
-
-const PLAYER_THUMB_H = 220;
-
-function cropPersonFromVideo(
-  video: HTMLVideoElement,
-  pts: LandmarkFrame["pts"],
-): string | null {
-  const box = personBounds(pts);
-  if (!box || box.width <= 0 || box.height <= 0) return null;
-  const vw = video.videoWidth || 640;
-  const vh = video.videoHeight || 360;
-  const sx = box.left * vw;
-  const sy = box.top * vh;
-  const sw = Math.max(8, box.width * vw);
-  const sh = Math.max(8, box.height * vh);
-  const scale = PLAYER_THUMB_H / sh;
-  const tw = Math.max(24, Math.round(sw * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = tw;
-  canvas.height = PLAYER_THUMB_H;
-  canvas.getContext("2d")!.drawImage(video, sx, sy, sw, sh, 0, 0, tw, PLAYER_THUMB_H);
-  return canvas.toDataURL("image/jpeg", 0.75);
-}
 
 export async function detectOpeningPlayers(
   source: File | Blob,
@@ -151,7 +105,20 @@ export async function detectOpeningPlayers(
   const url = URL.createObjectURL(source);
   try {
     const video = await loadVideo(url);
+    const render = () => {
+      const [w, h] = scaledSize(
+        video.videoWidth || 640,
+        video.videoHeight || 360,
+        VIDEO_FRAME_DIM,
+      );
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(video, 0, 0, w, h);
+      return canvas.toDataURL("image/jpeg", VIDEO_JPEG_QUALITY);
+    };
     const probeTimes = [0.4, 1.2, 2.4].filter((t) => t < video.duration - 0.05);
+    let fallback: OpeningPlayers | null = null;
     for (const t of probeTimes) {
       await seekTo(video, t);
       let frame: PersonFrame | null = null;
@@ -161,34 +128,24 @@ export async function detectOpeningPlayers(
         frame = null;
       }
       const persons = frame ? dedupePersons(frame.persons) : [];
-      if (frame && persons.length > 0) {
-        const [w, h] = scaledSize(
-          video.videoWidth || 640,
-          video.videoHeight || 360,
-          VIDEO_FRAME_DIM,
-        );
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d")!.drawImage(video, 0, 0, w, h);
-        const cropped = persons.map((pts) => ({
-          pts,
-          thumb: cropPersonFromVideo(video, pts),
-        }));
-        const usable = cropped.filter(
-          (c): c is { pts: typeof c.pts; thumb: string } => c.thumb != null,
-        );
-        if (usable.length === 0) return null;
+      if (persons.length > 0) {
         return {
-          dataUrl: canvas.toDataURL("image/jpeg", VIDEO_JPEG_QUALITY),
+          dataUrl: render(),
           timeS: video.currentTime,
-          persons: usable.map((c) => c.pts),
-          thumbs: usable.map((c) => c.thumb),
+          persons,
+          duration_s: video.duration,
+        };
+      }
+      if (!fallback) {
+        fallback = {
+          dataUrl: render(),
+          timeS: video.currentTime,
+          persons: [],
           duration_s: video.duration,
         };
       }
     }
-    return null;
+    return fallback;
   } catch {
     return null;
   } finally {
@@ -259,12 +216,26 @@ export function loadVideo(src: string): Promise<HTMLVideoElement> {
       8000,
     );
     video.onloadedmetadata = () => {
-      clearTimeout(timeout);
       if (!video.videoWidth || !video.videoHeight) {
+        clearTimeout(timeout);
         reject(new Error(videoErrorMessage(video)));
         return;
       }
-      resolve(video);
+      if (Number.isFinite(video.duration)) {
+        clearTimeout(timeout);
+        resolve(video);
+        return;
+      }
+      // Freshly recorded streams report an infinite duration until the
+      // element is forced to seek to the end; wait for the real value.
+      video.ondurationchange = () => {
+        if (!Number.isFinite(video.duration)) return;
+        video.ondurationchange = null;
+        video.currentTime = 0;
+        clearTimeout(timeout);
+        resolve(video);
+      };
+      video.currentTime = 1e101;
     };
     video.onerror = () => {
       clearTimeout(timeout);

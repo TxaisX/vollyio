@@ -279,16 +279,13 @@ Coach session sidebar (desktop rail) additions: button `New chat`, list label
 `Sessions`, empty state `Your conversations show up here.`, relative dates
 `Today` / `Yesterday` / `{n} days ago`.
 
-Focus-player picker (analyze preview): kicker `Focus player`, caption
-`Analyzing the highlighted player. Pick another to switch.`, card gallery of
-cropped player thumbnails, card labels `Player {n}` / `Player {n} · analyzing`,
-button aria `Focus on player {n}` / `(analyzing)`.
-
 Tracking marker caption (analyze preview, above the filmstrip when frames are
-stamped): `The gold ring marks the tracked player in every frame.`
+stamped): `The gold ring marks the tracked player in every frame.`, reframe
+chip `Reframe player`.
 
-Focus-player opening pick (analyze preview, before analysis): kicker
-`Who should I watch?`, caption `Pick the player to focus on. Every measurement
-and score comes from them.`, card gallery of cropped player thumbnails, card
-labels `Player {n}`, button aria `Focus on player {n}`, skip chip
-`Let the app decide`.
+Player framing (analyze preview, before analysis; shown for every clip with a
+readable opening frame): kicker `Who should I watch?`, caption `Drag the box
+over your player. Pull the corner to resize.`, image alt `Opening frame. Frame
+the player to analyze.`, box aria `Player frame. Drag to move, or use the
+arrow keys.`, resize handle aria `Resize the frame`, primary button
+`Analyze this athlete`, skip button `Skip and analyze the whole frame`.
