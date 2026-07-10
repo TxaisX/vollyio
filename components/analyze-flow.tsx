@@ -630,7 +630,7 @@ export function AnalyzeFlow() {
   async function runVideoExtraction(
     blob: Blob,
     isRecorded: boolean,
-    target?: { x: number; y: number; t: number },
+    target?: { x: number; y: number; t: number; box?: Box },
   ) {
     try {
       const engine = poseRef.current ?? (await loadPoseEngine());
@@ -735,7 +735,7 @@ export function AnalyzeFlow() {
     setStatus({ kind: "reading" });
     const cx = box.left + box.width / 2;
     const cy = box.top + box.height / 2;
-    let target = { x: cx, y: cy, t: opening.timeS };
+    let target = { x: cx, y: cy, t: opening.timeS, box };
     let bestD = Infinity;
     for (const pts of opening.persons) {
       const lh = pts[LM.leftHip];
@@ -752,7 +752,7 @@ export function AnalyzeFlow() {
       const d = Math.hypot(hx - cx, hy - cy);
       if (d < bestD) {
         bestD = d;
-        target = { x: hx, y: hy, t: opening.timeS };
+        target = { x: hx, y: hy, t: opening.timeS, box };
       }
     }
     void runVideoExtraction(opening.blob, opening.isRecorded, target);

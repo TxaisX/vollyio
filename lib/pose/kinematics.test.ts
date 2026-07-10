@@ -7,6 +7,9 @@ import {
   detectJumpReps,
   detectPlatformReps,
   detectSwingReps,
+  focusRegionAround,
+  hipCenter,
+  mapRegionPersons,
   segmentFrames,
   smooth,
   standingBaseline,
@@ -129,6 +132,40 @@ test("dedupePersons collapses overlapping detections of one body", () => {
   assert.equal(kept.length, 2);
   // The higher-visibility duplicate survives.
   assert.ok(kept.some((p) => p[0].v > 0.9));
+});
+
+test("mapRegionPersons maps crop landmarks back to full-frame coordinates", () => {
+  const region = { left: 0.5, top: 0.25, width: 0.4, height: 0.5 };
+  const [mapped] = mapRegionPersons(
+    [[{ x: 0.5, y: 0.5, z: 0.1, v: 0.9 }]],
+    region,
+  );
+  assert.ok(Math.abs(mapped[0].x - 0.7) < 1e-9);
+  assert.ok(Math.abs(mapped[0].y - 0.5) < 1e-9);
+  assert.ok(Math.abs(mapped[0].z - 0.04) < 1e-9);
+  assert.equal(mapped[0].v, 0.9);
+});
+
+test("focusRegionAround pads the box and clamps to the frame", () => {
+  const box = { left: 0.1, top: 0.1, width: 0.1, height: 0.2 };
+  const centered = focusRegionAround(0.5, 0.5, box);
+  assert.ok(centered.width >= 0.25 && centered.width <= 1, `w=${centered.width}`);
+  assert.ok(Math.abs(centered.left + centered.width / 2 - 0.5) < 1e-9);
+  const corner = focusRegionAround(0.02, 0.98, box);
+  assert.ok(corner.left >= 0 && corner.top + corner.height <= 1 + 1e-9);
+  const huge = focusRegionAround(0.5, 0.5, { left: 0, top: 0, width: 0.9, height: 0.9 });
+  assert.ok(huge.width <= 1 && huge.height <= 1);
+});
+
+test("hipCenter uses the hips when visible and falls back to the centroid", () => {
+  const pts = standingFrame(0).pts;
+  const c = hipCenter(pts);
+  assert.ok(c);
+  assert.ok(Math.abs(c!.x - 0.5) < 0.05);
+  const hidden = pts.map((p, i) => (i === 23 || i === 24 ? { ...p, v: 0.1 } : p));
+  assert.ok(hipCenter(hidden), "centroid fallback still places the person");
+  const invisible = pts.map((p) => ({ ...p, v: 0.1 }));
+  assert.equal(hipCenter(invisible), null);
 });
 
 test("buildTracks is immune to duplicate detections per frame", () => {

@@ -6,6 +6,7 @@
 // frame and choose who to follow via the track builder in kinematics.
 
 import { POSE_LANDMARK_COUNT, type Landmark, type PersonFrame } from "./types.ts";
+import { mapRegionPersons, type FocusRegion } from "./kinematics.ts";
 
 const WASM_BASE = "/pose/wasm";
 const MODEL_PATH = "/pose/pose_landmarker_lite.task";
@@ -16,9 +17,33 @@ const MAX_PERSONS = 4;
 const DETECT_DIM = 512;
 
 export type PoseEngine = {
-  detectPersonsFromVideo(video: HTMLVideoElement, timeS: number): Promise<PersonFrame | null>;
+  // With a region, detection runs on that crop of the frame (a distant player
+  // fills the model's input) and landmarks come back in full-frame coords.
+  detectPersonsFromVideo(
+    video: HTMLVideoElement,
+    timeS: number,
+    region?: FocusRegion,
+  ): Promise<PersonFrame | null>;
   dispose(): void;
 };
+
+function regionRect(
+  video: HTMLVideoElement,
+  region: FocusRegion,
+): { sx: number; sy: number; sw: number; sh: number } {
+  const vw = video.videoWidth || 640;
+  const vh = video.videoHeight || 360;
+  return {
+    sx: Math.round(region.left * vw),
+    sy: Math.round(region.top * vh),
+    sw: Math.max(1, Math.round(region.width * vw)),
+    sh: Math.max(1, Math.round(region.height * vh)),
+  };
+}
+
+function remapped(frame: PersonFrame, region?: FocusRegion): PersonFrame {
+  return region ? { t: frame.t, persons: mapRegionPersons(frame.persons, region) } : frame;
+}
 
 function unpack(pts: Float32Array, count: number, timeS: number): PersonFrame {
   const persons: Landmark[][] = [];
@@ -133,10 +158,19 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     };
 
     const engine: PoseEngine = {
-      async detectPersonsFromVideo(video, timeS) {
+      async detectPersonsFromVideo(video, timeS, region) {
         let bitmap: ImageBitmap;
         try {
-          bitmap = await createImageBitmap(video, detectSize(video));
+          if (region) {
+            const { sx, sy, sw, sh } = regionRect(video, region);
+            const scale = Math.min(1, DETECT_DIM / Math.max(sw, sh));
+            bitmap = await createImageBitmap(video, sx, sy, sw, sh, {
+              resizeWidth: Math.max(1, Math.round(sw * scale)),
+              resizeHeight: Math.max(1, Math.round(sh * scale)),
+            });
+          } else {
+            bitmap = await createImageBitmap(video, detectSize(video));
+          }
         } catch {
           return null;
         }
@@ -151,7 +185,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
         );
         pending.delete(id);
         return result.pts && result.count > 0
-          ? unpack(result.pts, result.count, timeS)
+          ? remapped(unpack(result.pts, result.count, timeS), region)
           : null;
       },
       dispose() {
@@ -182,26 +216,42 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
       landmarker = await PoseLandmarker.createFromOptions(fileset, options("CPU"));
     }
     let clockMs = 0;
+    let cropCanvas: HTMLCanvasElement | null = null;
     return {
-      async detectPersonsFromVideo(video, timeS) {
+      async detectPersonsFromVideo(video, timeS, region) {
         try {
           clockMs += 33.34;
-          const result = landmarker.detectForVideo(video, clockMs);
+          let source: HTMLVideoElement | HTMLCanvasElement = video;
+          if (region) {
+            const { sx, sy, sw, sh } = regionRect(video, region);
+            const scale = Math.min(1, DETECT_DIM / Math.max(sw, sh));
+            cropCanvas ??= document.createElement("canvas");
+            cropCanvas.width = Math.max(1, Math.round(sw * scale));
+            cropCanvas.height = Math.max(1, Math.round(sh * scale));
+            cropCanvas
+              .getContext("2d")!
+              .drawImage(video, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+            source = cropCanvas;
+          }
+          const result = landmarker.detectForVideo(source, clockMs);
           const persons = (result.landmarks ?? []).filter(
             (p) => p.length === POSE_LANDMARK_COUNT,
           );
           if (persons.length === 0) return null;
-          return {
-            t: Math.round(timeS * 1000) / 1000,
-            persons: persons.slice(0, MAX_PERSONS).map((person) =>
-              person.map((p) => ({
-                x: p.x,
-                y: p.y,
-                z: p.z ?? 0,
-                v: p.visibility ?? 0,
-              })),
-            ),
-          };
+          return remapped(
+            {
+              t: Math.round(timeS * 1000) / 1000,
+              persons: persons.slice(0, MAX_PERSONS).map((person) =>
+                person.map((p) => ({
+                  x: p.x,
+                  y: p.y,
+                  z: p.z ?? 0,
+                  v: p.visibility ?? 0,
+                })),
+              ),
+            },
+            region,
+          );
         } catch {
           return null;
         }
