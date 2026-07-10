@@ -99,6 +99,91 @@ function boxOverlap(a: Box, b: Box): number {
   return union > 0 ? inter / union : 0;
 }
 
+// Stamp a small gold tracking ring at the focus athlete's hips in each frame,
+// so the player sees who is being tracked and the coaching service is told
+// exactly which athlete to analyze. Returns new frames; originals untouched.
+async function markFocusFrames(
+  rawFrames: Frame[],
+  landmarks: LandmarkFrame[],
+): Promise<{ frames: Frame[]; marked: number }> {
+  if (landmarks.length === 0) return { frames: rawFrames, marked: 0 };
+  let marked = 0;
+  const out = await Promise.all(
+    rawFrames.map(async (f) => {
+      if (f.time_s == null) return f;
+      let best: LandmarkFrame | null = null;
+      let bestD = 0.3;
+      for (const lf of landmarks) {
+        const d = Math.abs(lf.t - f.time_s);
+        if (d < bestD) {
+          bestD = d;
+          best = lf;
+        }
+      }
+      if (!best) return f;
+      const xs: number[] = [];
+      const ys: number[] = [];
+      for (const p of best.pts) {
+        if (p.v < 0.4) continue;
+        xs.push(p.x);
+        ys.push(p.y);
+      }
+      if (xs.length < 6) return f;
+      const lh = best.pts[LM.leftHip];
+      const rh = best.pts[LM.rightHip];
+      const hipsOk = lh.v >= 0.4 && rh.v >= 0.4;
+      const cx = hipsOk ? (lh.x + rh.x) / 2 : xs.reduce((a, b) => a + b, 0) / xs.length;
+      const cy = hipsOk ? (lh.y + rh.y) / 2 : ys.reduce((a, b) => a + b, 0) / ys.length;
+      const bodyH = Math.max(...ys) - Math.min(...ys);
+      const stamped = await new Promise<string | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return resolve(null);
+            ctx.drawImage(img, 0, 0);
+            const style = getComputedStyle(document.documentElement);
+            const gold = style.getPropertyValue("--color-gold").trim();
+            const navy = style.getPropertyValue("--color-navy").trim();
+            const x = cx * canvas.width;
+            const y = cy * canvas.height;
+            const r = Math.min(16, Math.max(5, bodyH * canvas.height * 0.07));
+            // Dark halo first so the ring reads on any background.
+            ctx.lineWidth = Math.max(4.5, r * 0.45);
+            ctx.strokeStyle = navy;
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = Math.max(2.5, r * 0.25);
+            ctx.strokeStyle = gold;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = gold;
+            ctx.beginPath();
+            ctx.arc(x, y, Math.max(1.5, r * 0.2), 0, Math.PI * 2);
+            ctx.fill();
+            resolve(canvas.toDataURL("image/jpeg", 0.7));
+          } catch {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = f.dataUrl;
+      });
+      if (!stamped) return f;
+      marked++;
+      return { ...f, dataUrl: stamped };
+    }),
+  );
+  return { frames: out, marked };
+}
+
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
 // Landmarks for each sent frame (nearest tracked instant within 200ms), as
@@ -291,6 +376,10 @@ export function AnalyzeFlow() {
   >(null);
   // Cropped card per tracked player for the post-analysis switcher.
   const [trackCards, setTrackCards] = useState<{ id: number; thumb: string }[]>([]);
+  // Unmarked originals of the send frames, re-stamped when the player changes.
+  const rawFramesRef = useRef<Frame[]>([]);
+  const markedRef = useRef(false);
+  const [markerShown, setMarkerShown] = useState(false);
 
   useEffect(() => {
     if (playerTracks.length <= 1 || frames.length === 0 || source !== "video") {
@@ -370,6 +459,16 @@ export function AnalyzeFlow() {
       capture.denseFps,
     );
     setPlayerChoice(trackId);
+    // Move the tracking ring onto the newly chosen athlete.
+    const raw = rawFramesRef.current;
+    if (raw.length > 0) {
+      void markFocusFrames(raw, track.frames).then(({ frames: stamped, marked }) => {
+        if (captureRef.current?.selectedTrackId !== trackId) return;
+        markedRef.current = marked > 0;
+        setMarkerShown(marked > 0);
+        setFrames(marked > 0 ? stamped : raw);
+      });
+    }
   }
   const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
@@ -523,6 +622,7 @@ export function AnalyzeFlow() {
         ? keypointsForFrames(landmarks, payloadFrames)
         : undefined,
       has_keypoints: hasKeypoints,
+      focus_marker: src === "video" && markedRef.current ? true : undefined,
       extra_frame_count: capture?.extras.length ?? 0,
     };
     try {
@@ -601,7 +701,21 @@ export function AnalyzeFlow() {
           : null;
       setPlayerTracks(poseCapture?.tracks ?? []);
       setPlayerChoice(poseCapture?.selectedTrackId ?? null);
-      setFrames(f);
+      rawFramesRef.current = f;
+      let shown = f;
+      markedRef.current = false;
+      if (captureRef.current && captureRef.current.landmarks.length >= 8) {
+        const { frames: stamped, marked } = await markFocusFrames(
+          f,
+          captureRef.current.landmarks,
+        );
+        if (marked > 0) {
+          shown = stamped;
+          markedRef.current = true;
+        }
+      }
+      setMarkerShown(markedRef.current);
+      setFrames(shown);
       setSource("video");
       setDuration(duration_s);
       setFrameDebug(debug ?? null);
@@ -611,7 +725,7 @@ export function AnalyzeFlow() {
         return;
       }
       if (isRecorded) {
-        await submit(f, "video", duration_s);
+        await submit(shown, "video", duration_s);
       } else {
         setStatus({ kind: "idle" });
       }
@@ -646,6 +760,9 @@ export function AnalyzeFlow() {
           setPlayerTracks([]);
           setPlayerChoice(null);
           setFrames([]);
+          rawFramesRef.current = [];
+          markedRef.current = false;
+          setMarkerShown(false);
           setSource("video");
           setDuration(opening.duration_s);
           setOpeningPick({ ...opening, blob, isRecorded });
@@ -694,6 +811,9 @@ export function AnalyzeFlow() {
       if (file.type.startsWith("image/")) {
         const f = await extractFramesFromPhotos([file]);
         setFrames(f);
+        rawFramesRef.current = [];
+        markedRef.current = false;
+        setMarkerShown(false);
         setSource("photos");
         setDuration(null);
         setVideoUrl(null);
@@ -719,6 +839,9 @@ export function AnalyzeFlow() {
     try {
       const f = await extractFramesFromPhotos(files);
       setFrames(f);
+      rawFramesRef.current = [];
+      markedRef.current = false;
+      setMarkerShown(false);
       setSource("photos");
       setDuration(null);
       setVideoUrl(null);
@@ -992,6 +1115,15 @@ export function AnalyzeFlow() {
 
             {frames.length > 0 ? (
               <div className="reward-earned">
+                {markerShown && (
+                  <p className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
+                    <span
+                      aria-hidden
+                      className="inline-block h-2.5 w-2.5 rounded-full border-2 border-gold"
+                    />
+                    The gold ring marks the tracked player in every frame.
+                  </p>
+                )}
                 <Filmstrip frames={frames} variant="grid" />
               </div>
             ) : (

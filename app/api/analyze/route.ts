@@ -50,6 +50,7 @@ const bodySchema = z.object({
     .optional(),
   has_keypoints: z.boolean().optional(),
   extra_frame_count: z.number().int().min(0).max(12).optional(),
+  focus_marker: z.boolean().optional(),
   player_selection: z
     .object({
       candidates: z.number().int().min(1).max(8),
@@ -137,6 +138,15 @@ export async function POST(req: NextRequest) {
           ]
         : [];
 
+      const focusBlock = parsedBody.data.focus_marker
+        ? [
+            {
+              type: "text" as const,
+              text: "A small gold ring with a center dot is stamped at the hips of the focus athlete in each frame. Analyze ONLY that athlete: every score, metric note, insight, and change refers to them. Ignore every other person in the frames, and ignore the ring itself when judging form (it is a tracking overlay, not part of the scene).",
+            },
+          ]
+        : [];
+
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
         max_tokens: 4096,
@@ -157,6 +167,7 @@ export async function POST(req: NextRequest) {
             role: "user",
             content: [
               ...content,
+              ...focusBlock,
               ...measuredBlock,
               {
                 type: "text",

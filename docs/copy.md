@@ -284,6 +284,9 @@ Focus-player picker (analyze preview): kicker `Focus player`, caption
 cropped player thumbnails, card labels `Player {n}` / `Player {n} · analyzing`,
 button aria `Focus on player {n}` / `(analyzing)`.
 
+Tracking marker caption (analyze preview, above the filmstrip when frames are
+stamped): `The gold ring marks the tracked player in every frame.`
+
 Focus-player opening pick (analyze preview, before analysis): kicker
 `Who should I watch?`, caption `Pick the player to focus on. Every measurement
 and score comes from them.`, card gallery of cropped player thumbnails, card
