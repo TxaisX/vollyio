@@ -32,9 +32,10 @@ function clamp(x: number, lo: number, hi: number): number {
 }
 
 /** Evenly-spaced probe timestamps across the trustworthy middle of the clip. */
-export function buildProbeTimes(duration: number, count: number): number[] {
-  const start = duration * INSET;
-  const end = duration * (1 - INSET);
+export function buildProbeTimes(duration: number, count: number, startS = 0): number[] {
+  const span = Math.max(0, duration - startS);
+  const start = startS + span * INSET;
+  const end = duration - span * INSET;
   if (count <= 1 || end <= start) return [start];
   const step = (end - start) / (count - 1);
   return Array.from({ length: count }, (_, i) => start + step * i);
@@ -123,13 +124,15 @@ export function planExtraStoreTimes(
   duration: number,
   sendPlan: PlannedFrame[],
   storeCount: number,
+  startS = 0,
 ): PlannedFrame[] {
   const total = Math.max(0, storeCount - sendPlan.length);
   if (total === 0 || sendPlan.length === 0) return [];
+  const floor = Math.max(0.05, startS);
   const taken = sendPlan.map((f) => f.timeS);
   const out: PlannedFrame[] = [];
   const push = (t: number, kind: FrameKind): boolean => {
-    const c = clamp(t, 0.05, Math.max(0.05, duration - 0.05));
+    const c = clamp(t, floor, Math.max(floor, duration - 0.05));
     if (out.length >= total) return false;
     if (taken.some((x) => Math.abs(x - c) < DEDUPE_S)) return false;
     out.push({ timeS: c, kind });
@@ -145,7 +148,7 @@ export function planExtraStoreTimes(
 
   // Fill the largest remaining gaps with context frames for chronology.
   while (out.length < total) {
-    const points = [0, ...[...taken].sort((a, b) => a - b), duration];
+    const points = [floor, ...[...taken].sort((a, b) => a - b), duration];
     let bestGap = 0;
     let bestT = -1;
     for (let i = 1; i < points.length; i++) {
@@ -167,6 +170,7 @@ export function planFrameTimes(
   peaks: Peak[],
   coarseInterval: number,
   maxFrames: number,
+  startS = 0,
 ): PlannedFrame[] {
   if (peaks.length === 0 || maxFrames < 2) return [];
 
@@ -214,14 +218,18 @@ export function planFrameTimes(
     planned.push(...group);
   });
 
+  const span = Math.max(0, duration - startS);
   const contextFracs = [INSET, 0.5, 1 - INSET].slice(0, contextN);
-  contextFracs.forEach((fr) => planned.push({ timeS: fr * duration, kind: "context" }));
+  contextFracs.forEach((fr) =>
+    planned.push({ timeS: startS + fr * span, kind: "context" }),
+  );
 
   // Clamp into range, sort, and dedupe near-identical times (keep the
   // higher-priority kind so a peak is never dropped for a context frame).
+  const floor = Math.max(0.05, startS);
   const priority: Record<FrameKind, number> = { peak: 3, burst: 2, context: 1 };
   const sorted = planned
-    .map((f) => ({ ...f, timeS: clamp(f.timeS, 0.05, Math.max(0.05, duration - 0.05)) }))
+    .map((f) => ({ ...f, timeS: clamp(f.timeS, floor, Math.max(floor, duration - 0.05)) }))
     .sort((a, b) => a.timeS - b.timeS);
 
   const out: PlannedFrame[] = [];
