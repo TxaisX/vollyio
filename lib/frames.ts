@@ -396,6 +396,7 @@ async function captureDenseWindows(
   peakTimes: number[],
   duration: number,
   tracker?: ReturnType<typeof createFocusTracker>,
+  analysisStartS = 0,
 ): Promise<{ frames: PersonFrame[]; denseFps: number | null; denseMs: number }> {
   const frames: PersonFrame[] = [];
   const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
@@ -406,7 +407,7 @@ async function captureDenseWindows(
   let lastEnd = 0;
   for (const peak of sorted) {
     if (Date.now() >= deadline) break;
-    const startS = Math.max(0.05, peak - DENSE_WINDOW_S, lastEnd);
+    const startS = Math.max(0.05, analysisStartS, peak - DENSE_WINDOW_S, lastEnd);
     const endS = Math.min(duration - 0.05, peak + DENSE_WINDOW_S);
     if (endS - startS < 0.3) continue;
     lastEnd = endS;
@@ -563,7 +564,12 @@ async function sampleContentAware(
   pose?: ExtractOpts["pose"],
 ): Promise<VideoExtraction | null> {
   const duration = video.duration;
-  const probeTimes = buildProbeTimes(duration, PROBE_COUNT);
+  // The confirmed framing moment is the start of analysis: nothing earlier is
+  // scanned, captured, measured, or rendered. Keep at least a second of clip.
+  const startS = pose?.target
+    ? Math.max(0, Math.min(pose.target.t - 0.05, duration - 1))
+    : 0;
+  const probeTimes = buildProbeTimes(duration, PROBE_COUNT, startS);
   const scanStart = Date.now();
   // Each chronological pass gets its own tracker so both start from the
   // user's anchor rather than wherever the previous pass ended.
@@ -597,6 +603,7 @@ async function sampleContentAware(
         peaks.map((p) => p.timeS),
         duration,
         createFocusTracker(pose.target),
+        startS,
       );
       denseMs = dense.denseMs;
       denseFps = dense.denseFps;
@@ -646,7 +653,13 @@ async function sampleContentAware(
   }
 
   const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
-  const planned = planFrameTimes(duration, refinePeaks(peaks, contacts), coarseInterval, MAX_FRAMES);
+  const planned = planFrameTimes(
+    duration,
+    refinePeaks(peaks, contacts),
+    coarseInterval,
+    MAX_FRAMES,
+    startS,
+  );
   if (planned.length < 2) return null;
 
   // Stay true to the user's framing: when a framed player was followed, the
@@ -687,7 +700,7 @@ async function sampleContentAware(
   // no byte budget applies. Failure to render extras is non-fatal.
   let extras: Frame[] = [];
   try {
-    const extraPlan = planExtraStoreTimes(duration, planned, STORE_FRAMES);
+    const extraPlan = planExtraStoreTimes(duration, planned, STORE_FRAMES, startS);
     if (extraPlan.length > 0) {
       const renderedExtras = await renderPlanned(video, extraPlan, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY);
       extras = renderedExtras.map((r, i) => ({
@@ -725,10 +738,11 @@ async function sampleContentAware(
   };
 }
 
-async function sampleUniform(video: HTMLVideoElement): Promise<Frame[]> {
+async function sampleUniform(video: HTMLVideoElement, startS = 0): Promise<Frame[]> {
   const duration = video.duration;
-  const planned: PlannedFrame[] = sampleFractions(duration).map((frac) => ({
-    timeS: Math.min(duration * frac, Math.max(duration - 0.05, 0)),
+  const span = Math.max(0.1, duration - startS);
+  const planned: PlannedFrame[] = sampleFractions(span).map((frac) => ({
+    timeS: Math.min(startS + span * frac, Math.max(duration - 0.05, startS)),
     kind: "context" as const,
   }));
   const { frames } = await finalizePlanned(video, planned);
@@ -739,7 +753,11 @@ export async function extractFramesFromVideo(
   video: HTMLVideoElement,
   opts?: ExtractOpts,
 ): Promise<VideoExtraction> {
-  if (video.duration > SHORT_CLIP_SECONDS) {
+  // The confirmed framing moment bounds every sampling path.
+  const startS = opts?.pose?.target
+    ? Math.max(0, Math.min(opts.pose.target.t - 0.05, video.duration - 1))
+    : 0;
+  if (video.duration - startS > SHORT_CLIP_SECONDS) {
     try {
       const result = await sampleContentAware(video, opts?.debug ?? false, opts?.pose);
       if (result) return result;
@@ -747,7 +765,7 @@ export async function extractFramesFromVideo(
       // Any failure (slow seeks, decode, getImageData) degrades to uniform.
     }
   }
-  const frames = await sampleUniform(video);
+  const frames = await sampleUniform(video, startS);
   const debug: FrameDebug | undefined = opts?.debug
     ? {
         curve: [],

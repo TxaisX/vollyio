@@ -112,3 +112,20 @@ test("planExtraStoreTimes returns nothing when the send plan already fills the b
   const sendPlan = planFrameTimes(20, peaks, 1.2, MAX_FRAMES);
   assert.deepEqual(planExtraStoreTimes(20, sendPlan, sendPlan.length), []);
 });
+
+test("a start time bounds every planning function", () => {
+  const duration = 30;
+  const startS = 12;
+  const probes = buildProbeTimes(duration, 24, startS);
+  assert.ok(probes.every((t) => t >= startS && t <= duration));
+  const peaks = [
+    { timeS: 15, score: 20 },
+    { timeS: 22, score: 15 },
+  ];
+  const sendPlan = planFrameTimes(duration, peaks, 0.75, MAX_FRAMES, startS);
+  assert.ok(sendPlan.length >= 2);
+  assert.ok(sendPlan.every((f) => f.timeS >= startS), `min=${sendPlan[0]?.timeS}`);
+  const extras = planExtraStoreTimes(duration, sendPlan, 24, startS);
+  assert.ok(extras.length > 0);
+  assert.ok(extras.every((f) => f.timeS >= startS && f.timeS <= duration - 0.05));
+});
