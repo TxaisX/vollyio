@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { awardXp, todayKey, XP_AWARDS } from "@/lib/progression";
 import { SKILLS } from "@/lib/skills";
 
@@ -47,10 +48,8 @@ export async function createGoal(
   formData: FormData,
 ): Promise<CreateGoalState> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getAuthUserId(supabase);
+  if (!userId) redirect("/login");
 
   const values = {
     title: str(formData.get("title")),
@@ -76,7 +75,7 @@ export async function createGoal(
   }
 
   const { error } = await supabase.from("goals").insert({
-    user_id: user.id,
+    user_id: userId,
     title: parsed.data.title,
     skill: parsed.data.skill ?? null,
     target_rating: parsed.data.target_rating ?? null,
@@ -97,40 +96,36 @@ export async function createGoal(
 
 export async function completeGoal(id: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getAuthUserId(supabase);
+  if (!userId) redirect("/login");
   if (!z.uuid().safeParse(id).success) return;
 
   const { data } = await supabase
     .from("goals")
     .update({ status: "done" })
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", "active")
     .select("id")
     .maybeSingle();
 
   if (data) {
-    await awardXp(supabase, user.id, XP_AWARDS.goal, `goal:${id}`);
+    await awardXp(supabase, userId, XP_AWARDS.goal, `goal:${id}`);
   }
   revalidatePath("/goals");
 }
 
 export async function abandonGoal(id: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getAuthUserId(supabase);
+  if (!userId) redirect("/login");
   if (!z.uuid().safeParse(id).success) return;
 
   await supabase
     .from("goals")
     .update({ status: "abandoned" })
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", "active");
 
   revalidatePath("/goals");

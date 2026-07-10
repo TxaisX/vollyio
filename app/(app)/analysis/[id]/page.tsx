@@ -3,6 +3,7 @@ import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { metricLabel } from "@/lib/ai/metrics";
 import { drillBySlug } from "@/content/drills";
 import { MetricBar } from "@/components/metric-bar";
@@ -35,10 +36,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const userId = await getAuthUserId(supabase);
+  if (!userId) {
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
 
@@ -46,7 +45,7 @@ export async function generateMetadata({
     .from("analyses")
     .select("skill, overall_score, result")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (!data) {
@@ -76,9 +75,7 @@ export default async function AnalysisDetail({
   const { id } = await params;
   const { xp } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
 
   const { data } = await supabase
     .from("analyses")
@@ -86,7 +83,7 @@ export default async function AnalysisDetail({
       "id, skill, frame_paths, clip_path, keypoints_path, overall_score, created_at, result",
     )
     .eq("id", id)
-    .eq("user_id", user!.id)
+    .eq("user_id", userId!)
     .maybeSingle();
 
   if (!data) notFound();

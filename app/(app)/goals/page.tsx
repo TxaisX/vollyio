@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { SKILL_LABEL, type Skill } from "@/lib/skills";
 import {
   ActiveGoalCard,
@@ -20,9 +21,7 @@ type RatingRow = { skill: Skill; rating: number };
 
 export default async function Goals() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
 
   const [
     { data: activeData, error: activeError },
@@ -32,20 +31,20 @@ export default async function Goals() {
       supabase
         .from("goals")
         .select("id, skill, title, target_rating, deadline")
-        .eq("user_id", user!.id)
+        .eq("user_id", userId!)
         .eq("status", "active")
         .order("created_at", { ascending: false }),
       supabase
         .from("goals")
         .select("id, skill, title")
-        .eq("user_id", user!.id)
+        .eq("user_id", userId!)
         .eq("status", "done")
         .order("created_at", { ascending: false })
         .limit(10),
       supabase
         .from("skill_ratings")
         .select("skill, rating")
-        .eq("user_id", user!.id)
+        .eq("user_id", userId!)
         // Goals are indoor-scoped for now; beach goal tracking is a follow-up.
         .eq("discipline", "indoor"),
     ]);

@@ -34,19 +34,35 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Local JWT verification first (no network): the token is checked against
+  // the project's public signing keys, cached per instance. Only an expired
+  // or missing token falls back to getUser(), whose network call refreshes
+  // the session and rewrites cookies. This keeps the per-navigation cost of
+  // auth at microseconds instead of an auth-server round trip.
+  let userId: string | null = null;
+  try {
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+    const sub = claimsData?.claims?.sub;
+    if (!claimsError && typeof sub === "string" && sub.length > 0) userId = sub;
+  } catch {
+    // Fall through to the refresh path.
+  }
+  if (!userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
 
   const path = request.nextUrl.pathname;
 
-  if (!user && PROTECTED.some((p) => path.startsWith(p))) {
+  if (!userId && PROTECTED.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && (path === "/" || path === "/login" || path === "/signup")) {
+  if (userId && (path === "/" || path === "/login" || path === "/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
