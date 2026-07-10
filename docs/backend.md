@@ -150,3 +150,16 @@ Companion spec: `docs/cv-phase1-spec.md` (HTML twin `cv-phase1-spec.html`).
   every auth and database round trip.
 - Measured locally (prod build, authenticated): full-stream server time for
   the heaviest tabs is 85-204ms; warm client-side tab switches land ~50ms.
+
+## 10. Coach sessions (2026-07-10)
+
+`coach_sessions` (`007_coach_sessions.sql`, applied live): id, user_id, title,
+created_at, updated_at; own-row RLS; `chat_messages.session_id` FK (cascade)
+with a per-session index. Existing messages were backfilled into one
+"Earlier conversations" session per user. `POST /api/coach` accepts an
+optional `session_id` (ownership-verified, 404 otherwise); absent means a new
+session titled from the first message, returned in the `x-coach-session`
+response header so a fresh chat adopts it mid-stream. Chat history sent to
+the coaching service is scoped to the session. `/coach?s=<id>` opens a
+session, `?s=new` a fresh one; `deleteCoachSession` server action removes a
+session and its messages.

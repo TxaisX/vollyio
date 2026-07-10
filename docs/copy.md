@@ -264,3 +264,13 @@ applies as everywhere.
 | dashboard consent toggle states | `Allowed` / `Not allowed` |
 | clip player trace toggle | `Motion trace` + helper `Tracked body lines over your rep` |
 | frame player ball caption | `Ball marker: estimated position` |
+
+## 12. Coach sessions (2026-07-10)
+
+| Surface | String |
+|---|---|
+| coach session bar new-chat chip | `+ New chat` |
+| coach session delete label | `Delete session: {title}` (aria) |
+| legacy backfill session title | `Earlier conversations` |
+| session not found (API) | `That session doesn't exist.` |
+| session create failure (API) | `Couldn't start a session.` |

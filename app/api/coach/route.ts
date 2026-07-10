@@ -11,7 +11,19 @@ import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const bodySchema = z.object({ message: z.string().min(1).max(2000) });
+const bodySchema = z.object({
+  message: z.string().min(1).max(2000),
+  session_id: z.string().uuid().optional(),
+});
+
+// Session titles come from the opening message, trimmed at a word boundary.
+function titleFrom(message: string): string {
+  const clean = message.replace(/\s+/g, " ").trim();
+  if (clean.length <= 48) return clean;
+  const cut = clean.slice(0, 48);
+  const space = cut.lastIndexOf(" ");
+  return (space > 24 ? cut.slice(0, space) : cut) + "…";
+}
 
 type RatingRow = { skill: Skill; rating: number; analyses_count: number };
 type AnalysisRow = {
@@ -48,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const { message } = parsed.data;
+  const { message, session_id } = parsed.data;
 
   const supabase = await createClient();
   const {
@@ -72,9 +84,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Resolve the conversation: verify ownership of an existing session, or
+  // start a new one titled from this first message.
+  let sessionId: string;
+  if (session_id) {
+    const { data: owned } = await supabase
+      .from("coach_sessions")
+      .select("id")
+      .eq("id", session_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!owned) {
+      return NextResponse.json({ error: "That session doesn't exist." }, { status: 404 });
+    }
+    sessionId = owned.id;
+  } else {
+    const { data: created, error: createError } = await supabase
+      .from("coach_sessions")
+      .insert({ user_id: user.id, title: titleFrom(message) })
+      .select("id")
+      .single();
+    if (createError || !created) {
+      return NextResponse.json({ error: "Couldn't start a session." }, { status: 500 });
+    }
+    sessionId = created.id;
+  }
+
   const { error: sendError } = await supabase
     .from("chat_messages")
-    .insert({ user_id: user.id, role: "user", content: message });
+    .insert({ user_id: user.id, session_id: sessionId, role: "user", content: message });
   if (sendError) {
     return NextResponse.json({ error: "Couldn't send your message." }, { status: 500 });
   }
@@ -108,6 +146,7 @@ export async function POST(req: NextRequest) {
       .from("chat_messages")
       .select("role, content")
       .eq("user_id", user.id)
+      .eq("session_id", sessionId)
       .order("created_at", { ascending: false })
       .limit(20),
   ]);
@@ -206,8 +245,17 @@ export async function POST(req: NextRequest) {
         if (reply.length > 0) {
           await supabase
             .from("chat_messages")
-            .insert({ user_id: user.id, role: "assistant", content: reply });
+            .insert({
+              user_id: user.id,
+              session_id: sessionId,
+              role: "assistant",
+              content: reply,
+            });
         }
+        await supabase
+          .from("coach_sessions")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", sessionId);
         try {
           controller.close();
         } catch {}
@@ -219,6 +267,9 @@ export async function POST(req: NextRequest) {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
+      // Lets a first message in a fresh chat adopt its new session id
+      // before the stream finishes.
+      "x-coach-session": sessionId,
     },
   });
 }
