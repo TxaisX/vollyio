@@ -8,6 +8,7 @@ import {
   detectPlatformReps,
   detectSwingReps,
   focusRegionAround,
+  headPoint,
   hipCenter,
   mapRegionPersons,
   segmentFrames,
@@ -155,6 +156,17 @@ test("focusRegionAround pads the box and clamps to the frame", () => {
   assert.ok(corner.left >= 0 && corner.top + corner.height <= 1 + 1e-9);
   const huge = focusRegionAround(0.5, 0.5, { left: 0, top: 0, width: 0.9, height: 0.9 });
   assert.ok(huge.width <= 1 && huge.height <= 1);
+});
+
+test("headPoint finds the nose, falls back to the ears, else null", () => {
+  const pts = standingFrame(0).pts;
+  const head = headPoint(pts);
+  assert.ok(head);
+  assert.ok(head!.y < 0.4, `head y=${head!.y} should sit high on the body`);
+  const noNose = pts.map((p, i) => (i === 0 ? { ...p, v: 0.1 } : p));
+  assert.ok(headPoint(noNose), "ears fallback");
+  const faceless = pts.map((p, i) => (i <= 10 ? { ...p, v: 0.1 } : p));
+  assert.equal(headPoint(faceless), null);
 });
 
 test("hipCenter uses the hips when visible and falls back to the centroid", () => {
