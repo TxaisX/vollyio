@@ -16,9 +16,12 @@ import {
   type OpeningPlayers,
 } from "@/lib/frames";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
-import { dedupePersons, focusRegionAround } from "@/lib/pose/kinematics";
 import {
-  LM,
+  dedupePersons,
+  focusPoint,
+  focusRegionAround,
+} from "@/lib/pose/kinematics";
+import {
   type Landmark,
   type LandmarkFrame,
   type MeasurementsBlock,
@@ -98,11 +101,11 @@ async function markFocusFrames(
         ys.push(p.y);
       }
       if (xs.length < 6) return f;
-      const lh = best.pts[LM.leftHip];
-      const rh = best.pts[LM.rightHip];
-      const hipsOk = lh.v >= 0.4 && rh.v >= 0.4;
-      const cx = hipsOk ? (lh.x + rh.x) / 2 : xs.reduce((a, b) => a + b, 0) / xs.length;
-      const cy = hipsOk ? (lh.y + rh.y) / 2 : ys.reduce((a, b) => a + b, 0) / ys.length;
+      // The ring rides on the player's head.
+      const head = focusPoint(best.pts);
+      if (!head) return f;
+      const cx = head.x;
+      const cy = head.y;
       const bodyH = Math.max(...ys) - Math.min(...ys);
       const stamped = await new Promise<string | null>((resolve) => {
         const img = new Image();
@@ -360,8 +363,10 @@ export function AnalyzeFlow() {
   const [lastOpening, setLastOpening] = useState<
     (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // The draggable, resizable frame over the opening image (normalized).
-  const [frameBox, setFrameBox] = useState<Box | null>(null);
+  // The draggable point of interest over the clip (normalized). Dropped on a
+  // player; the body under it is detected and everything follows from that.
+  const [poi, setPoi] = useState<{ x: number; y: number } | null>(null);
+  const poiDragRef = useRef<number | null>(null);
   const frameStageRef = useRef<HTMLDivElement>(null);
   // Scrubbable clip inside the framing card: pick the moment, then the player.
   const frameVideoRef = useRef<HTMLVideoElement>(null);
@@ -370,25 +375,19 @@ export function AnalyzeFlow() {
   const [scrubT, setScrubT] = useState(0);
   // The pinned player was never found in the clip; nobody else was analyzed.
   const [poiMissed, setPoiMissed] = useState(false);
-  const dragRef = useRef<{
-    mode: "move" | "resize";
-    pointerId: number;
-    startX: number;
-    startY: number;
-    start: Box;
-  } | null>(null);
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
-  // Start the frame over the first detected person, else centered.
+  // Start the dot on the first detected person's head, else centered.
   useEffect(() => {
     if (!openingPick) {
-      setFrameBox(null);
-      dragRef.current = null;
+      setPoi(null);
+      poiDragRef.current = null;
       return;
     }
-    const first = openingPick.persons[0] ? boxFromPts(openingPick.persons[0]) : null;
-    setFrameBox(first ?? { left: 0.35, top: 0.18, width: 0.3, height: 0.6 });
+    const first = openingPick.persons[0];
+    const head = first ? focusPoint(first) : null;
+    setPoi(head ?? { x: 0.5, y: 0.45 });
   }, [openingPick]);
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
@@ -404,60 +403,46 @@ export function AnalyzeFlow() {
     return () => URL.revokeObjectURL(url);
   }, [openingPick]);
 
-  function onFramePointerDown(e: React.PointerEvent, mode: "move" | "resize") {
-    if (!frameBox) return;
-    e.preventDefault();
-    e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = {
-      mode,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      start: frameBox,
+  function stagePoint(e: React.PointerEvent): { x: number; y: number } | null {
+    const rect = frameStageRef.current?.getBoundingClientRect();
+    if (!rect || rect.width < 1 || rect.height < 1) return null;
+    return {
+      x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
     };
   }
 
-  function onFramePointerMove(e: React.PointerEvent) {
-    const drag = dragRef.current;
-    const rect = frameStageRef.current?.getBoundingClientRect();
-    if (!drag || !rect || e.pointerId !== drag.pointerId) return;
-    const dx = (e.clientX - drag.startX) / rect.width;
-    const dy = (e.clientY - drag.startY) / rect.height;
-    if (drag.mode === "move") {
-      setFrameBox({
-        ...drag.start,
-        left: Math.min(Math.max(0, drag.start.left + dx), 1 - drag.start.width),
-        top: Math.min(Math.max(0, drag.start.top + dy), 1 - drag.start.height),
-      });
-    } else {
-      setFrameBox({
-        ...drag.start,
-        width: Math.min(Math.max(0.08, drag.start.width + dx), 1 - drag.start.left),
-        height: Math.min(Math.max(0.08, drag.start.height + dy), 1 - drag.start.top),
-      });
-    }
+  // Tap anywhere on the clip to drop the dot there; keep dragging to adjust.
+  function onStagePointerDown(e: React.PointerEvent) {
+    const p = stagePoint(e);
+    if (!p) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    poiDragRef.current = e.pointerId;
+    setPoi(p);
   }
 
-  function onFramePointerUp(e: React.PointerEvent) {
-    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
+  function onStagePointerMove(e: React.PointerEvent) {
+    if (poiDragRef.current !== e.pointerId) return;
+    const p = stagePoint(e);
+    if (p) setPoi(p);
   }
 
-  function onFrameKeyDown(e: React.KeyboardEvent) {
-    if (!frameBox) return;
+  function onStagePointerUp(e: React.PointerEvent) {
+    if (poiDragRef.current === e.pointerId) poiDragRef.current = null;
+  }
+
+  function onPoiKeyDown(e: React.KeyboardEvent) {
+    if (!poi) return;
     const step = e.shiftKey ? 0.05 : 0.02;
-    let { left, top } = frameBox;
-    if (e.key === "ArrowLeft") left -= step;
-    else if (e.key === "ArrowRight") left += step;
-    else if (e.key === "ArrowUp") top -= step;
-    else if (e.key === "ArrowDown") top += step;
+    let { x, y } = poi;
+    if (e.key === "ArrowLeft") x -= step;
+    else if (e.key === "ArrowRight") x += step;
+    else if (e.key === "ArrowUp") y -= step;
+    else if (e.key === "ArrowDown") y += step;
     else return;
     e.preventDefault();
-    setFrameBox({
-      ...frameBox,
-      left: Math.min(Math.max(0, left), 1 - frameBox.width),
-      top: Math.min(Math.max(0, top), 1 - frameBox.height),
-    });
+    setPoi({ x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) });
   }
   const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
@@ -764,14 +749,14 @@ export function AnalyzeFlow() {
     }
   }
 
-  // The frame is confirmed: aim tracking at the framed person at the scrubbed
-  // moment. A fresh detection zoomed into the drawn box finds them even when
-  // they are small; if their hips sit inside the box, the anchor snaps to
-  // them, otherwise the box center is the anchor.
+  // The dot is confirmed: find the body under it at the scrubbed moment. A
+  // fresh detection zoomed around the dot finds the player even when they are
+  // small; the anchor snaps to their head and the detected body's bounds
+  // drive the zoom and crops downstream.
   async function confirmFraming() {
     const opening = openingPick;
-    const box = frameBox;
-    if (!opening || !box) return;
+    const dot = poi;
+    if (!opening || !dot) return;
     const video = frameVideoRef.current;
     const t =
       video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
@@ -779,8 +764,6 @@ export function AnalyzeFlow() {
         : opening.timeS;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    const cx = box.left + box.width / 2;
-    const cy = box.top + box.height / 2;
     // Opening detections only describe the opening probe; re-detect when the
     // player scrubbed elsewhere (or to sharpen the snap when they did not).
     let persons = Math.abs(t - opening.timeS) < 0.2 ? opening.persons : [];
@@ -790,32 +773,53 @@ export function AnalyzeFlow() {
         const found = await engine.detectPersonsFromVideo(
           video,
           t,
-          focusRegionAround(cx, cy, box),
+          focusRegionAround(dot.x, dot.y, null),
         );
         if (found && found.persons.length > 0) persons = dedupePersons(found.persons);
       } catch {
-        // The opening detections (or the box center) still anchor tracking.
+        // The dot position still anchors tracking.
       }
     }
-    let target = { x: cx, y: cy, t, box };
-    let bestD = Infinity;
+    // The body under the dot wins; otherwise the nearest head within reach.
+    let bestPts: (typeof persons)[number] | null = null;
+    let bestScore = 0.2;
     for (const pts of persons) {
-      const lh = pts[LM.leftHip];
-      const rh = pts[LM.rightHip];
-      if (lh.v < 0.4 || rh.v < 0.4) continue;
-      const hx = (lh.x + rh.x) / 2;
-      const hy = (lh.y + rh.y) / 2;
+      const bb = boxFromPts(pts);
+      const head = focusPoint(pts);
+      if (!head) continue;
       const inside =
-        hx >= box.left &&
-        hx <= box.left + box.width &&
-        hy >= box.top &&
-        hy <= box.top + box.height;
-      if (!inside) continue;
-      const d = Math.hypot(hx - cx, hy - cy);
-      if (d < bestD) {
-        bestD = d;
-        target = { x: hx, y: hy, t, box };
+        bb != null &&
+        dot.x >= bb.left &&
+        dot.x <= bb.left + bb.width &&
+        dot.y >= bb.top &&
+        dot.y <= bb.top + bb.height;
+      const d = Math.hypot(head.x - dot.x, head.y - dot.y);
+      const score = inside ? Math.min(d, 0.02) : d;
+      if (score < bestScore) {
+        bestScore = score;
+        bestPts = pts;
       }
+    }
+    let target: { x: number; y: number; t: number; box?: Box };
+    if (bestPts) {
+      const head = focusPoint(bestPts)!;
+      target = { x: head.x, y: head.y, t, box: boxFromPts(bestPts) ?? undefined };
+    } else {
+      // Nobody detected at the dot yet: anchor on the dot itself with a
+      // person-sized window below it (the dot sits on the head).
+      const width = 0.24;
+      const height = 0.44;
+      target = {
+        x: dot.x,
+        y: dot.y,
+        t,
+        box: {
+          left: Math.min(Math.max(0, dot.x - width / 2), 1 - width),
+          top: Math.min(Math.max(0, dot.y - 0.06), 1 - height),
+          width,
+          height,
+        },
+      };
     }
     void runVideoExtraction(opening.blob, opening.isRecorded, target);
   }
@@ -1058,18 +1062,23 @@ export function AnalyzeFlow() {
               </div>
             )}
 
-            {openingPick && frameBox && (
+            {openingPick && poi && (
               <div className="card mb-3 p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Scrub to a moment where your player is clear, then drag the
-                  box over them. Pull the corner to resize.
+                  Scrub to a moment where your player is clear, then drop the
+                  dot on their head.
                 </p>
                 <div
                   ref={frameStageRef}
-                  className="relative mx-auto mt-3 w-fit max-w-full select-none overflow-hidden rounded-lg bg-navy"
+                  onPointerDown={onStagePointerDown}
+                  onPointerMove={onStagePointerMove}
+                  onPointerUp={onStagePointerUp}
+                  onPointerCancel={onStagePointerUp}
+                  className="relative mx-auto mt-3 w-fit max-w-full cursor-crosshair select-none overflow-hidden rounded-lg bg-navy"
+                  style={{ touchAction: "none" }}
                 >
                   {framingUrl && !frameVideoFailed ? (
                     <video
@@ -1097,49 +1106,22 @@ export function AnalyzeFlow() {
                   )}
                   <div
                     role="group"
-                    aria-label="Player frame. Drag to move, or use the arrow keys."
+                    aria-label="Point of interest. Tap or drag onto your player's head, or use the arrow keys."
                     tabIndex={0}
-                    onPointerDown={(e) => onFramePointerDown(e, "move")}
-                    onPointerMove={onFramePointerMove}
-                    onPointerUp={onFramePointerUp}
-                    onPointerCancel={onFramePointerUp}
-                    onKeyDown={onFrameKeyDown}
-                    className="absolute cursor-move rounded-xl border-2 border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                    style={{
-                      left: `${frameBox.left * 100}%`,
-                      top: `${frameBox.top * 100}%`,
-                      width: `${frameBox.width * 100}%`,
-                      height: `${frameBox.height * 100}%`,
-                      touchAction: "none",
-                      boxShadow:
-                        "0 0 0 9999px color-mix(in srgb, var(--color-navy) 55%, transparent)",
-                    }}
+                    onKeyDown={onPoiKeyDown}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    style={{ left: `${poi.x * 100}%`, top: `${poi.y * 100}%` }}
                   >
-                    <button
-                      type="button"
-                      aria-label="Resize the frame"
-                      onPointerDown={(e) => onFramePointerDown(e, "resize")}
-                      onPointerMove={onFramePointerMove}
-                      onPointerUp={onFramePointerUp}
-                      onPointerCancel={onFramePointerUp}
-                      className="absolute -bottom-4 -right-4 flex h-11 w-11 cursor-nwse-resize items-center justify-center rounded-full bg-gold text-navy shadow-lift"
-                      style={{ touchAction: "none" }}
+                    <span
+                      aria-hidden
+                      className="relative block h-8 w-8 rounded-full border-[3px] border-gold shadow-lift"
+                      style={{
+                        boxShadow:
+                          "0 0 0 2px color-mix(in srgb, var(--color-navy) 85%, transparent), 0 0 14px color-mix(in srgb, var(--color-gold) 55%, transparent)",
+                      }}
                     >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        aria-hidden
-                      >
-                        <path
-                          d="M9.5 2H14v4.5M6.5 14H2V9.5M14 2 9 7M2 14l5-5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
+                      <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
+                    </span>
                   </div>
                 </div>
                 {framingUrl && !frameVideoFailed && (

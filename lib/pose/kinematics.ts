@@ -388,6 +388,39 @@ export function focusRegionAround(
   };
 }
 
+// Visible head point of one person: the nose, else between the ears.
+export function headPoint(pts: Landmark[]): { x: number; y: number } | null {
+  const nose = pts[LM.nose];
+  if (nose.v >= 0.4) return { x: nose.x, y: nose.y };
+  const le = pts[LM.leftEar];
+  const re = pts[LM.rightEar];
+  if (le.v >= 0.4 && re.v >= 0.4) return mid(le, re);
+  return null;
+}
+
+// The point the app anchors to on a person: the head, falling back to the
+// shoulders, then the visible centroid. Deliberately never the waist; hips
+// read inconsistently in game footage (occlusion, crouches, turns).
+export function focusPoint(pts: Landmark[]): { x: number; y: number } | null {
+  const head = headPoint(pts);
+  if (head) return head;
+  const ls = pts[LM.leftShoulder];
+  const rs = pts[LM.rightShoulder];
+  if (ls.v >= 0.4 && rs.v >= 0.4) return mid(ls, rs);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of pts) {
+    if (p.v < 0.4) continue;
+    xs.push(p.x);
+    ys.push(p.y);
+  }
+  if (xs.length < 6) return null;
+  return {
+    x: xs.reduce((a, b) => a + b, 0) / xs.length,
+    y: ys.reduce((a, b) => a + b, 0) / ys.length,
+  };
+}
+
 // Best-effort hip center of one detected person; null when too little of the
 // body is visible to place them.
 export function hipCenter(pts: Landmark[]): { x: number; y: number } | null {

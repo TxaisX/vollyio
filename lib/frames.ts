@@ -19,11 +19,10 @@ import { buildMeasurementsBlock } from "./pose/metrics";
 import {
   buildTracks,
   dedupePersons,
+  focusPoint,
   focusRegionAround,
-  hipCenter,
   type FocusRegion,
 } from "./pose/kinematics";
-import { LM } from "./pose/types";
 import type { Skill } from "./skills";
 
 export const MAX_FRAME_DIM = 768;
@@ -92,10 +91,10 @@ export type ExtractOpts = {
   pose?: {
     engine: PoseEngine;
     skill: Skill;
-    // A user-pinned focus player: normalized hip-center position at a clip
-    // time. Track selection anchors to this instead of the activity ranking,
-    // and detection zooms into a region around it so a small, distant player
-    // still registers. box is the user's drawn frame, when they drew one.
+    // A user-pinned focus player: normalized head/focus-point position at a
+    // clip time. Track selection anchors to this instead of the activity
+    // ranking, and detection zooms into a region around it so a small,
+    // distant player still registers. box is the detected body's bounds.
     target?: { x: number; y: number; t: number; box?: FocusRegion };
   };
 };
@@ -121,7 +120,7 @@ function createFocusTracker(target: NonNullable<ExtractOpts["pose"]>["target"]):
       let best: { x: number; y: number } | null = null;
       let bestD = Infinity;
       for (const pts of persons) {
-        const c = hipCenter(pts);
+        const c = focusPoint(pts);
         if (!c) continue;
         const d = Math.hypot(c.x - lastX, c.y - lastY);
         if (d < bestD) {
@@ -628,9 +627,9 @@ async function sampleContentAware(
             }
           }
           if (!near) continue;
-          const cx = (near.pts[LM.leftHip].x + near.pts[LM.rightHip].x) / 2;
-          const cy = (near.pts[LM.leftHip].y + near.pts[LM.rightHip].y) / 2;
-          const d = Math.hypot(cx - target.x, cy - target.y);
+          const c = focusPoint(near.pts);
+          if (!c) continue;
+          const d = Math.hypot(c.x - target.x, c.y - target.y);
           if (d < bestD) {
             bestD = d;
             chosen = track;
@@ -682,11 +681,21 @@ async function sampleContentAware(
           }
         }
         if (!near) continue;
-        const c = hipCenter(near.pts);
-        if (!c) continue;
+        // Center the window on the whole visible body so the crop never
+        // beheads or cuts the legs off the player.
+        const xs: number[] = [];
+        const ys: number[] = [];
+        for (const p of near.pts) {
+          if (p.v < 0.4) continue;
+          xs.push(p.x);
+          ys.push(p.y);
+        }
+        if (xs.length < 6) continue;
+        const bx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const by = (Math.min(...ys) + Math.max(...ys)) / 2;
         pf.crop = {
-          left: Math.min(Math.max(0, c.x - cw / 2), 1 - cw),
-          top: Math.min(Math.max(0, c.y - ch / 2), 1 - ch),
+          left: Math.min(Math.max(0, bx - cw / 2), 1 - cw),
+          top: Math.min(Math.max(0, by - ch / 2), 1 - ch),
           width: cw,
           height: ch,
         };
