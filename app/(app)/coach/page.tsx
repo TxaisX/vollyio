@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
-import { CoachChat, type CoachSession } from "@/components/coach-chat";
+import { CoachChat } from "@/components/coach-chat";
+import { CoachSessions, type CoachSession } from "@/components/coach-sessions";
 
 export const dynamic = "force-dynamic";
 
@@ -57,17 +58,19 @@ export default async function Coach({
 
   return (
     <ViewTransition enter="vt-reveal-in" default="none">
-      <section className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-2xl flex-col md:min-h-[calc(100dvh-4.5rem)]">
-        <div>
+      <section className="mx-auto w-full max-w-5xl lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-8">
+        <div className="lg:col-start-2">
           <p className="font-mono text-xs uppercase tracking-[0.1em] text-gold">Coach</p>
           <h1 className="font-display text-2xl font-bold">Ask your coach</h1>
         </div>
-        <CoachChat
-          key={active?.id ?? "new"}
-          sessions={sessions}
-          activeSessionId={active?.id ?? null}
-          initialMessages={messages}
-        />
+        <CoachSessions sessions={sessions} activeId={active?.id ?? null} />
+        <div className="flex min-h-[calc(100dvh-11rem)] w-full max-w-2xl flex-col md:min-h-[calc(100dvh-7rem)] lg:col-start-2 lg:mx-auto">
+          <CoachChat
+            key={active?.id ?? "new"}
+            activeSessionId={active?.id ?? null}
+            initialMessages={messages}
+          />
+        </div>
       </section>
     </ViewTransition>
   );

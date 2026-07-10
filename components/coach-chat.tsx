@@ -1,22 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Reveal } from "@/components/motion";
-import { deleteCoachSession } from "@/app/(app)/coach/actions";
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   created_at: string;
-};
-
-export type CoachSession = {
-  id: string;
-  title: string;
-  updated_at: string;
 };
 
 const SUGGESTIONS = [
@@ -120,11 +112,9 @@ function AssistantContent({ text }: { text: string }) {
 }
 
 export function CoachChat({
-  sessions,
   activeSessionId,
   initialMessages,
 }: {
-  sessions: CoachSession[];
   activeSessionId: string | null;
   initialMessages: ChatMessage[];
 }) {
@@ -273,55 +263,6 @@ export function CoachChat({
 
   return (
     <div className="flex flex-1 flex-col">
-      <nav aria-label="Coach sessions" className="mt-4 flex items-center gap-2">
-        <Link
-          href="/coach?s=new"
-          className={`chip min-h-11 shrink-0 ${activeSessionId == null ? "chip-active" : ""}`}
-          aria-current={activeSessionId == null ? "true" : undefined}
-        >
-          + New chat
-        </Link>
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1">
-          {sessions.map((session) => {
-            const isActive = session.id === activeSessionId;
-            return (
-              <span key={session.id} className="flex shrink-0 items-center gap-1">
-                <Link
-                  href={`/coach?s=${session.id}`}
-                  aria-current={isActive ? "true" : undefined}
-                  className={`chip min-h-11 max-w-48 truncate ${isActive ? "chip-active" : ""}`}
-                  title={session.title}
-                >
-                  {session.title}
-                </Link>
-                {isActive && (
-                  <form action={deleteCoachSession}>
-                    <input type="hidden" name="id" value={session.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Delete session: ${session.title}`}
-                      className="chip min-h-11 px-3 text-chalk-dim hover:text-coral"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        className="h-3.5 w-3.5"
-                        aria-hidden="true"
-                      >
-                        <path d="M6 6l12 12M18 6L6 18" />
-                      </svg>
-                    </button>
-                  </form>
-                )}
-              </span>
-            );
-          })}
-        </div>
-      </nav>
-
       <div className="flex flex-1 flex-col gap-4 py-6">
         {messages.length === 0 && (
           <Reveal>

@@ -274,3 +274,7 @@ applies as everywhere.
 | legacy backfill session title | `Earlier conversations` |
 | session not found (API) | `That session doesn't exist.` |
 | session create failure (API) | `Couldn't start a session.` |
+
+Coach session sidebar (desktop rail) additions: button `New chat`, list label
+`Sessions`, empty state `Your conversations show up here.`, relative dates
+`Today` / `Yesterday` / `{n} days ago`.
