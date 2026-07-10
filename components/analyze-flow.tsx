@@ -1069,7 +1069,7 @@ export function AnalyzeFlow() {
                 </p>
                 <div
                   ref={frameStageRef}
-                  className="relative mt-3 select-none overflow-hidden rounded-lg bg-navy"
+                  className="relative mx-auto mt-3 w-fit max-w-full select-none overflow-hidden rounded-lg bg-navy"
                 >
                   {framingUrl && !frameVideoFailed ? (
                     <video
@@ -1084,14 +1084,14 @@ export function AnalyzeFlow() {
                         if (v) v.currentTime = openingPick.timeS;
                       }}
                       onError={() => setFrameVideoFailed(true)}
-                      className="block w-full"
+                      className="block max-h-[45vh] w-auto max-w-full"
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={openingPick.dataUrl}
                       alt="Opening frame. Frame the player to analyze."
-                      className="block w-full"
+                      className="block max-h-[45vh] w-auto max-w-full"
                       draggable={false}
                     />
                   )}
