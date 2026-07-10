@@ -289,6 +289,71 @@ export function AnalyzeFlow() {
   const [openingPick, setOpeningPick] = useState<
     (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
   >(null);
+  // Cropped card per tracked player for the post-analysis switcher.
+  const [trackCards, setTrackCards] = useState<{ id: number; thumb: string }[]>([]);
+
+  useEffect(() => {
+    if (playerTracks.length <= 1 || frames.length === 0 || source !== "video") {
+      setTrackCards([]);
+      return;
+    }
+    const refTrack = playerTracks[0];
+    const midT = refTrack.frames[Math.floor(refTrack.frames.length / 2)]?.t ?? 0;
+    let display = frames[0];
+    for (const f of frames) {
+      if (
+        f.time_s != null &&
+        Math.abs(f.time_s - midT) < Math.abs((display.time_s ?? 1e9) - midT)
+      ) {
+        display = f;
+      }
+    }
+    if (display.time_s == null) {
+      setTrackCards([]);
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      const cards: { id: number; thumb: string }[] = [];
+      const taken: Box[] = [];
+      for (const t of playerTracks) {
+        const box = trackBoxAt(t, display.time_s!);
+        if (!box) continue;
+        // Hide a card that mostly covers a stronger track's pixels.
+        if (taken.some((o) => boxOverlap(o, box) > 0.45)) continue;
+        const sw = box.width * img.naturalWidth;
+        const sh = box.height * img.naturalHeight;
+        if (sw < 8 || sh < 8) continue;
+        const scale = 200 / sh;
+        const tw = Math.max(24, Math.round(sw * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = tw;
+        canvas.height = 200;
+        canvas
+          .getContext("2d")!
+          .drawImage(
+            img,
+            box.left * img.naturalWidth,
+            box.top * img.naturalHeight,
+            sw,
+            sh,
+            0,
+            0,
+            tw,
+            200,
+          );
+        taken.push(box);
+        cards.push({ id: t.id, thumb: canvas.toDataURL("image/jpeg", 0.75) });
+      }
+      setTrackCards(cards);
+    };
+    img.src = display.dataUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [playerTracks, frames, source]);
 
   // Follow a different athlete: recompute the measurements from that track
   // without re-extracting anything.
@@ -842,34 +907,31 @@ export function AnalyzeFlow() {
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Tap your player. Every measurement and score comes from them.
+                  Pick the player to focus on. Every measurement and score comes
+                  from them.
                 </p>
-                <div className="relative mt-3 overflow-hidden rounded-lg bg-navy">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={openingPick.dataUrl}
-                    alt="Opening frame. Tap the player to analyze."
-                    className="block w-full"
-                  />
-                  {openingPick.persons.map((pts, i) => {
-                    const box = boxFromPts(pts);
-                    if (!box) return null;
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => pickOpeningPlayer(i)}
-                        aria-label={`Analyze player ${i + 1}`}
-                        className="absolute rounded-md border-2 border-chalk/50 transition-colors hover:border-gold focus-visible:border-gold"
-                        style={{
-                          left: `${box.left * 100}%`,
-                          top: `${box.top * 100}%`,
-                          width: `${box.width * 100}%`,
-                          height: `${box.height * 100}%`,
-                        }}
-                      />
-                    );
-                  })}
+                <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                  {openingPick.thumbs.map((thumb, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => pickOpeningPlayer(i)}
+                      aria-label={`Focus on player ${i + 1}`}
+                      className="group shrink-0 text-center"
+                    >
+                      <span className="block h-40 overflow-hidden rounded-lg border-2 border-line bg-navy transition-colors group-hover:border-gold group-focus-visible:border-gold">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={thumb}
+                          alt=""
+                          className="h-full w-auto object-cover"
+                        />
+                      </span>
+                      <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-wide text-chalk-dim transition-colors group-hover:text-gold">
+                        Player {i + 1}
+                      </span>
+                    </button>
+                  ))}
                 </div>
                 <button
                   type="button"
@@ -881,85 +943,52 @@ export function AnalyzeFlow() {
               </div>
             )}
 
-            {playerTracks.length > 1 &&
-              source === "video" &&
-              frames.length > 0 &&
-              (() => {
-                const selected = playerChoice ?? playerTracks[0].id;
-                const refTrack =
-                  playerTracks.find((t) => t.id === selected) ?? playerTracks[0];
-                const midT =
-                  refTrack.frames[Math.floor(refTrack.frames.length / 2)]?.t ?? 0;
-                let display = frames[0];
-                for (const f of frames) {
-                  if (
-                    f.time_s != null &&
-                    Math.abs(f.time_s - midT) <
-                      Math.abs((display.time_s ?? 1e9) - midT)
-                  ) {
-                    display = f;
-                  }
-                }
-                const boxes = playerTracks
-                  .map((t) => ({
-                    id: t.id,
-                    box:
-                      display.time_s != null ? trackBoxAt(t, display.time_s) : null,
-                  }))
-                  .filter(
-                    (b): b is { id: number; box: NonNullable<typeof b.box> } =>
-                      b.box != null,
-                  )
-                  // Tracks are strongest-first; hide a box that mostly covers
-                  // the same pixels as a stronger one (duplicate detections).
-                  .filter(
-                    (b, i, arr) =>
-                      !arr.slice(0, i).some((o) => boxOverlap(o.box, b.box) > 0.45),
-                  );
-                if (boxes.length < 2) return null;
-                return (
-                  <div className="card mb-3 p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
-                      Players detected
-                    </p>
-                    <p className="mt-1 text-xs text-chalk-dim">
-                      Analyzing the player in the gold box. Tap another player to
-                      switch.
-                    </p>
-                    <div className="relative mt-3 overflow-hidden rounded-lg bg-navy">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={display.dataUrl}
-                        alt="Frame used to choose which player to analyze"
-                        className="block w-full"
-                      />
-                      {boxes.map(({ id, box }, i) => (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => selectTrack(id)}
-                          disabled={busy}
-                          aria-pressed={id === selected}
-                          aria-label={`Analyze player ${i + 1}${
-                            id === selected ? " (selected)" : ""
-                          }`}
-                          className={`absolute rounded-md border-2 transition-colors ${
-                            id === selected
+            {trackCards.length > 1 && source === "video" && frames.length > 0 && (
+              <div className="card mb-3 p-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                  Focus player
+                </p>
+                <p className="mt-1 text-xs text-chalk-dim">
+                  Analyzing the highlighted player. Pick another to switch.
+                </p>
+                <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                  {trackCards.map(({ id, thumb }, i) => {
+                    const selected = (playerChoice ?? playerTracks[0]?.id) === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => selectTrack(id)}
+                        disabled={busy}
+                        aria-pressed={selected}
+                        aria-label={`Focus on player ${i + 1}${
+                          selected ? " (analyzing)" : ""
+                        }`}
+                        className="group shrink-0 text-center disabled:opacity-40"
+                      >
+                        <span
+                          className={`block h-40 overflow-hidden rounded-lg border-2 bg-navy transition-colors ${
+                            selected
                               ? "border-gold shadow-lift"
-                              : "border-chalk/40 hover:border-gold/70"
+                              : "border-line group-hover:border-gold/70"
                           }`}
-                          style={{
-                            left: `${box.left * 100}%`,
-                            top: `${box.top * 100}%`,
-                            width: `${box.width * 100}%`,
-                            height: `${box.height * 100}%`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={thumb} alt="" className="h-full w-auto object-cover" />
+                        </span>
+                        <span
+                          className={`mt-1.5 block font-mono text-[10px] uppercase tracking-wide ${
+                            selected ? "text-gold" : "text-chalk-dim"
+                          }`}
+                        >
+                          {selected ? `Player ${i + 1} · analyzing` : `Player ${i + 1}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {frames.length > 0 ? (
               <div className="reward-earned">
