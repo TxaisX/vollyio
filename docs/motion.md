@@ -111,3 +111,73 @@ This layer introduces no color, no font, and no dependency. It reuses `--ease-co
 and the palette tokens only. `ViewTransition` ships inside React/Next, so it fits the
 dependency budget with nothing added. No animation/motion library was adopted, so
 there is no 10.5 viability-gate or bundle-cost entry to record here.
+
+## Component additions (D-005)
+
+| Motion | Surface | Timing | Reduced-motion behavior |
+| --- | --- | --- | --- |
+| `drift` | Decorative seam motifs on the landing page | 16s alternate, transform only | Global reduce block runs one 0.01ms iteration and leaves the settled frame |
+| `pop-in` | XP toast | 420ms scale + opacity | Global reduce block settles immediately at full opacity and scale 1 |
+| `CountUp` reuse | Landing analysis score, skill count, streak | 900ms rAF tween | A live `matchMedia` listener cancels the tween and sets the target immediately |
+
+All three preserve layout dimensions, use existing tokens and `--ease-court`, and add
+no dependency. Motion remains supplementary; the same values and state are present
+without animation.
+
+## Reward feedback system (D-006)
+
+| Pattern | Trigger | Surfaces |
+| --- | --- | --- |
+| `reward-arrive` | New earned content enters | XP and success toasts, completed goals, captured frames, score badges, coach messages |
+| `reward-glow` | A meaningful milestone resolves | Goal completion, set win, match win |
+| `reward-check` | A completion is confirmed | Goal, daily challenge, set/match, save confirmation |
+| `nav-marker-in` | Active route changes | Desktop sidebar and mobile tab marker |
+| `selection-settle` | A discrete selection becomes active | Active nav icon and newly won set dot |
+| Learn crossfade/morph | Discipline or skill changes | Indoor/Beach card grid and list-to-detail skill title |
+
+Buttons, ghost controls, and chips also use short transform-only press feedback. New
+coach messages and captured frame grids animate only when inserted. The mobile tab
+bar centers its active item with smooth scrolling only when reduced motion is off.
+
+Under `prefers-reduced-motion: reduce`, all animation durations collapse to 0.01ms,
+all animation/transition delays become 0ms, reveals render at opacity 1 with no
+transform, and active-tab scrolling is instant. Device-emulation verification at
+360px reported `clientWidth=360`, `scrollWidth=360`, and all Learn cards inside the
+20px page gutters.
+
+## Premium campaign motion (D-007)
+
+| Pattern | Surface | Timing | Purpose |
+| --- | --- | --- | --- |
+| `hero-photo-settle` | Landing and auth photography | 1.35s once | Lets the real volleyball moment resolve without continuous ambient work |
+| `hero-hud-in` | Landing analysis HUD | 720ms after copy begins | Connects the athlete to the product readout |
+| `hero-metric-grow` | HUD metric bars and dashboard heading rule | 700ms staggered | Shows the score resolving from evidence |
+| `court-line-in` | Landing court rule | 1.1s once | Carries the court geometry through the hero composition |
+
+The authenticated shell also reuses the existing `drift` primitive at 3.5% opacity
+for fixed court geometry, while dashboard score and challenge surfaces receive
+stronger static hierarchy. Every new animation is transform/opacity only, settles
+instantly under reduced motion, and does not alter layout dimensions.
+
+## Analytics and launch-film motion (D-010)
+
+| Pattern | Surface | Timing | Reduced-motion behavior |
+| --- | --- | --- | --- |
+| `analytics-draw`, `analytics-point-in`, `analytics-playhead-in` | Landing rep-intelligence trace | 300–900ms once per selected rep | Global reduce block settles the trace and evidence points immediately |
+| Rep progression | Landing analytics tabs | 4.4s between examples while in view | A live `matchMedia` guard disables auto-progression; manual tabs remain fully usable |
+| `launch-cut` | Five launch-film chapters | 3.8–8s per chapter across a 19.77s sequence | The route renders a static final brand frame instead of mounting the timed sequence |
+| `launch-photo`, `launch-bar`, `launch-step`, `launch-line` | Launch-film camera move and evidence graphics | 720ms–19s, transform/opacity/filter only | The static final frame contains no animated descendants |
+
+The launch route is also the deterministic source for `public/sideout-launch.mp4`.
+The capture script lives in `scripts/render-launch-video.mjs` and requires only a
+temporary local encoder, so the shipped application keeps the same dependency graph.
+
+## Hero ambient layer (2026-07-10)
+
+The landing hero photograph was removed at the owner's direction; in its place
+the hero runs an ambient backdrop: `hero-glow-drift` (new keyframe, 21s
+ease-in-out infinite alternate, translate3d + scale only) on `.hero-glow`, and
+the pre-existing `drift` animation on the seam-arcs motif. Decorative only,
+conveys no state, and the global reduced-motion rule zeroes both, leaving a
+static composed backdrop. `hero-photo-settle` and `hero-shade` are no longer
+referenced by the landing page (login/signup still use the photo treatment).

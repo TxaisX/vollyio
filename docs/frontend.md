@@ -12,3 +12,9 @@ Records net-new shared classes added during the perfection mission, per quality-
 Opacity/lighten variants of a token color are expressed against the token, never re-typed as a raw hex/rgb of the same color:
 `color-mix(in oklab, var(--color-gold|chalk|navy|coral) N%, transparent | var(--color-chalk))`.
 The `.text-sheen` mid-stops use `color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk))` (no eleventh color). Sanctioned literal-color surfaces remain only: `app/manifest.ts` JSON, `viewport.themeColor`, and `app/opengraph-image.tsx` satori inline styles (cannot resolve CSS custom properties).
+
+## CV Phase 1 follow-up (2026-07-10)
+
+- `.hero-glow` (globals.css): ambient radial gold glow for the photo-free
+  landing hero. Decorative, transform/opacity only, paired with the existing
+  `animate-drift` seam arcs. Call site: `app/page.tsx` hero section.
