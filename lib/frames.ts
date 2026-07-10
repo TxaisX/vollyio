@@ -31,7 +31,7 @@ export const MAX_CLIP_SECONDS = 45;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Content-aware sampler tuning (video only; the photo path is unchanged).
-const VIDEO_FRAME_DIM = 960; // final video frames render larger than photos
+const VIDEO_FRAME_DIM = 1280; // final video frames render larger than photos
 const VIDEO_JPEG_QUALITY = 0.7;
 const SCAN_DIM = 144; // tiny throwaway canvas for the motion scan
 const PROBE_COUNT = 24;
