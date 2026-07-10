@@ -6,6 +6,7 @@ import { SeamArcs } from "@/components/motif";
 import { Radar } from "@/components/radar";
 import { ScoreRing } from "@/components/score-ring";
 import { SkillIcon } from "@/components/skill-icons";
+import { AnalyticsShowcase } from "@/components/analytics-showcase";
 import { SKILLS, SKILL_LABEL, SKILL_BLURB } from "@/lib/skills";
 
 const MARQUEE = [
@@ -35,58 +36,54 @@ const STEPS = [
   },
 ];
 
-function MockAnalysisCard() {
+function HeroAnalysisHud() {
   return (
-    <div className="card spot rotate-1 p-5 shadow-lift md:p-6">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
-          Serve · 5 frames
-        </span>
-        <span className="rounded-full bg-gold px-2.5 py-0.5 font-display text-xs font-bold text-navy">
-          78
-        </span>
-      </div>
-      <div className="mt-4 flex gap-1.5">
-        {[0.4, 0.8, 1.2, 1.6, 2.1].map((t, i) => (
-          <div
-            key={t}
-            className={`h-14 flex-1 rounded-md border ${
-              i === 4 ? "border-gold" : "border-line"
-            } bg-gradient-to-b from-navy-lighter to-navy-light`}
-          >
-            <span className="block px-1.5 pt-1 font-mono text-[9px] text-chalk-dim">
-              {t}s
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 space-y-3">
-        {[
-          ["Toss placement", 82],
-          ["Contact point", 74],
-          ["Follow-through", 61],
-        ].map(([label, score]) => (
-          <div key={label as string}>
-            <div className="flex justify-between font-mono text-[10px] uppercase text-chalk-dim">
-              <span>{label}</span>
-              <span className="text-chalk">{score}</span>
+    <div
+      role="img"
+      aria-label="Example serve analysis. Overall score 78. Contact point is the priority fix at frame 12."
+      className="hero-hud w-[22rem] overflow-hidden rounded-card border border-line bg-navy/80 p-4 shadow-lift backdrop-blur-xl"
+    >
+      <div aria-hidden="true">
+        <div className="flex items-center justify-between border-b border-line pb-3">
+          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
+            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
+            Serve analysis
+          </span>
+          <span className="font-display text-2xl font-bold text-gold">
+            <CountUp to={78} />
+          </span>
+        </div>
+        <div className="mt-3 space-y-2.5">
+          {[
+            ["Toss placement", 82],
+            ["Contact point", 74],
+            ["Follow-through", 61],
+          ].map(([label, score], index) => (
+            <div key={label as string}>
+              <div className="flex justify-between font-mono text-[10px] uppercase text-chalk-dim">
+                <span>{label}</span>
+                <span className="text-chalk">{score}</span>
+              </div>
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-line/60">
+                <div
+                  className="hero-metric-fill h-full origin-left rounded-full bg-gold"
+                  style={{
+                    width: `${score}%`,
+                    animationDelay: `${340 + index * 90}ms`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="mt-1 h-1.5 rounded-full bg-line/60">
-              <div
-                className="h-full rounded-full bg-gold"
-                style={{ width: `${score}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 rounded-md border-l-2 border-gold bg-navy/60 p-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
-          Priority fix · frame 5
-        </p>
-        <p className="mt-1 text-sm text-chalk">
-          Contact is behind your head. Toss six inches further into the court.
-        </p>
+          ))}
+        </div>
+        <div className="mt-4 rounded-control border-l-2 border-gold bg-navy/70 p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+            Priority fix · frame 12
+          </p>
+          <p className="mt-1 text-sm leading-snug text-chalk">
+            Meet the ball six inches farther into the court.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -128,56 +125,65 @@ export default function Landing() {
       <LandingNav />
 
       <main id="main" tabIndex={-1} className="relative">
-        <section className="relative mx-auto grid max-w-6xl gap-12 px-5 pb-20 pt-32 md:grid-cols-2 md:items-center md:gap-10 md:px-8 md:pb-28 md:pt-44">
-          <SeamArcs className="absolute inset-0 -z-10 h-full w-full" />
-          <div>
-            <Reveal immediate>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-                AI volleyball coach
-              </p>
-            </Reveal>
-            <Reveal delay={80} immediate>
-              <h1 className="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-                Fix the one thing{" "}
-                <span className="text-sheen">holding your game back.</span>
-              </h1>
-            </Reveal>
-            <Reveal delay={160} immediate>
-              <p className="mt-5 max-w-md text-lg text-chalk-dim">
-                Record a rep. Sideout breaks it down frame by frame across
-                serve, pass, set, attack, block, and defense, scored the way a
-                coach scores it.
-              </p>
-            </Reveal>
-            <Reveal delay={240} immediate>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Magnetic>
-                  <Link href="/signup" className="btn-primary text-base">
-                    Start your first breakdown
-                  </Link>
-                </Magnetic>
-                <a href="#how" className="btn-ghost text-base">
-                  See how it works
-                </a>
-              </div>
-            </Reveal>
-            <Reveal delay={320} immediate>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {["Six skills", "Frame-cited feedback", "Free to start"].map(
-                  (chip) => (
-                    <span key={chip} className="tag">
-                      {chip}
-                    </span>
-                  ),
-                )}
-              </div>
-            </Reveal>
+        <section className="landing-hero relative flex min-h-[calc(100svh-7.5rem)] items-end overflow-hidden border-b border-line pt-24 md:min-h-[calc(100svh-4.5rem)] md:items-center md:pt-28">
+          <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
+            <div className="hero-glow" />
+            <div className="animate-drift absolute inset-0">
+              <SeamArcs opacity={0.14} />
+            </div>
           </div>
-          <Reveal delay={200} immediate className="md:justify-self-end">
-            <SpotlightGroup>
-              <MockAnalysisCard />
-            </SpotlightGroup>
-          </Reveal>
+          <div aria-hidden="true" className="hero-court-line absolute inset-x-0 bottom-[18%]" />
+          <div className="relative mx-auto grid w-full max-w-6xl items-end gap-10 px-5 pb-6 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center md:px-8 md:pb-12">
+            <div className="max-w-2xl">
+              <Reveal immediate>
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">
+                  Your film · your fix · your next level
+                </p>
+              </Reveal>
+              <Reveal delay={70} immediate>
+                <h1 className="mt-3 font-display text-5xl font-bold leading-none text-chalk md:text-7xl">
+                  Sideout
+                </h1>
+              </Reveal>
+              <Reveal delay={130} immediate>
+                <p className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight text-chalk md:text-5xl">
+                  Fix the one thing holding your game back.
+                </p>
+              </Reveal>
+              <Reveal delay={200} immediate>
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-chalk-dim md:text-lg">
+                  Record a rep. Get the exact frame, the score, and the one
+                  correction that buys the most across every volleyball skill.
+                </p>
+              </Reveal>
+              <Reveal delay={270} immediate>
+                <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <Magnetic>
+                    <Link href="/signup" className="btn-primary min-h-12 text-base">
+                      Analyze your first rep
+                    </Link>
+                  </Magnetic>
+                  <Link href="/launch" className="btn-ghost min-h-12 text-base">
+                    Watch launch film
+                  </Link>
+                </div>
+              </Reveal>
+              <Reveal delay={330} immediate>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {["Six skills", "Frame-cited feedback", "Free to start"].map(
+                    (chip) => (
+                      <span key={chip} className="tag bg-navy/55 backdrop-blur-md">
+                        {chip}
+                      </span>
+                    ),
+                  )}
+                </div>
+              </Reveal>
+            </div>
+            <div className="hidden justify-self-end lg:block">
+              <HeroAnalysisHud />
+            </div>
+          </div>
         </section>
 
         <div aria-hidden="true" className="overflow-hidden border-y border-line py-3">
@@ -220,11 +226,35 @@ export default function Landing() {
           </SpotlightGroup>
         </section>
 
+        <section id="analytics" className="scroll-mt-24 border-t border-line">
+          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                Analytics that coach you
+              </p>
+              <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
+                Turn every rep into a reason to take the next one.
+              </h2>
+              <p className="mt-4 max-w-xl text-chalk-dim">
+                Sideout connects the score to the motion that made it, then turns
+                that evidence into one clear adjustment for your next rep.
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              <div className="mt-10">
+                <AnalyticsShowcase />
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         <section id="skills" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <div className="flex items-end gap-4">
-                <span className="stat-num text-gold text-6xl md:text-7xl">6</span>
+                <span className="stat-num text-gold text-6xl md:text-7xl">
+                  <CountUp to={6} />
+                </span>
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
                     Skills scored
@@ -389,7 +419,7 @@ export default function Landing() {
                 </p>
               </Reveal>
             </div>
-            <Reveal>
+            <Reveal delay={140}>
               <div className="card p-6">
                 <div className="space-y-3">
                   <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm font-medium text-navy">
@@ -413,7 +443,7 @@ export default function Landing() {
         </section>
 
         <section className="relative border-t border-line">
-          <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.07} />
+          <SeamArcs className="absolute inset-0 h-full w-full animate-drift" opacity={0.07} />
           <div className="relative mx-auto max-w-3xl px-5 py-24 text-center md:py-32">
             <Reveal>
               <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">
