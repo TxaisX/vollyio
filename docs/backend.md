@@ -171,8 +171,11 @@ Multi-player footage: the pose worker detects up to 4 athletes per frame
 across frames by hip-center distance + body-size similarity into
 `PersonTrack`s, ranked by motion energy (0.45), prominence (0.25), centering
 (0.15), and coverage (0.15). Extraction follows the top track by default; all
-tracks return to the flow, and when more than one athlete tracks cleanly the
-analyze preview shows a tap-to-switch player picker (gold box = analyzed).
+tracks return to the flow, and when more than one person is visible
+in the opening seconds the flow pauses BEFORE analysis with a tap-your-player
+frame (detectOpeningPlayers + pose.target anchors track selection to the tap);
+after extraction a tap-to-switch picker remains as the correction path (gold
+box = analyzed).
 Switching recomputes measurements client-side from the chosen track with no
 re-extraction. `player_selection {candidates, selected_rank, auto}` rides the
 analyze request and persists inside `result`. Remembering a player across

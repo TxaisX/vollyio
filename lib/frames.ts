@@ -17,6 +17,7 @@ import type {
 } from "./pose/types";
 import { buildMeasurementsBlock } from "./pose/metrics";
 import { buildTracks } from "./pose/kinematics";
+import { LM } from "./pose/types";
 import type { Skill } from "./skills";
 
 export const MAX_FRAME_DIM = 768;
@@ -78,8 +79,66 @@ export type VideoExtraction = {
 
 export type ExtractOpts = {
   debug?: boolean;
-  pose?: { engine: PoseEngine; skill: Skill };
+  pose?: {
+    engine: PoseEngine;
+    skill: Skill;
+    // A user-pinned focus player: normalized hip-center position at a clip
+    // time. Track selection anchors to this instead of the activity ranking.
+    target?: { x: number; y: number; t: number };
+  };
 };
+
+// The opening-of-clip cast: who is on screen in the first seconds, plus a
+// rendered frame to tap on. Null when nothing can be detected (no engine
+// support, unreadable video, nobody visible).
+export type OpeningPlayers = {
+  dataUrl: string;
+  timeS: number;
+  persons: LandmarkFrame["pts"][];
+  duration_s: number;
+};
+
+export async function detectOpeningPlayers(
+  source: File | Blob,
+  engine: PoseEngine,
+): Promise<OpeningPlayers | null> {
+  const url = URL.createObjectURL(source);
+  try {
+    const video = await loadVideo(url);
+    const probeTimes = [0.4, 1.2, 2.4].filter((t) => t < video.duration - 0.05);
+    for (const t of probeTimes) {
+      await seekTo(video, t);
+      let frame: PersonFrame | null = null;
+      try {
+        frame = await engine.detectPersonsFromVideo(video, video.currentTime);
+      } catch {
+        frame = null;
+      }
+      if (frame && frame.persons.length > 0) {
+        const [w, h] = scaledSize(
+          video.videoWidth || 640,
+          video.videoHeight || 360,
+          VIDEO_FRAME_DIM,
+        );
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d")!.drawImage(video, 0, 0, w, h);
+        return {
+          dataUrl: canvas.toDataURL("image/jpeg", VIDEO_JPEG_QUALITY),
+          timeS: video.currentTime,
+          persons: frame.persons,
+          duration_s: video.duration,
+        };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function sampleFractions(duration: number): number[] {
   if (duration <= 6) return [0.1, 0.3, 0.45, 0.55, 0.7, 0.88];
@@ -423,7 +482,32 @@ async function sampleContentAware(
       denseFps = dense.denseFps;
       const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
       tracks = buildTracks(personFrames);
-      const chosen = tracks[0] ?? null;
+      let chosen = tracks[0] ?? null;
+      // A user-pinned player overrides the activity ranking: pick the track
+      // whose hip center sits closest to the tap at the anchored moment.
+      const target = pose.target;
+      if (target && tracks.length > 1) {
+        let bestD = 0.35;
+        for (const track of tracks) {
+          let near: LandmarkFrame | null = null;
+          let nearD = 1.5;
+          for (const f of track.frames) {
+            const d = Math.abs(f.t - target.t);
+            if (d < nearD) {
+              nearD = d;
+              near = f;
+            }
+          }
+          if (!near) continue;
+          const cx = (near.pts[LM.leftHip].x + near.pts[LM.rightHip].x) / 2;
+          const cy = (near.pts[LM.leftHip].y + near.pts[LM.rightHip].y) / 2;
+          const d = Math.hypot(cx - target.x, cy - target.y);
+          if (d < bestD) {
+            bestD = d;
+            chosen = track;
+          }
+        }
+      }
       if (chosen) {
         selectedTrackId = chosen.id;
         landmarks = chosen.frames;

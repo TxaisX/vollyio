@@ -282,3 +282,8 @@ Coach session sidebar (desktop rail) additions: button `New chat`, list label
 Focus-player picker (analyze preview): kicker `Players detected`, caption
 `Analyzing the player in the gold box. Tap another player to switch.`, button
 aria `Analyze player {n}` / `(selected)`.
+
+Focus-player opening pick (analyze preview, before analysis): kicker
+`Who should I watch?`, caption `Tap your player. Every measurement and score
+comes from them.`, image alt `Opening frame. Tap the player to analyze.`,
+button aria `Analyze player {n}`, skip chip `Let the app decide`.
