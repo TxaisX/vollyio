@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { Reveal } from "@/components/motion";
 import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL, isSkill, type Skill } from "@/lib/skills";
@@ -30,14 +31,12 @@ export default async function History({
   const activeSkill = skillParam && isSkill(skillParam) ? skillParam : null;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
 
   let query = supabase
     .from("analyses")
     .select("id, skill, overall_score, created_at, result")
-    .eq("user_id", user!.id)
+    .eq("user_id", userId!)
     .order("created_at", { ascending: false })
     .limit(100);
   if (activeSkill) query = query.eq("skill", activeSkill);

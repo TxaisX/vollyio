@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { Scoreboard } from "@/components/scoreboard";
 import { Reveal } from "@/components/motion";
 
@@ -22,14 +23,12 @@ type GameRow = {
 
 export default async function ScoreboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
 
   const { data, error } = await supabase
     .from("games")
     .select("id, team_a, team_b, sets, winner, started_at")
-    .eq("user_id", user!.id)
+    .eq("user_id", userId!)
     .order("started_at", { ascending: false })
     .limit(10);
 

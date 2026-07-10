@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import {
   awardXp,
   XP_AWARDS,
@@ -11,14 +12,12 @@ import {
 
 export async function completeChallenge() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return;
 
   await awardXp(
     supabase,
-    user.id,
+    userId,
     XP_AWARDS.challenge,
     challengeReason(todayKey()),
   );
@@ -27,10 +26,8 @@ export async function completeChallenge() {
 
 export async function setTrainingConsent(formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return;
 
   const allow = formData.get("allow") === "true";
   await supabase
@@ -39,6 +36,6 @@ export async function setTrainingConsent(formData: FormData) {
       training_consent: allow,
       training_consent_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", userId);
   revalidatePath("/dashboard");
 }

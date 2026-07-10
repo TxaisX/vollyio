@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 import { LinkPending } from "@/components/link-pending";
 import { ScoreRing } from "@/components/score-ring";
 import { Radar } from "@/components/radar";
@@ -55,9 +56,7 @@ export default async function Dashboard({
   const discipline: Discipline = isDiscipline(rawDiscipline ?? "")
     ? (rawDiscipline as Discipline)
     : "indoor";
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
 
   const [
     { data: profile, error: profileError },
@@ -69,28 +68,28 @@ export default async function Dashboard({
     supabase
       .from("profiles")
       .select("display_name, level, training_consent")
-      .eq("id", user!.id)
+      .eq("id", userId!)
       .single(),
     supabase
       .from("skill_ratings")
       .select("skill, rating")
-      .eq("user_id", user!.id)
+      .eq("user_id", userId!)
       .eq("discipline", discipline),
     supabase
       .from("analyses")
       .select("id, skill, overall_score, created_at")
-      .eq("user_id", user!.id)
+      .eq("user_id", userId!)
       .eq("discipline", discipline)
       .order("created_at", { ascending: false })
       .limit(40),
     supabase
       .from("goals")
       .select("id, title, skill, target_rating")
-      .eq("user_id", user!.id)
+      .eq("user_id", userId!)
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(3),
-    getProgress(supabase, user!.id),
+    getProgress(supabase, userId!),
   ]);
 
   const fetchError =
@@ -111,7 +110,7 @@ export default async function Dashboard({
 
   const firstName = profile?.display_name?.split(" ")[0];
   const challenge = dailyChallenge(
-    user!.id,
+    userId!,
     (profile?.level ?? "beginner") as Level,
     todayKey(),
   );

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/supabase/user";
 
 const payloadSchema = z.object({
   team_a: z.string().trim().min(1).max(30),
@@ -29,16 +30,14 @@ export async function saveGame(
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const userId = await getAuthUserId(supabase);
+  if (!userId) {
     redirect("/login");
   }
 
   const d = parsed.data;
   const { error } = await supabase.from("games").insert({
-    user_id: user.id,
+    user_id: userId,
     team_a: d.team_a,
     team_b: d.team_b,
     best_of: d.best_of,

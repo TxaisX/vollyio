@@ -132,3 +132,21 @@ Companion spec: `docs/cv-phase1-spec.md` (HTML twin `cv-phase1-spec.html`).
   spacing; pose refines peaks to measured contact instants instead), and
   `keypoints.json` uploads uncompressed (rounded to 3 decimals) so the results
   page can read it without a decompression path.
+
+## 9. Navigation performance (2026-07-10)
+
+- **Middleware auth is local-first**: `proxy.ts` and page/server-action code
+  resolve identity via `getClaims()` (JWT verified against the project's
+  public ES256 keys, cached per instance) and only fall back to `getUser()`
+  when the token is missing or expired, which is also the session-refresh
+  path. Before this, every navigation and every link prefetch paid an
+  auth-server round trip in middleware plus a second one in the page.
+  RLS still enforces every query; the money-spending API routes
+  (`/api/analyze`, `/api/coach`) intentionally keep `getUser()` for
+  server-side revocation checks. Helper: `lib/supabase/user.ts`.
+- **Functions colocated with the database**: `vercel.json` pins serverless
+  functions to `pdx1` (Oregon), matching the Supabase project region
+  (us-west-2). Default was `iad1`, putting ~70ms of cross-country RTT on
+  every auth and database round trip.
+- Measured locally (prod build, authenticated): full-stream server time for
+  the heaviest tabs is 85-204ms; warm client-side tab switches land ~50ms.
