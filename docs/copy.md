@@ -284,8 +284,15 @@ stamped): `The gold ring marks the tracked player in every frame.`, reframe
 chip `Reframe player`.
 
 Player framing (analyze preview, before analysis; shown for every clip with a
-readable opening frame): kicker `Who should I watch?`, caption `Drag the box
-over your player. Pull the corner to resize.`, image alt `Opening frame. Frame
-the player to analyze.`, box aria `Player frame. Drag to move, or use the
-arrow keys.`, resize handle aria `Resize the frame`, primary button
-`Analyze this athlete`, skip button `Skip and analyze the whole frame`.
+readable opening frame): kicker `Who should I watch?`, caption `Scrub to a
+moment where your player is clear, then drag the box over them. Pull the
+corner to resize.`, video aria `Clip frame. Scrub below to choose the
+moment.`, scrubber aria `Scrub through the clip`, fallback image alt
+`Opening frame. Frame the player to analyze.`, box aria `Player frame. Drag
+to move, or use the arrow keys.`, resize handle aria `Resize the frame`,
+primary button `Analyze this athlete`, skip button
+`Skip and analyze the whole frame`.
+
+Pinned-player miss notice (analyze preview, when the framed player was never
+found): `Couldn't find your framed player in the clip, so nobody else was
+measured in their place. Reframe to try again.`
