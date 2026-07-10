@@ -278,3 +278,7 @@ applies as everywhere.
 Coach session sidebar (desktop rail) additions: button `New chat`, list label
 `Sessions`, empty state `Your conversations show up here.`, relative dates
 `Today` / `Yesterday` / `{n} days ago`.
+
+Focus-player picker (analyze preview): kicker `Players detected`, caption
+`Analyzing the player in the gold box. Tap another player to switch.`, button
+aria `Analyze player {n}` / `(selected)`.

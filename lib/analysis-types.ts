@@ -28,6 +28,14 @@ export type AnalyzeRequest = {
   frame_keypoints?: FrameKeypointsWire[];
   has_keypoints?: boolean;
   extra_frame_count?: number;
+  player_selection?: PlayerSelection;
+};
+
+// Which athlete the tracking followed in multi-player footage.
+export type PlayerSelection = {
+  candidates: number;
+  selected_rank: number; // 1-based rank of the chosen track
+  auto: boolean; // false when the user tapped a different player
 };
 
 export type Metric = { key: string; score: number; note: string };
@@ -85,6 +93,7 @@ export type AnalysisResult = {
   measurements?: MeasurementsBlock | null;
   frame_keypoints?: FrameKeypointsWire[];
   ball_track_source?: "model_estimate" | "tracked";
+  player_selection?: PlayerSelection;
 };
 
 export const MAX_FRAMES = 12;

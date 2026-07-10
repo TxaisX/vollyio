@@ -9,8 +9,14 @@ import {
   type FrameKind,
 } from "./frame-select";
 import type { PoseEngine } from "./pose/engine";
-import type { LandmarkFrame, MeasurementsBlock } from "./pose/types";
+import type {
+  LandmarkFrame,
+  MeasurementsBlock,
+  PersonFrame,
+  PersonTrack,
+} from "./pose/types";
 import { buildMeasurementsBlock } from "./pose/metrics";
+import { buildTracks } from "./pose/kinematics";
 import type { Skill } from "./skills";
 
 export const MAX_FRAME_DIM = 768;
@@ -53,9 +59,14 @@ export type FrameDebug = {
 };
 
 export type PoseCapture = {
+  // The followed athlete's series (top-ranked track by default).
   landmarks: LandmarkFrame[];
   measurements: MeasurementsBlock | null;
   denseFps: number | null;
+  // Every athlete tracked through the clip, strongest first, so the flow can
+  // offer a different focus player and recompute without re-extracting.
+  tracks: PersonTrack[];
+  selectedTrackId: number | null;
 };
 
 export type VideoExtraction = {
@@ -162,14 +173,14 @@ async function scanMotion(
   video: HTMLVideoElement,
   probeTimes: number[],
   engine?: PoseEngine,
-): Promise<{ motion: number[]; poseFrames: LandmarkFrame[] }> {
+): Promise<{ motion: number[]; poseFrames: PersonFrame[] }> {
   const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const motion = new Array(probeTimes.length).fill(0);
-  const poseFrames: LandmarkFrame[] = [];
+  const poseFrames: PersonFrame[] = [];
   let prev: Uint8Array | null = null;
   const start = Date.now();
 
@@ -194,7 +205,7 @@ async function scanMotion(
 
     if (engine && Date.now() - start <= POSE_PROBE_BUDGET_MS) {
       try {
-        const frame = await engine.detectFromVideo(video, video.currentTime);
+        const frame = await engine.detectPersonsFromVideo(video, video.currentTime);
         if (frame) poseFrames.push(frame);
       } catch {
         // Probe landmarks are optional; the luminance scan is the contract.
@@ -236,8 +247,8 @@ async function captureDenseWindows(
   engine: PoseEngine,
   peakTimes: number[],
   duration: number,
-): Promise<{ frames: LandmarkFrame[]; denseFps: number | null; denseMs: number }> {
-  const frames: LandmarkFrame[] = [];
+): Promise<{ frames: PersonFrame[]; denseFps: number | null; denseMs: number }> {
+  const frames: PersonFrame[] = [];
   const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
   const started = Date.now();
   let coveredS = 0;
@@ -268,7 +279,7 @@ async function captureDenseWindows(
       const presented = await nextVideoFrame(video);
       if (!presented) break;
       try {
-        const frame = await engine.detectFromVideo(video, video.currentTime);
+        const frame = await engine.detectPersonsFromVideo(video, video.currentTime);
         if (frame) {
           frames.push(frame);
           captured++;
@@ -390,12 +401,16 @@ async function sampleContentAware(
   if (peaks.length === 0) return null;
 
   // Stage 2 + measurement: strictly additive, every failure leaves the
-  // luminance plan untouched.
-  let landmarks: LandmarkFrame[] = poseFrames;
+  // luminance plan untouched. Multi-player footage becomes per-person tracks;
+  // the strongest track (most active, most prominent) is followed by default
+  // and the rest ride along for the focus-player picker.
+  let landmarks: LandmarkFrame[] = [];
   let measurements: MeasurementsBlock | null = null;
   let denseFps: number | null = null;
   let denseMs = 0;
   let contacts: number[] = [];
+  let tracks: PersonTrack[] = [];
+  let selectedTrackId: number | null = null;
   if (pose) {
     try {
       const dense = await captureDenseWindows(
@@ -406,13 +421,21 @@ async function sampleContentAware(
       );
       denseMs = dense.denseMs;
       denseFps = dense.denseFps;
-      landmarks = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
-      measurements = buildMeasurementsBlock(pose.skill, landmarks, denseFps);
-      contacts = (measurements?.reps ?? [])
-        .map((r) => r.contact_s)
-        .filter((c): c is number => c != null);
+      const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
+      tracks = buildTracks(personFrames);
+      const chosen = tracks[0] ?? null;
+      if (chosen) {
+        selectedTrackId = chosen.id;
+        landmarks = chosen.frames;
+        measurements = buildMeasurementsBlock(pose.skill, landmarks, denseFps);
+        contacts = (measurements?.reps ?? [])
+          .map((r) => r.contact_s)
+          .filter((c): c is number => c != null);
+      }
     } catch {
       measurements = null;
+      tracks = [];
+      selectedTrackId = null;
     }
   }
 
@@ -459,7 +482,7 @@ async function sampleContentAware(
   return {
     frames,
     extras,
-    pose: pose ? { landmarks, measurements, denseFps } : null,
+    pose: pose ? { landmarks, measurements, denseFps, tracks, selectedTrackId } : null,
     debug,
   };
 }

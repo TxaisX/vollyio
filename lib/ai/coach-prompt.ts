@@ -2,7 +2,7 @@ import type { Level, Skill } from "@/lib/skills";
 
 export type CoachContext = {
   player: { display_name: string | null; level: Level };
-  skill_ratings: { skill: Skill; rating: number; analyses_count: number }[];
+  skill_ratings: { skill: Skill; discipline?: string; rating: number; analyses_count: number }[];
   recent_analyses: {
     skill: Skill;
     overall_score: number;

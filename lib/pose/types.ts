@@ -39,6 +39,24 @@ export type LandmarkFrame = {
   pts: Landmark[]; // length POSE_LANDMARK_COUNT
 };
 
+// One capture instant with every detected person (multi-player footage).
+export type PersonFrame = {
+  t: number;
+  persons: Landmark[][]; // each entry length POSE_LANDMARK_COUNT
+};
+
+// One person followed through the clip, ready to feed the single-athlete
+// measurement pipeline.
+export type PersonTrack = {
+  id: number;
+  frames: LandmarkFrame[];
+  // Ranking components, 0..1 across the clip's tracks.
+  score: number;
+  motion: number;
+  size: number;
+  centered: number;
+};
+
 export type DetectorFamily = "swing" | "jump" | "platform";
 
 export type RepWindow = {
