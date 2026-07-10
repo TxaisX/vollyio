@@ -7,18 +7,23 @@ import { Recorder } from "@/components/recorder";
 import { Filmstrip } from "@/components/filmstrip";
 import { createClient } from "@/lib/supabase/client";
 import {
+  detectOpeningPlayers,
   extractFrames,
   extractFramesFromPhotos,
+  MAX_CLIP_SECONDS,
   type Frame,
   type FrameDebug,
+  type OpeningPlayers,
 } from "@/lib/frames";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
 import { buildMeasurementsBlock } from "@/lib/pose/metrics";
-import type {
-  LandmarkFrame,
-  MeasurementsBlock,
-  KeypointsFile,
-  PersonTrack,
+import {
+  LM,
+  type Landmark,
+  type LandmarkFrame,
+  type MeasurementsBlock,
+  type KeypointsFile,
+  type PersonTrack,
 } from "@/lib/pose/types";
 import {
   SKILL_LABEL,
@@ -41,7 +46,27 @@ type Capture = {
   skill: Skill;
 };
 
-// Bounding box (normalized, padded) for one track near a moment in the clip.
+// Bounding box (normalized, padded) around one detected person.
+function boxFromPts(
+  pts: Landmark[],
+): { left: number; top: number; width: number; height: number } | null {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of pts) {
+    if (p.v < 0.4) continue;
+    xs.push(p.x);
+    ys.push(p.y);
+  }
+  if (xs.length < 6) return null;
+  const pad = 0.035;
+  const left = Math.max(0, Math.min(...xs) - pad);
+  const top = Math.max(0, Math.min(...ys) - pad);
+  const right = Math.min(1, Math.max(...xs) + pad);
+  const bottom = Math.min(1, Math.max(...ys) + pad);
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+// Same box for a track near a moment in the clip.
 function trackBoxAt(
   track: PersonTrack,
   timeS: number,
@@ -55,21 +80,7 @@ function trackBoxAt(
       best = f;
     }
   }
-  if (!best) return null;
-  const xs: number[] = [];
-  const ys: number[] = [];
-  for (const p of best.pts) {
-    if (p.v < 0.4) continue;
-    xs.push(p.x);
-    ys.push(p.y);
-  }
-  if (xs.length < 6) return null;
-  const pad = 0.035;
-  const left = Math.max(0, Math.min(...xs) - pad);
-  const top = Math.max(0, Math.min(...ys) - pad);
-  const right = Math.min(1, Math.max(...xs) + pad);
-  const bottom = Math.min(1, Math.max(...ys) + pad);
-  return { left, top, width: right - left, height: bottom - top };
+  return best ? boxFromPts(best.pts) : null;
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -258,6 +269,10 @@ export function AnalyzeFlow() {
   // Mirrors captureRef's track state for rendering the focus-player picker.
   const [playerTracks, setPlayerTracks] = useState<PersonTrack[]>([]);
   const [playerChoice, setPlayerChoice] = useState<number | null>(null);
+  // Pre-analysis pause: several people are on screen, waiting for the tap.
+  const [openingPick, setOpeningPick] = useState<
+    (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
+  >(null);
 
   // Follow a different athlete: recompute the measurements from that track
   // without re-extracting anything.
@@ -477,12 +492,16 @@ export function AnalyzeFlow() {
     }
   }
 
-  async function onRecorded(blob: Blob) {
-    setStatus({ kind: "reading" });
-    setVideoUrl(null);
-    clipRef.current = blob;
+  // Extraction over a chosen (or auto) focus player, then submit or preview.
+  async function runVideoExtraction(
+    blob: Blob,
+    isRecorded: boolean,
+    target?: { x: number; y: number; t: number },
+  ) {
     try {
-      const pose = poseRef.current && skill ? { engine: poseRef.current, skill } : undefined;
+      const engine = poseRef.current ?? (await loadPoseEngine());
+      poseRef.current = engine;
+      const pose = engine && skill ? { engine, skill, target } : undefined;
       const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
         blob,
         { debug: debugRef.current, pose },
@@ -504,19 +523,83 @@ export function AnalyzeFlow() {
       setFrames(f);
       setSource("video");
       setDuration(duration_s);
+      setFrameDebug(debug ?? null);
       if (debug) {
         // Debug mode: inspect the selected frames instead of spending an API call.
-        setFrameDebug(debug);
         setStatus({ kind: "idle" });
         return;
       }
-      await submit(f, "video", duration_s);
+      if (isRecorded) {
+        await submit(f, "video", duration_s);
+      } else {
+        setStatus({ kind: "idle" });
+      }
     } catch (err) {
       setStatus({
         kind: "error",
         message: err instanceof Error ? err.message : "Couldn't read that clip.",
       });
     }
+  }
+
+  // Shared entry for recorded and uploaded clips: when several people are on
+  // screen in the opening seconds, pause and let the user pin their player
+  // before any analysis runs.
+  async function handleVideo(blob: Blob, isRecorded: boolean) {
+    setStatus({ kind: "reading" });
+    setFrameDebug(null);
+    setOpeningPick(null);
+    clipRef.current = blob;
+    setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
+    try {
+      const engine = poseRef.current ?? (await loadPoseEngine());
+      poseRef.current = engine;
+      if (engine && skill) {
+        const opening = await detectOpeningPlayers(blob, engine);
+        if (
+          opening &&
+          opening.persons.length >= 2 &&
+          opening.duration_s <= MAX_CLIP_SECONDS + 0.5
+        ) {
+          captureRef.current = null;
+          setPlayerTracks([]);
+          setPlayerChoice(null);
+          setFrames([]);
+          setSource("video");
+          setDuration(opening.duration_s);
+          setOpeningPick({ ...opening, blob, isRecorded });
+          setStatus({ kind: "idle" });
+          return;
+        }
+      }
+      await runVideoExtraction(blob, isRecorded);
+    } catch (err) {
+      setStatus({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Couldn't read that clip.",
+      });
+    }
+  }
+
+  function pickOpeningPlayer(index: number | null) {
+    const opening = openingPick;
+    if (!opening) return;
+    setOpeningPick(null);
+    setStatus({ kind: "reading" });
+    let target: { x: number; y: number; t: number } | undefined;
+    if (index != null && opening.persons[index]) {
+      const pts = opening.persons[index];
+      target = {
+        x: (pts[LM.leftHip].x + pts[LM.rightHip].x) / 2,
+        y: (pts[LM.leftHip].y + pts[LM.rightHip].y) / 2,
+        t: opening.timeS,
+      };
+    }
+    void runVideoExtraction(opening.blob, opening.isRecorded, target);
+  }
+
+  async function onRecorded(blob: Blob) {
+    await handleVideo(blob, true);
   }
 
   async function onVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -535,34 +618,10 @@ export function AnalyzeFlow() {
         setVideoUrl(null);
         clipRef.current = null;
         captureRef.current = null;
+        setStatus({ kind: "idle" });
       } else {
-        const pose = poseRef.current && skill ? { engine: poseRef.current, skill } : undefined;
-        const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
-          file,
-          { debug: debugRef.current, pose },
-        );
-        captureRef.current =
-          poseCapture && skill
-            ? {
-                landmarks: poseCapture.landmarks,
-                measurements: poseCapture.measurements,
-                extras,
-                tracks: poseCapture.tracks,
-                selectedTrackId: poseCapture.selectedTrackId,
-                denseFps: poseCapture.denseFps,
-                skill,
-              }
-            : null;
-        setPlayerTracks(poseCapture?.tracks ?? []);
-        setPlayerChoice(poseCapture?.selectedTrackId ?? null);
-        setFrames(f);
-        setSource("video");
-        setDuration(duration_s);
-        setFrameDebug(debug ?? null);
-        setVideoUrl(URL.createObjectURL(file));
-        clipRef.current = file;
+        await handleVideo(file, false);
       }
-      setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
         kind: "error",
@@ -758,6 +817,51 @@ export function AnalyzeFlow() {
                   preload="metadata"
                   className="block max-h-[60vh] w-full"
                 />
+              </div>
+            )}
+
+            {openingPick && (
+              <div className="card mb-3 p-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                  Who should I watch?
+                </p>
+                <p className="mt-1 text-xs text-chalk-dim">
+                  Tap your player. Every measurement and score comes from them.
+                </p>
+                <div className="relative mt-3 overflow-hidden rounded-lg bg-navy">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={openingPick.dataUrl}
+                    alt="Opening frame. Tap the player to analyze."
+                    className="block w-full"
+                  />
+                  {openingPick.persons.map((pts, i) => {
+                    const box = boxFromPts(pts);
+                    if (!box) return null;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => pickOpeningPlayer(i)}
+                        aria-label={`Analyze player ${i + 1}`}
+                        className="absolute rounded-md border-2 border-chalk/50 transition-colors hover:border-gold focus-visible:border-gold"
+                        style={{
+                          left: `${box.left * 100}%`,
+                          top: `${box.top * 100}%`,
+                          width: `${box.width * 100}%`,
+                          height: `${box.height * 100}%`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => pickOpeningPlayer(null)}
+                  className="chip mt-3 min-h-11"
+                >
+                  Let the app decide
+                </button>
               </div>
             )}
 
