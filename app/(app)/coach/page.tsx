@@ -58,7 +58,9 @@ export default async function Coach({
 
   return (
     <ViewTransition enter="vt-reveal-in" default="none">
-      <section className="mx-auto w-full max-w-5xl lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-8">
+      {/* On xl screens a phantom right column mirrors the session rail so the
+          conversation sits at the true center of the page. */}
+      <section className="mx-auto w-full max-w-5xl lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-8 xl:max-w-6xl xl:grid-cols-[15rem_minmax(0,1fr)_15rem]">
         <div className="lg:col-start-2">
           <p className="font-mono text-xs uppercase tracking-[0.1em] text-gold">Coach</p>
           <h1 className="font-display text-2xl font-bold">Ask your coach</h1>
