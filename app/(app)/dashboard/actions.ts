@@ -24,3 +24,21 @@ export async function completeChallenge() {
   );
   revalidatePath("/dashboard");
 }
+
+export async function setTrainingConsent(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const allow = formData.get("allow") === "true";
+  await supabase
+    .from("profiles")
+    .update({
+      training_consent: allow,
+      training_consent_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+  revalidatePath("/dashboard");
+}

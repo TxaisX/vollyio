@@ -13,6 +13,8 @@ import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
 import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
 import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
+import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
+import { POSE_LANDMARK_COUNT } from "@/lib/pose/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -34,6 +36,20 @@ const bodySchema = z.object({
     )
     .min(2)
     .max(MAX_FRAMES),
+  // Motion-tracking sidecar. measurements is validated separately by
+  // sanitizeMeasurements and dropped (never 400) on mismatch.
+  measurements: z.unknown().optional(),
+  frame_keypoints: z
+    .array(
+      z.object({
+        frame_index: z.number().int().min(0),
+        pts: z.array(z.number()).length(POSE_LANDMARK_COUNT * 4),
+      }),
+    )
+    .max(MAX_FRAMES)
+    .optional(),
+  has_keypoints: z.boolean().optional(),
+  extra_frame_count: z.number().int().min(0).max(12).optional(),
 });
 
 function safeClipExt(ext: string | null | undefined): string {
@@ -77,6 +93,10 @@ export async function POST(req: NextRequest) {
   const timeAt = (index: number) =>
     frames.find((f) => f.index === index)?.time_s ?? null;
 
+  // Invalid measurement blocks are telemetry failures, not request failures:
+  // drop them and analyze vision-only.
+  const measurements = sanitizeMeasurements(parsedBody.data.measurements);
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("level")
@@ -93,13 +113,22 @@ export async function POST(req: NextRequest) {
       const content = frames.flatMap((f) => [
         {
           type: "text" as const,
-          text: f.time_s != null ? `Frame ${f.index} — t=${f.time_s}s` : `Frame ${f.index}`,
+          text: f.time_s != null ? `Frame ${f.index}, t=${f.time_s}s` : `Frame ${f.index}`,
         },
         {
           type: "image" as const,
           source: { type: "base64" as const, media_type: "image/jpeg" as const, data: f.data },
         },
       ]);
+
+      const measuredBlock = measurements
+        ? [
+            {
+              type: "text" as const,
+              text: `Measured data from on-device motion tracking (trusted ground truth; observed the full clip, not just these frames):\n${JSON.stringify(measurements)}`,
+            },
+          ]
+        : [];
 
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
@@ -121,6 +150,7 @@ export async function POST(req: NextRequest) {
             role: "user",
             content: [
               ...content,
+              ...measuredBlock,
               {
                 type: "text",
                 text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
@@ -176,6 +206,15 @@ export async function POST(req: NextRequest) {
   }
 
   result.discipline = discipline;
+  // Every current ball_track is the coaching service's visual estimate; the
+  // marker lets the UI label it honestly and lets real tracking replace it
+  // later without a contract change.
+  result.ball_track_source = "model_estimate";
+  if (measurements) result.measurements = measurements;
+  const frameKeypoints = (parsedBody.data.frame_keypoints ?? []).filter(
+    (k) => k.frame_index >= 0 && k.frame_index < frames.length,
+  );
+  if (frameKeypoints.length > 0) result.frame_keypoints = frameKeypoints;
 
   const analysisId = crypto.randomUUID();
 
@@ -183,6 +222,19 @@ export async function POST(req: NextRequest) {
   const clipPath = wantsClip
     ? `${user.id}/${analysisId}/clip.${safeClipExt(parsedBody.data.clip_ext)}`
     : null;
+
+  // Predetermine storage paths for the client's post-response uploads (same
+  // non-fatal pattern as the clip): dense keypoints plus the extra stored
+  // frames beyond the send set.
+  const keypointsPath =
+    parsedBody.data.has_keypoints === true
+      ? `${user.id}/${analysisId}/keypoints.json`
+      : null;
+  const extraFrameCount = parsedBody.data.extra_frame_count ?? 0;
+  const storedFramePaths = Array.from(
+    { length: extraFrameCount },
+    (_, i) => `${user.id}/${analysisId}/x${String(frames.length + i).padStart(2, "0")}.jpg`,
+  );
 
   const framePaths: string[] = [];
   for (const f of frames) {
@@ -205,6 +257,8 @@ export async function POST(req: NextRequest) {
     frame_paths: framePaths,
     thumb_path: framePaths[0] ?? null,
     clip_path: clipPath,
+    keypoints_path: keypointsPath,
+    stored_frame_paths: storedFramePaths,
     overall_score: result.overall_score,
     result,
     model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
@@ -243,6 +297,8 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     analysisId,
     clipPath,
+    keypointsPath,
+    storedFramePaths,
     xpAwarded: awarded ? XP_AWARDS.analysis : 0,
   });
 }

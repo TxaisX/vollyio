@@ -22,6 +22,7 @@ type Row = {
   skill: Skill;
   frame_paths: string[];
   clip_path: string | null;
+  keypoints_path: string | null;
   overall_score: number;
   created_at: string;
   result: AnalysisResult;
@@ -81,7 +82,9 @@ export default async function AnalysisDetail({
 
   const { data } = await supabase
     .from("analyses")
-    .select("id, skill, frame_paths, clip_path, overall_score, created_at, result")
+    .select(
+      "id, skill, frame_paths, clip_path, keypoints_path, overall_score, created_at, result",
+    )
     .eq("id", id)
     .eq("user_id", user!.id)
     .maybeSingle();
@@ -109,6 +112,19 @@ export default async function AnalysisDetail({
       .createSignedUrl(row.clip_path, 3600);
     clipUrl = signedClip?.signedUrl ?? null;
   }
+
+  // Dense motion-tracking file for the clip-player overlay; absence (old rows,
+  // fallback extractions, failed uploads) simply means no trace.
+  let keypointsUrl: string | null = null;
+  if (row.keypoints_path) {
+    const { data: signedKeypoints } = await supabase.storage
+      .from("frames")
+      .createSignedUrl(row.keypoints_path, 3600);
+    keypointsUrl = signedKeypoints?.signedUrl ?? null;
+  }
+
+  const skeletons = new Map<number, number[]>();
+  for (const k of result.frame_keypoints ?? []) skeletons.set(k.frame_index, k.pts);
 
   const timeByFrame = new Map<number, number | null>();
   for (const i of result.insights) timeByFrame.set(i.frame_index, i.time_s);
@@ -201,6 +217,9 @@ export default async function AnalysisDetail({
                 ball={ball}
                 focusIndex={focusIndex}
                 contactIndex={contactIndex}
+                skeletons={skeletons}
+                keypointsUrl={keypointsUrl}
+                ballEstimated={result.ball_track_source !== "tracked"}
               />
             )}
             {result.focus && (

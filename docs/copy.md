@@ -243,3 +243,24 @@ These already meet voice; listed so they are not rewritten. Only the trailing-pe
 - coach empty: `Your coach knows your game.` / `Ask about your scores, your priority fixes, or what to train next. Every answer comes from your own analyses.`
 
 Cross-reference: the section 10.6 logo accessible name (`Sideout, home`) and all volleyball-visual alt text live in `docs/metadata.md`.
+
+---
+
+## 11. CV Phase 1 additions (2026-07-10)
+
+New user-facing strings introduced with the measurement pipeline. The
+capability is always called "motion tracking" in copy; the vendor-name rule
+applies as everywhere.
+
+| Surface | String |
+|---|---|
+| analyze-flow consent dialog kicker | `One-time question` |
+| analyze-flow consent dialog title | `Help improve motion tracking?` |
+| analyze-flow consent dialog body | `Allow your uploaded clips and extracted frames to help train future analysis features, like automatic ball tracking. Your footage stays private to your account either way, and you can change this any time from your dashboard.` |
+| analyze-flow consent buttons | `Allow` / `Not now` |
+| dashboard settings heading | `Settings` |
+| dashboard consent row title | `Improve motion tracking` |
+| dashboard consent row body | `Allow your clips and frames to help train future analysis features, like automatic ball tracking. Footage stays private to your account either way.` |
+| dashboard consent toggle states | `Allowed` / `Not allowed` |
+| clip player trace toggle | `Motion trace` + helper `Tracked body lines over your rep` |
+| frame player ball caption | `Ball marker: estimated position` |

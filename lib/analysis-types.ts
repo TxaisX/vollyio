@@ -1,9 +1,17 @@
 import type { Skill, Discipline } from "@/lib/skills";
+import type { MeasurementsBlock } from "@/lib/pose/types";
 
 export type AnalyzeRequestFrame = {
   index: number;
   time_s: number | null;
   data: string; // base64 JPEG, no data-url prefix
+};
+
+// Per-sent-frame landmarks for the results-page skeleton overlay: 33 points
+// as a flat [x, y, z, v, ...] array of 132 numbers, rounded client-side.
+export type FrameKeypointsWire = {
+  frame_index: number;
+  pts: number[];
 };
 
 export type AnalyzeRequest = {
@@ -14,6 +22,12 @@ export type AnalyzeRequest = {
   has_clip?: boolean;
   clip_ext?: string | null;
   frames: AnalyzeRequestFrame[];
+  // Motion-tracking sidecar, all optional; absence reproduces the pre-CV
+  // request exactly.
+  measurements?: MeasurementsBlock | null;
+  frame_keypoints?: FrameKeypointsWire[];
+  has_keypoints?: boolean;
+  extra_frame_count?: number;
 };
 
 export type Metric = { key: string; score: number; note: string };
@@ -66,6 +80,11 @@ export type AnalysisResult = {
   priority_fix: PriorityFix; // derived from changes[0] for back-compat readers
   drill_slugs: string[];
   summary: string;
+  // Motion-tracking sidecar (CV Phase 1). All optional: rows predating the
+  // pipeline, photo analyses, and fallback extractions simply omit them.
+  measurements?: MeasurementsBlock | null;
+  frame_keypoints?: FrameKeypointsWire[];
+  ball_track_source?: "model_estimate" | "tracked";
 };
 
 export const MAX_FRAMES = 12;

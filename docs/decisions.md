@@ -34,3 +34,113 @@ During Phase 1a integration the coaching service was split into two task-scoped 
 Implemented as two env-driven constants in `lib/ai/client.ts`, consumed by the coach and analyze API routes. When the parallel `master` stream merged in its eval harness, `app/api/eval` was reconciled to `ANALYZE_MODEL` (it grades analysis output, so it must match the analyze tier) — this is the "one reconciliation" noted in the merge record.
 
 Rationale: match model capability and cost to the task rather than paying the top tier for chat or under-powering analysis. Constraints held: model identifiers live only in server-side config/env (never user-facing, no vendor name in UI — the layer stays "the coaching service"), and `AI_MOCK=true` bypasses both tiers for zero-cost local/CI runs. This entry closes the gap where D-004 was referenced in `ledger.md` and the breakdown but had no Decision Log record.
+
+## D-005 — Landing ambient drift and earned-moment entrance
+Date: 2026-07-09 · By: Orchestrator (section 10.2 motion grant)
+
+Adopt two token-only component animations without adding a dependency: `drift` gives
+the decorative landing-page seam motif a slow transform-only movement, and `pop-in`
+gives earned XP feedback a short scale-and-opacity entrance. Landing counters reuse
+the existing `CountUp` primitive. These effects introduce no layout movement, color,
+font, or persistent animation work outside the decorative transform. The global
+reduced-motion block settles both CSS effects immediately, and `CountUp` now listens
+for preference changes so an active rAF tween cancels and settles at its target.
+
+Sierra verification: policy lint, TypeScript, 18 unit tests, and the 55-route
+production build pass. No animation library or added MCP server was needed.
+
+## D-006 — Reward feedback system and Learn continuity
+Date: 2026-07-09 · By: Orchestrator (section 10.2 motion grant)
+
+Adopt a shared, event-driven reward language without adding a dependency. New named
+keyframes (`reward-arrive`, `reward-glow`, `reward-check`, `nav-marker-in`, and
+`selection-settle`) are limited to direct interaction, new content, and earned
+milestones. They power active navigation, captured frames, new coach messages, XP,
+goal creation/completion, the daily challenge, set and match wins, and match-save
+confirmation. Ordinary buttons and chips gain short press feedback.
+
+The Learn regression came from `.card` links remaining inline, which fragmented
+their background and border across wrapped text. `.card` now establishes block
+layout, Learn links are explicit full-height blocks, and the list crossfades between
+disciplines with a shared-element morph into skill detail. The mobile tab bar is a
+contained horizontal control that centers the active item and cannot widen the page.
+
+Motion carries no state alone. Every reward has text and accessible status where
+needed. The global reduced-motion rule now also zeros animation and transition
+delays. Verified at exact 360px and 390px device metrics with document width equal to
+viewport width; policy lint, TypeScript, 18 tests, and the 55-route build pass. No
+animation library or new token was introduced.
+
+## D-007 — Premium volleyball campaign surface
+Date: 2026-07-10 · By: Orchestrator (sections 10.2, 10.3, and 10.6)
+
+Replace the landing page's split text/mockup hero with a full-bleed, generated
+volleyball action photograph and an in-scene analysis HUD. The H1 is now the product
+name, Sideout, with the offer in supporting display copy. The same still image carries
+the sport into login and signup behind stable, high-contrast form tools. The app shell
+gets low-opacity court geometry, and the dashboard uses clearer score, challenge,
+streak, level, and momentum hierarchy without becoming a marketing layout.
+
+The hero asset was generated specifically for Sideout from this brief: an elite
+indoor player at jump-serve contact in a mostly empty training gym, athlete on the
+right with clean left-side copy space, photoreal sports-campaign treatment, no text,
+logos, watermark, crowd, duplicate anatomy, or branded uniform. The selected output
+was converted to a 1774×888, 63.1 KiB WebP and registered in `docs/assets.md`.
+
+New motion is named and auditable: `hero-photo-settle`, `hero-hud-in`,
+`hero-metric-grow`, and `court-line-in`. It runs once, uses transform/opacity only,
+and conveys no required state. Reduced-motion emulation reports 0.01ms duration and
+zero delay. Exact 360px emulation reports `clientWidth=360`, `scrollWidth=360`,
+stable two-row CTAs, and a 680px hero in an 800px viewport so the next proof strip is
+visible. Policy lint, TypeScript, 18 tests, and the 55-route build pass. No new color,
+font, dependency, or external media license was introduced.
+
+## D-008 — On-device motion tracking dependency
+Date: 2026-07-10 · By: CV Phase 1 build (section 10.5 gate)
+
+Admit `@mediapipe/tasks-vision` at the exact pinned version 0.10.35 (publisher:
+Google, Apache-2.0). It provides the WASM pose landmarker behind the CV Phase 1
+measurement pipeline. Scope is the analyze flow only: the engine loads lazily via
+`lib/pose/engine.ts`, runs in a hand-rolled worker (`lib/pose/pose-worker.ts`), and
+resolves null on any unsupported browser or failed load so extraction degrades to
+the pre-existing pipeline. The WASM runtime and the lite landmarker model are
+self-hosted under `public/pose/` and fetched on demand; nothing enters the page
+bundle and no third-party CDN is contacted at runtime.
+
+Same entry, scope clarification for the vendor-name rule: the rule governs UI,
+user-visible errors, and marketing surfaces. `package.json`, import specifiers, and
+engineering docs may name dependencies, since this gate itself requires naming
+publishers. UI copy refers to the capability as "motion tracking".
+
+## D-009 — Training corpus and consent
+Date: 2026-07-10 · By: CV Phase 1 build (sections 10.3 and 10.5)
+
+Each analysis stores 24 extracted frames and a dense keypoints file permanently in
+the private frames bucket as a future training corpus for in-house models (ball
+detection, player identification). Corpus use is gated on explicit consent: an
+opt-in/opt-out choice at first upload writes `profiles.training_consent`
+(default false) with `training_consent_at`; a settings toggle can change it any
+time; every corpus query hard-filters on the flag. Rationale: subjects are largely
+minors, so consent is collected before any training use rather than assumed, and
+the corpus must remain provably clean.
+
+## D-010 — Rep intelligence and launch film
+Date: 2026-07-10 · By: Site launch build (sections 10.2, 10.3, and 10.6)
+
+Add a selectable three-rep analytics sequence to the landing page so the score is
+always connected to its motion trace, metric movement, cited frame, and next-best
+action. The examples auto-progress only while visible and only when reduced motion
+is not requested; the manual tabs expose the same content without motion.
+
+Add `/launch` as a five-chapter 16:9 campaign surface and render that route into
+`public/sideout-launch.mp4`. New named motion (`analytics-draw`,
+`analytics-point-in`, `analytics-playhead-in`, `launch-cut`, `launch-photo`,
+`launch-bar`, `launch-step`, and `launch-line`) stays on existing palette and type
+tokens, moves only fixed-size layers, and carries no state alone. Reduced motion
+settles landing analytics immediately and replaces the launch sequence with a static
+final frame through the existing live `matchMedia` guard.
+
+No runtime dependency was added. The reproducible capture script uses a temporary
+local encoder outside the application dependency graph. TypeScript, policy lint, 18
+tests, the 56-page production build, exact 390px overflow check, and launch-film
+frame review pass.

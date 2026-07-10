@@ -12,6 +12,8 @@ import {
   type Frame,
   type FrameDebug,
 } from "@/lib/frames";
+import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
+import type { LandmarkFrame, MeasurementsBlock, KeypointsFile } from "@/lib/pose/types";
 import {
   SKILL_LABEL,
   DISCIPLINES,
@@ -19,9 +21,83 @@ import {
   type Skill,
   type Discipline,
 } from "@/lib/skills";
-import type { AnalyzeRequest } from "@/lib/analysis-types";
+import type { AnalyzeRequest, FrameKeypointsWire } from "@/lib/analysis-types";
 
 type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
+
+type Capture = {
+  landmarks: LandmarkFrame[];
+  measurements: MeasurementsBlock | null;
+  extras: Frame[];
+};
+
+const r3 = (n: number) => Math.round(n * 1000) / 1000;
+
+// Landmarks for each sent frame (nearest tracked instant within 200ms), as
+// flat rounded arrays for the results-page skeleton overlay.
+function keypointsForFrames(landmarks: LandmarkFrame[], sent: Frame[]): FrameKeypointsWire[] {
+  const out: FrameKeypointsWire[] = [];
+  for (const f of sent) {
+    if (f.time_s == null) continue;
+    let best: LandmarkFrame | null = null;
+    let bestD = 0.2;
+    for (const lf of landmarks) {
+      const d = Math.abs(lf.t - f.time_s);
+      if (d < bestD) {
+        bestD = d;
+        best = lf;
+      }
+    }
+    if (!best) continue;
+    out.push({
+      frame_index: f.index,
+      pts: best.pts.flatMap((p) => [r3(p.x), r3(p.y), r3(p.z), r3(p.v)]),
+    });
+  }
+  return out;
+}
+
+// Fire-and-forget persistence of the tracking sidecar after the analysis is
+// saved: dense keypoints plus the extra stored frames. Failures are silent;
+// the results page handles absence.
+function uploadCaptureArtifacts(
+  capture: Capture,
+  durationS: number | null,
+  keypointsPath: string | null,
+  storedFramePaths: string[],
+) {
+  const supabase = createClient();
+  if (keypointsPath && capture.landmarks.length >= 8) {
+    const file: KeypointsFile = {
+      version: 1,
+      clip_duration_s: durationS,
+      frames: capture.landmarks.map((lf) => ({
+        t: r3(lf.t),
+        pts: lf.pts.map((p) => ({ x: r3(p.x), y: r3(p.y), z: r3(p.z), v: r3(p.v) })),
+      })),
+    };
+    void supabase.storage
+      .from("frames")
+      .upload(keypointsPath, new Blob([JSON.stringify(file)], { type: "application/json" }), {
+        contentType: "application/json",
+        upsert: true,
+      })
+      .catch(() => {});
+  }
+  const count = Math.min(storedFramePaths.length, capture.extras.length);
+  for (let i = 0; i < count; i++) {
+    try {
+      const b64 = capture.extras[i].dataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      void supabase.storage
+        .from("frames")
+        .upload(storedFramePaths[i], bytes, { contentType: "image/jpeg", upsert: true })
+        .catch(() => {});
+    } catch {
+      // Skip a frame that fails to decode; the rest still upload.
+    }
+  }
+}
 
 function clipExt(b: Blob): string {
   const type = (b.type || "").toLowerCase();
@@ -136,6 +212,80 @@ export function AnalyzeFlow() {
   const clipRef = useRef<Blob | null>(null);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
   const prevSkillRef = useRef<Skill | null>(skill);
+  const poseRef = useRef<PoseEngine | null>(null);
+  const captureRef = useRef<Capture | null>(null);
+  const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const pendingSubmitRef = useRef<(() => void) | null>(null);
+  const consentAllowRef = useRef<HTMLButtonElement>(null);
+
+  // Warm the motion-tracking engine once a skill is picked; a null engine
+  // simply means extraction runs without measurements.
+  useEffect(() => {
+    if (!skill) return;
+    let cancelled = false;
+    loadPoseEngine().then((engine) => {
+      if (!cancelled) poseRef.current = engine;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [skill]);
+
+  // Has this account answered the training-data question yet? Fail open on
+  // read errors: analysis is never blocked, and consent stays false in the
+  // database until explicitly granted.
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setConsentAnswered(true);
+          return;
+        }
+        const { data } = await supabase
+          .from("profiles")
+          .select("training_consent_at")
+          .eq("id", user.id)
+          .single();
+        setConsentAnswered(data?.training_consent_at != null);
+      } catch {
+        setConsentAnswered(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (consentOpen) consentAllowRef.current?.focus();
+  }, [consentOpen]);
+
+  async function answerConsent(allow: boolean) {
+    setConsentOpen(false);
+    setConsentAnswered(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({
+            training_consent: allow,
+            training_consent_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
+      }
+    } catch {
+      // The default in the database is no consent; a failed write stays safe.
+    }
+    const run = pendingSubmitRef.current;
+    pendingSubmitRef.current = null;
+    run?.();
+  }
 
   useEffect(() => {
     if (
@@ -173,9 +323,20 @@ export function AnalyzeFlow() {
     isRetry = false,
   ) {
     if (!skill || payloadFrames.length === 0) return;
+    // One-time training-data question before the first analysis ever runs.
+    if (consentAnswered === false) {
+      pendingSubmitRef.current = () => {
+        void submit(payloadFrames, src, dur, isRetry);
+      };
+      setConsentOpen(true);
+      return;
+    }
     setRetrying(isRetry);
     setStatus({ kind: "sending" });
     const clip = src === "video" ? clipRef.current : null;
+    const capture = src === "video" ? captureRef.current : null;
+    const landmarks = capture?.landmarks ?? [];
+    const hasKeypoints = landmarks.length >= 8;
     const body: AnalyzeRequest = {
       skill,
       discipline,
@@ -188,6 +349,12 @@ export function AnalyzeFlow() {
         time_s: f.time_s,
         data: f.dataUrl.split(",")[1],
       })),
+      measurements: capture?.measurements ?? undefined,
+      frame_keypoints: hasKeypoints
+        ? keypointsForFrames(landmarks, payloadFrames)
+        : undefined,
+      has_keypoints: hasKeypoints,
+      extra_frame_count: capture?.extras.length ?? 0,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -199,7 +366,8 @@ export function AnalyzeFlow() {
         const { error } = await res.json().catch(() => ({ error: null }));
         throw new Error(error ?? "The coaching service is unavailable. Try again.");
       }
-      const { analysisId, clipPath, xpAwarded } = await res.json();
+      const { analysisId, clipPath, keypointsPath, storedFramePaths, xpAwarded } =
+        await res.json();
       if (clip && clipPath) {
         try {
           await createClient()
@@ -211,6 +379,15 @@ export function AnalyzeFlow() {
         } catch {
           // Non-fatal: the results page falls back to the frame player.
         }
+      }
+      if (capture) {
+        // Background persistence; navigation does not wait on it.
+        uploadCaptureArtifacts(
+          capture,
+          dur,
+          typeof keypointsPath === "string" ? keypointsPath : null,
+          Array.isArray(storedFramePaths) ? storedFramePaths : [],
+        );
       }
       router.push(
         `/analysis/${analysisId}${xpAwarded ? `?xp=${xpAwarded}` : ""}`,
@@ -229,9 +406,14 @@ export function AnalyzeFlow() {
     setVideoUrl(null);
     clipRef.current = blob;
     try {
-      const { frames: f, duration_s, debug } = await extractFrames(blob, {
-        debug: debugRef.current,
-      });
+      const pose = poseRef.current && skill ? { engine: poseRef.current, skill } : undefined;
+      const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
+        blob,
+        { debug: debugRef.current, pose },
+      );
+      captureRef.current = poseCapture
+        ? { landmarks: poseCapture.landmarks, measurements: poseCapture.measurements, extras }
+        : null;
       setFrames(f);
       setSource("video");
       setDuration(duration_s);
@@ -265,10 +447,16 @@ export function AnalyzeFlow() {
         setDuration(null);
         setVideoUrl(null);
         clipRef.current = null;
+        captureRef.current = null;
       } else {
-        const { frames: f, duration_s, debug } = await extractFrames(file, {
-          debug: debugRef.current,
-        });
+        const pose = poseRef.current && skill ? { engine: poseRef.current, skill } : undefined;
+        const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
+          file,
+          { debug: debugRef.current, pose },
+        );
+        captureRef.current = poseCapture
+          ? { landmarks: poseCapture.landmarks, measurements: poseCapture.measurements, extras }
+          : null;
         setFrames(f);
         setSource("video");
         setDuration(duration_s);
@@ -297,6 +485,7 @@ export function AnalyzeFlow() {
       setDuration(null);
       setVideoUrl(null);
       clipRef.current = null;
+      captureRef.current = null;
       setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
@@ -313,11 +502,12 @@ export function AnalyzeFlow() {
       skill,
       discipline,
       frames: frames.map((f) => ({ time_s: f.time_s, data: f.dataUrl.split(",")[1] })),
+      measurements: captureRef.current?.measurements ?? undefined,
       expected: {
         overall_min: 0,
         overall_max: 100,
         weakest_metric: "",
-        notes: "TODO: label this rep — expected score band + weakest metric.",
+        notes: "TODO: label this rep: expected score band + weakest metric.",
       },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -474,7 +664,9 @@ export function AnalyzeFlow() {
             )}
 
             {frames.length > 0 ? (
-              <Filmstrip frames={frames} variant="grid" />
+              <div className="reward-earned">
+                <Filmstrip frames={frames} variant="grid" />
+              </div>
             ) : (
               <div className="card border-dashed border-line p-10 text-center text-xs text-chalk-dim">
                 {busy
@@ -549,6 +741,47 @@ export function AnalyzeFlow() {
           </div>
         )}
       </div>
+
+      {consentOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="training-consent-title"
+        >
+          <div className="card w-full max-w-md p-6">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              One-time question
+            </p>
+            <h2 id="training-consent-title" className="mt-2 font-display text-xl font-bold">
+              Help improve motion tracking?
+            </h2>
+            <p className="mt-3 text-sm text-chalk-dim">
+              Allow your uploaded clips and extracted frames to help train future
+              analysis features, like automatic ball tracking. Your footage stays
+              private to your account either way, and you can change this any time
+              from your dashboard.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                ref={consentAllowRef}
+                type="button"
+                onClick={() => answerConsent(true)}
+                className="btn-primary min-h-11"
+              >
+                Allow
+              </button>
+              <button
+                type="button"
+                onClick={() => answerConsent(false)}
+                className="btn-ghost min-h-11"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

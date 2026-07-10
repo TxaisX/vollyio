@@ -26,7 +26,7 @@ import {
   todayKey,
   XP_AWARDS,
 } from "@/lib/progression";
-import { completeChallenge } from "./actions";
+import { completeChallenge, setTrainingConsent } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +68,7 @@ export default async function Dashboard({
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, level")
+      .select("display_name, level, training_consent")
       .eq("id", user!.id)
       .single(),
     supabase
@@ -124,9 +124,9 @@ export default async function Dashboard({
       .map((a) => a.overall_score);
 
   return (
-    <section className="max-w-4xl">
+    <section className="max-w-5xl">
       <Reveal>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="dashboard-heading relative flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
               Dashboard
@@ -192,7 +192,7 @@ export default async function Dashboard({
 
       <div className="mt-6 grid gap-4 md:grid-cols-5">
         <Reveal delay={60} className="md:col-span-3">
-          <div className="card flex h-full flex-wrap items-center justify-center gap-6 p-6">
+          <div className="score-stage card spot flex h-full flex-wrap items-center justify-center gap-6 p-6">
             <ScoreRing score={overall} size={150} label="Overall" />
             <div className="min-w-0">
               <Radar ratings={ratings} size={196} />
@@ -202,7 +202,7 @@ export default async function Dashboard({
 
         <div className="flex flex-col gap-4 md:col-span-2">
           <Reveal delay={120}>
-            <div className="card card-lift p-5">
+            <div className="challenge-card card card-lift spot p-5">
               <div className="flex items-center justify-between">
                 <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
                   Daily challenge
@@ -223,7 +223,7 @@ export default async function Dashboard({
                 {SKILL_LABEL[challenge.skill]} · {challenge.duration_min} min
               </p>
               {progress.challengeDone ? (
-                <p className="mt-3 flex items-center gap-2 text-sm text-teal">
+                <p className="reward-earned mt-3 flex items-center gap-2 text-sm text-teal">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -231,7 +231,7 @@ export default async function Dashboard({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-4 w-4"
+                    className="reward-check h-4 w-4"
                     aria-hidden
                   >
                     <path d="M5 12.5l4.5 4.5L19 7.5" />
@@ -313,7 +313,7 @@ export default async function Dashboard({
               <Link
                 key={skill}
                 href={`/history?skill=${skill}`}
-                className="card card-lift group p-4"
+                className="skill-momentum-card card card-lift group p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 font-display text-sm font-bold">
@@ -426,6 +426,36 @@ export default async function Dashboard({
             ))}
           </ul>
         )}
+      </Reveal>
+
+      <Reveal>
+        <h2 className="mt-10 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+          Settings
+        </h2>
+        <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
+          <div className="min-w-0 max-w-md">
+            <p className="font-display font-bold">Improve motion tracking</p>
+            <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
+              Allow your clips and frames to help train future analysis features,
+              like automatic ball tracking. Footage stays private to your account
+              either way.
+            </p>
+          </div>
+          <form action={setTrainingConsent}>
+            <input
+              type="hidden"
+              name="allow"
+              value={profile?.training_consent ? "false" : "true"}
+            />
+            <button
+              type="submit"
+              aria-pressed={!!profile?.training_consent}
+              className={`chip min-h-11 ${profile?.training_consent ? "chip-active" : ""}`}
+            >
+              {profile?.training_consent ? "Allowed" : "Not allowed"}
+            </button>
+          </form>
+        </div>
       </Reveal>
     </section>
   );

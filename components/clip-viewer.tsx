@@ -1,11 +1,113 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { LM, type KeypointsFile } from "@/lib/pose/types";
 
 export type PlayerFrame = { url: string; time_s: number | null; highlighted: boolean };
 export type BallPos = { x: number; y: number; visible: boolean };
+// Flat [x, y, z, v, ...] landmark array per sent-frame index.
+export type FrameSkeletons = Map<number, number[]>;
 
 const FRAME_MS = 700;
+
+// Skeleton bone graph over the 33-landmark body model.
+const BONES: [number, number][] = [
+  [LM.leftShoulder, LM.rightShoulder],
+  [LM.leftShoulder, LM.leftElbow],
+  [LM.leftElbow, LM.leftWrist],
+  [LM.rightShoulder, LM.rightElbow],
+  [LM.rightElbow, LM.rightWrist],
+  [LM.leftShoulder, LM.leftHip],
+  [LM.rightShoulder, LM.rightHip],
+  [LM.leftHip, LM.rightHip],
+  [LM.leftHip, LM.leftKnee],
+  [LM.leftKnee, LM.leftAnkle],
+  [LM.rightHip, LM.rightKnee],
+  [LM.rightKnee, LM.rightAnkle],
+  [LM.leftAnkle, LM.leftHeel],
+  [LM.rightAnkle, LM.rightHeel],
+];
+const SKELETON_MIN_V = 0.5;
+
+/** Tracked body lines over the frame, in normalized image coordinates. */
+function SkeletonOverlay({ pts }: { pts: number[] }) {
+  const at = (i: number) => ({ x: pts[i * 4], y: pts[i * 4 + 1], v: pts[i * 4 + 3] });
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1 1"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+    >
+      {BONES.map(([a, b], i) => {
+        const pa = at(a);
+        const pb = at(b);
+        if (pa.v < SKELETON_MIN_V || pb.v < SKELETON_MIN_V) return null;
+        return (
+          <line
+            key={i}
+            x1={pa.x}
+            y1={pa.y}
+            x2={pb.x}
+            y2={pb.y}
+            strokeWidth={0.006}
+            strokeLinecap="round"
+            style={{ stroke: "var(--color-teal)", opacity: 0.85 }}
+          />
+        );
+      })}
+      {BONES.flat()
+        .filter((v, i, arr) => arr.indexOf(v) === i)
+        .map((i) => {
+          const p = at(i);
+          if (p.v < SKELETON_MIN_V) return null;
+          return (
+            <circle
+              key={`j${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={0.007}
+              style={{ fill: "var(--color-chalk)", opacity: 0.9 }}
+            />
+          );
+        })}
+    </svg>
+  );
+}
+
+// Normalized landmark and ball coordinates are relative to the video/image
+// content, which letterboxes inside its container when aspects differ
+// (portrait phone clips especially). This inner-box style pins overlays to
+// the actual content.
+function contentBoxStyle(
+  containerAspect: number | null,
+  mediaAspect: number | null,
+): React.CSSProperties {
+  if (!containerAspect || !mediaAspect || !isFinite(containerAspect) || !isFinite(mediaAspect)) {
+    return { position: "absolute", inset: 0 };
+  }
+  if (Math.abs(containerAspect - mediaAspect) < 0.01) {
+    return { position: "absolute", inset: 0 };
+  }
+  if (mediaAspect > containerAspect) {
+    const heightPct = (containerAspect / mediaAspect) * 100;
+    return {
+      position: "absolute",
+      left: 0,
+      width: "100%",
+      top: `${(100 - heightPct) / 2}%`,
+      height: `${heightPct}%`,
+    };
+  }
+  const widthPct = (mediaAspect / containerAspect) * 100;
+  return {
+    position: "absolute",
+    top: 0,
+    height: "100%",
+    left: `${(100 - widthPct) / 2}%`,
+    width: `${widthPct}%`,
+  };
+}
 
 /** Consistent accessible name for a frame thumbnail across both strips. */
 function frameName(i: number, timeS: number | null) {
@@ -18,9 +120,21 @@ type ViewerProps = {
   ball?: Map<number, BallPos>;
   focusIndex?: number | null;
   contactIndex?: number | null;
+  skeletons?: FrameSkeletons;
+  keypointsUrl?: string | null;
+  ballEstimated?: boolean;
 };
 
-export function ClipViewer({ clipUrl, frames, ball, focusIndex, contactIndex }: ViewerProps) {
+export function ClipViewer({
+  clipUrl,
+  frames,
+  ball,
+  focusIndex,
+  contactIndex,
+  skeletons,
+  keypointsUrl,
+  ballEstimated,
+}: ViewerProps) {
   if (clipUrl) {
     return (
       <ClipPlayer
@@ -28,6 +142,10 @@ export function ClipViewer({ clipUrl, frames, ball, focusIndex, contactIndex }: 
         frames={frames}
         focusIndex={focusIndex}
         contactIndex={contactIndex}
+        keypointsUrl={keypointsUrl ?? null}
+        fallbackSkeletons={skeletons}
+        fallbackBall={ball}
+        ballEstimated={ballEstimated}
       />
     );
   }
@@ -37,6 +155,8 @@ export function ClipViewer({ clipUrl, frames, ball, focusIndex, contactIndex }: 
       ball={ball}
       focusIndex={focusIndex}
       contactIndex={contactIndex}
+      skeletons={skeletons}
+      ballEstimated={ballEstimated}
     />
   );
 }
@@ -77,17 +197,94 @@ function ClipPlayer({
   frames,
   focusIndex,
   contactIndex,
+  keypointsUrl,
+  fallbackSkeletons,
+  fallbackBall,
+  ballEstimated,
 }: {
   clipUrl: string;
   frames: PlayerFrame[];
   focusIndex?: number | null;
   contactIndex?: number | null;
+  keypointsUrl: string | null;
+  fallbackSkeletons?: FrameSkeletons;
+  fallbackBall?: Map<number, BallPos>;
+  ballEstimated?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState<number | null>(null);
+  const [track, setTrack] = useState<KeypointsFile | null>(null);
+  const [traceOn, setTraceOn] = useState(true);
+  const [playheadPts, setPlayheadPts] = useState<number[] | null>(null);
+  const [mediaAspect, setMediaAspect] = useState<number | null>(null);
+  const [boxAspect, setBoxAspect] = useState<number | null>(null);
 
-  if (failed) return <FramePlayer frames={frames} focusIndex={focusIndex} contactIndex={contactIndex} />;
+  // Dense keypoints are optional and load lazily; absence means no trace.
+  useEffect(() => {
+    if (!keypointsUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(keypointsUrl);
+        if (!res.ok) return;
+        const file = (await res.json()) as KeypointsFile;
+        if (!cancelled && file?.version === 1 && Array.isArray(file.frames)) {
+          setTrack(file);
+        }
+      } catch {
+        // No trace; the video plays exactly as before.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [keypointsUrl]);
+
+  // Follow the playhead: nearest tracked instant within 150ms of currentTime.
+  useEffect(() => {
+    if (!track || !traceOn) {
+      setPlayheadPts(null);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      const v = videoRef.current;
+      if (v) {
+        const t = v.currentTime;
+        let best: number[] | null = null;
+        let bestD = 0.15;
+        for (const lf of track.frames) {
+          const d = Math.abs(lf.t - t);
+          if (d < bestD) {
+            bestD = d;
+            best = lf.pts.flatMap((p) => [p.x, p.y, p.z, p.v]);
+          }
+        }
+        setPlayheadPts(best);
+        const box = boxRef.current;
+        if (v.videoWidth && v.videoHeight) setMediaAspect(v.videoWidth / v.videoHeight);
+        if (box && box.clientHeight > 0) setBoxAspect(box.clientWidth / box.clientHeight);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [track, traceOn]);
+
+  if (failed) {
+    return (
+      <FramePlayer
+        frames={frames}
+        ball={fallbackBall}
+        focusIndex={focusIndex}
+        contactIndex={contactIndex}
+        skeletons={fallbackSkeletons}
+        ballEstimated={ballEstimated}
+      />
+    );
+  }
 
   const seekTo = (i: number) => {
     const f = frames[i];
@@ -105,7 +302,7 @@ function ClipPlayer({
         Clip
       </p>
 
-      <div className="overflow-hidden rounded-lg bg-navy">
+      <div ref={boxRef} className="relative overflow-hidden rounded-lg bg-navy">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           ref={videoRef}
@@ -117,7 +314,28 @@ function ClipPlayer({
           onError={() => setFailed(true)}
           className="block max-h-[70vh] w-full"
         />
+        {playheadPts && (
+          <div style={contentBoxStyle(boxAspect, mediaAspect)} aria-hidden>
+            <SkeletonOverlay pts={playheadPts} />
+          </div>
+        )}
       </div>
+
+      {track && (
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setTraceOn((v) => !v)}
+            aria-pressed={traceOn}
+            className={`chip min-h-11 ${traceOn ? "chip-active" : ""}`}
+          >
+            Motion trace
+          </button>
+          <span className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+            Tracked body lines over your rep
+          </span>
+        </div>
+      )}
 
       {frames.length > 0 && (
         <div className="mt-4">
@@ -176,17 +394,22 @@ function FramePlayer({
   ball,
   focusIndex,
   contactIndex,
+  skeletons,
+  ballEstimated,
 }: {
   frames: PlayerFrame[];
   ball?: Map<number, BallPos>;
   focusIndex?: number | null;
   contactIndex?: number | null;
+  skeletons?: FrameSkeletons;
+  ballEstimated?: boolean;
 }) {
   const [active, setActive] = useState(
     focusIndex != null && focusIndex >= 0 && focusIndex < frames.length ? focusIndex : 0,
   );
   const [playing, setPlaying] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [imgAspect, setImgAspect] = useState<number | null>(null);
 
   // Re-read reduced-motion on every change so auto-advance never starts (and
   // settles paused) when the user turns motion off mid-session.
@@ -224,6 +447,7 @@ function FramePlayer({
 
   const current = frames[active];
   const currentBall = ball?.get(active);
+  const currentSkeleton = skeletons?.get(active);
   const announcement = current
     ? `Frame ${active + 1} of ${frames.length}${
         current.time_s != null ? `, ${current.time_s} seconds` : ""
@@ -245,12 +469,21 @@ function FramePlayer({
           <img
             src={current.url}
             alt={`Frame ${active + 1}`}
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalWidth && img.naturalHeight) {
+                setImgAspect(img.naturalWidth / img.naturalHeight);
+              }
+            }}
             className="block aspect-video w-full object-contain"
           />
         ) : (
           <div className="aspect-video w-full" />
         )}
-        {currentBall && <BallMarker pos={currentBall} />}
+        <div style={contentBoxStyle(16 / 9, imgAspect)} aria-hidden>
+          {currentSkeleton && <SkeletonOverlay pts={currentSkeleton} />}
+          {currentBall && <BallMarker pos={currentBall} />}
+        </div>
         <span
           aria-hidden
           className="absolute left-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk"
@@ -295,6 +528,12 @@ function FramePlayer({
           Next
         </button>
       </div>
+
+      {ball && ball.size > 0 && ballEstimated !== false && (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+          Ball marker: estimated position
+        </p>
+      )}
 
       <div className="mt-4">
         <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
