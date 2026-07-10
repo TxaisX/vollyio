@@ -125,12 +125,13 @@ function createFocusTracker(target: NonNullable<ExtractOpts["pose"]>["target"]):
           best = c;
         }
       }
-      if (!best) {
+      // Never latch onto somebody else: a detection far from the player's
+      // last known position counts as a miss, zoomed or not. The lock only
+      // resumes when someone reappears near where the player was lost.
+      if (!best || bestD > 0.3) {
         if (region && ++misses >= 3) region = null;
         return;
       }
-      // On a widened (full-frame) pass, only re-lock near the lost position.
-      if (!region && bestD > 0.3) return;
       misses = 0;
       lastX = best.x;
       lastY = best.y;
@@ -580,11 +581,13 @@ async function sampleContentAware(
       denseFps = dense.denseFps;
       const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
       tracks = buildTracks(personFrames);
-      let chosen = tracks[0] ?? null;
       // A user-pinned player overrides the activity ranking: pick the track
-      // whose hip center sits closest to the tap at the anchored moment.
+      // whose hip center sits closest to the frame at the anchored moment.
+      // When no track matches the pin, choose NOBODY rather than silently
+      // analyzing a different player; the flow surfaces the miss.
       const target = pose.target;
-      if (target && tracks.length > 1) {
+      let chosen = target ? null : (tracks[0] ?? null);
+      if (target) {
         let bestD = 0.35;
         for (const track of tracks) {
           let near: LandmarkFrame | null = null;

@@ -16,6 +16,7 @@ import {
   type OpeningPlayers,
 } from "@/lib/frames";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
+import { dedupePersons, focusRegionAround } from "@/lib/pose/kinematics";
 import {
   LM,
   type Landmark,
@@ -347,6 +348,13 @@ export function AnalyzeFlow() {
   // The draggable, resizable frame over the opening image (normalized).
   const [frameBox, setFrameBox] = useState<Box | null>(null);
   const frameStageRef = useRef<HTMLDivElement>(null);
+  // Scrubbable clip inside the framing card: pick the moment, then the player.
+  const frameVideoRef = useRef<HTMLVideoElement>(null);
+  const [framingUrl, setFramingUrl] = useState<string | null>(null);
+  const [frameVideoFailed, setFrameVideoFailed] = useState(false);
+  const [scrubT, setScrubT] = useState(0);
+  // The pinned player was never found in the clip; nobody else was analyzed.
+  const [poiMissed, setPoiMissed] = useState(false);
   const dragRef = useRef<{
     mode: "move" | "resize";
     pointerId: number;
@@ -366,6 +374,19 @@ export function AnalyzeFlow() {
     }
     const first = openingPick.persons[0] ? boxFromPts(openingPick.persons[0]) : null;
     setFrameBox(first ?? { left: 0.35, top: 0.18, width: 0.3, height: 0.6 });
+  }, [openingPick]);
+
+  // Blob URL for the scrubbable framing clip, revoked when the card closes.
+  useEffect(() => {
+    if (!openingPick) {
+      setFramingUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(openingPick.blob);
+    setFramingUrl(url);
+    setFrameVideoFailed(false);
+    setScrubT(openingPick.timeS);
+    return () => URL.revokeObjectURL(url);
   }, [openingPick]);
 
   function onFramePointerDown(e: React.PointerEvent, mode: "move" | "resize") {
@@ -560,7 +581,7 @@ export function AnalyzeFlow() {
       })),
       measurements: capture?.measurements ?? undefined,
       player_selection:
-        capture && capture.tracks.length > 0
+        capture && capture.tracks.length > 0 && capture.selectedTrackId != null
           ? {
               candidates: capture.tracks.length,
               selected_rank:
@@ -652,6 +673,9 @@ export function AnalyzeFlow() {
               skill,
             }
           : null;
+      // The user pinned a player but tracking never found them: analyze
+      // nobody rather than somebody else, and say so.
+      setPoiMissed(!!target && !!poseCapture && poseCapture.selectedTrackId == null);
       let shown = f;
       markedRef.current = false;
       if (captureRef.current && captureRef.current.landmarks.length >= 8) {
@@ -694,6 +718,7 @@ export function AnalyzeFlow() {
     setFrameDebug(null);
     setOpeningPick(null);
     setLastOpening(null);
+    setPoiMissed(false);
     clipRef.current = blob;
     setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
     try {
@@ -724,20 +749,42 @@ export function AnalyzeFlow() {
     }
   }
 
-  // The frame is confirmed: aim tracking at the framed person. If a detected
-  // person's hips sit inside the box, snap the anchor to them; otherwise the
-  // box center is the anchor.
-  function confirmFraming() {
+  // The frame is confirmed: aim tracking at the framed person at the scrubbed
+  // moment. A fresh detection zoomed into the drawn box finds them even when
+  // they are small; if their hips sit inside the box, the anchor snaps to
+  // them, otherwise the box center is the anchor.
+  async function confirmFraming() {
     const opening = openingPick;
     const box = frameBox;
     if (!opening || !box) return;
+    const video = frameVideoRef.current;
+    const t =
+      video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
+        ? video.currentTime
+        : opening.timeS;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
     const cx = box.left + box.width / 2;
     const cy = box.top + box.height / 2;
-    let target = { x: cx, y: cy, t: opening.timeS, box };
+    // Opening detections only describe the opening probe; re-detect when the
+    // player scrubbed elsewhere (or to sharpen the snap when they did not).
+    let persons = Math.abs(t - opening.timeS) < 0.2 ? opening.persons : [];
+    const engine = poseRef.current;
+    if (video && engine) {
+      try {
+        const found = await engine.detectPersonsFromVideo(
+          video,
+          t,
+          focusRegionAround(cx, cy, box),
+        );
+        if (found && found.persons.length > 0) persons = dedupePersons(found.persons);
+      } catch {
+        // The opening detections (or the box center) still anchor tracking.
+      }
+    }
+    let target = { x: cx, y: cy, t, box };
     let bestD = Infinity;
-    for (const pts of opening.persons) {
+    for (const pts of persons) {
       const lh = pts[LM.leftHip];
       const rh = pts[LM.rightHip];
       if (lh.v < 0.4 || rh.v < 0.4) continue;
@@ -752,7 +799,7 @@ export function AnalyzeFlow() {
       const d = Math.hypot(hx - cx, hy - cy);
       if (d < bestD) {
         bestD = d;
-        target = { x: hx, y: hy, t: opening.timeS, box };
+        target = { x: hx, y: hy, t, box };
       }
     }
     void runVideoExtraction(opening.blob, opening.isRecorded, target);
@@ -784,6 +831,7 @@ export function AnalyzeFlow() {
         setLastOpening(null);
         markedRef.current = false;
         setMarkerShown(false);
+        setPoiMissed(false);
         setSource("photos");
         setDuration(null);
         setVideoUrl(null);
@@ -812,6 +860,7 @@ export function AnalyzeFlow() {
       setLastOpening(null);
       markedRef.current = false;
       setMarkerShown(false);
+      setPoiMissed(false);
       setSource("photos");
       setDuration(null);
       setVideoUrl(null);
@@ -1000,19 +1049,37 @@ export function AnalyzeFlow() {
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Drag the box over your player. Pull the corner to resize.
+                  Scrub to a moment where your player is clear, then drag the
+                  box over them. Pull the corner to resize.
                 </p>
                 <div
                   ref={frameStageRef}
                   className="relative mt-3 select-none overflow-hidden rounded-lg bg-navy"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={openingPick.dataUrl}
-                    alt="Opening frame. Frame the player to analyze."
-                    className="block w-full"
-                    draggable={false}
-                  />
+                  {framingUrl && !frameVideoFailed ? (
+                    <video
+                      ref={frameVideoRef}
+                      src={framingUrl}
+                      muted
+                      playsInline
+                      preload="auto"
+                      aria-label="Clip frame. Scrub below to choose the moment."
+                      onLoadedMetadata={() => {
+                        const v = frameVideoRef.current;
+                        if (v) v.currentTime = openingPick.timeS;
+                      }}
+                      onError={() => setFrameVideoFailed(true)}
+                      className="block w-full"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={openingPick.dataUrl}
+                      alt="Opening frame. Frame the player to analyze."
+                      className="block w-full"
+                      draggable={false}
+                    />
+                  )}
                   <div
                     role="group"
                     aria-label="Player frame. Drag to move, or use the arrow keys."
@@ -1060,6 +1127,23 @@ export function AnalyzeFlow() {
                     </button>
                   </div>
                 </div>
+                {framingUrl && !frameVideoFailed && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(0.1, openingPick.duration_s - 0.05)}
+                    step={0.05}
+                    value={scrubT}
+                    onChange={(e) => {
+                      const t = Number(e.target.value);
+                      setScrubT(t);
+                      const v = frameVideoRef.current;
+                      if (v) v.currentTime = t;
+                    }}
+                    aria-label="Scrub through the clip"
+                    className="mt-3 h-11 w-full cursor-pointer accent-gold"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={confirmFraming}
@@ -1079,6 +1163,12 @@ export function AnalyzeFlow() {
 
             {frames.length > 0 ? (
               <div className="reward-earned">
+                {poiMissed && (
+                  <p className="mb-2 text-xs text-coral">
+                    Couldn't find your framed player in the clip, so nobody
+                    else was measured in their place. Reframe to try again.
+                  </p>
+                )}
                 {(markerShown || (lastOpening && source === "video")) && (
                   <div className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
                     {markerShown && (
