@@ -38,11 +38,15 @@ for (const entry of readdirSync(publicRoot)) {
   });
 }
 
-mkdirSync(path.join(distRoot, ".openai"), { recursive: true });
-cpSync(
-  path.join(projectRoot, ".openai/hosting.json"),
-  path.join(distRoot, ".openai/hosting.json"),
-);
+// The hosting manifest is a local, untracked config for the static host.
+// Exporting without it is allowed; the check below keeps CI honest.
+if (existsSync(path.join(projectRoot, ".openai/hosting.json"))) {
+  mkdirSync(path.join(distRoot, ".openai"), { recursive: true });
+  cpSync(
+    path.join(projectRoot, ".openai/hosting.json"),
+    path.join(distRoot, ".openai/hosting.json"),
+  );
+}
 
 const launchPage = `<!doctype html>
 <html lang="en">
