@@ -16,7 +16,7 @@ import type {
   PersonTrack,
 } from "./pose/types";
 import { buildMeasurementsBlock } from "./pose/metrics";
-import { buildTracks } from "./pose/kinematics";
+import { buildTracks, dedupePersons } from "./pose/kinematics";
 import { LM } from "./pose/types";
 import type { Skill } from "./skills";
 
@@ -114,7 +114,8 @@ export async function detectOpeningPlayers(
       } catch {
         frame = null;
       }
-      if (frame && frame.persons.length > 0) {
+      const persons = frame ? dedupePersons(frame.persons) : [];
+      if (frame && persons.length > 0) {
         const [w, h] = scaledSize(
           video.videoWidth || 640,
           video.videoHeight || 360,
@@ -127,7 +128,7 @@ export async function detectOpeningPlayers(
         return {
           dataUrl: canvas.toDataURL("image/jpeg", VIDEO_JPEG_QUALITY),
           timeS: video.currentTime,
-          persons: frame.persons,
+          persons,
           duration_s: video.duration,
         };
       }

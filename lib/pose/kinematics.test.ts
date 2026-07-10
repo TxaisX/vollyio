@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   angleAt,
   buildTracks,
+  dedupePersons,
   detectJumpReps,
   detectPlatformReps,
   detectSwingReps,
@@ -118,4 +119,26 @@ test("buildTracks handles a single player", () => {
   const tracks = buildTracks(onePersonClip());
   assert.equal(tracks.length, 1);
   assert.ok(tracks[0].score > 0.5);
+});
+
+test("dedupePersons collapses overlapping detections of one body", () => {
+  const base = standingFrame(0).pts;
+  const jitter = base.map((p) => ({ ...p, x: p.x + 0.015, v: 0.8 }));
+  const far = base.map((p) => ({ ...p, x: p.x + 0.3 }));
+  const kept = dedupePersons([base, jitter, far]);
+  assert.equal(kept.length, 2);
+  // The higher-visibility duplicate survives.
+  assert.ok(kept.some((p) => p[0].v > 0.9));
+});
+
+test("buildTracks is immune to duplicate detections per frame", () => {
+  const doubled = onePersonClip().map((f) => ({
+    t: f.t,
+    persons: [
+      f.persons[0],
+      f.persons[0].map((p) => ({ ...p, x: p.x + 0.01, v: 0.7 })),
+    ],
+  }));
+  const tracks = buildTracks(doubled);
+  assert.equal(tracks.length, 1, `expected 1 track, got ${tracks.length}`);
 });
