@@ -5,7 +5,13 @@
 
 export type Peak = { timeS: number; score: number };
 export type FrameKind = "peak" | "burst" | "context";
-export type PlannedFrame = { timeS: number; kind: FrameKind };
+export type PlannedFrame = {
+  timeS: number;
+  kind: FrameKind;
+  // Optional render window (full-frame normalized) when the frame should be
+  // cropped to follow a framed player; attached by the caller after planning.
+  crop?: { left: number; top: number; width: number; height: number };
+};
 
 const INSET = 0.05; // ignore the outer 5% of the clip (bad first/last frames)
 const SMOOTH_WINDOW = 3;

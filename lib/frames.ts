@@ -31,7 +31,7 @@ export const MAX_CLIP_SECONDS = 45;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Content-aware sampler tuning (video only; the photo path is unchanged).
-const VIDEO_FRAME_DIM = 1280; // final video frames render larger than photos
+const VIDEO_FRAME_DIM = 1568; // final video frames render larger than photos
 const VIDEO_JPEG_QUALITY = 0.7;
 const SCAN_DIM = 144; // tiny throwaway canvas for the motion scan
 const PROBE_COUNT = 24;
@@ -51,6 +51,10 @@ export type Frame = {
   index: number;
   time_s: number | null;
   dataUrl: string;
+  // When the frame is a crop that follows the framed player, the source
+  // window in full-frame normalized coordinates. Landmark and marker overlays
+  // must be transformed into this window's space.
+  crop?: FocusRegion;
 };
 
 export type FrameDebug = {
@@ -468,7 +472,7 @@ function refinePeaks(peaks: Peak[], contacts: number[]): Peak[] {
   });
 }
 
-type Rendered = { time_s: number; dataUrl: string; kind: FrameKind };
+type Rendered = { time_s: number; dataUrl: string; kind: FrameKind; crop?: FocusRegion };
 
 async function renderPlanned(
   video: HTMLVideoElement,
@@ -476,21 +480,37 @@ async function renderPlanned(
   dim: number,
   quality: number,
 ): Promise<Rendered[]> {
-  const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, dim);
+  const vw = video.videoWidth || 640;
+  const vh = video.videoHeight || 360;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
   const ctx = canvas.getContext("2d")!;
   const out: Rendered[] = [];
   for (const pf of planned) {
     await seekTo(video, pf.timeS);
-    ctx.drawImage(video, 0, 0, w, h);
+    if (pf.crop) {
+      // Crop that follows the framed player: render the window at native
+      // resolution (capped at dim), a real zoom rather than a scale-up.
+      const sx = pf.crop.left * vw;
+      const sy = pf.crop.top * vh;
+      const sw = Math.max(8, Math.round(pf.crop.width * vw));
+      const sh = Math.max(8, Math.round(pf.crop.height * vh));
+      const [w, h] = scaledSize(sw, sh, dim);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+    } else {
+      const [w, h] = scaledSize(vw, vh, dim);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+    }
     out.push({
       // Read the ACTUAL post-seek frame time so time_s matches the image the
       // model sees (the route maps frame_index → time_s from this value).
       time_s: Math.round(video.currentTime * 10) / 10,
       dataUrl: canvas.toDataURL("image/jpeg", quality),
       kind: pf.kind,
+      crop: pf.crop,
     });
   }
   return out;
@@ -531,6 +551,7 @@ async function finalizePlanned(
     index,
     time_s: r.time_s,
     dataUrl: r.dataUrl,
+    crop: r.crop,
   }));
   const chosen = rendered.map((r) => ({ t: r.time_s, kind: r.kind }));
   return { frames, chosen, totalBytes: total };
@@ -627,6 +648,38 @@ async function sampleContentAware(
   const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
   const planned = planFrameTimes(duration, refinePeaks(peaks, contacts), coarseInterval, MAX_FRAMES);
   if (planned.length < 2) return null;
+
+  // Stay true to the user's framing: when a framed player was followed, the
+  // frames sent for analysis are crops of one fixed-size window (scaled up
+  // from the drawn box) re-centered on the player's hips at each moment.
+  // Frames where the player was not seen nearby stay full-frame.
+  const cropBox = pose?.target?.box;
+  if (cropBox && landmarks.length > 0) {
+    const cw = Math.min(1, Math.max(0.3, cropBox.width * 2.2));
+    const ch = Math.min(1, Math.max(0.4, cropBox.height * 1.9));
+    if (cw < 0.999 || ch < 0.999) {
+      for (const pf of planned) {
+        let near: LandmarkFrame | null = null;
+        let nearD = 0.8;
+        for (const lf of landmarks) {
+          const d = Math.abs(lf.t - pf.timeS);
+          if (d < nearD) {
+            nearD = d;
+            near = lf;
+          }
+        }
+        if (!near) continue;
+        const c = hipCenter(near.pts);
+        if (!c) continue;
+        pf.crop = {
+          left: Math.min(Math.max(0, c.x - cw / 2), 1 - cw),
+          top: Math.min(Math.max(0, c.y - ch / 2), 1 - ch),
+          width: cw,
+          height: ch,
+        };
+      }
+    }
+  }
 
   const { frames, chosen, totalBytes } = await finalizePlanned(video, planned);
 
