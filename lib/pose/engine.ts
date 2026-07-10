@@ -1,32 +1,41 @@
 // Main-thread facade for the motion-tracking engine. Lazy, idempotent, and
 // null on any failure: callers treat a null engine as "no measurements" and
 // the extraction pipeline degrades to its pre-existing behavior.
+//
+// Detection is multi-person (up to 4): callers receive every athlete in the
+// frame and choose who to follow via the track builder in kinematics.
 
-import { POSE_LANDMARK_COUNT, type Landmark, type LandmarkFrame } from "./types.ts";
+import { POSE_LANDMARK_COUNT, type Landmark, type PersonFrame } from "./types.ts";
 
 const WASM_BASE = "/pose/wasm";
 const MODEL_PATH = "/pose/pose_landmarker_lite.task";
 const INIT_TIMEOUT_MS = 12_000;
 const DETECT_TIMEOUT_MS = 4_000;
+const MAX_PERSONS = 4;
 // Long edge for detection input; normalized outputs are size-invariant.
 const DETECT_DIM = 512;
 
 export type PoseEngine = {
-  detectFromVideo(video: HTMLVideoElement, timeS: number): Promise<LandmarkFrame | null>;
+  detectPersonsFromVideo(video: HTMLVideoElement, timeS: number): Promise<PersonFrame | null>;
   dispose(): void;
 };
 
-function toFrame(pts: Float32Array, timeS: number): LandmarkFrame {
-  const out: Landmark[] = new Array(POSE_LANDMARK_COUNT);
-  for (let i = 0; i < POSE_LANDMARK_COUNT; i++) {
-    out[i] = {
-      x: pts[i * 4],
-      y: pts[i * 4 + 1],
-      z: pts[i * 4 + 2],
-      v: pts[i * 4 + 3],
-    };
+function unpack(pts: Float32Array, count: number, timeS: number): PersonFrame {
+  const persons: Landmark[][] = [];
+  for (let n = 0; n < count; n++) {
+    const base = n * POSE_LANDMARK_COUNT * 4;
+    const out: Landmark[] = new Array(POSE_LANDMARK_COUNT);
+    for (let i = 0; i < POSE_LANDMARK_COUNT; i++) {
+      out[i] = {
+        x: pts[base + i * 4],
+        y: pts[base + i * 4 + 1],
+        z: pts[base + i * 4 + 2],
+        v: pts[base + i * 4 + 3],
+      };
+    }
+    persons.push(out);
   }
-  return { t: Math.round(timeS * 1000) / 1000, pts: out };
+  return { t: Math.round(timeS * 1000) / 1000, persons };
 }
 
 function detectSize(video: HTMLVideoElement): { resizeWidth: number; resizeHeight: number } {
@@ -63,6 +72,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   });
 }
 
+type WorkerResult = { count: number; pts: Float32Array | null };
+
 function createWorkerEngine(): Promise<PoseEngine | null> {
   return new Promise((resolve) => {
     let worker: Worker;
@@ -74,7 +85,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     }
 
     let nextId = 1;
-    const pending = new Map<number, (pts: Float32Array | null) => void>();
+    const pending = new Map<number, (result: WorkerResult) => void>();
     let settledInit = false;
 
     const initTimer = setTimeout(() => {
@@ -113,13 +124,16 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
         const settle = pending.get(msg.id);
         if (settle) {
           pending.delete(msg.id);
-          settle(msg.pts instanceof Float32Array ? msg.pts : null);
+          settle({
+            count: typeof msg.count === "number" ? msg.count : 0,
+            pts: msg.pts instanceof Float32Array ? msg.pts : null,
+          });
         }
       }
     };
 
     const engine: PoseEngine = {
-      async detectFromVideo(video, timeS) {
+      async detectPersonsFromVideo(video, timeS) {
         let bitmap: ImageBitmap;
         try {
           bitmap = await createImageBitmap(video, detectSize(video));
@@ -127,16 +141,18 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
           return null;
         }
         const id = nextId++;
-        const pts = await withTimeout(
-          new Promise<Float32Array | null>((settle) => {
+        const result = await withTimeout(
+          new Promise<WorkerResult>((settle) => {
             pending.set(id, settle);
             worker.postMessage({ type: "detect", id, bitmap }, [bitmap]);
           }),
           DETECT_TIMEOUT_MS,
-          null,
+          { count: 0, pts: null },
         );
         pending.delete(id);
-        return pts ? toFrame(pts, timeS) : null;
+        return result.pts && result.count > 0
+          ? unpack(result.pts, result.count, timeS)
+          : null;
       },
       dispose() {
         pending.clear();
@@ -154,37 +170,38 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
   try {
     const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
     const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
+    const options = (delegate: "GPU" | "CPU") => ({
+      baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+      runningMode: "VIDEO" as const,
+      numPoses: MAX_PERSONS,
+    });
     let landmarker;
     try {
-      landmarker = await PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_PATH, delegate: "GPU" },
-        runningMode: "VIDEO",
-        numPoses: 1,
-      });
+      landmarker = await PoseLandmarker.createFromOptions(fileset, options("GPU"));
     } catch {
-      landmarker = await PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_PATH, delegate: "CPU" },
-        runningMode: "VIDEO",
-        numPoses: 1,
-      });
+      landmarker = await PoseLandmarker.createFromOptions(fileset, options("CPU"));
     }
     let clockMs = 0;
     return {
-      async detectFromVideo(video, timeS) {
+      async detectPersonsFromVideo(video, timeS) {
         try {
           clockMs += 33.34;
           const result = landmarker.detectForVideo(video, clockMs);
-          const person = result.landmarks?.[0];
-          if (!person || person.length !== POSE_LANDMARK_COUNT) return null;
-          const pts = new Float32Array(POSE_LANDMARK_COUNT * 4);
-          for (let i = 0; i < POSE_LANDMARK_COUNT; i++) {
-            const p = person[i];
-            pts[i * 4] = p.x;
-            pts[i * 4 + 1] = p.y;
-            pts[i * 4 + 2] = p.z ?? 0;
-            pts[i * 4 + 3] = p.visibility ?? 0;
-          }
-          return toFrame(pts, timeS);
+          const persons = (result.landmarks ?? []).filter(
+            (p) => p.length === POSE_LANDMARK_COUNT,
+          );
+          if (persons.length === 0) return null;
+          return {
+            t: Math.round(timeS * 1000) / 1000,
+            persons: persons.slice(0, MAX_PERSONS).map((person) =>
+              person.map((p) => ({
+                x: p.x,
+                y: p.y,
+                z: p.z ?? 0,
+                v: p.visibility ?? 0,
+              })),
+            ),
+          };
         } catch {
           return null;
         }

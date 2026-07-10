@@ -50,6 +50,13 @@ const bodySchema = z.object({
     .optional(),
   has_keypoints: z.boolean().optional(),
   extra_frame_count: z.number().int().min(0).max(12).optional(),
+  player_selection: z
+    .object({
+      candidates: z.number().int().min(1).max(8),
+      selected_rank: z.number().int().min(1).max(8),
+      auto: z.boolean(),
+    })
+    .optional(),
 });
 
 function safeClipExt(ext: string | null | undefined): string {
@@ -211,6 +218,9 @@ export async function POST(req: NextRequest) {
   // later without a contract change.
   result.ball_track_source = "model_estimate";
   if (measurements) result.measurements = measurements;
+  if (parsedBody.data.player_selection) {
+    result.player_selection = parsedBody.data.player_selection;
+  }
   const frameKeypoints = (parsedBody.data.frame_keypoints ?? []).filter(
     (k) => k.frame_index >= 0 && k.frame_index < frames.length,
   );

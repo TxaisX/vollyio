@@ -8,6 +8,8 @@ import {
   type DetectorFamily,
   type Landmark,
   type LandmarkFrame,
+  type PersonFrame,
+  type PersonTrack,
   type RepWindow,
 } from "./types.ts";
 
@@ -334,6 +336,132 @@ export function frameNearest(frames: LandmarkFrame[], t: number): LandmarkFrame 
     }
   }
   return bestD <= 0.15 ? best : null;
+}
+
+// ---------------------------------------------------------------------------
+// Person tracks: follow each athlete through multi-player footage so the
+// single-athlete measurement pipeline can run on one chosen person.
+
+function personCenter(pts: Landmark[]): { x: number; y: number } {
+  return mid(pts[LM.leftHip], pts[LM.rightHip]);
+}
+
+function personExtent(pts: Landmark[]): number {
+  const top = Math.min(pts[LM.nose].y, pts[LM.leftEar].y, pts[LM.rightEar].y);
+  const bottom = Math.max(pts[LM.leftAnkle].y, pts[LM.rightAnkle].y);
+  return Math.max(0.02, bottom - top);
+}
+
+type OpenTrack = {
+  id: number;
+  frames: LandmarkFrame[];
+  lastT: number;
+  cx: number;
+  cy: number;
+  h: number;
+};
+
+// Greedy frame-to-track association on hip-center distance and body-size
+// similarity, with a match window that widens for sparse probe gaps.
+export function buildTracks(personFrames: PersonFrame[], maxTracks = 4): PersonTrack[] {
+  const sorted = [...personFrames].sort((a, b) => a.t - b.t);
+  const open: OpenTrack[] = [];
+  let nextId = 0;
+
+  for (const frame of sorted) {
+    const assignments: { cost: number; person: number; track: OpenTrack }[] = [];
+    frame.persons.forEach((pts, person) => {
+      const c = personCenter(pts);
+      const h = personExtent(pts);
+      for (const track of open) {
+        const dt = frame.t - track.lastT;
+        if (dt > 3) continue;
+        const dist = Math.hypot(c.x - track.cx, c.y - track.cy);
+        const sizeCost = Math.abs(Math.log(h / track.h));
+        if (sizeCost > 0.5) continue;
+        const cost = dist + sizeCost * 0.5;
+        const budget = 0.12 + 0.2 * Math.min(dt, 2);
+        if (cost <= budget) assignments.push({ cost, person, track });
+      }
+    });
+
+    assignments.sort((a, b) => a.cost - b.cost);
+    const usedPersons = new Set<number>();
+    const usedTracks = new Set<number>();
+    for (const a of assignments) {
+      if (usedPersons.has(a.person) || usedTracks.has(a.track.id)) continue;
+      usedPersons.add(a.person);
+      usedTracks.add(a.track.id);
+      const pts = frame.persons[a.person];
+      const c = personCenter(pts);
+      a.track.frames.push({ t: frame.t, pts });
+      a.track.lastT = frame.t;
+      a.track.cx = c.x;
+      a.track.cy = c.y;
+      a.track.h = personExtent(pts);
+    }
+    frame.persons.forEach((pts, person) => {
+      if (usedPersons.has(person)) return;
+      const c = personCenter(pts);
+      open.push({
+        id: nextId++,
+        frames: [{ t: frame.t, pts }],
+        lastT: frame.t,
+        cx: c.x,
+        cy: c.y,
+        h: personExtent(pts),
+      });
+    });
+  }
+
+  // Score the tracks: who is actually playing, prominent, and on screen.
+  const candidates = open.filter((t) => t.frames.length >= 4);
+  if (candidates.length === 0) return [];
+  const maxFrames = Math.max(...candidates.map((t) => t.frames.length));
+
+  const scored: PersonTrack[] = candidates.map((t) => {
+    const heights = t.frames.map((f) => personExtent(f.pts));
+    const medianH = median(heights);
+    const wristSpeed = Math.max(
+      ...smooth(
+        t.frames.map((_, i) => {
+          const l = landmarkSpeed(t.frames, LM.leftWrist)[i];
+          const r = landmarkSpeed(t.frames, LM.rightWrist)[i];
+          return Math.max(l, r);
+        }),
+        1,
+      ),
+      0,
+    );
+    const motion = Math.min(1, wristSpeed / (medianH * 4));
+    const centerDist = median(
+      t.frames.map((f) => {
+        const c = personCenter(f.pts);
+        return Math.hypot(c.x - 0.5, c.y - 0.5);
+      }),
+    );
+    const centered = 1 - Math.min(1, centerDist * 2);
+    const coverage = t.frames.length / maxFrames;
+    return {
+      id: t.id,
+      frames: t.frames,
+      motion,
+      size: medianH,
+      centered,
+      score: 0, // filled after size normalization below
+    };
+  });
+
+  const maxSize = Math.max(...scored.map((t) => t.size), 0.01);
+  for (const t of scored) {
+    const size = t.size / maxSize;
+    const coverage = t.frames.length / maxFrames;
+    t.size = size;
+    t.score =
+      0.45 * t.motion + 0.25 * size + 0.15 * t.centered + 0.15 * coverage;
+  }
+
+  return scored.sort((a, b) => b.score - a.score).slice(0, maxTracks);
 }
 
 // Which wrist is doing the hitting in this rep: the faster one.

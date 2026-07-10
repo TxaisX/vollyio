@@ -13,7 +13,13 @@ import {
   type FrameDebug,
 } from "@/lib/frames";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
-import type { LandmarkFrame, MeasurementsBlock, KeypointsFile } from "@/lib/pose/types";
+import { buildMeasurementsBlock } from "@/lib/pose/metrics";
+import type {
+  LandmarkFrame,
+  MeasurementsBlock,
+  KeypointsFile,
+  PersonTrack,
+} from "@/lib/pose/types";
 import {
   SKILL_LABEL,
   DISCIPLINES,
@@ -29,7 +35,42 @@ type Capture = {
   landmarks: LandmarkFrame[];
   measurements: MeasurementsBlock | null;
   extras: Frame[];
+  tracks: PersonTrack[];
+  selectedTrackId: number | null;
+  denseFps: number | null;
+  skill: Skill;
 };
+
+// Bounding box (normalized, padded) for one track near a moment in the clip.
+function trackBoxAt(
+  track: PersonTrack,
+  timeS: number,
+): { left: number; top: number; width: number; height: number } | null {
+  let best: LandmarkFrame | null = null;
+  let bestD = 0.7;
+  for (const f of track.frames) {
+    const d = Math.abs(f.t - timeS);
+    if (d < bestD) {
+      bestD = d;
+      best = f;
+    }
+  }
+  if (!best) return null;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of best.pts) {
+    if (p.v < 0.4) continue;
+    xs.push(p.x);
+    ys.push(p.y);
+  }
+  if (xs.length < 6) return null;
+  const pad = 0.035;
+  const left = Math.max(0, Math.min(...xs) - pad);
+  const top = Math.max(0, Math.min(...ys) - pad);
+  const right = Math.min(1, Math.max(...xs) + pad);
+  const bottom = Math.min(1, Math.max(...ys) + pad);
+  return { left, top, width: right - left, height: bottom - top };
+}
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
@@ -214,6 +255,26 @@ export function AnalyzeFlow() {
   const prevSkillRef = useRef<Skill | null>(skill);
   const poseRef = useRef<PoseEngine | null>(null);
   const captureRef = useRef<Capture | null>(null);
+  // Mirrors captureRef's track state for rendering the focus-player picker.
+  const [playerTracks, setPlayerTracks] = useState<PersonTrack[]>([]);
+  const [playerChoice, setPlayerChoice] = useState<number | null>(null);
+
+  // Follow a different athlete: recompute the measurements from that track
+  // without re-extracting anything.
+  function selectTrack(trackId: number) {
+    const capture = captureRef.current;
+    if (!capture) return;
+    const track = capture.tracks.find((t) => t.id === trackId);
+    if (!track || capture.selectedTrackId === trackId) return;
+    capture.selectedTrackId = trackId;
+    capture.landmarks = track.frames;
+    capture.measurements = buildMeasurementsBlock(
+      capture.skill,
+      track.frames,
+      capture.denseFps,
+    );
+    setPlayerChoice(trackId);
+  }
   const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
   const pendingSubmitRef = useRef<(() => void) | null>(null);
@@ -350,6 +411,18 @@ export function AnalyzeFlow() {
         data: f.dataUrl.split(",")[1],
       })),
       measurements: capture?.measurements ?? undefined,
+      player_selection:
+        capture && capture.tracks.length > 0
+          ? {
+              candidates: capture.tracks.length,
+              selected_rank:
+                Math.max(
+                  0,
+                  capture.tracks.findIndex((t) => t.id === capture.selectedTrackId),
+                ) + 1,
+              auto: capture.selectedTrackId === capture.tracks[0]?.id,
+            }
+          : undefined,
       frame_keypoints: hasKeypoints
         ? keypointsForFrames(landmarks, payloadFrames)
         : undefined,
@@ -389,6 +462,9 @@ export function AnalyzeFlow() {
           Array.isArray(storedFramePaths) ? storedFramePaths : [],
         );
       }
+      // Purge the client router cache so dashboard/history show this rep
+      // immediately instead of a cached copy for up to 30s.
+      router.refresh();
       router.push(
         `/analysis/${analysisId}${xpAwarded ? `?xp=${xpAwarded}` : ""}`,
       );
@@ -411,9 +487,20 @@ export function AnalyzeFlow() {
         blob,
         { debug: debugRef.current, pose },
       );
-      captureRef.current = poseCapture
-        ? { landmarks: poseCapture.landmarks, measurements: poseCapture.measurements, extras }
-        : null;
+      captureRef.current =
+        poseCapture && skill
+          ? {
+              landmarks: poseCapture.landmarks,
+              measurements: poseCapture.measurements,
+              extras,
+              tracks: poseCapture.tracks,
+              selectedTrackId: poseCapture.selectedTrackId,
+              denseFps: poseCapture.denseFps,
+              skill,
+            }
+          : null;
+      setPlayerTracks(poseCapture?.tracks ?? []);
+      setPlayerChoice(poseCapture?.selectedTrackId ?? null);
       setFrames(f);
       setSource("video");
       setDuration(duration_s);
@@ -454,9 +541,20 @@ export function AnalyzeFlow() {
           file,
           { debug: debugRef.current, pose },
         );
-        captureRef.current = poseCapture
-          ? { landmarks: poseCapture.landmarks, measurements: poseCapture.measurements, extras }
-          : null;
+        captureRef.current =
+          poseCapture && skill
+            ? {
+                landmarks: poseCapture.landmarks,
+                measurements: poseCapture.measurements,
+                extras,
+                tracks: poseCapture.tracks,
+                selectedTrackId: poseCapture.selectedTrackId,
+                denseFps: poseCapture.denseFps,
+                skill,
+              }
+            : null;
+        setPlayerTracks(poseCapture?.tracks ?? []);
+        setPlayerChoice(poseCapture?.selectedTrackId ?? null);
         setFrames(f);
         setSource("video");
         setDuration(duration_s);
@@ -662,6 +760,80 @@ export function AnalyzeFlow() {
                 />
               </div>
             )}
+
+            {playerTracks.length > 1 &&
+              source === "video" &&
+              frames.length > 0 &&
+              (() => {
+                const selected = playerChoice ?? playerTracks[0].id;
+                const refTrack =
+                  playerTracks.find((t) => t.id === selected) ?? playerTracks[0];
+                const midT =
+                  refTrack.frames[Math.floor(refTrack.frames.length / 2)]?.t ?? 0;
+                let display = frames[0];
+                for (const f of frames) {
+                  if (
+                    f.time_s != null &&
+                    Math.abs(f.time_s - midT) <
+                      Math.abs((display.time_s ?? 1e9) - midT)
+                  ) {
+                    display = f;
+                  }
+                }
+                const boxes = playerTracks
+                  .map((t) => ({
+                    id: t.id,
+                    box:
+                      display.time_s != null ? trackBoxAt(t, display.time_s) : null,
+                  }))
+                  .filter(
+                    (b): b is { id: number; box: NonNullable<typeof b.box> } =>
+                      b.box != null,
+                  );
+                if (boxes.length < 2) return null;
+                return (
+                  <div className="card mb-3 p-4">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                      Players detected
+                    </p>
+                    <p className="mt-1 text-xs text-chalk-dim">
+                      Analyzing the player in the gold box. Tap another player to
+                      switch.
+                    </p>
+                    <div className="relative mt-3 overflow-hidden rounded-lg bg-navy">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={display.dataUrl}
+                        alt="Frame used to choose which player to analyze"
+                        className="block w-full"
+                      />
+                      {boxes.map(({ id, box }, i) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => selectTrack(id)}
+                          disabled={busy}
+                          aria-pressed={id === selected}
+                          aria-label={`Analyze player ${i + 1}${
+                            id === selected ? " (selected)" : ""
+                          }`}
+                          className={`absolute rounded-md border-2 transition-colors ${
+                            id === selected
+                              ? "border-gold shadow-lift"
+                              : "border-chalk/40 hover:border-gold/70"
+                          }`}
+                          style={{
+                            left: `${box.left * 100}%`,
+                            top: `${box.top * 100}%`,
+                            width: `${box.width * 100}%`,
+                            height: `${box.height * 100}%`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
             {frames.length > 0 ? (
               <div className="reward-earned">

@@ -163,3 +163,17 @@ response header so a fresh chat adopts it mid-stream. Chat history sent to
 the coaching service is scoped to the session. `/coach?s=<id>` opens a
 session, `?s=new` a fresh one; `deleteCoachSession` server action removes a
 session and its messages.
+
+## 11. Focus-player tracking, Phase 3 MVP (2026-07-10)
+
+Multi-player footage: the pose worker detects up to 4 athletes per frame
+(`numPoses: 4`); `lib/pose/kinematics.ts buildTracks()` associates detections
+across frames by hip-center distance + body-size similarity into
+`PersonTrack`s, ranked by motion energy (0.45), prominence (0.25), centering
+(0.15), and coverage (0.15). Extraction follows the top track by default; all
+tracks return to the flow, and when more than one athlete tracks cleanly the
+analyze preview shows a tap-to-switch player picker (gold box = analyzed).
+Switching recomputes measurements client-side from the chosen track with no
+re-extraction. `player_selection {candidates, selected_rank, auto}` rides the
+analyze request and persists inside `result`. Remembering a player across
+uploads (appearance embedding) is the planned follow-up.

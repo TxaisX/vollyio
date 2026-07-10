@@ -25,7 +25,7 @@ function titleFrom(message: string): string {
   return (space > 24 ? cut.slice(0, space) : cut) + "…";
 }
 
-type RatingRow = { skill: Skill; rating: number; analyses_count: number };
+type RatingRow = { skill: Skill; discipline: string; rating: number; analyses_count: number };
 type AnalysisRow = {
   skill: Skill;
   overall_score: number;
@@ -127,10 +127,8 @@ export async function POST(req: NextRequest) {
     supabase.from("profiles").select("display_name, level").eq("id", user.id).single(),
     supabase
       .from("skill_ratings")
-      .select("skill, rating, analyses_count")
-      .eq("user_id", user.id)
-      // Coach context uses indoor ratings for now; per-discipline context is a follow-up.
-      .eq("discipline", "indoor"),
+      .select("skill, discipline, rating, analyses_count")
+      .eq("user_id", user.id),
     supabase
       .from("analyses")
       .select("skill, overall_score, result, created_at")
@@ -157,6 +155,7 @@ export async function POST(req: NextRequest) {
   // Enrich with "what good looks like" for the player's weakest 1-2 skills.
   const techniqueNotes = [...ratings]
     .sort((a, b) => a.rating - b.rating)
+    .filter((r, i, arr) => arr.findIndex((x) => x.skill === r.skill) === i)
     .slice(0, 2)
     .map((r) => {
       const v = techniqueFor(r.skill, "indoor");

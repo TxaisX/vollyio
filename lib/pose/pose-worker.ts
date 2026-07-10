@@ -1,11 +1,14 @@
 /// <reference lib="webworker" />
 // Hand-rolled worker hosting the WASM pose landmarker. Receives transferred
-// ImageBitmaps, returns flat Float32Array landmark buffers (x, y, z, v per
-// point). The detector requires monotonically increasing timestamps, so the
-// worker keeps its own synthetic clock; clip time stays with the caller.
+// ImageBitmaps, returns every detected person as one flat Float32Array
+// (count x 33 x [x, y, z, v]). The detector requires monotonically increasing
+// timestamps, so the worker keeps its own synthetic clock; clip time stays
+// with the caller.
 
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { POSE_LANDMARK_COUNT } from "./types.ts";
+
+const MAX_PERSONS = 4;
 
 type InitMsg = { type: "init"; wasmBase: string; modelPath: string };
 type DetectMsg = { type: "detect"; id: number; bitmap: ImageBitmap };
@@ -22,7 +25,7 @@ async function createLandmarker(wasmBase: string, modelPath: string, delegate: "
   return PoseLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: modelPath, delegate },
     runningMode: "VIDEO",
-    numPoses: 1,
+    numPoses: MAX_PERSONS,
   });
 }
 
@@ -49,31 +52,40 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
   if (msg.type === "detect") {
     const { id, bitmap } = msg;
     let pts: Float32Array | null = null;
+    let count = 0;
     try {
       if (landmarker) {
         clockMs += 33.34;
         const result = landmarker.detectForVideo(bitmap, clockMs);
-        const person = result.landmarks?.[0];
-        if (person && person.length === POSE_LANDMARK_COUNT) {
-          pts = new Float32Array(POSE_LANDMARK_COUNT * 4);
-          for (let i = 0; i < POSE_LANDMARK_COUNT; i++) {
-            const p = person[i];
-            pts[i * 4] = p.x;
-            pts[i * 4 + 1] = p.y;
-            pts[i * 4 + 2] = p.z ?? 0;
-            pts[i * 4 + 3] = p.visibility ?? 0;
+        const persons = (result.landmarks ?? []).filter(
+          (p) => p.length === POSE_LANDMARK_COUNT,
+        );
+        count = Math.min(persons.length, MAX_PERSONS);
+        if (count > 0) {
+          pts = new Float32Array(count * POSE_LANDMARK_COUNT * 4);
+          for (let n = 0; n < count; n++) {
+            const person = persons[n];
+            const base = n * POSE_LANDMARK_COUNT * 4;
+            for (let i = 0; i < POSE_LANDMARK_COUNT; i++) {
+              const p = person[i];
+              pts[base + i * 4] = p.x;
+              pts[base + i * 4 + 1] = p.y;
+              pts[base + i * 4 + 2] = p.z ?? 0;
+              pts[base + i * 4 + 3] = p.visibility ?? 0;
+            }
           }
         }
       }
     } catch {
       pts = null;
+      count = 0;
     } finally {
       bitmap.close();
     }
     if (pts) {
-      scope.postMessage({ type: "result", id, pts }, [pts.buffer]);
+      scope.postMessage({ type: "result", id, count, pts }, [pts.buffer]);
     } else {
-      scope.postMessage({ type: "result", id, pts: null });
+      scope.postMessage({ type: "result", id, count: 0, pts: null });
     }
     return;
   }

@@ -203,3 +203,22 @@ export function passClip(): LandmarkFrame[] {
   for (const t of range(1.7, 2.6)) frames.push(standingFrame(t));
   return frames;
 }
+
+// Two-player scene: person A (shifted left) performs the serve, person B
+// (shifted right) stands idle. Person order alternates per frame to exercise
+// track association.
+export function twoPersonClip(): import("./types.ts").PersonFrame[] {
+  const shift = (pts: Landmark[], dx: number): Landmark[] =>
+    pts.map((p) => ({ ...p, x: p.x + dx }));
+  const server = serveClip();
+  return server.map((frame, i) => {
+    const a = shift(frame.pts, -0.18);
+    const b = shift(standingFrame(frame.t).pts, 0.22);
+    return { t: frame.t, persons: i % 2 === 0 ? [a, b] : [b, a] };
+  });
+}
+
+// Single-player scene wrapped in the multi-person shape.
+export function onePersonClip(): import("./types.ts").PersonFrame[] {
+  return serveClip().map((frame) => ({ t: frame.t, persons: [frame.pts] }));
+}

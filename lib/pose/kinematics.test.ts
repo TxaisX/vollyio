@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   angleAt,
+  buildTracks,
   detectJumpReps,
   detectPlatformReps,
   detectSwingReps,
@@ -10,7 +11,15 @@ import {
   standingBaseline,
   stddev,
 } from "./kinematics.ts";
-import { standingFrame, serveClip, blockClip, passClip } from "./test-fixtures.ts";
+import {
+  standingFrame,
+  serveClip,
+  blockClip,
+  passClip,
+  twoPersonClip,
+  onePersonClip,
+} from "./test-fixtures.ts";
+import type { LandmarkFrame } from "./types.ts";
 
 test("angleAt measures interior joint angles", () => {
   const a = { x: 0, y: 0, z: 0, v: 1 };
@@ -88,4 +97,25 @@ test("platform detector ignores hanging arms", () => {
   const frames = Array.from({ length: 90 }, (_, i) => standingFrame(i / 30));
   const reps = detectPlatformReps(frames, standingBaseline(frames));
   assert.equal(reps.length, 0);
+});
+
+test("buildTracks separates two players and ranks the active one first", () => {
+  const tracks = buildTracks(twoPersonClip());
+  assert.equal(tracks.length, 2);
+  // The serving player (higher motion) ranks first.
+  assert.ok(tracks[0].motion > tracks[1].motion,
+    `motion ${tracks[0].motion} vs ${tracks[1].motion}`);
+  // Association kept the players apart: track centers stay on their sides.
+  const meanX = (frames: LandmarkFrame[]) =>
+    frames.reduce((a, f) => a + f.pts[23].x, 0) / frames.length;
+  const xs = [meanX(tracks[0].frames), meanX(tracks[1].frames)].sort((a, b) => a - b);
+  assert.ok(xs[0] < 0.45 && xs[1] > 0.55, `centers ${xs}`);
+  // Both tracks cover most of the clip.
+  for (const t of tracks) assert.ok(t.frames.length > 60, `frames ${t.frames.length}`);
+});
+
+test("buildTracks handles a single player", () => {
+  const tracks = buildTracks(onePersonClip());
+  assert.equal(tracks.length, 1);
+  assert.ok(tracks[0].score > 0.5);
 });
