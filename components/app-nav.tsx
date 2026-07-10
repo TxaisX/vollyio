@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useReducedMotion } from "@/components/motion";
 
 type NavItem = {
   href: string;
@@ -116,9 +118,11 @@ export function SideNavLinks() {
               }`}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
+                <span className="nav-active-marker absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
               )}
-              <span className={active ? "text-gold" : ""}>{item.icon}</span>
+              <span className={active ? "nav-active-icon text-gold" : ""}>
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           </li>
@@ -130,20 +134,35 @@ export function SideNavLinks() {
 
 export function TabBar() {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    const active = navRef.current?.querySelector<HTMLElement>(
+      '[aria-current="page"]',
+    );
+    active?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [pathname, reducedMotion]);
+
   return (
     <nav
+      ref={navRef}
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 overflow-x-auto overscroll-x-contain border-t border-line bg-navy/90 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
         viewTransitionName: "app-tabbar",
       }}
     >
-      <ul className="flex">
+      <ul className="flex w-max min-w-full snap-x snap-mandatory">
         {TAB_NAV.map((item) => {
           const active = isActive(pathname, item.href);
           return (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className="w-[4.5rem] shrink-0 snap-center">
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
@@ -154,9 +173,9 @@ export function TabBar() {
                 {/* Non-color active signal: a top indicator bar plus a
                     heavier label, mirroring the sidebar's treatment. */}
                 {active && (
-                  <span className="absolute left-1/2 top-0 h-0.5 w-7 -translate-x-1/2 rounded-full bg-gold" />
+                  <span className="nav-active-marker absolute left-1/2 top-0 h-0.5 w-7 -translate-x-1/2 rounded-full bg-gold" />
                 )}
-                {item.icon}
+                <span className={active ? "nav-active-icon" : ""}>{item.icon}</span>
                 <span
                   className={`whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.02em] ${
                     active ? "font-medium" : ""

@@ -5,6 +5,12 @@ Line numbers in section 4 drift; confirm against the file. Sierra re-verifies ea
 
 > **STATUS 2026-07-08: ALL PASS.** Phase 1 implemented every component + route; Phase 2 (Sierra) filed 17 defects (0 blocker, 8 major, 9 minor) → all cleared in the fix loop and re-verified (build/tsc/test green, targeted checks + live drive pass). No open blocker/major on any component or route. The **Key gaps** column is preserved as the original audit snapshot (what each item was graded against); the **Status** column reflects the final, cleared result. Per-defect detail: `docs/qa.md`; report cards: `docs/reportcards.md`.
 >
+> **RE-VERIFIED 2026-07-09:** Current `master` plus the D-005 motion additions pass policy lint, TypeScript, all 18 tests, and the 55-route production build. The fresh source audit removed post-mission em-dash regressions and verified the new rAF counter responds to live reduced-motion changes. Component and route verdicts remain PASS.
+>
+> **UI MOTION PASS 2026-07-09 (D-006):** Fixed fragmented inline cards on Learn and every shared card link, added event-driven reward feedback across completion surfaces, and contained the mobile tab bar. Exact browser metrics at 360px and 390px show zero document overflow. Reduced motion settles immediately. All four machine gates remain green.
+>
+> **PREMIUM SURFACE PASS 2026-07-10 (D-007):** Rebuilt landing, login, signup, app atmosphere, and dashboard hierarchy around a generated, registered volleyball hero. Exact 360px/390px and desktop captures pass with no overflow and next-section content visible. Asset is 63.1 KiB, responsive, accessible, reduced-motion-safe, and on-token. All component and route verdicts remain PASS.
+>
 > **Post-mission surfaces:** `/learn` and `/api/eval` were merged from a parallel stream and did NOT go through this mission. They were audited separately afterward — see `docs/qa-learn-eval.md`.
 
 ## Components (21)

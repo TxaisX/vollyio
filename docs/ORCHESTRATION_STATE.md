@@ -2,6 +2,29 @@
 
 Mission: `sideout-perfection-orchestration-prompt.md` — make every component and route impeccable + land the section 10 grants. Autonomous; owner delegated approval to the agents (majority vote). Do NOT stop to ask.
 
+## Latest verification (2026-07-09)
+The completed mission was audited again on current `master`. D-005 documents the
+uncommitted landing/XP motion additions. Live reduced-motion changes now settle
+`CountUp`, post-mission user-facing em-dash regressions are removed, and a real
+dependency-free policy lint replaces the prior no-op script and runs in CI. Policy
+lint, TypeScript, 18/18 tests, and the 55-route production build pass. Ledger remains
+ALL PASS. Numeric Lighthouse was not repeated; the last recorded result remains
+99 performance / 100 accessibility on landing and app-shell login.
+
+## UI motion continuation (2026-07-09, D-006)
+Learn card fragmentation is fixed through shared block card layout and explicit
+full-height links. Reward motion now covers navigation, capture, chat, XP, goals,
+daily challenge completion, set/match wins, and match saving. The mobile tab bar is
+contained and active-item centered. Exact 360px/390px browser verification shows no
+horizontal overflow; reduced-motion and all four machine gates pass.
+
+## Premium campaign continuation (2026-07-10, D-007)
+Generated and registered a volleyball hero asset, rebuilt the landing page as a
+full-bleed product campaign, carried the same image into auth, and refined the app
+shell/dashboard hierarchy. Desktop, exact 390px, and exact 360px browser checks pass;
+the 63.1 KiB image is responsive and reduced-motion-safe. Lint, TypeScript, 18/18
+tests, and the 55-route build remain green. Work is uncommitted and not deployed.
+
 - Branch: `polish/multiagent-burst`
 - Started: 2026-07-08 ~07:10 PDT
 - Resume cron: one-shot `c3bc54dd` @ 12:04pm PDT 2026-07-08 (session-only). On resume, schedule the next ~2h safety net before working.

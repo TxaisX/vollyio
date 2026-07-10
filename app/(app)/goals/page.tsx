@@ -99,7 +99,7 @@ export default async function Goals() {
               </h2>
               <ul className="mt-2 divide-y divide-line">
                 {done.map((goal) => (
-                  <li key={goal.id} className="flex items-center gap-3 py-3">
+                  <li key={goal.id} className="reward-earned flex items-center gap-3 py-3">
                     <svg
                       viewBox="0 0 16 16"
                       fill="none"
@@ -107,7 +107,7 @@ export default async function Goals() {
                       strokeWidth={2}
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-4 w-4 shrink-0 text-teal"
+                      className="reward-check h-4 w-4 shrink-0 text-teal"
                       aria-hidden="true"
                     >
                       <path d="M3 8.5l3.5 3.5L13 5" />

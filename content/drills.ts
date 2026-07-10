@@ -719,7 +719,7 @@ export const DRILLS: Drill[] = [
       "The pin blocker sets the outside edge and takes away the line as the anchor; the middle blocker starts in the middle and reads the set direction.",
       "The middle closes to the pin with an efficient crossover, arriving with shoulders square and feet planted under the hips while the pin blocker holds position and does not chase.",
       "Both blockers time takeoff off the hitter's arm and press over the net together with firm wrists and shrugged shoulders.",
-      "Close the seam by bringing the two adjacent hands together — the pin blocker's inside hand and the middle blocker's near hand — and angle all four hands down so the ball rebounds into the middle of the court.",
+      "Close the seam by bringing the pin blocker's inside hand and the middle blocker's near hand together. Angle all four hands down so the ball rebounds into the middle of the court.",
       "Both land square without collision, peel off the net, and transition to defense."
     ],
     "common_mistakes": [

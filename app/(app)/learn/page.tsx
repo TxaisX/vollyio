@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { techniqueFor } from "@/content/technique";
 import { Reveal } from "@/components/motion";
@@ -56,26 +57,61 @@ export default async function Learn({
         </div>
       </Reveal>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {SKILLS.map((skill, si) => {
-          const t = techniqueFor(skill, discipline);
-          return (
-            <Reveal key={skill} delay={Math.min(si, 3) * 60}>
-              <Link href={`/learn/${skill}${q}`} className="card card-lift h-full p-5">
-                <div className="flex items-center gap-2">
-                  <span className="text-gold">
-                    <SkillIcon skill={skill} className="h-5 w-5" />
-                  </span>
-                  <span className="font-display text-lg font-bold">
-                    {SKILL_LABEL[skill]}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-chalk-dim">{t.overview}</p>
-              </Link>
-            </Reveal>
-          );
-        })}
-      </div>
+      <ViewTransition
+        key={discipline}
+        name="learn-grid"
+        share="auto"
+        default="none"
+      >
+        <div className="mt-8 grid items-stretch gap-3 sm:grid-cols-2">
+          {SKILLS.map((skill, si) => {
+            const t = techniqueFor(skill, discipline);
+            return (
+              <Reveal
+                key={skill}
+                delay={Math.min(si, 3) * 60}
+                className="h-full"
+              >
+                <Link
+                  href={`/learn/${skill}${q}`}
+                  transitionTypes={["nav-forward"]}
+                  className="learn-card card card-lift spot group relative block h-full min-h-44 p-5"
+                >
+                  <div className="flex items-center gap-2 pr-8">
+                    <span className="learn-card-icon text-gold">
+                      <SkillIcon skill={skill} className="h-5 w-5" />
+                    </span>
+                    <ViewTransition
+                      name={`learn-${skill}`}
+                      share="morph"
+                      default="none"
+                    >
+                      <span className="font-display text-lg font-bold">
+                        {SKILL_LABEL[skill]}
+                      </span>
+                    </ViewTransition>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
+                    {t.overview}
+                  </p>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="learn-card-arrow absolute right-4 top-5 h-5 w-5 text-gold"
+                    aria-hidden
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </Link>
+              </Reveal>
+            );
+          })}
+        </div>
+      </ViewTransition>
     </section>
   );
 }

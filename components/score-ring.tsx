@@ -93,7 +93,7 @@ export function ScoreRing({
           className="font-display font-bold"
           style={{ fontSize: size * 0.26 }}
         >
-          {display == null ? "—" : shown}
+          {display == null ? "·" : shown}
         </span>
         {label && (
           <span

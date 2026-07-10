@@ -10,7 +10,7 @@ export function mockResult(
   const metrics = METRICS[skill].map((m, i) => ({
     key: m.key,
     score: 58 + ((i * 9) % 34),
-    note: `Sample read on ${metricLabel(skill, m.key).toLowerCase()} — enable the coaching service for real feedback.`,
+    note: `Sample read on ${metricLabel(skill, m.key).toLowerCase()}. Enable the coaching service for real feedback.`,
   }));
   const overall = Math.round(
     metrics.reduce((a, b) => a + b.score, 0) / metrics.length,
@@ -30,7 +30,7 @@ export function mockResult(
     focus: {
       frame_index: 1,
       label: "Contact point",
-      why: "Sample focus moment — enable the coaching service for a real read.",
+      why: "Sample focus moment. Enable the coaching service for a real read.",
       time_s: timeAt(1),
     },
     insights: [

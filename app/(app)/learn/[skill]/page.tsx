@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { techniqueFor, drillsForMetric } from "@/content/technique";
@@ -69,6 +70,7 @@ export default async function LearnSkill({
       <Reveal>
         <Link
           href={`/learn${q}`}
+          transitionTypes={["nav-back"]}
           className="inline-flex min-h-11 items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
         >
           <svg
@@ -89,8 +91,15 @@ export default async function LearnSkill({
           <SkillIcon skill={skill} className="h-4 w-4" />
           {SKILL_LABEL[skill]}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-          What makes a good {skill}
+        <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-3xl font-bold tracking-tight">
+          <span>What makes a good</span>
+          <ViewTransition
+            name={`learn-${skill}`}
+            share="morph"
+            default="none"
+          >
+            <span>{skill}</span>
+          </ViewTransition>
         </h1>
         <p className="mt-3 leading-relaxed text-chalk-dim">{t.overview}</p>
 
@@ -121,9 +130,10 @@ export default async function LearnSkill({
         <h2 className="mt-8 mb-4 font-display text-sm font-bold uppercase tracking-wide">
           The phases
         </h2>
-        <ol className="space-y-4">
-          {t.phases.map((p, i) => (
-            <li key={p.name} className="flex gap-4 text-sm">
+      </Reveal>
+      <ol className="space-y-4">
+        {t.phases.map((p, i) => (
+          <Reveal key={p.name} as="li" delay={Math.min(i, 4) * 55} className="flex gap-4 text-sm">
               <span className="font-display text-2xl font-bold leading-none text-gold/70">
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -131,21 +141,22 @@ export default async function LearnSkill({
                 <span className="font-bold text-chalk">{p.name}.</span>{" "}
                 <span className="text-chalk-dim">{p.detail}</span>
               </span>
-            </li>
-          ))}
-        </ol>
-      </Reveal>
+          </Reveal>
+        ))}
+      </ol>
 
       <Reveal delay={200}>
         <h2 className="mt-8 mb-4 font-display text-sm font-bold uppercase tracking-wide">
           The five metrics
         </h2>
-        <div className="space-y-4">
-          {METRICS[skill].map((m) => {
+      </Reveal>
+      <div className="space-y-4">
+          {METRICS[skill].map((m, metricIndex) => {
             const k = t.metrics[m.key];
             const drills = drillsForMetric(skill, m.key);
             return (
-              <div key={m.key} className="card p-5">
+              <Reveal key={m.key} delay={Math.min(metricIndex, 3) * 65}>
+              <div className="card card-lift p-5">
                 <h3 className="font-display text-lg font-bold">{m.label}</h3>
                 <p className="mt-1 text-sm text-chalk-dim">
                   {k.what} {k.why}
@@ -201,10 +212,10 @@ export default async function LearnSkill({
                   </div>
                 )}
               </div>
+              </Reveal>
             );
           })}
-        </div>
-      </Reveal>
+      </div>
     </section>
   );
 }

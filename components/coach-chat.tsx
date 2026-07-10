@@ -271,7 +271,7 @@ export function CoachChat({
           {messages.map((m) => (
             <div
               key={m.id}
-              className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
+              className={`message-in flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
             >
               <div
                 className={

@@ -9,7 +9,23 @@ import {
   type ReactNode,
 } from "react";
 
-function useInView<T extends Element>(margin = "-40px") {
+export function useReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const on = () => setReduced(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return reduced;
+}
+
+export function useInView<T extends Element>(margin = "-40px") {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
 
@@ -87,6 +103,7 @@ export function CountUp({
   suffix?: string;
 }) {
   const { ref, inView } = useInView<HTMLSpanElement>();
+  const reducedMotion = useReducedMotion();
   // Seed with the real target so the server-rendered HTML and the no-JS
   // experience show the actual number; the count animation is enhancement.
   const [value, setValue] = useState(to);
@@ -99,7 +116,8 @@ export function CountUp({
       valueRef.current = v;
       setValue(v);
     };
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (reducedMotion) {
+      startedRef.current = true;
       set(to);
       return;
     }
@@ -117,7 +135,7 @@ export function CountUp({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, to, duration]);
+  }, [inView, to, duration, reducedMotion]);
 
   const format = (n: number) =>
     `${prefix}${n.toLocaleString("en-US")}${suffix}`;
