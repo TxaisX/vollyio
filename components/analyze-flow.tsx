@@ -995,10 +995,12 @@ export function AnalyzeFlow() {
               <input
                 ref={videoInput}
                 type="file"
-                // Lead with image/* so Android opens the media gallery picker
-                // rather than treating video/* as a capture intent and jumping
-                // straight to the camera. onVideoPicked handles either type.
-                accept="image/*,video/*"
+                // Explicit MIME types only — Android maps wildcard accepts
+                // (video/*, image/*) to a camera-capture intent on some
+                // devices, skipping the gallery entirely. Concrete types
+                // always open the media picker. onVideoPicked handles
+                // either kind.
+                accept="video/mp4,video/quicktime,video/webm,video/3gpp,video/x-matroska,image/jpeg,image/png,image/webp"
                 hidden
                 onChange={onVideoPicked}
               />
