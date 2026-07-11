@@ -1,4 +1,4 @@
-import { MAX_FRAMES, MAX_BODY_BYTES } from "@/lib/analysis-types";
+import { MAX_FRAMES, MAX_STORED_FRAMES, MAX_BODY_BYTES } from "@/lib/analysis-types";
 import {
   buildProbeTimes,
   findPeaks,
@@ -40,7 +40,7 @@ const NOISE_FLOOR = 12; // per-pixel luminance diff below this is treated as noi
 
 // Motion-tracking capture tuning. Tracking is strictly additive: any failure
 // or budget overrun degrades to the exact pre-existing pipeline.
-export const STORE_FRAMES = 24; // stored permanently; only the send set ships to the model
+export const STORE_FRAMES = MAX_STORED_FRAMES; // stored permanently; only the send set ships to the model
 const POSE_PROBE_BUDGET_MS = 4000; // probe landmarks stop consuming time after this
 const DENSE_WINDOW_S = 1.2; // dense capture reaches this far around each peak
 const DENSE_WINDOW_MAX_FRAMES = 48;
@@ -841,6 +841,9 @@ async function resizeDataUrl(dataUrl: string): Promise<string> {
 export async function extractFramesFromPhotos(files: File[]): Promise<Frame[]> {
   if (files.length < 2) {
     throw new Error("Pick at least 2-3 photos so there is a sequence to read.");
+  }
+  if (files.length > MAX_FRAMES) {
+    throw new Error(`Pick up to ${MAX_FRAMES} photos - the sequence reads best under that.`);
   }
   const bad = files.find((f) => !ALLOWED_IMAGE_TYPES.includes(f.type));
   if (bad) {

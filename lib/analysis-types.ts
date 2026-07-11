@@ -99,4 +99,8 @@ export type AnalysisResult = {
 };
 
 export const MAX_FRAMES = 12;
+// Total frames stored permanently per analysis (send set + extras); only the
+// send set ships to the model. Shared so the API schema accepts exactly what
+// the extraction planner can produce.
+export const MAX_STORED_FRAMES = 24;
 export const MAX_BODY_BYTES = 4_000_000;
