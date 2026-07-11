@@ -32,7 +32,7 @@ export async function signup(formData: FormData) {
   if (!data.session) {
     redirect(`/login?message=${encodeURIComponent("Check your email to confirm your account.")}`);
   }
-  redirect("/dashboard");
+  redirect("/welcome");
 }
 
 export async function logout() {
