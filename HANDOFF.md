@@ -1,12 +1,12 @@
 # Handoff — sideout
 
-_Last updated 2026-07-10. This file is the persistent project handoff — kept in-repo, updated each session._
+_Last updated 2026-07-11. This file is the persistent project handoff — kept in-repo, updated each session._
 
 ## Goal
 Sideout — volleyball skill-analysis + AI coaching web app. Next.js 16.2.10 (App Router, React 19.2), Supabase (auth + Postgres 17), Anthropic SDK server-side ("the coaching service" — never vendor-named in UI). Deployed on Vercel, repo `github.com/TxaisX/sideout`.
 
 ## State
-- Git: on `master`, **even with `origin/master`** at `0c89dc6`, working tree clean. History: Phase 1a/1b + Phase 2, premium campaign, CV Phase 1 (on-device pose tracking, D-008), and the focus-player pipeline (head-anchored POI dot, region-zoomed tracking, framed crops, start-time-bounded analysis) all shipped. 47/47 tests, tsc clean, policy lint clean.
+- Git: on `master`, **even with `origin/master`** at `cc30a0a`, working tree clean. History: Phase 1a/1b + Phase 2, premium campaign, CV Phase 1 (on-device pose tracking, D-008), the focus-player pipeline (head-anchored POI dot, region-zoomed tracking, framed crops, start-time-bounded analysis), and the 2026-07-11 mobile-upload fixes all shipped. 48/48 tests, tsc clean, policy lint clean.
 - **Deployed to production** at sideout-jet.vercel.app (Vercel project `txais-xiong-s-projects/sideout`). The Vercel project is **git-connected**: any push to `master` auto-deploys production — no CLI or specific machine required.
 - **MCP servers travel with the repo** (`.mcp.json`): Supabase (project-bound) and Vercel (D-011). Any session — including claude.ai/code from a phone — gets both after a per-user OAuth grant.
   - Supabase project: **sideout**, ref `tbbievneojaxkkjvcwjp`, org `ojvxtqcefdsthcfprauv`, region us-west-2, Postgres 17, `ACTIVE_HEALTHY`.
@@ -39,6 +39,7 @@ Nothing in flight. Next work happens from mobile via claude.ai/code against `Txa
 ---
 
 ## Session log
+- **2026-07-11 (mobile upload fixes)** — First cloud session from claude.ai/code. Fixed Android jumping to the camera instead of the gallery on "Upload a clip" (wildcard `accept` → explicit MIME list; frame-by-frame screen-recording diagnosis confirmed the user had tested a frozen `…projects.vercel.app` deployment URL — production URL is the one to verify on). Fixed `/api/analyze` 400 "Bad request." on gallery clips: the planner stores up to 24 frames so `extra_frame_count` legitimately exceeds 12 when the send set is small; schema now bounds by shared `MAX_STORED_FRAMES`. Photo picker capped at 12 with a friendly error. 48/48 tests, tsc, policy lint, build green; deployed via push to `master` (`cc30a0a`).
 - **2026-07-10 (mobile enablement)** — Prepped the repo for phone/cloud work: added the Vercel MCP server to `.mcp.json` (D-011), tracked `.env.example`, rewrote SETUP.md (auto-deploy + agent-sessions section) and this handoff to current state.
 - **2026-07-10 (focus player)** — Iterated the focus-player pipeline to a head-anchored POI dot with region-zoomed tracking, framed crops, and start-time-bounded analysis (`components/analyze-flow.tsx` and friends, bdd6414 → 0c89dc6). 47/47 tests, tsc, policy lint, prod build, Playwright smoke all green; deployed to production.
 - **2026-07-10 (premium campaign)** — Generated and registered a 63.1 KiB volleyball hero, rebuilt landing/login/signup, refined app-shell/dashboard hierarchy, and added one-time campaign motion. Desktop, exact 390px/360px, reduced motion, lint, tsc, 18/18 tests, and 55-route build pass. Not deployed.
