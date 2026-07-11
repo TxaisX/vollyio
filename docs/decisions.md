@@ -144,3 +144,19 @@ No runtime dependency was added. The reproducible capture script uses a temporar
 local encoder outside the application dependency graph. TypeScript, policy lint, 18
 tests, the 56-page production build, exact 390px overflow check, and launch-film
 frame review pass.
+
+## D-011 — Vercel MCP server (section 10.5 gate)
+Date: 2026-07-10 · By: Mobile/cloud workflow enablement
+
+Add the hosted Vercel MCP server (`https://mcp.vercel.com`) to `.mcp.json` beside
+the existing Supabase server. Gate: publisher is Vercel itself (first-party hosted
+endpoint, same provenance as the deployment platform already in use); auth is
+per-user OAuth at connect time, so no token or secret enters the repo; scope is
+deployment/project inspection for whatever the authenticated user can already see
+in the Vercel dashboard — least privilege is enforced by that OAuth grant, and the
+repo grants nothing by itself. Necessity: the project deploys via the GitHub →
+Vercel connection, and sessions running off this machine (claude.ai/code on
+mobile, cloud CI-adjacent work) have no Vercel CLI login; the MCP server is how
+those sessions verify a deployment landed. No code dependency, no license surface,
+nothing enters any bundle; pinning does not apply to a hosted HTTP endpoint — the
+URL is the stable public entry point.

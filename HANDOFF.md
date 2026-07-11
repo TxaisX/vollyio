@@ -6,10 +6,12 @@ _Last updated 2026-07-10. This file is the persistent project handoff — kept i
 Sideout — volleyball skill-analysis + AI coaching web app. Next.js 16.2.10 (App Router, React 19.2), Supabase (auth + Postgres 17), Anthropic SDK server-side ("the coaching service" — never vendor-named in UI). Deployed on Vercel, repo `github.com/TxaisX/sideout`.
 
 ## State
-- **Supabase MCP connected and healthy** — earlier stale-connection bug resolved (the `flpww`/`tbbie` server mixup in `The fix is a full restart of Claude Code.md`). MCP binds to the correct project.
-  - Project: **sideout**, ref `tbbievneojaxkkjvcwjp`, org `ojvxtqcefdsthcfprauv`, region us-west-2, Postgres 17.6.1, `ACTIVE_HEALTHY`.
-- **`public` schema — 7 tables, RLS enabled on all:** profiles (1 row), analyses (3), skill_ratings (3), xp_events (4), goals (0), games (0), chat_messages (0).
-- Git: on `master`, **even with `origin/master`** at `d8dae40`. History: Phase 1a/1b + Phase 2 complete (21 components, 17 QA defects cleared, Lighthouse 99/100 landing+login, view-transition layer live). The D-005 motion and hardening patch is currently uncommitted.
+- Git: on `master`, **even with `origin/master`** at `0c89dc6`, working tree clean. History: Phase 1a/1b + Phase 2, premium campaign, CV Phase 1 (on-device pose tracking, D-008), and the focus-player pipeline (head-anchored POI dot, region-zoomed tracking, framed crops, start-time-bounded analysis) all shipped. 47/47 tests, tsc clean, policy lint clean.
+- **Deployed to production** at sideout-jet.vercel.app (Vercel project `txais-xiong-s-projects/sideout`). The Vercel project is **git-connected**: any push to `master` auto-deploys production — no CLI or specific machine required.
+- **MCP servers travel with the repo** (`.mcp.json`): Supabase (project-bound) and Vercel (D-011). Any session — including claude.ai/code from a phone — gets both after a per-user OAuth grant.
+  - Supabase project: **sideout**, ref `tbbievneojaxkkjvcwjp`, org `ojvxtqcefdsthcfprauv`, region us-west-2, Postgres 17, `ACTIVE_HEALTHY`.
+- **`public` schema — 7 tables, RLS enabled on all:** profiles, analyses, skill_ratings, xp_events, goals, games, chat_messages.
+- Cloud sessions have no `.env.local` (see `SETUP.md` section 5): use `AI_MOCK=true`, unit tests + typecheck in-session, verify on the live site post-deploy.
 
 ## Key decisions / standing rules
 See `AGENTS.md` + `docs/decisions.md` D-001: no attribution trailers, no vendor names in UI (AI = "the coaching service"), design tokens locked in `app/globals.css` @theme (navy/chalk/gold/teal; Space Grotesk / Instrument Sans / IBM Plex Mono), middleware is `proxy.ts` not `middleware.ts`, dependency budget gated via the 10.5 viability gate.
@@ -29,17 +31,16 @@ See `AGENTS.md` + `docs/decisions.md` D-001: no attribution trailers, no vendor 
 - **Numeric Lighthouse not in CI** (tool not installed); verified manually 99/100. Optional `@lhci/cli` job later.
 
 ## Current next step
-Review the current uncommitted D-005/D-006/D-007 product, motion, and hardening patch, then commit and push when ready. It adds a generated premium landing/auth campaign, refines the app shell/dashboard, fixes Learn card fragmentation, adds milestone reward feedback, contains the mobile tab bar, adds live reduced-motion handling and policy lint, and removes post-mission em-dash regressions.
-
-## Prior next step (superseded)
-Review branch `docs/close-orchestration-gaps` and **merge to `master` + push** when ready (not pushed this session; CI will run on push). Nothing else in flight.
+Nothing in flight. Next work happens from mobile via claude.ai/code against `TxaisX/sideout` — commit, push to `master`, and the git connection deploys it.
 
 ## Run / deploy quickref
-`npm run dev` (:3000) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` · `vercel deploy [--prod]`. Build hits `EPERM: unlink .next/...` (OneDrive lock) → `Remove-Item -Recurse -Force .next` and rebuild.
+`npm run dev` (:3000) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run build`. Push to `master` deploys production; `vercel deploy [--prod]` only for ad-hoc previews. Build hits `EPERM: unlink .next/...` (OneDrive lock, local machine only) → `Remove-Item -Recurse -Force .next` and rebuild.
 
 ---
 
 ## Session log
+- **2026-07-10 (mobile enablement)** — Prepped the repo for phone/cloud work: added the Vercel MCP server to `.mcp.json` (D-011), tracked `.env.example`, rewrote SETUP.md (auto-deploy + agent-sessions section) and this handoff to current state.
+- **2026-07-10 (focus player)** — Iterated the focus-player pipeline to a head-anchored POI dot with region-zoomed tracking, framed crops, and start-time-bounded analysis (`components/analyze-flow.tsx` and friends, bdd6414 → 0c89dc6). 47/47 tests, tsc, policy lint, prod build, Playwright smoke all green; deployed to production.
 - **2026-07-10 (premium campaign)** — Generated and registered a 63.1 KiB volleyball hero, rebuilt landing/login/signup, refined app-shell/dashboard hierarchy, and added one-time campaign motion. Desktop, exact 390px/360px, reduced motion, lint, tsc, 18/18 tests, and 55-route build pass. Not deployed.
 - **2026-07-09 (UI motion)** — Fixed Learn's fragmented inline cards, added shared reward feedback to milestone surfaces, and contained the mobile tab bar. Verified with desktop, exact 390px, and exact 360px browser metrics; reduced motion, lint, tsc, 18/18 tests, and 55-route build pass.
 - **2026-07-09** — Re-ran the perfection prompt as a fresh audit against completed `master`. Verified all project-owned source and orchestration artifacts, closed reduced-motion/copy/lint enforcement gaps, and kept the 21-component + route ledger all-pass. Gates: policy lint, tsc, tests 18/18, build 55 routes.
