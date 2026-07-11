@@ -157,6 +157,17 @@ export default async function AnalysisDetail({
     year: "numeric",
   });
 
+  // Everything the breakdown computed, counted up front so the player sees
+  // the full value of the rep before scrolling.
+  const strengthCount = result.insights.filter((i) => i.type === "strength").length;
+  const fixCount = changes.length > 0 ? changes.length : 1;
+  const drillCount = result.drill_slugs.length;
+  const valueChips = [
+    { count: strengthCount, label: strengthCount === 1 ? "strength" : "strengths", href: "#timeline" },
+    { count: fixCount, label: fixCount === 1 ? "fix" : "fixes", href: "#changes" },
+    { count: drillCount, label: drillCount === 1 ? "drill" : "drills", href: "#drills" },
+  ].filter((c) => c.count > 0);
+
   return (
     <section className="max-w-6xl">
       {xp && <XpToast amount={Number(xp) || 0} />}
@@ -170,6 +181,15 @@ export default async function AnalysisDetail({
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
               Breakdown
             </h1>
+            {valueChips.length > 0 && (
+              <p className="mt-3 flex flex-wrap gap-2">
+                {valueChips.map((c) => (
+                  <a key={c.label} href={c.href} className="chip">
+                    {c.count} {c.label}
+                  </a>
+                ))}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <ShareCard
@@ -258,7 +278,10 @@ export default async function AnalysisDetail({
           </Reveal>
 
           <Reveal delay={220}>
-            <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+            <h2
+              id="timeline"
+              className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            >
               Timeline
             </h2>
             <ul className="space-y-1">
@@ -283,7 +306,10 @@ export default async function AnalysisDetail({
 
           {changes.length > 0 ? (
             <Reveal delay={260}>
-              <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+              <h2
+                id="changes"
+                className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+              >
                 What to change
               </h2>
               <div className="space-y-3">
@@ -294,6 +320,11 @@ export default async function AnalysisDetail({
                       i === 0 ? "border-gold shadow-lift" : "border-line"
                     }`}
                   >
+                    {i === 0 && (
+                      <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-gold">
+                        Your #1 fix
+                      </p>
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-display text-lg font-bold">{c.title}</p>
                       <span className="chip shrink-0 border-teal/40 text-teal">
@@ -331,7 +362,10 @@ export default async function AnalysisDetail({
 
           {result.drill_slugs.length > 0 && (
             <Reveal delay={300}>
-              <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+              <h2
+                id="drills"
+                className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+              >
                 Drills for this
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -357,6 +391,23 @@ export default async function AnalysisDetail({
               </div>
             </Reveal>
           )}
+
+          <Reveal delay={340}>
+            <div className="card mt-8 flex flex-wrap items-center justify-between gap-3 p-5">
+              <div>
+                <p className="font-display font-bold">Proud of this rep?</p>
+                <p className="mt-1 text-xs text-chalk-dim">
+                  Send the score card to your team.
+                </p>
+              </div>
+              <ShareCard
+                skillLabel={SKILL_LABEL[row.skill]}
+                score={row.overall_score}
+                fixTitle={result.priority_fix.title}
+                date={dateLabel}
+              />
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>

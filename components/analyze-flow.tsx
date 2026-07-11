@@ -334,9 +334,9 @@ function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
   );
 }
 
-export function AnalyzeFlow() {
+export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | null }) {
   const router = useRouter();
-  const [skill, setSkill] = useState<Skill | null>(null);
+  const [skill, setSkill] = useState<Skill | null>(initialSkill);
   const [frames, setFrames] = useState<Frame[]>([]);
   const [source, setSource] = useState<"video" | "photos">("video");
   const [duration, setDuration] = useState<number | null>(null);

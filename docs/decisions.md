@@ -160,3 +160,29 @@ mobile, cloud CI-adjacent work) have no Vercel CLI login; the MCP server is how
 those sessions verify a deployment landed. No code dependency, no license surface,
 nothing enters any bundle; pinning does not apply to a hosted HTTP endpoint — the
 URL is the stable public entry point.
+
+## D-012 — Free-tier onboarding funnel and breakdown value surface
+Date: 2026-07-11 · By: Competitive teardown follow-through
+
+Adopt the commitment-funnel onboarding and value-forward breakdown presentation
+observed in the competitive teardown of two consumer coaching apps, implemented
+without any of their pressure mechanics. New `/welcome` step sequence (level ·
+focus skill · 90-day target · echo summary) is the first writer of
+`profiles.level`, creates a real row through the existing goals path when a
+target is chosen, and hands off to `/analyze` with the chosen skill
+pre-selected via a validated `?skill=` param. Breakdown page now counts its own
+artifacts up front (strengths · fixes · drills chips anchor-linking to their
+sections), names the first change "Your #1 fix", and closes with the existing
+share card in a send-it-to-your-team framing.
+
+Explicitly rejected from the teardown: countdown/data-reset urgency, pre-rating
+prime screens, fabricated progress projections, decoy pricing, and locked-blur
+content ahead of a purchasable tier. Billing stays dormant behind
+`BILLING_ENABLED`; the natural premium seam (fix detail, timestamped insights,
+drills) is recorded here for when a paid tier ships. Deferred with it: an
+"Overall Game" analysis option (skill-enum migration + rubric) and an
+onboarding motion-tracking demo on a bundled clip (asset weight vs the
+Lighthouse floor).
+
+No new dependency, no schema change, no new motion. TypeScript, policy lint,
+48 tests, and the 57-route production build pass.
