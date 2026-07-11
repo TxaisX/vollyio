@@ -107,6 +107,18 @@ test("planExtraStoreTimes widens bursts and fills gaps without duplicates", () =
   }
 });
 
+test("planExtraStoreTimes can exceed MAX_FRAMES when the send set is small", () => {
+  // A single-peak clip yields a small send set, so extras legitimately run
+  // past MAX_FRAMES up to the 24-frame store budget. The /api/analyze schema
+  // must accept extra_frame_count in that range (it 400'd at >12 once).
+  const duration = 40;
+  const sendPlan = planFrameTimes(duration, [{ timeS: 20, score: 20 }], 1.2, MAX_FRAMES);
+  assert.ok(sendPlan.length < MAX_FRAMES, `send set unexpectedly full: ${sendPlan.length}`);
+  const extras = planExtraStoreTimes(duration, sendPlan, 24);
+  assert.ok(extras.length > MAX_FRAMES, `extras=${extras.length}`);
+  assert.ok(sendPlan.length + extras.length <= 24);
+});
+
 test("planExtraStoreTimes returns nothing when the send plan already fills the budget", () => {
   const peaks = [{ timeS: 5, score: 20 }];
   const sendPlan = planFrameTimes(20, peaks, 1.2, MAX_FRAMES);

@@ -12,7 +12,7 @@ import { updateRating } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
 import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
-import { MAX_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
+import { MAX_FRAMES, MAX_STORED_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
 import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
 import { POSE_LANDMARK_COUNT } from "@/lib/pose/types";
 
@@ -49,7 +49,9 @@ const bodySchema = z.object({
     .max(MAX_FRAMES)
     .optional(),
   has_keypoints: z.boolean().optional(),
-  extra_frame_count: z.number().int().min(0).max(12).optional(),
+  // The extraction planner stores up to MAX_STORED_FRAMES total; the send set
+  // is at least 2, so extras can reach MAX_STORED_FRAMES - 2 (not MAX_FRAMES).
+  extra_frame_count: z.number().int().min(0).max(MAX_STORED_FRAMES - 2).optional(),
   focus_marker: z.boolean().optional(),
   player_selection: z
     .object({
