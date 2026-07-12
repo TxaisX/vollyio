@@ -323,3 +323,33 @@ What shipped, all hand-rolled in `app/globals.css` on existing tokens:
 Verified: scroll-timeline computation confirmed in the shipped Chromium
 (scaleX tracks scroll fraction), tsc, policy lint, 62 unit tests, and a
 production build. No new dependencies, no new colors, no new fonts.
+
+## D-017 — CSS 3D tilt on landing cards: depth without a dependency
+Date: 2026-07-12 · By: 3D-animations research pass (section 10.2 motion grant)
+
+The owner asked how agency sites (ramanstudio.com class) get their 3D feel
+and how Sideout can have it. The honest decomposition: most of that feel is
+pointer-tracked perspective tilt, not WebGL. A real-time three.js/R3F layer
+stays declined on the D-016 grounds (10.5 necessity fails while the court
+films carry the landing), and the pre-rendered film pipeline (D-015) remains
+the sanctioned path for true-3D scenes. What ships now is the zero-dependency
+rung: a `Tilt` primitive in `components/cursor-glow.tsx` alongside its
+pointer-effect siblings.
+
+- Single-element `perspective(900px) rotateX/rotateY` clamped to ±5° (±2° on
+  the film-room panel, where the film is the attention object and the tilt
+  only signals "an object you can examine"). Transform-only, compositor-only.
+- A persistent 200ms `--ease-court` transform transition gives weighted
+  tracking (each pointermove retargets it) and doubles as the settle-flat on
+  pointerleave — in the 150–200ms feedback band.
+- Same guards as `SpotlightGroup`/`Magnetic`: pointer-fine + reduced-motion
+  media queries re-evaluated live; teardown clears the inline transform so a
+  mid-session reduce toggle settles flat instantly. Touch devices never
+  attach listeners; SSR renders a plain div.
+- Applied only to cards that already carry hover affordances (`card-lift
+  spot`: the three steps, six skills, four progress cards) plus the film
+  panel — the evidence and coach-chat cards intentionally keep no pointer
+  feedback, so they get no tilt.
+
+State never rides on the tilt (it is feedback, not signal), no layout
+properties move, and no dependency was added.

@@ -139,6 +139,82 @@ export function SpotlightGroup({
   );
 }
 
+export function Tilt({
+  children,
+  className = "",
+  max = 5,
+}: {
+  children: ReactNode;
+  className?: string;
+  max?: number;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState(false);
+
+  // Re-evaluate pointer-fine and reduced-motion whenever the user changes
+  // them mid-session so the card settles flat the instant reduce is enabled.
+  useEffect(() => {
+    const fineMq = window.matchMedia("(pointer: fine)");
+    const reduceMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const evaluate = () => setActive(finePointer());
+    evaluate();
+    fineMq.addEventListener("change", evaluate);
+    reduceMq.addEventListener("change", evaluate);
+    return () => {
+      fineMq.removeEventListener("change", evaluate);
+      reduceMq.removeEventListener("change", evaluate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !active) return;
+    let raf = 0;
+    let rx = 0;
+    let ry = 0;
+    // The persistent short transition is what makes tracking feel weighted:
+    // each pointermove retargets it, so the plane follows the cursor with a
+    // slight lag instead of snapping — and pointerleave reuses it to settle.
+    el.style.transition = "transform 0.2s var(--ease-court)";
+    const apply = () => {
+      raf = 0;
+      el.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    };
+    const move = (e: PointerEvent) => {
+      const rect = el.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      ry = px * 2 * max;
+      rx = -py * 2 * max;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    const leave = () => {
+      rx = 0;
+      ry = 0;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      el.style.transform = "";
+    };
+    el.addEventListener("pointermove", move, { passive: true });
+    el.addEventListener("pointerleave", leave);
+    return () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerleave", leave);
+      if (raf) cancelAnimationFrame(raf);
+      // Settle flat instantly when the effect tears down (unmount or reduce
+      // enabled mid-session) — never strand a card mid-rotation.
+      el.style.transition = "";
+      el.style.transform = "";
+    };
+  }, [active, max]);
+
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
+}
+
 export function Magnetic({
   children,
   className = "",

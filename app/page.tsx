@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CourtFilm } from "@/components/court-film";
-import { CursorGlow, Magnetic, SpotlightGroup } from "@/components/cursor-glow";
+import { CursorGlow, Magnetic, SpotlightGroup, Tilt } from "@/components/cursor-glow";
 import { LandingNav } from "@/components/landing-nav";
 import { Reveal, CountUp } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
@@ -167,16 +167,18 @@ export default function Landing() {
           </Reveal>
           <SpotlightGroup className="mt-10 grid gap-4 md:grid-cols-3">
             {STEPS.map((step, i) => (
-              <Reveal key={step.n} delay={i * 90}>
-                <div className="card card-lift spot h-full p-6">
-                  <span className="font-mono text-sm text-gold">{step.n}</span>
-                  <h3 className="mt-3 font-display text-xl font-bold">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
-                    {step.body}
-                  </p>
-                </div>
+              <Reveal key={step.n} delay={i * 90} className="h-full">
+                <Tilt className="h-full">
+                  <div className="card card-lift spot h-full p-6">
+                    <span className="font-mono text-sm text-gold">{step.n}</span>
+                    <h3 className="mt-3 font-display text-xl font-bold">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
+                      {step.body}
+                    </p>
+                  </div>
+                </Tilt>
               </Reveal>
             ))}
           </SpotlightGroup>
@@ -198,18 +200,22 @@ export default function Landing() {
               </p>
             </Reveal>
             <Reveal delay={120}>
-              <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
-                <CourtFilm
-                  src="/sideout-court-vision.mp4"
-                  srcWebm="/sideout-court-vision.webm"
-                  poster="/sideout-court-vision-poster.webp"
-                  label="Ten-second loop: a jump serve is scanned, the player's motion is traced joint by joint, the ball path is projected over the net, measured checkpoints appear in real units, and the serve scores 82 with one priority fix."
-                  posterAlt="A jump serve with motion tracking drawn over the player, measured checkpoints, and a serve score of 82."
-                  className="absolute inset-0"
-                  controlCorner="bottom-4 right-4"
-                  sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
-                />
-              </div>
+              {/* max kept at 2deg: the film is the attention object, the tilt
+                  only signals "this is an object you can examine". */}
+              <Tilt max={2}>
+                <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
+                  <CourtFilm
+                    src="/sideout-court-vision.mp4"
+                    srcWebm="/sideout-court-vision.webm"
+                    poster="/sideout-court-vision-poster.webp"
+                    label="Ten-second loop: a jump serve is scanned, the player's motion is traced joint by joint, the ball path is projected over the net, measured checkpoints appear in real units, and the serve scores 82 with one priority fix."
+                    posterAlt="A jump serve with motion tracking drawn over the player, measured checkpoints, and a serve score of 82."
+                    className="absolute inset-0"
+                    controlCorner="bottom-4 right-4"
+                    sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
+                  />
+                </div>
+              </Tilt>
             </Reveal>
             <Reveal delay={200}>
               <div className="mt-6 flex flex-wrap gap-2">
@@ -268,20 +274,22 @@ export default function Landing() {
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {SKILLS.map((skill, i) => (
-                <Reveal key={skill} delay={i * 60}>
-                  <div className="card card-lift spot h-full p-6">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gold">
-                        <SkillIcon skill={skill} />
-                      </span>
-                      <h3 className="font-display text-lg font-bold">
-                        {SKILL_LABEL[skill]}
-                      </h3>
+                <Reveal key={skill} delay={i * 60} className="h-full">
+                  <Tilt className="h-full">
+                    <div className="card card-lift spot h-full p-6">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gold">
+                          <SkillIcon skill={skill} />
+                        </span>
+                        <h3 className="font-display text-lg font-bold">
+                          {SKILL_LABEL[skill]}
+                        </h3>
+                      </div>
+                      <p className="mt-3 text-sm text-chalk-dim">
+                        {SKILL_BLURB[skill]}
+                      </p>
                     </div>
-                    <p className="mt-3 text-sm text-chalk-dim">
-                      {SKILL_BLURB[skill]}
-                    </p>
-                  </div>
+                  </Tilt>
                 </Reveal>
               ))}
             </SpotlightGroup>
@@ -352,53 +360,61 @@ export default function Landing() {
               </h2>
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Reveal>
-                <div className="card card-lift spot flex h-full flex-col items-center justify-center gap-2 p-6">
-                  <ScoreRing score={72} size={110} label="Overall" />
-                  <p className="font-mono text-[11px] uppercase text-chalk-dim">
-                    Rolling skill rating
-                  </p>
-                </div>
-              </Reveal>
-              <Reveal delay={70}>
-                <div className="card card-lift spot flex h-full items-center justify-center p-4">
-                  <Radar
-                    size={190}
-                    ratings={{
-                      serve: 78,
-                      pass: 64,
-                      set: 71,
-                      attack: 82,
-                      block: 55,
-                      dig: 68,
-                    }}
-                  />
-                </div>
-              </Reveal>
-              <Reveal delay={140}>
-                <div className="card card-lift spot flex h-full flex-col justify-center p-6">
-                  <span className="stat-num text-gold text-5xl">
-                    <CountUp to={12} />
-                  </span>
-                  <p className="mt-2 font-display font-bold">day streak</p>
-                  <p className="mt-1 text-sm text-chalk-dim">
-                    Saved on the server. A phone restart can&rsquo;t take it
-                    from you.
-                  </p>
-                </div>
-              </Reveal>
-              <Reveal delay={210}>
-                <div className="card card-lift spot flex h-full flex-col justify-center p-6">
-                  <span className="font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
-                    Level 4
-                  </span>
-                  <div className="mt-3 h-1.5 rounded-full bg-line/60">
-                    <div className="h-full w-3/5 rounded-full bg-gold" />
+              <Reveal className="h-full">
+                <Tilt className="h-full">
+                  <div className="card card-lift spot flex h-full flex-col items-center justify-center gap-2 p-6">
+                    <ScoreRing score={72} size={110} label="Overall" />
+                    <p className="font-mono text-[11px] uppercase text-chalk-dim">
+                      Rolling skill rating
+                    </p>
                   </div>
-                  <p className="mt-3 text-sm text-chalk-dim">
-                    XP for every rep, challenge, and finished goal.
-                  </p>
-                </div>
+                </Tilt>
+              </Reveal>
+              <Reveal delay={70} className="h-full">
+                <Tilt className="h-full">
+                  <div className="card card-lift spot flex h-full items-center justify-center p-4">
+                    <Radar
+                      size={190}
+                      ratings={{
+                        serve: 78,
+                        pass: 64,
+                        set: 71,
+                        attack: 82,
+                        block: 55,
+                        dig: 68,
+                      }}
+                    />
+                  </div>
+                </Tilt>
+              </Reveal>
+              <Reveal delay={140} className="h-full">
+                <Tilt className="h-full">
+                  <div className="card card-lift spot flex h-full flex-col justify-center p-6">
+                    <span className="stat-num text-gold text-5xl">
+                      <CountUp to={12} />
+                    </span>
+                    <p className="mt-2 font-display font-bold">day streak</p>
+                    <p className="mt-1 text-sm text-chalk-dim">
+                      Saved on the server. A phone restart can&rsquo;t take it
+                      from you.
+                    </p>
+                  </div>
+                </Tilt>
+              </Reveal>
+              <Reveal delay={210} className="h-full">
+                <Tilt className="h-full">
+                  <div className="card card-lift spot flex h-full flex-col justify-center p-6">
+                    <span className="font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
+                      Level 4
+                    </span>
+                    <div className="mt-3 h-1.5 rounded-full bg-line/60">
+                      <div className="h-full w-3/5 rounded-full bg-gold" />
+                    </div>
+                    <p className="mt-3 text-sm text-chalk-dim">
+                      XP for every rep, challenge, and finished goal.
+                    </p>
+                  </div>
+                </Tilt>
               </Reveal>
             </SpotlightGroup>
           </div>
