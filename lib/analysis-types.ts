@@ -31,6 +31,7 @@ export type AnalyzeRequest = {
   // True when the sent frames carry a gold tracking ring on the focus athlete.
   focus_marker?: boolean;
   player_selection?: PlayerSelection;
+  continuity?: ContinuityWire;
 };
 
 // Which athlete the tracking followed in multi-player footage.
@@ -38,6 +39,20 @@ export type PlayerSelection = {
   candidates: number;
   selected_rank: number; // 1-based rank of the chosen track
   auto: boolean; // false when the user tapped a different player
+};
+
+// How the follow went, on the wire: evidenced occlusions and frame exits from
+// lib/pose/track-state, snake-cased like every other transported field.
+export type ContinuityAbsenceWire = {
+  kind: "occluded" | "off_frame";
+  edge?: "left" | "right" | "top" | "bottom";
+  start_s: number;
+  returned_at_s: number | null;
+};
+export type ContinuityWire = {
+  coverage: number;
+  lost: boolean;
+  absences: ContinuityAbsenceWire[];
 };
 
 export type Metric = { key: string; score: number; note: string };
@@ -107,6 +122,7 @@ export type AnalysisResult = {
   frame_keypoints?: FrameKeypointsWire[];
   ball_track_source?: "model_estimate" | "tracked";
   player_selection?: PlayerSelection;
+  continuity?: ContinuityWire;
 };
 
 export const MAX_FRAMES = 12;

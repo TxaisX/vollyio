@@ -11,6 +11,10 @@
 
 import type { LandmarkFrame } from "./types.ts";
 import { focusPoint } from "./kinematics.ts";
+import type {
+  ContinuityAbsenceWire,
+  ContinuityWire,
+} from "../analysis-types.ts";
 
 export type FrameEdge = "left" | "right" | "top" | "bottom";
 
@@ -142,6 +146,43 @@ const EDGE_LABEL: Record<FrameEdge, string> = {
 function clock(seconds: number): string {
   const s = Math.max(0, seconds);
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+}
+
+// Snake-cased transport shape for the analyze request and stored results.
+export function continuityToWire(c: TrackContinuity): ContinuityWire {
+  return {
+    coverage: Math.round(c.coverage * 100) / 100,
+    lost: c.lost,
+    absences: c.absences.slice(0, 12).map((a) => ({
+      kind: a.kind,
+      edge: a.edge,
+      start_s: Math.round(a.startS * 100) / 100,
+      returned_at_s: a.returnedAtS == null ? null : Math.round(a.returnedAtS * 100) / 100,
+    })),
+  };
+}
+
+// The absence the playhead currently sits inside, if any. Unresolved exits
+// stay visible for a short beat past their start rather than forever.
+export function activeAbsence(
+  c: ContinuityWire | null | undefined,
+  tS: number,
+): ContinuityAbsenceWire | null {
+  if (!c) return null;
+  for (const a of c.absences) {
+    const end = a.returned_at_s ?? a.start_s + 3;
+    if (tS >= a.start_s - 0.1 && tS <= end + 0.1) return a;
+  }
+  return null;
+}
+
+// Chip copy for an absence on the clip viewer.
+export function absenceLabel(a: ContinuityAbsenceWire): string {
+  if (a.kind === "occluded") return "Hidden behind play";
+  const edge = EDGE_LABEL[a.edge ?? "left"];
+  return a.returned_at_s != null
+    ? `Left frame ${edge} · back by ${clock(a.returned_at_s)}`
+    : `Left frame ${edge} · not seen again`;
 }
 
 // One human sentence about how the follow went; null when there is nothing

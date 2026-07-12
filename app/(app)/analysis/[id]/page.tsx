@@ -248,6 +248,7 @@ export default async function AnalysisDetail({
                 skeletons={skeletons}
                 keypointsUrl={keypointsUrl}
                 ballEstimated={result.ball_track_source !== "tracked"}
+                continuity={result.continuity ?? null}
               />
             )}
             {result.focus && (

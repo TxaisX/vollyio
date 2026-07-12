@@ -60,6 +60,22 @@ const bodySchema = z.object({
       auto: z.boolean(),
     })
     .optional(),
+  continuity: z
+    .object({
+      coverage: z.number().min(0).max(1),
+      lost: z.boolean(),
+      absences: z
+        .array(
+          z.object({
+            kind: z.enum(["occluded", "off_frame"]),
+            edge: z.enum(["left", "right", "top", "bottom"]).optional(),
+            start_s: z.number().min(0).max(600),
+            returned_at_s: z.number().min(0).max(600).nullable(),
+          }),
+        )
+        .max(12),
+    })
+    .optional(),
 });
 
 function safeClipExt(ext: string | null | undefined): string {
@@ -238,6 +254,9 @@ export async function POST(req: NextRequest) {
   if (measurements) result.measurements = measurements;
   if (parsedBody.data.player_selection) {
     result.player_selection = parsedBody.data.player_selection;
+  }
+  if (parsedBody.data.continuity) {
+    result.continuity = parsedBody.data.continuity;
   }
   const frameKeypoints = (parsedBody.data.frame_keypoints ?? []).filter(
     (k) => k.frame_index >= 0 && k.frame_index < frames.length,

@@ -15,7 +15,11 @@ import {
   type FrameDebug,
   type OpeningPlayers,
 } from "@/lib/frames";
-import { continuityNote } from "@/lib/pose/track-state";
+import {
+  continuityNote,
+  continuityToWire,
+  type TrackContinuity,
+} from "@/lib/pose/track-state";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
 import {
   dedupePersons,
@@ -47,6 +51,7 @@ type Capture = {
   tracks: PersonTrack[];
   selectedTrackId: number | null;
   denseFps: number | null;
+  continuity: TrackContinuity | null;
   skill: Skill;
 };
 
@@ -748,6 +753,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
       has_keypoints: hasKeypoints,
       focus_marker: src === "video" && markedRef.current ? true : undefined,
       extra_frame_count: capture?.extras.length ?? 0,
+      continuity: capture?.continuity ? continuityToWire(capture.continuity) : undefined,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -820,6 +826,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
               tracks: poseCapture.tracks,
               selectedTrackId: poseCapture.selectedTrackId,
               denseFps: poseCapture.denseFps,
+              continuity: poseCapture.continuity,
               skill,
             }
           : null;
