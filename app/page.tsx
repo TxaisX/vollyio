@@ -122,9 +122,9 @@ export default function Landing() {
                       Analyze your first rep
                     </Link>
                   </Magnetic>
-                  <Link href="/launch" className="btn-ghost min-h-12 text-base">
-                    Watch launch film
-                  </Link>
+                  <a href="#film" className="btn-ghost min-h-12 text-base">
+                    Watch a rep get read
+                  </a>
                 </div>
               </Reveal>
               <Reveal delay={330} immediate>
