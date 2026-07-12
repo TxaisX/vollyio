@@ -9,6 +9,7 @@ import { scoreBand } from "@/lib/ratings";
 import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
 import { MetricBar } from "@/components/metric-bar";
+import { MeasuredCard } from "@/components/measured-card";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareCard } from "@/components/share-card";
@@ -324,6 +325,15 @@ export default async function AnalysisDetail({
               ))}
             </div>
           </Reveal>
+
+          {result.measurements && result.measurements.reps.length > 0 && (
+            <Reveal delay={200}>
+              <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+                Measured
+              </h2>
+              <MeasuredCard block={result.measurements} />
+            </Reveal>
+          )}
 
           <Reveal delay={220}>
             <h2
