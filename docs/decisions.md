@@ -283,3 +283,43 @@ a visible pause control on every instance (WCAG 2.2.2), still poster for
 `prefers-reduced-motion` (JS matchMedia guard) and for data-saver
 connections. No new dependencies; the render tooling stays out of
 `package.json` and runs ad hoc with an explicitly provided ffmpeg.
+
+## D-016 — Animation "skills" pass: adopt the craft, decline the packages
+Date: 2026-07-12 · By: Motion-quality pass, full creative access grant
+
+The owner shared six community "animation skills" (Three.js 3D, Animation
+Designer, Flutter Animations, pure-CSS animations, UX motion design) and
+asked for all of them applied at best quality, installing what's needed.
+The registry hosting them is unreachable from this environment, and on
+review they are instruction documents, not code — so the decision is to
+apply the craft they encode directly, inside the section 10.2 discipline,
+and decline the two that fail Sideout's gates on the merits: Flutter
+animations target a different platform entirely, and a Three.js/WebGL layer
+fails the 10.5 necessity test — the landing already carries real product
+motion (D-015 court films) and a 3D scene would spend the dependency budget
+on spectacle the page doesn't need.
+
+What shipped, all hand-rolled in `app/globals.css` on existing tokens:
+
+- **The coaching read** (the 30–60s scoring wait, the app's weakest moment):
+  a status ticker (`StatusTicker` in `components/analyze-flow.tsx`) walks
+  through what the pipeline is actually doing — reading frames, tracing
+  motion, checking measured angles, scoring the rubric, writing the fix —
+  resting on the last line instead of looping, because a loop reads as fake
+  progress. Over the filmstrip, a `.scan-line` gold band sweeps while the
+  model reads (transform-only, decorative; the ticker carries the state, so
+  reduced motion hides the band entirely).
+- **Reading progress** on the breakdown page: `.scroll-progress`, a pure
+  CSS scroll-driven hairline (`animation-timeline: scroll(root)`), scaleX
+  only, zero scroll listeners, hidden behind `@supports` where timelines
+  don't exist. It mirrors the user's own scrolling, so it stays on under
+  reduced motion via an explicit duration restore next to the global block.
+- **Skeleton shimmer**: the loading pulse gains a directional gradient
+  sweep (`::after`, translateX only) so every `loading.tsx` reads as
+  activity rather than fading; reduced motion keeps the static block.
+- **Input focus glow**: `.input-field:focus` adds a soft gold ring +
+  bloom via box-shadow transition on `--ease-court`.
+
+Verified: scroll-timeline computation confirmed in the shipped Chromium
+(scaleX tracks scroll fraction), tsc, policy lint, 62 unit tests, and a
+production build. No new dependencies, no new colors, no new fonts.

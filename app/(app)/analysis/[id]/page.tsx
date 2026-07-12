@@ -173,6 +173,9 @@ export default async function AnalysisDetail({
 
   return (
     <section className="max-w-6xl">
+      {/* Reading progress for the long breakdown scroll; pure CSS, hidden
+          where scroll timelines aren't supported. */}
+      <div aria-hidden="true" className="scroll-progress" />
       {xp && <XpToast amount={Number(xp) || 0} />}
 
       <Reveal>
