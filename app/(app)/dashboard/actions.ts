@@ -24,6 +24,19 @@ export async function completeChallenge() {
   revalidatePath("/dashboard");
 }
 
+const LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
+
+export async function setLevel(formData: FormData) {
+  const supabase = await createClient();
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return;
+
+  const level = String(formData.get("level") ?? "");
+  if (!(LEVELS as readonly string[]).includes(level)) return;
+  await supabase.from("profiles").update({ level }).eq("id", userId);
+  revalidatePath("/dashboard");
+}
+
 export async function setTrainingConsent(formData: FormData) {
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);

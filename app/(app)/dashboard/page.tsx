@@ -27,7 +27,8 @@ import {
   todayKey,
   XP_AWARDS,
 } from "@/lib/progression";
-import { completeChallenge, setTrainingConsent } from "./actions";
+import { completeChallenge, setLevel, setTrainingConsent } from "./actions";
+import { logout } from "@/app/(auth)/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,10 @@ export default async function Dashboard({
     ? (rawDiscipline as Discipline)
     : "indoor";
   const userId = await getAuthUserId(supabase);
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const email = authUser?.email ?? null;
 
   const [
     { data: profile, error: profileError },
@@ -453,6 +458,47 @@ export default async function Dashboard({
             >
               {profile?.training_consent ? "Allowed" : "Not allowed"}
             </button>
+          </form>
+        </div>
+
+        <div className="card mt-3 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-display font-bold">Account</p>
+              <p className="mt-1 text-xs text-chalk-dim">
+                {profile?.display_name ?? "Player"}
+                {email ? ` · ${email}` : ""}
+              </p>
+            </div>
+            <form action={logout}>
+              <button type="submit" className="btn-ghost min-h-11 px-4 text-sm">
+                Sign out
+              </button>
+            </form>
+          </div>
+          <p className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+            Coaching level · shapes how your breakdowns are written
+          </p>
+          <form action={setLevel} className="mt-2 flex flex-wrap gap-2">
+            {(
+              [
+                ["beginner", "New to the game"],
+                ["intermediate", "Club or school"],
+                ["advanced", "Competitive"],
+                ["elite", "High level"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="submit"
+                name="level"
+                value={value}
+                aria-pressed={profile?.level === value}
+                className={`chip min-h-11 ${profile?.level === value ? "chip-active" : ""}`}
+              >
+                {label}
+              </button>
+            ))}
           </form>
         </div>
       </Reveal>
