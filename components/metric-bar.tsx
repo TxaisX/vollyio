@@ -6,11 +6,14 @@ export function MetricBar({
   label,
   score,
   note,
+  elite,
   delay = 0,
 }: {
   label: string;
   score: number;
   note?: string;
+  /** What a ~90 looks like for this metric; renders as a collapsed reference line. */
+  elite?: string;
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -79,6 +82,14 @@ export function MetricBar({
         />
       </div>
       {note && <p className="mt-1 text-xs text-chalk-dim">{note}</p>}
+      {elite && (
+        <details className="mt-1">
+          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wide text-teal">
+            What 90 looks like
+          </summary>
+          <p className="mt-1 text-xs text-chalk-dim">{elite}</p>
+        </details>
+      )}
     </div>
   );
 }

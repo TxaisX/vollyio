@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { metricLabel } from "@/lib/ai/metrics";
+import { scoreBand } from "@/lib/ratings";
+import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
 import { MetricBar } from "@/components/metric-bar";
 import { Reveal } from "@/components/motion";
@@ -210,10 +212,18 @@ export default async function AnalysisDetail({
               share="morph"
               default="none"
             >
-              <ScoreRing score={row.overall_score} size={84} />
+              <div className="flex flex-col items-center gap-1">
+                <ScoreRing score={row.overall_score} size={84} />
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+                  {scoreBand(row.overall_score)}
+                </span>
+              </div>
             </ViewTransition>
           </div>
         </div>
+        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
+          Scored like a coach · 40 developing · 70 solid · 90 advanced
+        </p>
       </Reveal>
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-8">
@@ -271,6 +281,13 @@ export default async function AnalysisDetail({
                   label={metricLabel(row.skill, m.key)}
                   score={m.score}
                   note={m.note}
+                  elite={
+                    metricKnowledge(
+                      row.skill,
+                      result.discipline ?? "indoor",
+                      m.key,
+                    )?.elite_marker
+                  }
                   delay={i * 90}
                 />
               ))}

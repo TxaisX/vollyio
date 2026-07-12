@@ -8,7 +8,7 @@ import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
-import { updateRating } from "@/lib/ratings";
+import { updateRating, coherentOverall } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
 import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
@@ -197,7 +197,10 @@ export async function POST(req: NextRequest) {
       const top = raw.changes[0];
       result = {
         skill,
-        overall_score: raw.overall_score,
+        overall_score: coherentOverall(
+          raw.overall_score,
+          METRICS[skill].map((m) => metricsMap[m.key].score),
+        ),
         metrics: METRICS[skill].map((m) => ({
           key: m.key,
           score: metricsMap[m.key].score,
