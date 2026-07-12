@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillPicker } from "@/components/skill-picker";
 import { Recorder } from "@/components/recorder";
@@ -400,27 +400,60 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
+  // Every detected person renders as a tappable candidate frame. Candidates
+  // start from the opening probe and re-detect live as the user scrubs, so
+  // selection always reflects the moment on screen.
+  const [candidateBoxes, setCandidateBoxes] = useState<Box[]>([]);
+  // Until the user moves or resizes the frame themselves, it auto-snaps to
+  // the first detected person at each scrubbed moment.
+  const userFramedRef = useRef(false);
+
   // Start the frame on the first detected person's body, else centered at a
-  // person-ish size. Every detected person also renders as a tappable
-  // candidate frame.
+  // person-ish size.
   useEffect(() => {
     if (!openingPick) {
       setFrameBox(null);
+      setCandidateBoxes([]);
       boxDragRef.current = null;
+      userFramedRef.current = false;
       return;
     }
-    const first = openingPick.persons[0];
-    const bb = first ? boxFromPts(first) : null;
-    setFrameBox(clampBox(bb ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
+    const boxes = openingPick.persons
+      .map((pts) => boxFromPts(pts))
+      .filter((b): b is Box => b != null);
+    setCandidateBoxes(boxes);
+    setFrameBox(clampBox(boxes[0] ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
+    userFramedRef.current = false;
   }, [openingPick]);
 
-  const candidateBoxes = useMemo(
-    () =>
-      (openingPick?.persons ?? [])
-        .map((pts) => boxFromPts(pts))
-        .filter((b): b is Box => b != null),
-    [openingPick],
-  );
+  // Live auto-detection while scrubbing: after the scrubber settles, detect
+  // the people at the current moment and refresh the candidate frames. The
+  // user's own framing is never overridden once they have touched it.
+  useEffect(() => {
+    if (!openingPick || !framingUrl || frameVideoFailed) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const video = frameVideoRef.current;
+      const engine = poseRef.current;
+      if (!video || !engine) return;
+      try {
+        const found = await engine.detectPersonsFromVideo(video, scrubT);
+        if (cancelled || !found) return;
+        const boxes = dedupePersons(found.persons)
+          .map((pts) => boxFromPts(pts))
+          .filter((b): b is Box => b != null);
+        if (boxes.length === 0) return;
+        setCandidateBoxes(boxes);
+        if (!userFramedRef.current) setFrameBox(clampBox(boxes[0]));
+      } catch {
+        // Stale candidates are still tappable; the frame remains draggable.
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [scrubT, openingPick, framingUrl, frameVideoFailed]);
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
   useEffect(() => {
@@ -452,6 +485,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
     if (!p || !box) return;
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    userFramedRef.current = true;
 
     const corners = {
       nw: { x: box.left, y: box.top },
@@ -538,6 +572,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   function onBoxKeyDown(e: React.KeyboardEvent) {
     const box = frameBox;
     if (!box) return;
+    userFramedRef.current = true;
     const step = 0.02;
     const b = { ...box };
     if (e.shiftKey) {
