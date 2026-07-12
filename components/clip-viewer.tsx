@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LM, type KeypointsFile } from "@/lib/pose/types";
+import { activeAbsence, absenceLabel } from "@/lib/pose/track-state";
+import type { ContinuityAbsenceWire, ContinuityWire } from "@/lib/analysis-types";
 
 export type PlayerFrame = { url: string; time_s: number | null; highlighted: boolean };
 export type BallPos = { x: number; y: number; visible: boolean };
@@ -123,6 +125,7 @@ type ViewerProps = {
   skeletons?: FrameSkeletons;
   keypointsUrl?: string | null;
   ballEstimated?: boolean;
+  continuity?: ContinuityWire | null;
 };
 
 export function ClipViewer({
@@ -134,6 +137,7 @@ export function ClipViewer({
   skeletons,
   keypointsUrl,
   ballEstimated,
+  continuity,
 }: ViewerProps) {
   if (clipUrl) {
     return (
@@ -146,6 +150,7 @@ export function ClipViewer({
         fallbackSkeletons={skeletons}
         fallbackBall={ball}
         ballEstimated={ballEstimated}
+        continuity={continuity}
       />
     );
   }
@@ -157,6 +162,7 @@ export function ClipViewer({
       contactIndex={contactIndex}
       skeletons={skeletons}
       ballEstimated={ballEstimated}
+      continuity={continuity}
     />
   );
 }
@@ -172,6 +178,33 @@ function BallMarker({ pos }: { pos: BallPos }) {
     >
       <span className="block h-6 w-6 rounded-full border-2 border-gold ring-2 ring-navy/55" />
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
+    </span>
+  );
+}
+
+const ABSENCE_ARROW: Record<string, string> = {
+  left: "←",
+  right: "→",
+  top: "↑",
+  bottom: "↓",
+};
+const ABSENCE_POS: Record<string, string> = {
+  left: "left-2 top-1/2 -translate-y-1/2",
+  right: "right-2 top-1/2 -translate-y-1/2",
+  top: "top-2 left-1/2 -translate-x-1/2",
+  bottom: "bottom-2 left-1/2 -translate-x-1/2",
+};
+
+/** Edge chip shown while the playhead sits inside a tracked absence. */
+function AbsenceBadge({ absence }: { absence: ContinuityAbsenceWire }) {
+  const offFrame = absence.kind === "off_frame";
+  const pos = offFrame ? ABSENCE_POS[absence.edge ?? "left"] : "bottom-2 left-1/2 -translate-x-1/2";
+  return (
+    <span
+      className={`pointer-events-none absolute z-10 ${pos} flex items-center gap-1.5 rounded border border-dashed border-gold/80 bg-navy/85 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-gold`}
+    >
+      {offFrame && <span aria-hidden>{ABSENCE_ARROW[absence.edge ?? "left"]}</span>}
+      {absenceLabel(absence)}
     </span>
   );
 }
@@ -201,6 +234,7 @@ function ClipPlayer({
   fallbackSkeletons,
   fallbackBall,
   ballEstimated,
+  continuity,
 }: {
   clipUrl: string;
   frames: PlayerFrame[];
@@ -210,10 +244,12 @@ function ClipPlayer({
   fallbackSkeletons?: FrameSkeletons;
   fallbackBall?: Map<number, BallPos>;
   ballEstimated?: boolean;
+  continuity?: ContinuityWire | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
+  const [nowS, setNowS] = useState(0);
   const [active, setActive] = useState<number | null>(null);
   const [track, setTrack] = useState<KeypointsFile | null>(null);
   const [traceOn, setTraceOn] = useState(true);
@@ -312,8 +348,13 @@ function ClipPlayer({
           playsInline
           preload="metadata"
           onError={() => setFailed(true)}
+          onTimeUpdate={(e) => setNowS((e.target as HTMLVideoElement).currentTime)}
           className="block max-h-[70vh] w-full"
         />
+        {(() => {
+          const absence = activeAbsence(continuity, nowS);
+          return absence ? <AbsenceBadge absence={absence} /> : null;
+        })()}
         {playheadPts && (
           <div style={contentBoxStyle(boxAspect, mediaAspect)} aria-hidden>
             <SkeletonOverlay pts={playheadPts} />
@@ -396,6 +437,7 @@ function FramePlayer({
   contactIndex,
   skeletons,
   ballEstimated,
+  continuity,
 }: {
   frames: PlayerFrame[];
   ball?: Map<number, BallPos>;
@@ -403,6 +445,7 @@ function FramePlayer({
   contactIndex?: number | null;
   skeletons?: FrameSkeletons;
   ballEstimated?: boolean;
+  continuity?: ContinuityWire | null;
 }) {
   const [active, setActive] = useState(
     focusIndex != null && focusIndex >= 0 && focusIndex < frames.length ? focusIndex : 0,
@@ -484,6 +527,11 @@ function FramePlayer({
           {currentSkeleton && <SkeletonOverlay pts={currentSkeleton} />}
           {currentBall && <BallMarker pos={currentBall} />}
         </div>
+        {(() => {
+          const absence =
+            current?.time_s != null ? activeAbsence(continuity, current.time_s) : null;
+          return absence ? <AbsenceBadge absence={absence} /> : null;
+        })()}
         <span
           aria-hidden
           className="absolute left-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk"

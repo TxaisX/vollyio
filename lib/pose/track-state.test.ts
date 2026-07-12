@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { trackContinuity, continuityNote } from "./track-state.ts";
+import {
+  trackContinuity,
+  continuityNote,
+  continuityToWire,
+  activeAbsence,
+  absenceLabel,
+} from "./track-state.ts";
 import { standingFrame } from "./test-fixtures.ts";
 import type { LandmarkFrame } from "./types.ts";
 
@@ -71,6 +77,28 @@ test("an exit that never resolves marks the track lost", () => {
   assert.equal(last.kind, "off_frame");
   assert.equal(last.returnedAtS, null);
   assert.match(continuityNote(c) ?? "", /not seen again/i);
+});
+
+test("the wire shape carries absences snake-cased and the playhead finds them", () => {
+  const frames = [...run(0, 1.5), ...run(2.1, 4)];
+  const c = trackContinuity(frames)!;
+  const wire = continuityToWire(c);
+  assert.equal(wire.absences.length, 1);
+  assert.equal(wire.absences[0].kind, "occluded");
+  assert.ok(Math.abs(wire.absences[0].start_s - 1.5) < 0.06);
+  // The playhead inside the gap surfaces the absence; outside it does not.
+  assert.ok(activeAbsence(wire, 1.8));
+  assert.equal(activeAbsence(wire, 0.5), null);
+  assert.equal(activeAbsence(null, 1.8), null);
+  assert.match(absenceLabel(wire.absences[0]), /hidden/i);
+  assert.match(
+    absenceLabel({ kind: "off_frame", edge: "right", start_s: 4, returned_at_s: 6 }),
+    /left frame right · back by 0:06/i,
+  );
+  assert.match(
+    absenceLabel({ kind: "off_frame", edge: "left", start_s: 4, returned_at_s: null }),
+    /not seen again/i,
+  );
 });
 
 test("a long unexplained gap is a sampling gap, not an absence", () => {

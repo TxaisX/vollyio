@@ -69,5 +69,12 @@ export function mockResult(
       { rep_index: 0, overall: overall - 2, note: "Sample first-rep note." },
       { rep_index: 1, overall: overall + 2, note: "Sample second-rep note." },
     ],
+    continuity: {
+      coverage: 0.9,
+      lost: false,
+      absences: [
+        { kind: "off_frame", edge: "right", start_s: timeAt(1) ?? 1, returned_at_s: timeAt(2) },
+      ],
+    },
   };
 }
