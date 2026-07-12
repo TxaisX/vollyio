@@ -222,3 +222,33 @@ a 0.65 reliability so it only survives clean capture.
 The eval harness (`/api/eval` + `evals/SOURCING.md` pipeline) is the
 referee for every further change of this kind: no scoring-path change
 ships on a passRate regression once the calibration baseline lands.
+
+## D-014 — The court films: landing motion shot from our own film room
+Date: 2026-07-12 · By: Front-end premium campaign phase 2
+
+The landing page needed real volleyball motion, and every stock route was
+either off-limits (third-party rights, off-token grading) or beneath the
+bar (generic filler). Decision: shoot our own. A capture-only route
+(`/film`, noindexed and robots-disallowed) stages a ten-second "court
+vision" loop in pure project CSS/SVG over the D-007 hero photo: a scan
+sweep, a pose-skeleton trace locked to the player, a projected ball path,
+measured checkpoints in the product's real units (`lib/pose/
+measurement-format.ts` labels), and the score-plus-priority-fix read. Every
+animation on the route runs exactly ten seconds with infinite iterations,
+so scene state is fully periodic.
+
+`scripts/render-hero-film.mjs` captures it deterministically: it pauses
+every animation via the Web Animations API, sets `currentTime` explicitly
+per frame, and screenshots 300 frames at 30fps over CDP, verifying the
+loop closes by comparing frame 300 against frame 0 byte-for-byte. Two takes
+ship: `sideout-hero-loop` (ambient, hero backdrop) and
+`sideout-court-vision` (full HUD story, "The film room" landing section),
+each as H.264 MP4 plus a VP9 WebM that capable browsers prefer, with WebP
+posters extracted from the same frame set.
+
+Playback rules live in `components/court-film.tsx`: muted, looped,
+`preload="none"`, poster-first, play/pause tied to viewport intersection,
+a visible pause control on every instance (WCAG 2.2.2), still poster for
+`prefers-reduced-motion` (JS matchMedia guard) and for data-saver
+connections. No new dependencies; the render tooling stays out of
+`package.json` and runs ad hoc with an explicitly provided ffmpeg.

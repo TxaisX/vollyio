@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         "/scoreboard",
         "/goals",
         "/offline",
+        "/film",
         "/zzpreview",
       ],
     },
