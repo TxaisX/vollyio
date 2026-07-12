@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CourtFilm } from "@/components/court-film";
 import { CursorGlow, Magnetic, SpotlightGroup } from "@/components/cursor-glow";
 import { LandingNav } from "@/components/landing-nav";
 import { Reveal, CountUp } from "@/components/motion";
@@ -35,59 +36,6 @@ const STEPS = [
     body: "One priority fix per rep, the change that buys the most, with drills matched to it.",
   },
 ];
-
-function HeroAnalysisHud() {
-  return (
-    <div
-      role="img"
-      aria-label="Example serve analysis. Overall score 78. Contact point is the priority fix at frame 12."
-      className="hero-hud w-[22rem] overflow-hidden rounded-card border border-line bg-navy/80 p-4 shadow-lift backdrop-blur-xl"
-    >
-      <div aria-hidden="true">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
-            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
-            Serve analysis
-          </span>
-          <span className="font-display text-2xl font-bold text-gold">
-            <CountUp to={78} />
-          </span>
-        </div>
-        <div className="mt-3 space-y-2.5">
-          {[
-            ["Toss placement", 82],
-            ["Contact point", 74],
-            ["Follow-through", 61],
-          ].map(([label, score], index) => (
-            <div key={label as string}>
-              <div className="flex justify-between font-mono text-[10px] uppercase text-chalk-dim">
-                <span>{label}</span>
-                <span className="text-chalk">{score}</span>
-              </div>
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-line/60">
-                <div
-                  className="hero-metric-fill h-full origin-left rounded-full bg-gold"
-                  style={{
-                    width: `${score}%`,
-                    animationDelay: `${340 + index * 90}ms`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 rounded-control border-l-2 border-gold bg-navy/70 p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
-            Priority fix · frame 12
-          </p>
-          <p className="mt-1 text-sm leading-snug text-chalk">
-            Meet the ball six inches farther into the court.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Landing() {
   const jsonLd = {
@@ -126,15 +74,26 @@ export default function Landing() {
 
       <main id="main" tabIndex={-1} className="relative">
         <section className="landing-hero relative flex min-h-[calc(100svh-7.5rem)] items-end overflow-hidden border-b border-line pt-24 md:min-h-[calc(100svh-4.5rem)] md:items-center md:pt-28">
-          <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
-            <div className="hero-glow" />
+          <CourtFilm
+            src="/sideout-hero-loop.mp4"
+            srcWebm="/sideout-hero-loop.webm"
+            poster="/sideout-hero-loop-poster.webp"
+            className="absolute inset-0"
+            controlCorner="bottom-4 right-4"
+            objectPosition="72% 50%"
+          />
+          <div aria-hidden="true" className="hero-film-shade pointer-events-none absolute inset-0" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="animate-drift absolute inset-0">
-              <SeamArcs opacity={0.14} />
+              <SeamArcs opacity={0.1} />
             </div>
           </div>
-          <div aria-hidden="true" className="hero-court-line absolute inset-x-0 bottom-[18%]" />
-          <div className="relative mx-auto grid w-full max-w-6xl items-end gap-10 px-5 pb-6 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center md:px-8 md:pb-12">
-            <div className="max-w-2xl">
+          <div
+            aria-hidden="true"
+            className="hero-court-line pointer-events-none absolute inset-x-0 bottom-[18%]"
+          />
+          <div className="pointer-events-none relative mx-auto w-full max-w-6xl px-5 pb-6 md:px-8 md:pb-12">
+            <div className="pointer-events-auto max-w-2xl">
               <Reveal immediate>
                 <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">
                   Your film · your fix · your next level
@@ -163,9 +122,9 @@ export default function Landing() {
                       Analyze your first rep
                     </Link>
                   </Magnetic>
-                  <Link href="/launch" className="btn-ghost min-h-12 text-base">
-                    Watch launch film
-                  </Link>
+                  <a href="#film" className="btn-ghost min-h-12 text-base">
+                    Watch a rep get read
+                  </a>
                 </div>
               </Reveal>
               <Reveal delay={330} immediate>
@@ -179,9 +138,6 @@ export default function Landing() {
                   )}
                 </div>
               </Reveal>
-            </div>
-            <div className="hidden justify-self-end lg:block">
-              <HeroAnalysisHud />
             </div>
           </div>
         </section>
@@ -224,6 +180,51 @@ export default function Landing() {
               </Reveal>
             ))}
           </SpotlightGroup>
+        </section>
+
+        <section id="film" className="scroll-mt-24 border-t border-line">
+          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                The film room
+              </p>
+              <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
+                Watch a rep get read.
+              </h2>
+              <p className="mt-4 max-w-xl text-chalk-dim">
+                This is the read itself: motion traced on the player, the ball
+                path projected, checkpoints measured in real units, and the one
+                fix that buys the most. Ten seconds, zero guesswork.
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
+                <CourtFilm
+                  src="/sideout-court-vision.mp4"
+                  srcWebm="/sideout-court-vision.webm"
+                  poster="/sideout-court-vision-poster.webp"
+                  label="Ten-second loop: a jump serve is scanned, the player's motion is traced joint by joint, the ball path is projected over the net, measured checkpoints appear in real units, and the serve scores 82 with one priority fix."
+                  posterAlt="A jump serve with motion tracking drawn over the player, measured checkpoints, and a serve score of 82."
+                  className="absolute inset-0"
+                  controlCorner="bottom-4 right-4"
+                  sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
+                />
+              </div>
+            </Reveal>
+            <Reveal delay={200}>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {[
+                  "Motion traced on the player",
+                  "Checkpoints in real units",
+                  "One priority fix",
+                ].map((chip) => (
+                  <span key={chip} className="tag">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </Reveal>
+          </div>
         </section>
 
         <section id="analytics" className="scroll-mt-24 border-t border-line">
