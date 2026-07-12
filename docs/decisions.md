@@ -222,3 +222,34 @@ a 0.65 reliability so it only survives clean capture.
 The eval harness (`/api/eval` + `evals/SOURCING.md` pipeline) is the
 referee for every further change of this kind: no scoring-path change
 ships on a passRate regression once the calibration baseline lands.
+
+## D-014 — Player Lock spec: adopt the ideas on-device, defer the vendor spine
+Date: 2026-07-12 · By: Player Lock pipeline spec review
+
+An external "Player Lock" spec proposed server-side single-player tracking
+through a hosted segmentation vendor: transcode proxy, per-frame masks, a
+track state machine, exit/re-entry prediction, virtual-camera crops. The
+review found the state machine and continuity ideas excellent and the spine
+wrong for Sideout today: server video processing surrenders privacy and the
+zero-marginal-cost analysis path, adds per-clip vendor spend while billing
+is dormant, and brings two to three new dependency gates plus first-time
+queue infrastructure. The spec stays in the decision record as the premium
+north star for after billing ships; its own S1-to-S2 JSON contract means an
+on-device implementation now and a hosted one later share everything
+downstream.
+
+Adopted now, on-device (`lib/pose/track-state.ts`, pure and unit-tested):
+track continuity over the followed player's timeline. Gaps are labeled only
+when evidence supports the label — short mid-frame holes read as occlusion,
+holes preceded by least-squares motion out through a frame edge read as
+frame exits with the edge named, and everything else is honestly a sampling
+gap of the windowed capture, never a claim. Output: a coverage fraction,
+absence events, and a lost flag. Wired in three places: the measurements
+block gains `tracked_coverage` and `frame_exits` session stats (the
+coaching service now knows how much of the play the follow covered), the
+capture carries the full continuity object, and the analyze preview shows
+one human line ("Left frame right at 0:04 · back by 0:06").
+
+Deferred with the spine: hosted segmentation, ghost-zone re-entry UI,
+virtual-camera crop rendering (One Euro smoothing noted for when a cropped
+playback surface exists), appearance-based re-lock gating.

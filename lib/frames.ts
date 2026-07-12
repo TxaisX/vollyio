@@ -24,6 +24,7 @@ import {
   pickTargetTrack,
   type FocusRegion,
 } from "./pose/kinematics";
+import { trackContinuity, type TrackContinuity } from "./pose/track-state";
 import type { Skill } from "./skills";
 
 export const MAX_FRAME_DIM = 768;
@@ -78,6 +79,8 @@ export type PoseCapture = {
   // offer a different focus player and recompute without re-extracting.
   tracks: PersonTrack[];
   selectedTrackId: number | null;
+  // How the follow went: coverage plus evidenced occlusions and frame exits.
+  continuity: TrackContinuity | null;
 };
 
 export type VideoExtraction = {
@@ -595,6 +598,7 @@ async function sampleContentAware(
   let contacts: number[] = [];
   let tracks: PersonTrack[] = [];
   let selectedTrackId: number | null = null;
+  let continuity: TrackContinuity | null = null;
   if (pose) {
     try {
       // The framed moment always gets its own dense window: motion peaks can
@@ -637,11 +641,21 @@ async function sampleContentAware(
         contacts = (measurements?.reps ?? [])
           .map((r) => r.contact_s)
           .filter((c): c is number => c != null);
+        continuity = trackContinuity(landmarks);
+        if (measurements && continuity) {
+          // Session stats ride the existing numeric record: the coaching
+          // service learns how much of the play the follow actually covered.
+          measurements.session.tracked_coverage =
+            Math.round(continuity.coverage * 100) / 100;
+          const exits = continuity.absences.filter((a) => a.kind === "off_frame").length;
+          if (exits > 0) measurements.session.frame_exits = exits;
+        }
       }
     } catch {
       measurements = null;
       tracks = [];
       selectedTrackId = null;
+      continuity = null;
     }
   }
 
@@ -736,7 +750,9 @@ async function sampleContentAware(
   return {
     frames,
     extras,
-    pose: pose ? { landmarks, measurements, denseFps, tracks, selectedTrackId } : null,
+    pose: pose
+      ? { landmarks, measurements, denseFps, tracks, selectedTrackId, continuity }
+      : null,
     debug,
   };
 }

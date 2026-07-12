@@ -15,6 +15,7 @@ import {
   type FrameDebug,
   type OpeningPlayers,
 } from "@/lib/frames";
+import { continuityNote } from "@/lib/pose/track-state";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
 import {
   dedupePersons,
@@ -397,6 +398,8 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   const [scrubT, setScrubT] = useState(0);
   // The pinned player was never found in the clip; nobody else was analyzed.
   const [poiMissed, setPoiMissed] = useState(false);
+  // One human line about how the follow went (exits, occlusions, coverage).
+  const [trackNote, setTrackNote] = useState<string | null>(null);
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
@@ -823,6 +826,9 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
       // The user pinned a player but tracking never found them: analyze
       // nobody rather than somebody else, and say so.
       setPoiMissed(!!target && !!poseCapture && poseCapture.selectedTrackId == null);
+      setTrackNote(
+        poseCapture?.continuity ? continuityNote(poseCapture.continuity) : null,
+      );
       let shown = f;
       markedRef.current = false;
       if (captureRef.current && captureRef.current.landmarks.length >= 8) {
@@ -866,6 +872,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
     setOpeningPick(null);
     setLastOpening(null);
     setPoiMissed(false);
+    setTrackNote(null);
     clipRef.current = blob;
     setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
     try {
@@ -990,6 +997,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
         markedRef.current = false;
         setMarkerShown(false);
         setPoiMissed(false);
+    setTrackNote(null);
         setSource("photos");
         setDuration(null);
         setVideoUrl(null);
@@ -1019,6 +1027,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
       markedRef.current = false;
       setMarkerShown(false);
       setPoiMissed(false);
+    setTrackNote(null);
       setSource("photos");
       setDuration(null);
       setVideoUrl(null);
@@ -1337,6 +1346,9 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
                     Couldn't find your framed player in the clip, so nobody
                     else was measured in their place. Reframe to try again.
                   </p>
+                )}
+                {trackNote && !poiMissed && (
+                  <p className="mb-2 text-xs text-chalk-dim">{trackNote}</p>
                 )}
                 {(markerShown || (lastOpening && source === "video")) && (
                   <div className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
