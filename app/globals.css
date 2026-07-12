@@ -216,7 +216,38 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.55;
+  }
+}
+
+/* Directional shimmer over the pulse: the sweep is an ::after sized at 60% of
+   the container, so 200% of its own width clears the far edge. */
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+/* Scanner band for the coaching read: the band is 20% of its container tall,
+   so 600% of its own height carries it past the bottom edge. */
+@keyframes scan-sweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(600%);
+  }
+}
+
+@keyframes scroll-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 
@@ -250,11 +281,33 @@ body {
   }
 
   .skeleton {
+    position: relative;
+    overflow: hidden;
     animation: skeleton 1.6s ease-in-out infinite;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 60%;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      100deg,
+      transparent,
+      color-mix(in oklab, var(--color-chalk) 7%, transparent) 50%,
+      transparent
+    );
+    animation: skeleton-sweep 1.7s ease-in-out infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .skeleton {
       animation: none;
+    }
+    .skeleton::after {
+      animation: none;
+      opacity: 0;
     }
   }
 
@@ -411,7 +464,9 @@ body {
     background: color-mix(in oklab, var(--color-navy) 60%, transparent);
     padding: 0.75rem 1rem;
     color: var(--color-chalk);
-    transition: border-color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.25s var(--ease-court);
   }
   .input-field::placeholder {
     color: color-mix(in oklab, var(--color-chalk-dim) 65%, transparent);
@@ -419,6 +474,9 @@ body {
   .input-field:focus {
     border-color: var(--color-gold);
     outline: none;
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--color-gold) 16%, transparent),
+      0 0 20px -8px color-mix(in oklab, var(--color-gold) 40%, transparent);
   }
 
   .text-sheen {
@@ -738,6 +796,58 @@ body {
     color: var(--color-chalk-dim);
   }
 
+  /* Coaching-read scanner: a soft gold band sweeping the filmstrip while the
+     rep is being scored. Decorative and transform-only; the status ticker
+     carries the actual state, so reduced motion simply hides the band. */
+  .scan-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 20%;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in oklab, var(--color-gold) 10%, transparent) 60%,
+      color-mix(in oklab, var(--color-gold) 42%, transparent) 96%,
+      color-mix(in oklab, var(--color-gold) 65%, transparent) 98%,
+      transparent
+    );
+    animation: scan-sweep 2.6s linear infinite;
+    will-change: transform;
+  }
+
+  /* Reading progress for long breakdown pages. Pure CSS scroll-driven
+     animation: no scroll listener, no layout work, scaleX only. Hidden
+     entirely where scroll timelines aren't supported. It mirrors scroll
+     position (user-driven), so it stays on under reduced motion — the
+     override lives next to the global reduce block below. */
+  .scroll-progress {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 60;
+    pointer-events: none;
+    transform-origin: left;
+    transform: scaleX(0);
+    background: linear-gradient(
+      90deg,
+      var(--color-gold),
+      color-mix(in oklab, var(--color-gold) 45%, var(--color-teal))
+    );
+  }
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress {
+      display: block;
+      animation: scroll-progress-grow auto linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+
   /* Pending-nav hint for links into a dynamic route with no loading.tsx.
      Absolutely placed and fixed-size so it never shifts layout; the 100ms
      delay on the visible state keeps fast prefetched navigations from
@@ -778,6 +888,17 @@ body {
   }
   .reveal-static {
     animation: none;
+  }
+  /* Decorative sweep: the status ticker already says what's happening. */
+  .scan-line {
+    display: none;
+  }
+  /* Scroll progress mirrors the user's own scrolling — not autonomous motion —
+     so it stays. The universal 0.01ms duration above would collapse the scroll
+     timeline's range mapping; restore the timeline-driven duration. */
+  .scroll-progress {
+    animation-duration: auto !important;
+    animation-delay: 0s !important;
   }
 }
 

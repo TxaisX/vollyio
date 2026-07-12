@@ -270,6 +270,33 @@ function clipExt(b: Blob): string {
   return m ? m[1] : "webm";
 }
 
+// What the pipeline is actually doing while the model scores the rep, in
+// order. The ticker walks forward and rests on the last line rather than
+// looping — a loop would read as fake progress.
+const SCORING_STAGES = [
+  "Reading your frames…",
+  "Tracing the motion…",
+  "Checking the measured angles…",
+  "Scoring against the rubric…",
+  "Writing your one fix…",
+];
+
+function StatusTicker({ lines }: { lines: string[] }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(
+      () => setStep((v) => Math.min(v + 1, lines.length - 1)),
+      6500,
+    );
+    return () => clearInterval(t);
+  }, [lines.length]);
+  return (
+    <span key={step} className="message-in inline-block">
+      {lines[step]}
+    </span>
+  );
+}
+
 function WorkingDots() {
   return (
     <span className="inline-flex gap-1" aria-hidden>
@@ -1382,7 +1409,17 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
                     )}
                   </div>
                 )}
-                <Filmstrip frames={frames} variant="grid" />
+                <div className="relative">
+                  <Filmstrip frames={frames} variant="grid" />
+                  {status.kind === "sending" && (
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-lg"
+                    >
+                      <div className="scan-line" />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="card border-dashed border-line p-10 text-center text-xs text-chalk-dim">
@@ -1431,7 +1468,7 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
               )}
               {status.kind === "sending" && !retrying && (
                 <span className="flex items-center gap-2.5 text-teal">
-                  <WorkingDots /> Scoring your rep, frame by frame…
+                  <WorkingDots /> <StatusTicker lines={SCORING_STAGES} />
                 </span>
               )}
               {status.kind === "error" && (
