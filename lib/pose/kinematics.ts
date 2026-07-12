@@ -388,6 +388,54 @@ export function focusRegionAround(
   };
 }
 
+export type FocusTarget = { x: number; y: number; t: number; box?: FocusRegion };
+
+// Choose the track that matches a user-framed target, or null when nobody
+// plausibly matches (never silently analyze a different player). The distance
+// budget scales with the framed box so a close-up athlete is not held to a
+// distant athlete's pixel tolerance, and a candidate whose anchor sits inside
+// the padded frame counts as a match even when the head drifted from the
+// exact framed point between the mark and the nearest detection.
+export function pickTargetTrack(
+  tracks: PersonTrack[],
+  target: FocusTarget,
+): PersonTrack | null {
+  const boxTol = target.box
+    ? Math.max(0.35, Math.max(target.box.width, target.box.height) * 0.75)
+    : 0.35;
+  let chosen: PersonTrack | null = null;
+  let bestD = boxTol;
+  for (const track of tracks) {
+    let near: LandmarkFrame | null = null;
+    let nearD = 1.5;
+    for (const f of track.frames) {
+      const d = Math.abs(f.t - target.t);
+      if (d < nearD) {
+        nearD = d;
+        near = f;
+      }
+    }
+    if (!near) continue;
+    const c = focusPoint(near.pts);
+    if (!c) continue;
+    let d = Math.hypot(c.x - target.x, c.y - target.y);
+    if (target.box) {
+      const pad = 0.12;
+      const inBox =
+        c.x >= target.box.left - pad &&
+        c.x <= target.box.left + target.box.width + pad &&
+        c.y >= target.box.top - pad &&
+        c.y <= target.box.top + target.box.height + pad;
+      if (inBox) d = Math.min(d, boxTol * 0.4);
+    }
+    if (d < bestD) {
+      bestD = d;
+      chosen = track;
+    }
+  }
+  return chosen;
+}
+
 // Visible head point of one person: the nose, else between the ears.
 export function headPoint(pts: Landmark[]): { x: number; y: number } | null {
   const nose = pts[LM.nose];

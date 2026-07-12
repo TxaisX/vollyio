@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillPicker } from "@/components/skill-picker";
 import { Recorder } from "@/components/recorder";
@@ -70,6 +70,21 @@ function boxFromPts(
 }
 
 type Box = { left: number; top: number; width: number; height: number };
+
+// The user-drawn player frame never collapses below a graspable size and
+// never leaves the clip.
+const MIN_BOX_W = 0.08;
+const MIN_BOX_H = 0.12;
+function clampBox(b: Box): Box {
+  const width = Math.min(1, Math.max(MIN_BOX_W, b.width));
+  const height = Math.min(1, Math.max(MIN_BOX_H, b.height));
+  return {
+    left: Math.min(Math.max(0, b.left), 1 - width),
+    top: Math.min(Math.max(0, b.top), 1 - height),
+    width,
+    height,
+  };
+}
 
 // Stamp a small gold tracking ring at the focus athlete's hips in each frame,
 // so the player sees who is being tracked and the coaching service is told
@@ -363,10 +378,17 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   const [lastOpening, setLastOpening] = useState<
     (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // The draggable point of interest over the clip (normalized). Dropped on a
-  // player; the body under it is detected and everything follows from that.
-  const [poi, setPoi] = useState<{ x: number; y: number } | null>(null);
-  const poiDragRef = useRef<number | null>(null);
+  // The sizeable frame the user draws around their player (normalized).
+  // Everything downstream — zoomed detection, track matching, crops — follows
+  // this box.
+  const [frameBox, setFrameBox] = useState<Box | null>(null);
+  const boxDragRef = useRef<{
+    pointerId: number;
+    mode: "move" | "nw" | "ne" | "sw" | "se";
+    grabX: number;
+    grabY: number;
+    start: Box;
+  } | null>(null);
   const frameStageRef = useRef<HTMLDivElement>(null);
   // Scrubbable clip inside the framing card: pick the moment, then the player.
   const frameVideoRef = useRef<HTMLVideoElement>(null);
@@ -378,17 +400,27 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
-  // Start the dot on the first detected person's head, else centered.
+  // Start the frame on the first detected person's body, else centered at a
+  // person-ish size. Every detected person also renders as a tappable
+  // candidate frame.
   useEffect(() => {
     if (!openingPick) {
-      setPoi(null);
-      poiDragRef.current = null;
+      setFrameBox(null);
+      boxDragRef.current = null;
       return;
     }
     const first = openingPick.persons[0];
-    const head = first ? focusPoint(first) : null;
-    setPoi(head ?? { x: 0.5, y: 0.45 });
+    const bb = first ? boxFromPts(first) : null;
+    setFrameBox(clampBox(bb ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
   }, [openingPick]);
+
+  const candidateBoxes = useMemo(
+    () =>
+      (openingPick?.persons ?? [])
+        .map((pts) => boxFromPts(pts))
+        .filter((b): b is Box => b != null),
+    [openingPick],
+  );
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
   useEffect(() => {
@@ -412,37 +444,117 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
     };
   }
 
-  // Tap anywhere on the clip to drop the dot there; keep dragging to adjust.
+  // Corner drags resize, inside drags move. A tap outside the frame snaps it
+  // to the detected person under the tap, else recenters it there.
   function onStagePointerDown(e: React.PointerEvent) {
     const p = stagePoint(e);
-    if (!p) return;
+    const box = frameBox;
+    if (!p || !box) return;
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    poiDragRef.current = e.pointerId;
-    setPoi(p);
+
+    const corners = {
+      nw: { x: box.left, y: box.top },
+      ne: { x: box.left + box.width, y: box.top },
+      sw: { x: box.left, y: box.top + box.height },
+      se: { x: box.left + box.width, y: box.top + box.height },
+    } as const;
+    let mode: "move" | keyof typeof corners = "move";
+    let best = 0.05;
+    for (const [k, c] of Object.entries(corners)) {
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < best) {
+        best = d;
+        mode = k as keyof typeof corners;
+      }
+    }
+
+    let next = box;
+    if (mode === "move") {
+      const inside =
+        p.x >= box.left &&
+        p.x <= box.left + box.width &&
+        p.y >= box.top &&
+        p.y <= box.top + box.height;
+      if (!inside) {
+        const candidate = candidateBoxes.find(
+          (b) =>
+            p.x >= b.left &&
+            p.x <= b.left + b.width &&
+            p.y >= b.top &&
+            p.y <= b.top + b.height,
+        );
+        next = clampBox(
+          candidate ?? { ...box, left: p.x - box.width / 2, top: p.y - box.height / 2 },
+        );
+        setFrameBox(next);
+      }
+    }
+    boxDragRef.current = {
+      pointerId: e.pointerId,
+      mode,
+      grabX: p.x - next.left,
+      grabY: p.y - next.top,
+      start: next,
+    };
   }
 
   function onStagePointerMove(e: React.PointerEvent) {
-    if (poiDragRef.current !== e.pointerId) return;
+    const drag = boxDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
     const p = stagePoint(e);
-    if (p) setPoi(p);
+    if (!p) return;
+    const s = drag.start;
+    if (drag.mode === "move") {
+      setFrameBox(clampBox({ ...s, left: p.x - drag.grabX, top: p.y - drag.grabY }));
+      return;
+    }
+    const right = s.left + s.width;
+    const bottom = s.top + s.height;
+    const nx = Math.min(p.x, right - MIN_BOX_W);
+    const ny = Math.min(p.y, bottom - MIN_BOX_H);
+    let next: Box;
+    if (drag.mode === "nw") {
+      next = { left: nx, top: ny, width: right - nx, height: bottom - ny };
+    } else if (drag.mode === "ne") {
+      next = { left: s.left, top: ny, width: Math.max(MIN_BOX_W, p.x - s.left), height: bottom - ny };
+    } else if (drag.mode === "sw") {
+      next = { left: nx, top: s.top, width: right - nx, height: Math.max(MIN_BOX_H, p.y - s.top) };
+    } else {
+      next = {
+        left: s.left,
+        top: s.top,
+        width: Math.max(MIN_BOX_W, p.x - s.left),
+        height: Math.max(MIN_BOX_H, p.y - s.top),
+      };
+    }
+    setFrameBox(clampBox(next));
   }
 
   function onStagePointerUp(e: React.PointerEvent) {
-    if (poiDragRef.current === e.pointerId) poiDragRef.current = null;
+    if (boxDragRef.current?.pointerId === e.pointerId) boxDragRef.current = null;
   }
 
-  function onPoiKeyDown(e: React.KeyboardEvent) {
-    if (!poi) return;
-    const step = e.shiftKey ? 0.05 : 0.02;
-    let { x, y } = poi;
-    if (e.key === "ArrowLeft") x -= step;
-    else if (e.key === "ArrowRight") x += step;
-    else if (e.key === "ArrowUp") y -= step;
-    else if (e.key === "ArrowDown") y += step;
-    else return;
+  function onBoxKeyDown(e: React.KeyboardEvent) {
+    const box = frameBox;
+    if (!box) return;
+    const step = 0.02;
+    const b = { ...box };
+    if (e.shiftKey) {
+      if (e.key === "ArrowRight") b.width += step;
+      else if (e.key === "ArrowLeft") b.width -= step;
+      else if (e.key === "ArrowDown") b.height += step;
+      else if (e.key === "ArrowUp") b.height -= step;
+      else return;
+    } else {
+      if (e.key === "ArrowLeft") b.left -= step;
+      else if (e.key === "ArrowRight") b.left += step;
+      else if (e.key === "ArrowUp") b.top -= step;
+      else if (e.key === "ArrowDown") b.top += step;
+      else return;
+    }
     e.preventDefault();
-    setPoi({ x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) });
+    setFrameBox(clampBox(b));
   }
   const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
@@ -749,14 +861,15 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
     }
   }
 
-  // The dot is confirmed: find the body under it at the scrubbed moment. A
-  // fresh detection zoomed around the dot finds the player even when they are
-  // small; the anchor snaps to their head and the detected body's bounds
-  // drive the zoom and crops downstream.
+  // The frame is confirmed: find the body inside it at the scrubbed moment. A
+  // fresh detection zoomed on the drawn frame finds the player even when they
+  // are small; the anchor snaps to their head and the detected body's bounds
+  // drive the zoom and crops downstream. When nobody is detected yet, the
+  // drawn frame itself anchors tracking — the user's intent survives.
   async function confirmFraming() {
     const opening = openingPick;
-    const dot = poi;
-    if (!opening || !dot) return;
+    const box = frameBox;
+    if (!opening || !box) return;
     const video = frameVideoRef.current;
     const t =
       video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
@@ -764,6 +877,8 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
         : opening.timeS;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
     // Opening detections only describe the opening probe; re-detect when the
     // player scrubbed elsewhere (or to sharpen the snap when they did not).
     let persons = Math.abs(t - opening.timeS) < 0.2 ? opening.persons : [];
@@ -773,53 +888,42 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
         const found = await engine.detectPersonsFromVideo(
           video,
           t,
-          focusRegionAround(dot.x, dot.y, null),
+          focusRegionAround(cx, cy, box),
         );
         if (found && found.persons.length > 0) persons = dedupePersons(found.persons);
       } catch {
-        // The dot position still anchors tracking.
+        // The drawn frame still anchors tracking.
       }
     }
-    // The body under the dot wins; otherwise the nearest head within reach.
+    // The body most contained by the drawn frame wins.
     let bestPts: (typeof persons)[number] | null = null;
-    let bestScore = 0.2;
+    let bestOverlap = 0.25;
     for (const pts of persons) {
       const bb = boxFromPts(pts);
-      const head = focusPoint(pts);
-      if (!head) continue;
-      const inside =
-        bb != null &&
-        dot.x >= bb.left &&
-        dot.x <= bb.left + bb.width &&
-        dot.y >= bb.top &&
-        dot.y <= bb.top + bb.height;
-      const d = Math.hypot(head.x - dot.x, head.y - dot.y);
-      const score = inside ? Math.min(d, 0.02) : d;
-      if (score < bestScore) {
-        bestScore = score;
+      if (!bb) continue;
+      const ix =
+        Math.max(
+          0,
+          Math.min(box.left + box.width, bb.left + bb.width) - Math.max(box.left, bb.left),
+        ) *
+        Math.max(
+          0,
+          Math.min(box.top + box.height, bb.top + bb.height) - Math.max(box.top, bb.top),
+        );
+      const overlap = ix / Math.max(1e-6, bb.width * bb.height);
+      if (overlap > bestOverlap) {
+        bestOverlap = overlap;
         bestPts = pts;
       }
     }
     let target: { x: number; y: number; t: number; box?: Box };
     if (bestPts) {
-      const head = focusPoint(bestPts)!;
-      target = { x: head.x, y: head.y, t, box: boxFromPts(bestPts) ?? undefined };
+      const head = focusPoint(bestPts) ?? { x: cx, y: cy };
+      target = { x: head.x, y: head.y, t, box: boxFromPts(bestPts) ?? box };
     } else {
-      // Nobody detected at the dot yet: anchor on the dot itself with a
-      // person-sized window below it (the dot sits on the head).
-      const width = 0.24;
-      const height = 0.44;
-      target = {
-        x: dot.x,
-        y: dot.y,
-        t,
-        box: {
-          left: Math.min(Math.max(0, dot.x - width / 2), 1 - width),
-          top: Math.min(Math.max(0, dot.y - 0.06), 1 - height),
-          width,
-          height,
-        },
-      };
+      // Nobody detected inside the frame yet: anchor near the frame's head
+      // area and let the zoomed capture passes find them.
+      target = { x: cx, y: box.top + box.height * 0.15, t, box };
     }
     void runVideoExtraction(opening.blob, opening.isRecorded, target);
   }
@@ -1064,14 +1168,14 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
               </div>
             )}
 
-            {openingPick && poi && (
+            {openingPick && frameBox && (
               <div className="card mb-3 p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Scrub to a moment where your player is clear, then drop the
-                  dot on their head.
+                  Scrub to a moment where your player is clear, then size the
+                  frame around them. Tap a teammate to switch.
                 </p>
                 <div
                   ref={frameStageRef}
@@ -1106,24 +1210,55 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
                       draggable={false}
                     />
                   )}
+                  {/* Auto-framed candidates: every detected person, tappable. */}
+                  {candidateBoxes.map((b, i) => (
+                    <span
+                      key={i}
+                      aria-hidden
+                      className="pointer-events-none absolute rounded border border-chalk-dim/60"
+                      style={{
+                        left: `${b.left * 100}%`,
+                        top: `${b.top * 100}%`,
+                        width: `${b.width * 100}%`,
+                        height: `${b.height * 100}%`,
+                      }}
+                    />
+                  ))}
                   <div
                     role="group"
-                    aria-label="Point of interest. Tap or drag onto your player's head, or use the arrow keys."
+                    aria-label="Player frame. Drag to move, drag a corner to resize. Arrow keys move; hold Shift and use arrow keys to resize."
                     tabIndex={0}
-                    onKeyDown={onPoiKeyDown}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                    style={{ left: `${poi.x * 100}%`, top: `${poi.y * 100}%` }}
+                    onKeyDown={onBoxKeyDown}
+                    className="absolute cursor-grab focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    style={{
+                      left: `${frameBox.left * 100}%`,
+                      top: `${frameBox.top * 100}%`,
+                      width: `${frameBox.width * 100}%`,
+                      height: `${frameBox.height * 100}%`,
+                    }}
                   >
                     <span
                       aria-hidden
-                      className="relative block h-8 w-8 rounded-full border-[3px] border-gold shadow-lift"
+                      className="absolute inset-0 rounded-md border-2 border-gold"
                       style={{
                         boxShadow:
-                          "0 0 0 2px color-mix(in srgb, var(--color-navy) 85%, transparent), 0 0 14px color-mix(in srgb, var(--color-gold) 55%, transparent)",
+                          "0 0 0 100vmax color-mix(in srgb, var(--color-navy) 40%, transparent), 0 0 14px color-mix(in srgb, var(--color-gold) 45%, transparent)",
                       }}
-                    >
-                      <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
-                    </span>
+                    />
+                    {(
+                      [
+                        ["-left-1.5", "-top-1.5"],
+                        ["-right-1.5", "-top-1.5"],
+                        ["-left-1.5", "-bottom-1.5"],
+                        ["-right-1.5", "-bottom-1.5"],
+                      ] as const
+                    ).map(([x, y]) => (
+                      <span
+                        key={`${x}${y}`}
+                        aria-hidden
+                        className={`absolute ${x} ${y} h-3 w-3 rounded-[3px] bg-gold shadow-lift`}
+                      />
+                    ))}
                   </div>
                 </div>
                 {framingUrl && !frameVideoFailed && (

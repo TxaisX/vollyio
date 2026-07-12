@@ -285,12 +285,13 @@ chip `Reframe player`.
 
 Player pick (analyze preview, before analysis; shown for every clip with a
 readable opening frame): kicker `Who should I watch?`, caption `Scrub to a
-moment where your player is clear, then drop the dot on their head.`, video
-aria `Clip frame. Scrub below to choose the moment.`, scrubber aria
-`Scrub through the clip`, fallback image alt `Opening frame. Frame the player
-to analyze.`, dot aria `Point of interest. Tap or drag onto your player's
-head, or use the arrow keys.`, primary button `Analyze this athlete`, skip
-button `Skip and analyze the whole frame`.
+moment where your player is clear, then size the frame around them. Tap a
+teammate to switch.`, video aria `Clip frame. Scrub below to choose the
+moment.`, scrubber aria `Scrub through the clip`, fallback image alt
+`Opening frame. Frame the player to analyze.`, frame aria `Player frame.
+Drag to move, drag a corner to resize. Arrow keys move; hold Shift and use
+arrow keys to resize.`, primary button `Analyze this athlete`, skip button
+`Skip and analyze the whole frame`.
 
 Pinned-player miss notice (analyze preview, when the framed player was never
 found): `Couldn't find your framed player in the clip, so nobody else was
