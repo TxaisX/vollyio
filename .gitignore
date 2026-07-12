@@ -43,9 +43,11 @@ next-env.d.ts
 
 .vercel
 
-# local agent tooling and skill packs (not project source)
+# local agent tooling stays untracked, but checked-in skills load for every
+# session: ignore .claude's contents except the skills folder.
 /.agents/
-/.claude/
+/.claude/*
+!/.claude/skills/
 /skills-lock.json
 /.mcp.json.bak
 
