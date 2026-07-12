@@ -649,6 +649,20 @@ body {
     background: color-mix(in oklab, var(--color-navy) 42%, transparent);
   }
 
+  /* Legibility shade over the hero's ambient court film: strong navy on the
+     copy side easing off toward the player, plus a bottom fade into the page
+     so the full-bleed video never fights the headline or the section seam. */
+  .hero-film-shade {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--color-navy) 88%, transparent) 0%,
+        color-mix(in oklab, var(--color-navy) 58%, transparent) 48%,
+        color-mix(in oklab, var(--color-navy) 24%, transparent) 100%
+      ),
+      linear-gradient(to top, var(--color-navy) 0%, transparent 32%);
+  }
+
   .auth-photo-shade {
     background: color-mix(in oklab, var(--color-navy) 74%, transparent);
   }
