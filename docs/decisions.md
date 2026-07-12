@@ -350,6 +350,11 @@ pointer-effect siblings.
   spot`: the three steps, six skills, four progress cards) plus the film
   panel — the evidence and coach-chat cards intentionally keep no pointer
   feedback, so they get no tilt.
+- Second pass, same grant: `.reveal-3d`, an entrance variant on the same
+  grids — identical `.reveal` timing and travel, but the plane starts
+  pitched 9° away (origin at the bottom edge) and stands up as it arrives.
+  The reduce block's `.reveal` visibility override explicitly covers the
+  variant so reduce users never meet a pitched card, with or without JS.
 
 State never rides on the tilt (it is feedback, not signal), no layout
 properties move, and no dependency was added.

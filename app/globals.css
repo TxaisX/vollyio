@@ -529,6 +529,17 @@ body {
     transform: none;
   }
 
+  /* 3D entrance variant for the landing card grids (D-017): same timing and
+     travel as .reveal, but the plane starts pitched away and stands up as it
+     arrives. Origin at the bottom edge so the top edge does the swinging. */
+  .reveal.reveal-3d {
+    transform: perspective(900px) rotateX(9deg) translateY(18px);
+    transform-origin: 50% 100%;
+  }
+  .reveal.reveal-3d.in {
+    transform: none;
+  }
+
   .reveal-static {
     animation: fade-up 0.6s var(--ease-court) both;
     animation-delay: var(--reveal-delay, 0ms);
@@ -882,7 +893,8 @@ body {
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal {
+  .reveal,
+  .reveal.reveal-3d {
     opacity: 1;
     transform: none;
   }
