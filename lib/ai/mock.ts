@@ -64,5 +64,10 @@ export function mockResult(
     },
     drill_slugs: drillSlugs(skill).slice(0, 2),
     summary: "Sample analysis summary (mock mode).",
+    scene_read: "Sample scene read: indoor court, two reps visible (mock mode).",
+    rep_scores: [
+      { rep_index: 0, overall: overall - 2, note: "Sample first-rep note." },
+      { rep_index: 1, overall: overall + 2, note: "Sample second-rep note." },
+    ],
   };
 }

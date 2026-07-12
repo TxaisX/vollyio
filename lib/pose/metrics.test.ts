@@ -85,6 +85,27 @@ test("too few frames produces no block", () => {
   assert.equal(buildMeasurementsBlock("attack", frames, 30), null);
 });
 
+test("new load metrics stay in physical ranges or are omitted", () => {
+  // Same swing family as attack: the serve fixture exercises plant + separation.
+  const serveBlock = buildMeasurementsBlock("serve", serveClip(), 30);
+  assert.ok(serveBlock);
+  const sep = serveBlock.reps[0].metrics.shoulder_hip_separation;
+  if (sep) {
+    assert.ok((sep.value as number) >= 0 && (sep.value as number) <= 180, `sep=${sep.value}`);
+  } else {
+    assert.ok(serveBlock.omitted_below_confidence.includes("shoulder_hip_separation"));
+  }
+
+  const attackBlock = buildMeasurementsBlock("attack", serveClip(), 30);
+  assert.ok(attackBlock);
+  const knee = attackBlock.reps[0].metrics.knee_flexion_at_plant;
+  if (knee) {
+    assert.ok((knee.value as number) > 0 && (knee.value as number) <= 180, `knee=${knee.value}`);
+  } else {
+    assert.ok(attackBlock.omitted_below_confidence.includes("knee_flexion_at_plant"));
+  }
+});
+
 test("detectRepsForSkill maps skills to families", () => {
   const { reps } = detectRepsForSkill("serve", serveClip());
   assert.equal(reps.length, 1);

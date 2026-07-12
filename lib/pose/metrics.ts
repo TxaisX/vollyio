@@ -128,6 +128,38 @@ function landingFrame(ctx: Ctx): LandmarkFrame | null {
   return null;
 }
 
+// Plant frame: the lowest-feet moment before contact (load into the jump/swing).
+function plantFrame(ctx: Ctx): LandmarkFrame | null {
+  if (!ctx.contact) return null;
+  const before = ctx.repFrames.filter((f) => f.t < ctx.contact!.t);
+  if (before.length < 3) return null;
+  let plant = before[0];
+  for (const f of before) if (feetY(f) > feetY(plant)) plant = f;
+  return plant;
+}
+
+// Max angle between the shoulder line and hip line in the load window before
+// contact: the 2D projection of hip-shoulder separation ("X-factor"). A flat
+// projection under-reads true separation, hence the low reliability.
+function shoulderHipSeparation(ctx: Ctx): number | null {
+  if (!ctx.contact) return null;
+  const win = ctx.repFrames.filter(
+    (f) => f.t < ctx.contact!.t && f.t >= ctx.contact!.t - 0.5,
+  );
+  if (win.length < 3) return null;
+  const lineAngle = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+  let max = 0;
+  for (const f of win) {
+    const s = lineAngle(f.pts[LM.leftShoulder], f.pts[LM.rightShoulder]);
+    const h = lineAngle(f.pts[LM.leftHip], f.pts[LM.rightHip]);
+    let d = Math.abs(s - h);
+    if (d > 180) d = 360 - d;
+    max = Math.max(max, d);
+  }
+  return round(max, 0);
+}
+
 // Step events before contact from alternating ankle speed peaks.
 function stepTimes(ctx: Ctx): number[] {
   const before = ctx.repFrames.filter((f) => !ctx.contact || f.t <= ctx.contact.t);
@@ -238,6 +270,14 @@ const SERVE: MetricDef[] = [
       return round(Math.abs(line(ctx.contact) - line(ctx.repFrames[0])), 0);
     },
   },
+  {
+    key: "shoulder_hip_separation",
+    unit: "deg",
+    reliability: 0.65,
+    threshold: 0.6,
+    landmarks: [LM.leftShoulder, LM.rightShoulder, LM.leftHip, LM.rightHip],
+    compute: shoulderHipSeparation,
+  },
 ];
 
 const ATTACK: MetricDef[] = [
@@ -276,14 +316,29 @@ const ATTACK: MetricDef[] = [
     threshold: 0.55,
     landmarks: [LM.leftWrist, LM.rightWrist, LM.leftHip, LM.rightHip],
     compute: (ctx) => {
-      if (!ctx.contact) return null;
-      const before = ctx.repFrames.filter((f) => f.t < ctx.contact!.t);
-      if (before.length < 3) return null;
-      let plant = before[0];
-      for (const f of before) if (feetY(f) > feetY(plant)) plant = f;
+      const plant = plantFrame(ctx);
+      if (!plant) return null;
       const hipY = mid(plant.pts[LM.leftHip], plant.pts[LM.rightHip]).y;
       return plant.pts[LM.leftWrist].y > hipY && plant.pts[LM.rightWrist].y > hipY;
     },
+  },
+  {
+    key: "knee_flexion_at_plant",
+    unit: "deg",
+    reliability: 0.7,
+    landmarks: [LM.leftKnee, LM.rightKnee, LM.leftAnkle, LM.rightAnkle],
+    compute: (ctx) => {
+      const plant = plantFrame(ctx);
+      return plant ? round(minKneeAngle(plant), 0) : null;
+    },
+  },
+  {
+    key: "shoulder_hip_separation",
+    unit: "deg",
+    reliability: 0.65,
+    threshold: 0.6,
+    landmarks: [LM.leftShoulder, LM.rightShoulder, LM.leftHip, LM.rightHip],
+    compute: shoulderHipSeparation,
   },
   {
     key: "jump_height",
@@ -614,6 +669,7 @@ export function buildMeasurementsBlock(
   skill: Skill,
   frames: LandmarkFrame[],
   denseFps: number | null,
+  engineName = "pose-landmarker-lite",
 ): MeasurementsBlock | null {
   if (frames.length < 8) return null;
   const baseline = standingBaseline(frames);
@@ -682,7 +738,7 @@ export function buildMeasurementsBlock(
     capture: {
       dense_fps: denseFps,
       coverage: "windows",
-      engine: "pose-landmarker-lite",
+      engine: engineName,
     },
     units: UNITS_NOTE,
     reps: repBlocks,

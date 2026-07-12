@@ -21,6 +21,20 @@ export function analysisSchema(skill: Skill) {
 
   return z.object({
     overall_score: z.number().int().min(0).max(100),
+    // One sentence a human coach would open with: visible setting, rep count,
+    // apparent context. Optional so older stored results stay valid.
+    scene_read: z.string().optional(),
+    // Per-rep mini-scores when more than one repetition is distinguishable.
+    rep_scores: z
+      .array(
+        z.object({
+          rep_index: z.number().int().min(0),
+          overall: z.number().int().min(0).max(100),
+          note: z.string(),
+        }),
+      )
+      .max(8)
+      .optional(),
     metrics: z.object(metricShape),
     ball_track: z
       .array(

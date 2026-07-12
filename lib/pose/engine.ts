@@ -5,11 +5,22 @@
 // Detection is multi-person (up to 4): callers receive every athlete in the
 // frame and choose who to follow via the track builder in kinematics.
 
-import { POSE_LANDMARK_COUNT, type Landmark, type PersonFrame } from "./types.ts";
+import {
+  POSE_LANDMARK_COUNT,
+  createMonotonicClock,
+  type Landmark,
+  type PersonFrame,
+} from "./types.ts";
 import { mapRegionPersons, type FocusRegion } from "./kinematics.ts";
 
 const WASM_BASE = "/pose/wasm";
-const MODEL_PATH = "/pose/pose_landmarker_lite.task";
+// Ordered preference: the full landmarker tracks fast volleyball motion better
+// than lite (same 33 landmarks, same license, bigger net); devices that fail
+// to load it fall back to lite rather than losing measurements entirely.
+const MODELS = [
+  { path: "/pose/pose_landmarker_full.task", name: "pose-landmarker-full" },
+  { path: "/pose/pose_landmarker_lite.task", name: "pose-landmarker-lite" },
+];
 const INIT_TIMEOUT_MS = 12_000;
 const DETECT_TIMEOUT_MS = 4_000;
 const MAX_PERSONS = 4;
@@ -17,6 +28,8 @@ const MAX_PERSONS = 4;
 const DETECT_DIM = 512;
 
 export type PoseEngine = {
+  // Which landmarker variant actually loaded (reported in measurements).
+  modelName: string;
   // With a region, detection runs on that crop of the frame (a distant player
   // fills the model's input) and landmarks come back in full-frame coords.
   detectPersonsFromVideo(
@@ -112,6 +125,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     let nextId = 1;
     const pending = new Map<number, (result: WorkerResult) => void>();
     let settledInit = false;
+    let loadedModel = MODELS[MODELS.length - 1].name;
 
     const initTimer = setTimeout(() => {
       if (!settledInit) {
@@ -135,6 +149,10 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
       if (msg?.type === "ready" && !settledInit) {
         settledInit = true;
         clearTimeout(initTimer);
+        if (typeof msg.model === "string" && msg.model) {
+          loadedModel = msg.model;
+          engine.modelName = msg.model;
+        }
         resolve(engine);
         return;
       }
@@ -158,6 +176,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     };
 
     const engine: PoseEngine = {
+      modelName: loadedModel,
       async detectPersonsFromVideo(video, timeS, region) {
         let bitmap: ImageBitmap;
         try {
@@ -178,7 +197,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
         const result = await withTimeout(
           new Promise<WorkerResult>((settle) => {
             pending.set(id, settle);
-            worker.postMessage({ type: "detect", id, bitmap }, [bitmap]);
+            worker.postMessage({ type: "detect", id, bitmap, tMs: timeS * 1000 }, [bitmap]);
           }),
           DETECT_TIMEOUT_MS,
           { count: 0, pts: null },
@@ -194,7 +213,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
       },
     };
 
-    worker.postMessage({ type: "init", wasmBase: WASM_BASE, modelPath: MODEL_PATH });
+    worker.postMessage({ type: "init", wasmBase: WASM_BASE, models: MODELS });
   });
 }
 
@@ -204,23 +223,34 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
   try {
     const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
     const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
-    const options = (delegate: "GPU" | "CPU") => ({
-      baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+    const options = (modelPath: string, delegate: "GPU" | "CPU") => ({
+      baseOptions: { modelAssetPath: modelPath, delegate },
       runningMode: "VIDEO" as const,
       numPoses: MAX_PERSONS,
     });
-    let landmarker;
-    try {
-      landmarker = await PoseLandmarker.createFromOptions(fileset, options("GPU"));
-    } catch {
-      landmarker = await PoseLandmarker.createFromOptions(fileset, options("CPU"));
+    let landmarker: import("@mediapipe/tasks-vision").PoseLandmarker | undefined;
+    let modelName = MODELS[MODELS.length - 1].name;
+    for (const model of MODELS) {
+      try {
+        landmarker = await PoseLandmarker.createFromOptions(fileset, options(model.path, "GPU"));
+      } catch {
+        try {
+          landmarker = await PoseLandmarker.createFromOptions(fileset, options(model.path, "CPU"));
+        } catch {
+          continue;
+        }
+      }
+      modelName = model.name;
+      break;
     }
-    let clockMs = 0;
+    if (!landmarker) return null;
+    const clock = createMonotonicClock();
     let cropCanvas: HTMLCanvasElement | null = null;
     return {
+      modelName,
       async detectPersonsFromVideo(video, timeS, region) {
         try {
-          clockMs += 33.34;
+          const stamp = clock(timeS * 1000);
           let source: HTMLVideoElement | HTMLCanvasElement = video;
           if (region) {
             const { sx, sy, sw, sh } = regionRect(video, region);
@@ -233,7 +263,7 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
               .drawImage(video, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
             source = cropCanvas;
           }
-          const result = landmarker.detectForVideo(source, clockMs);
+          const result = landmarker.detectForVideo(source, stamp);
           const persons = (result.landmarks ?? []).filter(
             (p) => p.length === POSE_LANDMARK_COUNT,
           );

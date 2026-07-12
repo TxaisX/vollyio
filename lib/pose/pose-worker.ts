@@ -2,23 +2,24 @@
 // Hand-rolled worker hosting the WASM pose landmarker. Receives transferred
 // ImageBitmaps, returns every detected person as one flat Float32Array
 // (count x 33 x [x, y, z, v]). The detector requires monotonically increasing
-// timestamps, so the worker keeps its own synthetic clock; clip time stays
-// with the caller.
+// timestamps; real clip times feed a rebasing monotonic clock so the temporal
+// filter sees true inter-frame spacing instead of a fixed synthetic tick.
 
 import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
-import { POSE_LANDMARK_COUNT } from "./types.ts";
+import { POSE_LANDMARK_COUNT, createMonotonicClock } from "./types.ts";
 
 const MAX_PERSONS = 4;
 
-type InitMsg = { type: "init"; wasmBase: string; modelPath: string };
-type DetectMsg = { type: "detect"; id: number; bitmap: ImageBitmap };
+type InitMsg = { type: "init"; wasmBase: string; models: { path: string; name: string }[] };
+type DetectMsg = { type: "detect"; id: number; bitmap: ImageBitmap; tMs?: number };
 type DisposeMsg = { type: "dispose" };
 type InMsg = InitMsg | DetectMsg | DisposeMsg;
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 
 let landmarker: PoseLandmarker | null = null;
-let clockMs = 0;
+const clock = createMonotonicClock();
+let fallbackMs = 0;
 
 async function createLandmarker(wasmBase: string, modelPath: string, delegate: "GPU" | "CPU") {
   const fileset = await FilesetResolver.forVisionTasks(wasmBase);
@@ -33,30 +34,41 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
   const msg = event.data;
 
   if (msg.type === "init") {
-    try {
+    let loadedName: string | null = null;
+    let lastError: unknown = null;
+    for (const model of msg.models) {
       try {
-        landmarker = await createLandmarker(msg.wasmBase, msg.modelPath, "GPU");
-      } catch {
-        landmarker = await createLandmarker(msg.wasmBase, msg.modelPath, "CPU");
+        try {
+          landmarker = await createLandmarker(msg.wasmBase, model.path, "GPU");
+        } catch {
+          landmarker = await createLandmarker(msg.wasmBase, model.path, "CPU");
+        }
+        loadedName = model.name;
+        break;
+      } catch (error) {
+        lastError = error;
       }
-      scope.postMessage({ type: "ready" });
-    } catch (error) {
+    }
+    if (loadedName) {
+      scope.postMessage({ type: "ready", model: loadedName });
+    } else {
       scope.postMessage({
         type: "init-error",
-        message: error instanceof Error ? error.message : "pose init failed",
+        message: lastError instanceof Error ? lastError.message : "pose init failed",
       });
     }
     return;
   }
 
   if (msg.type === "detect") {
-    const { id, bitmap } = msg;
+    const { id, bitmap, tMs } = msg;
     let pts: Float32Array | null = null;
     let count = 0;
     try {
       if (landmarker) {
-        clockMs += 33.34;
-        const result = landmarker.detectForVideo(bitmap, clockMs);
+        fallbackMs += 33.34;
+        const stamp = clock(typeof tMs === "number" && Number.isFinite(tMs) ? tMs : fallbackMs);
+        const result = landmarker.detectForVideo(bitmap, stamp);
         const persons = (result.landmarks ?? []).filter(
           (p) => p.length === POSE_LANDMARK_COUNT,
         );

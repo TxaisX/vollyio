@@ -639,7 +639,12 @@ async function sampleContentAware(
       if (chosen) {
         selectedTrackId = chosen.id;
         landmarks = chosen.frames;
-        measurements = buildMeasurementsBlock(pose.skill, landmarks, denseFps);
+        measurements = buildMeasurementsBlock(
+          pose.skill,
+          landmarks,
+          denseFps,
+          pose.engine.modelName,
+        );
         contacts = (measurements?.reps ?? [])
           .map((r) => r.contact_s)
           .filter((c): c is number => c != null);

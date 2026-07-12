@@ -264,11 +264,42 @@ export default async function AnalysisDetail({
 
         {/* Breakdown: left column on desktop */}
         <div className="mt-8 min-w-0 lg:order-1 lg:mt-0">
+          {result.scene_read && (
+            <Reveal delay={120}>
+              <p className="mb-3 border-l-2 border-gold/50 pl-3 font-display text-sm font-bold">
+                {result.scene_read}
+              </p>
+            </Reveal>
+          )}
           <Reveal delay={140}>
             <p className="text-sm leading-relaxed text-chalk-dim">
               {result.summary}
             </p>
           </Reveal>
+
+          {(result.rep_scores?.length ?? 0) > 1 && (
+            <Reveal delay={160}>
+              <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+                Rep by rep
+              </h2>
+              <div className="card space-y-3 p-5">
+                {result.rep_scores!.map((r) => (
+                  <div key={r.rep_index} className="flex items-baseline gap-3">
+                    <span className="chip shrink-0">
+                      Rep {r.rep_index + 1} · {r.overall}
+                    </span>
+                    <span className="min-w-0 text-xs text-chalk-dim">{r.note}</span>
+                  </div>
+                ))}
+                <p className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+                  Spread:{" "}
+                  {Math.max(...result.rep_scores!.map((r) => r.overall)) -
+                    Math.min(...result.rep_scores!.map((r) => r.overall))}{" "}
+                  pts · tighter is better
+                </p>
+              </div>
+            </Reveal>
+          )}
 
           <Reveal delay={180}>
             <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
