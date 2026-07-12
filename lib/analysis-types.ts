@@ -77,10 +77,21 @@ export type Change = {
   timeframe: string;
 };
 
+export type RepScore = {
+  rep_index: number;
+  overall: number;
+  note: string;
+};
+
 export type AnalysisResult = {
   skill: Skill;
   discipline?: Discipline;
   overall_score: number;
+  // Coach-style opening line: setting, rep count, context. Optional: rows
+  // predating this field simply omit it.
+  scene_read?: string;
+  // Per-rep mini-scores when more than one repetition was distinguishable.
+  rep_scores?: RepScore[];
   metrics: Metric[];
   ball_track: BallMark[];
   contact_frame_index: number;

@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createMonotonicClock } from "./types.ts";
 import {
   angleAt,
   buildTracks,
@@ -190,4 +191,23 @@ test("buildTracks is immune to duplicate detections per frame", () => {
   }));
   const tracks = buildTracks(doubled);
   assert.equal(tracks.length, 1, `expected 1 track, got ${tracks.length}`);
+});
+
+test("monotonic clock keeps real spacing and rebases on regressions", () => {
+  const clock = createMonotonicClock();
+  // A monotonic run passes through with true inter-frame deltas.
+  const a = clock(1000);
+  const b = clock(1033);
+  const c = clock(1100);
+  assert.equal(b - a, 33);
+  assert.equal(c - b, 67);
+  // The next capture phase revisits an earlier clip time: output stays
+  // strictly increasing, and the run that follows keeps its real deltas.
+  const d = clock(500);
+  assert.ok(d > c, `expected ${d} > ${c}`);
+  const e = clock(540);
+  assert.ok(Math.abs(e - d - 40) < 1e-6, `expected 40ms spacing, got ${e - d}`);
+  // Identical timestamps never stall the stream.
+  const f = clock(540);
+  assert.ok(f > e);
 });

@@ -201,6 +201,8 @@ export async function POST(req: NextRequest) {
           raw.overall_score,
           METRICS[skill].map((m) => metricsMap[m.key].score),
         ),
+        scene_read: raw.scene_read,
+        rep_scores: raw.rep_scores,
         metrics: METRICS[skill].map((m) => ({
           key: m.key,
           score: metricsMap[m.key].score,

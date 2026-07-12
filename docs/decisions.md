@@ -186,3 +186,39 @@ Lighthouse floor).
 
 No new dependency, no schema change, no new motion. TypeScript, policy lint,
 48 tests, and the 57-route production build pass.
+
+## D-013 — Analysis fidelity: full landmarker, true timing, per-rep read
+Date: 2026-07-12 · By: Analysis-quality roadmap phase 1-2
+
+Raise the measurement layer toward a human reviewer's read of a clip. Four
+changes, all additive and all downgrade-safe:
+
+Pose model: add the full pose landmarker beside lite under the same D-008
+grant (same publisher, license, 33-landmark contract; self-hosted under
+`public/pose/`). The engine now tries full first and falls back to lite;
+the measurements block reports whichever variant actually loaded, so
+stored analyses stay honest about their provenance.
+
+Timing: the landmarker's video mode previously ran on a synthetic 30fps
+clock, smearing fast volleyball motion whenever real capture cadence
+differed. A rebasing monotonic clock (`createMonotonicClock`, unit-tested)
+now feeds it true frame times, preserving real inter-frame spacing within
+each capture phase and rebasing across phase boundaries where clip time
+legitimately regresses.
+
+Model contract: two optional output fields. `scene_read` is the one-line
+coach's opening (setting, visible rep count, context) grounded in the
+frames. `rep_scores` gives per-rep mini-scores whenever more than one
+repetition is distinguishable — the on-device rep windows already shipped
+in the measurements block; the model now scores against them. The
+breakdown page renders both (scene line above the summary; a "Rep by rep"
+card with the spread). Old rows omit the fields and render unchanged.
+
+Measurements: `knee_flexion_at_plant` (attack) and
+`shoulder_hip_separation` (serve, attack) join the catalog with honest
+reliability factors; the 2D-projection caveat on separation is encoded as
+a 0.65 reliability so it only survives clean capture.
+
+The eval harness (`/api/eval` + `evals/SOURCING.md` pipeline) is the
+referee for every further change of this kind: no scoring-path change
+ships on a passRate regression once the calibration baseline lands.

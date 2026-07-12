@@ -100,6 +100,26 @@ export type MeasurementsBlock = {
 export const UNITS_NOTE =
   "body-relative: heights in standing-body-heights, widths in shoulder-widths, angles in degrees, time in seconds";
 
+// The landmarker's VIDEO mode needs strictly increasing timestamps, but real
+// clip times regress between capture phases (probes sweep the clip, then the
+// dense windows revisit earlier moments). This clock keeps REAL inter-frame
+// spacing inside each monotonic run — what the temporal filter actually uses —
+// and rebases by an offset whenever the input time steps backwards, instead of
+// discarding real timing for a fixed synthetic tick.
+export function createMonotonicClock(minStepMs = 33.34): (tMs: number) => number {
+  let last = Number.NEGATIVE_INFINITY;
+  let offset = 0;
+  return (tMs: number): number => {
+    let ts = tMs + offset;
+    if (!(ts > last)) {
+      offset = last + minStepMs - tMs;
+      ts = tMs + offset;
+    }
+    last = ts;
+    return ts;
+  };
+}
+
 // Per-frame keypoints persisted alongside the sent frames so the results page
 // can draw skeletons without refetching the dense file.
 export type FrameKeypoints = {
