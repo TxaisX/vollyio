@@ -58,7 +58,19 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${instrument.variable} ${spaceGrotesk.variable} ${plexMono.variable} h-full antialiased`}
+      // The inline script below stamps .js before hydration; suppress only
+      // this element's own class-attribute mismatch.
+      suppressHydrationWarning
     >
+      <head>
+        {/* Runs before first paint so .reveal's hidden pre-state (scoped to
+            :root.js in globals.css) never applies for no-JS visitors. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.add('js')",
+          }}
+        />
+      </head>
       {/* Browser extensions (e.g. Grammarly) inject attributes on <body> before
           React hydrates; suppress only this element's own attribute mismatch. */}
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
