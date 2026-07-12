@@ -6,6 +6,7 @@ import { CountUp, useInView, useReducedMotion } from "@/components/motion";
 const REPS = [
   {
     label: "Baseline",
+    short: "Base",
     score: 68,
     delta: 0,
     frame: 8,
@@ -21,6 +22,7 @@ const REPS = [
   },
   {
     label: "Focus rep",
+    short: "Focus",
     score: 76,
     delta: 8,
     frame: 12,
@@ -36,6 +38,7 @@ const REPS = [
   },
   {
     label: "Latest",
+    short: "Latest",
     score: 82,
     delta: 14,
     frame: 15,
@@ -70,9 +73,9 @@ export function AnalyticsShowcase() {
     <div ref={ref} className="analytics-stage">
       <div className="flex flex-col gap-6 border-b border-line p-5 md:flex-row md:items-end md:justify-between md:p-7">
         <div>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-teal">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-teal">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
-            Rep intelligence · serve
+            Rep intelligence · example serve session
           </div>
           <h3 className="mt-2 font-display text-2xl font-bold md:text-3xl">
             See the change, not just the number.
@@ -88,7 +91,7 @@ export function AnalyticsShowcase() {
               className={`analytics-rep-tab ${active === index ? "analytics-rep-tab-active" : ""}`}
             >
               <span className="hidden sm:inline">{item.label}</span>
-              <span className="sm:hidden">{index + 1}</span>
+              <span className="sm:hidden">{item.short}</span>
             </button>
           ))}
         </div>
@@ -99,7 +102,7 @@ export function AnalyticsShowcase() {
           <div aria-hidden="true" className="analytics-grid absolute inset-0" />
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
                 Contact path · shoulder to ball
               </p>
               <p className="mt-1 text-sm text-chalk-dim">
@@ -153,7 +156,7 @@ export function AnalyticsShowcase() {
           <div className="relative grid grid-cols-3 gap-2 border-t border-line pt-4">
             {["LOAD", "LIFT", "CONTACT"].map((phase, index) => (
               <div key={phase}>
-                <p className={`font-mono text-[9px] tracking-[0.14em] ${index === 2 ? "text-gold" : "text-chalk-dim"}`}>
+                <p className={`font-mono text-[11px] tracking-[0.14em] ${index === 2 ? "text-gold" : "text-chalk-dim"}`}>
                   0{index + 1} · {phase}
                 </p>
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-line/60">
@@ -170,7 +173,7 @@ export function AnalyticsShowcase() {
         <div className="flex flex-col p-5 md:p-7">
           <div className="flex items-end justify-between border-b border-line pb-5">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
                 Serve score
               </p>
               <p className="stat-num mt-2 text-6xl text-gold md:text-7xl">
@@ -181,7 +184,7 @@ export function AnalyticsShowcase() {
               <p className="font-display text-xl font-bold text-teal">
                 {rep.delta > 0 ? `+${rep.delta}` : "Start"}
               </p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chalk-dim">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
                 vs baseline
               </p>
             </div>
@@ -190,7 +193,7 @@ export function AnalyticsShowcase() {
           <div className="my-5 space-y-4">
             {rep.metrics.map(([label, score], index) => (
               <div key={label}>
-                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.1em]">
+                <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.1em]">
                   <span className="text-chalk-dim">{label}</span>
                   <span className="text-chalk">{score}</span>
                 </div>
@@ -205,7 +208,7 @@ export function AnalyticsShowcase() {
           </div>
 
           <div className="mt-auto rounded-control border-l-2 border-gold bg-navy/55 p-4">
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
               Frame {rep.frame} · next best move
             </p>
             <p className="mt-2 text-sm font-medium text-chalk">{rep.fix}</p>
