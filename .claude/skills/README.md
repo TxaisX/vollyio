@@ -25,6 +25,21 @@ environment's network policy, so installs happen from a local machine or
 by handing the agent the skill's exact GitHub `owner/repo` and asking it
 to add the repo to the session.
 
+## In-house skills
+
+Sideout ships its own skills rather than generic marketplace ones, so the
+guidance is pre-fitted to this repo's constraints:
+
+- `ui-animation` — the motion ground rules (10.2 encoded): durations,
+  easing, reduced-motion, what already exists.
+- `animation-designer` — pattern recipes: staggered lists, scroll
+  effects, progress indicators, microinteractions, loading states.
+- `css-animations` — pure-CSS technique book: sweeps, glows, sheens,
+  masks, draw-on lines, scroll-linked, with the performance rules.
+
+Deliberately not carried (see D-016): Flutter animation guidance (wrong
+platform) and Three.js/WebGL guidance (fails the 10.5 necessity gate).
+
 ## House rules
 
 Skills advise; the repo's constitution decides. Any skill-driven change
