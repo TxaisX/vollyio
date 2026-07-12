@@ -10,11 +10,10 @@ import {
 } from "react";
 
 export function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  // Starts false everywhere so the first client render matches the server
+  // HTML (reading matchMedia in the initializer caused a hydration mismatch
+  // for reduce users); the effect below settles the real value post-mount.
+  const [reduced, setReduced] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const on = () => setReduced(mq.matches);

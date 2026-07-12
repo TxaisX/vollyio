@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CourtFilm } from "@/components/court-film";
-import { CursorGlow, Magnetic, SpotlightGroup, Tilt } from "@/components/cursor-glow";
+import { StickyCta } from "@/components/sticky-cta";
+import { CursorGlow, SpotlightGroup, Tilt } from "@/components/cursor-glow";
 import { LandingNav } from "@/components/landing-nav";
 import { Reveal, CountUp } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
@@ -9,15 +10,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { SkillIcon } from "@/components/skill-icons";
 import { AnalyticsShowcase } from "@/components/analytics-showcase";
 import { SKILLS, SKILL_LABEL, SKILL_BLURB } from "@/lib/skills";
-
-const MARQUEE = [
-  "Frame-by-frame breakdown",
-  "One priority fix",
-  "Six skills",
-  "Evidence, not vibes",
-  "Track your rating",
-  "Built for the film room",
-];
+import { SUPPORT_EMAIL } from "@/lib/site";
 
 const STEPS = [
   {
@@ -34,6 +27,78 @@ const STEPS = [
     n: "03",
     title: "Run the fix",
     body: "One priority fix per rep, the change that buys the most, with drills matched to it.",
+  },
+];
+
+const FAQ: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "What do I need to get started?",
+    a: (
+      <p>
+        A phone and a browser. Record up to 45 seconds of one skill right in
+        Sideout, or upload a clip you already have. Photos work too. No
+        wearables, no rig, no second person required. Sideout runs on the web
+        on iOS, Android, and desktop, and you can install it like an app.
+      </p>
+    ),
+  },
+  {
+    q: "What does it cost?",
+    a: (
+      <p>
+        Your first breakdown is free and we don&rsquo;t ask for a card. If we
+        introduce paid plans, the price is shown in the app before you&rsquo;re
+        asked to pay anything, and you will never be charged without explicitly
+        choosing a plan.
+      </p>
+    ),
+  },
+  {
+    q: "What happens to my film?",
+    a: (
+      <>
+        <p>
+          Your clips stay private to your account: never published, never
+          shared with other users, never sold. Frames from your clip are
+          processed by the coaching service to produce your breakdown, and
+          your footage helps train future features only if you opt in. It
+          is off by default.
+        </p>
+        <p>
+          Want something gone? Contact us and we&rsquo;ll delete footage or
+          your whole account. The details live in the{" "}
+          <Link
+            href="/privacy"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "How accurate is the analysis?",
+    a: (
+      <p>
+        Every skill is graded on the checkpoints a coach actually watches: on
+        a serve, that&rsquo;s toss, arm swing, contact, and follow-through.
+        Every note is pinned to the exact frame it came from, so you can
+        see what the score saw and disagree with it. Treat it as a sharp
+        second opinion whose work you can always check, not ground truth.
+      </p>
+    ),
+  },
+  {
+    q: "What is the rating?",
+    a: (
+      <p>
+        A rolling 0&ndash;100 rating per skill, built from your most recent
+        scored reps. It weighs your latest film, not a lifetime average, so it
+        reflects how you play now, and it moves when you do.
+      </p>
+    ),
   },
 ];
 
@@ -79,7 +144,7 @@ export default function Landing() {
             srcWebm="/sideout-hero-loop.webm"
             poster="/sideout-hero-loop-poster.webp"
             className="absolute inset-0"
-            controlCorner="bottom-4 right-4"
+            controlCorner="bottom-24 right-4 md:bottom-4"
             objectPosition="72% 50%"
           />
           <div aria-hidden="true" className="hero-film-shade pointer-events-none absolute inset-0" />
@@ -96,38 +161,36 @@ export default function Landing() {
             <div className="pointer-events-auto max-w-2xl">
               <Reveal immediate>
                 <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">
-                  Your film · your fix · your next level
+                  Your film · your fix
+                  <span className="hidden sm:inline"> · your next level</span>
                 </p>
               </Reveal>
-              <Reveal delay={70} immediate>
-                <h1 className="mt-3 font-display text-5xl font-bold leading-none text-chalk md:text-7xl">
-                  Sideout
+              <Reveal delay={80} immediate>
+                <h1 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-chalk md:text-6xl">
+                  Fix the one thing holding your game back.
                 </h1>
               </Reveal>
-              <Reveal delay={130} immediate>
-                <p className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight text-chalk md:text-5xl">
-                  Fix the one thing holding your game back.
-                </p>
-              </Reveal>
-              <Reveal delay={200} immediate>
+              <Reveal delay={160} immediate>
                 <p className="mt-5 max-w-lg text-base leading-relaxed text-chalk-dim md:text-lg">
                   Record a rep. Get the exact frame, the score, and the one
                   correction that buys the most across every volleyball skill.
                 </p>
               </Reveal>
-              <Reveal delay={270} immediate>
+              <Reveal delay={240} immediate>
                 <div className="mt-7 flex flex-wrap items-center gap-3">
-                  <Magnetic>
-                    <Link href="/signup" className="btn-primary min-h-12 text-base">
-                      Analyze your first rep
-                    </Link>
-                  </Magnetic>
+                  <Link
+                    id="hero-cta"
+                    href="/signup"
+                    className="btn-primary min-h-12 text-base"
+                  >
+                    Analyze your first rep
+                  </Link>
                   <a href="#film" className="btn-ghost min-h-12 text-base">
                     Watch a rep get read
                   </a>
                 </div>
               </Reveal>
-              <Reveal delay={330} immediate>
+              <Reveal delay={300} immediate>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {["Six skills", "Frame-cited feedback", "Free to start"].map(
                     (chip) => (
@@ -141,20 +204,6 @@ export default function Landing() {
             </div>
           </div>
         </section>
-
-        <div aria-hidden="true" className="overflow-hidden border-y border-line py-3">
-          <div className="flex w-max animate-marquee gap-8 whitespace-nowrap">
-            {[...MARQUEE, ...MARQUEE].map((item, i) => (
-              <span
-                key={i}
-                className="flex items-center gap-8 font-mono text-xs uppercase tracking-[0.2em] text-chalk-dim"
-              >
-                {item}
-                <span className="text-gold">·</span>
-              </span>
-            ))}
-          </div>
-        </div>
 
         <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
           <Reveal>
@@ -196,7 +245,7 @@ export default function Landing() {
               <p className="mt-4 max-w-xl text-chalk-dim">
                 This is the read itself: motion traced on the player, the ball
                 path projected, checkpoints measured in real units, and the one
-                fix that buys the most. Ten seconds, zero guesswork.
+                fix that buys the most. The whole read, in a ten-second loop.
               </p>
             </Reveal>
             <Reveal delay={120}>
@@ -331,7 +380,7 @@ export default function Landing() {
                         }`}
                       />
                       <div>
-                        <span className="font-mono text-[10px] uppercase text-chalk-dim">
+                        <span className="font-mono text-[11px] uppercase text-chalk-dim">
                           {t}
                         </span>
                         <p className="text-sm text-chalk">{text}</p>
@@ -341,7 +390,7 @@ export default function Landing() {
                 </div>
                 <div className="mt-5 border-t border-line pt-4">
                   <span className="tag uppercase">
-                    Cited: frame 6 · t=1.2s
+                    Example · cited: frame 6 · t=1.2s
                   </span>
                 </div>
               </div>
@@ -358,6 +407,9 @@ export default function Landing() {
               <h2 className="mt-3 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
                 A rating that moves when you do.
               </h2>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+                Example data. Yours starts at your first rep.
+              </p>
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Reveal className="reveal-3d h-full">
@@ -450,7 +502,7 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="mt-4 border-t border-line pt-3">
-                  <span className="font-mono text-[10px] uppercase text-chalk-dim">
+                  <span className="font-mono text-[11px] uppercase text-chalk-dim">
                     Coach · knows your film
                   </span>
                 </div>
@@ -459,29 +511,72 @@ export default function Landing() {
           </div>
         </section>
 
+        <section id="faq" className="scroll-mt-24 border-t border-line">
+          <div className="mx-auto max-w-3xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                Straight answers
+              </p>
+              <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+                Before you hand us your film.
+              </h2>
+            </Reveal>
+            <Reveal delay={100}>
+              <div className="mt-8 space-y-3">
+                {FAQ.map(({ q, a }) => (
+                  <details key={q} className="card group">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left font-display font-bold [&::-webkit-details-marker]:hidden">
+                      {q}
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        aria-hidden
+                        focusable="false"
+                        className="h-4 w-4 shrink-0 text-gold transition-transform duration-200 ease-court group-open:rotate-45"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </summary>
+                    <div className="space-y-3 px-5 pb-5 text-sm leading-relaxed text-chalk-dim">
+                      {a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         <section className="relative border-t border-line">
           <SeamArcs className="absolute inset-0 h-full w-full animate-drift" opacity={0.07} />
-          <div className="relative mx-auto max-w-3xl px-5 py-24 text-center md:py-32">
+          <div className="relative mx-auto max-w-3xl px-5 py-20 text-center md:py-24">
             <Reveal>
               <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">
                 <span className="text-sheen">Your move.</span>
               </h2>
               <p className="mx-auto mt-4 max-w-md text-chalk-dim">
-                The next rep you film is the first one that counts.
-              </p>
-              <p className="mx-auto mt-3 max-w-md font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
-                For volleyball players who film their reps and want them scored
-                like a coach would.
+                Made for players who film their own reps and want them scored
+                like a coach would. The next one you film is the first one that
+                counts.
               </p>
               <div className="mt-8 flex justify-center">
-                <Magnetic>
-                  <Link href="/signup" className="btn-primary text-base">
-                    Start your first breakdown
-                  </Link>
-                </Magnetic>
+                <Link href="/signup" className="btn-primary text-base">
+                  Analyze your first rep
+                </Link>
               </div>
-              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
-                No card. Your first breakdown is free.
+              <p className="mx-auto mt-5 max-w-md text-sm text-chalk-dim">
+                No card required, and your first breakdown is free. Your film stays
+                private to your account:{" "}
+                <Link
+                  href="/privacy"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                >
+                  see how we handle it
+                </Link>
+                .
               </p>
             </Reveal>
           </div>
@@ -489,33 +584,88 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-10 md:flex-row md:px-8">
-          <div>
-            <p className="font-display text-lg font-bold">Sideout</p>
-            <p className="mt-1 text-sm text-chalk-dim">
-              Built for players who watch their own film.
-            </p>
+        <div className="mx-auto max-w-6xl px-5 py-10 md:px-8">
+          <div className="flex flex-col justify-between gap-10 md:flex-row">
+            <div>
+              <p className="font-display text-lg font-bold">Sideout</p>
+              <p className="mt-1 max-w-xs text-sm text-chalk-dim">
+                Built for players who watch their own film.
+              </p>
+            </div>
+            <nav
+              aria-label="Footer"
+              className="grid grid-cols-2 gap-x-8 gap-y-8 text-sm sm:grid-cols-3"
+            >
+              <div className="space-y-2.5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+                  Product
+                </p>
+                <a
+                  href="#how"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  How it works
+                </a>
+                <a
+                  href="#faq"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Pricing &amp; FAQ
+                </a>
+              </div>
+              <div className="space-y-2.5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+                  Legal
+                </p>
+                <Link
+                  href="/privacy"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Terms of Service
+                </Link>
+              </div>
+              <div className="space-y-2.5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+                  Account
+                </p>
+                <Link
+                  href="/login"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Analyze your first rep
+                </Link>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="block text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  Contact
+                </a>
+              </div>
+            </nav>
           </div>
-          <div className="flex items-center gap-6 text-sm text-chalk-dim">
-            <Link href="/login" className="transition-colors hover:text-chalk">
-              Log in
-            </Link>
-            <Link href="/signup" className="transition-colors hover:text-chalk">
-              Sign up
-            </Link>
-            <span className="font-mono text-xs">© 2026 Sideout</span>
-          </div>
+          <p className="mt-10 border-t border-line pt-6 font-mono text-xs text-chalk-dim">
+            © 2026 Sideout
+          </p>
         </div>
       </footer>
 
-      <div
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-navy/90 px-3 pt-3 backdrop-blur-md md:hidden"
-      >
-        <Link href="/signup" className="btn-primary w-full py-3.5">
-          Start your first breakdown
-        </Link>
-      </div>
+      <StickyCta
+        watch="hero-cta"
+        label="Analyze your first rep"
+        href="/signup"
+      />
       <div
         className="md:hidden"
         style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }}

@@ -25,7 +25,6 @@
   --ease-court: cubic-bezier(0.22, 1, 0.36, 1);
 
   --animate-fade-up: fade-up 0.6s var(--ease-court) both;
-  --animate-marquee: marquee 32s linear infinite;
   --animate-sheen: sheen 7s linear 2;
   --animate-pulse-dot: pulse-dot 2.4s ease-in-out infinite;
 
@@ -37,11 +36,6 @@
     to {
       opacity: 1;
       transform: none;
-    }
-  }
-  @keyframes marquee {
-    to {
-      transform: translateX(-50%);
     }
   }
   @keyframes sheen {
@@ -517,27 +511,28 @@ body {
   }
 
   .reveal {
-    opacity: 0;
-    transform: translateY(14px);
     transition:
       opacity 0.55s var(--ease-court),
       transform 0.55s var(--ease-court);
     transition-delay: var(--reveal-delay, 0ms);
   }
-  .reveal.in {
-    opacity: 1;
-    transform: none;
+  /* Hidden pre-reveal state only while JS is present (the inline script in
+     app/layout.tsx stamps .js on <html>). Without JS nothing ever adds .in,
+     so content must default to visible — the reveal is pure enhancement. */
+  :root.js .reveal:not(.in) {
+    opacity: 0;
+    transform: translateY(14px);
   }
 
   /* 3D entrance variant for the landing card grids (D-017): same timing and
      travel as .reveal, but the plane starts pitched away and stands up as it
-     arrives. Origin at the bottom edge so the top edge does the swinging. */
+     arrives. Origin at the bottom edge so the top edge does the swinging.
+     JS-gated like .reveal above, so no-JS visitors get flat, visible cards. */
   .reveal.reveal-3d {
-    transform: perspective(900px) rotateX(9deg) translateY(18px);
     transform-origin: 50% 100%;
   }
-  .reveal.reveal-3d.in {
-    transform: none;
+  :root.js .reveal.reveal-3d:not(.in) {
+    transform: perspective(900px) rotateX(9deg) translateY(18px);
   }
 
   .reveal-static {
@@ -586,6 +581,13 @@ body {
     stroke-dasharray: 24;
     stroke-dashoffset: 24;
     animation: reward-check 0.42s var(--ease-court) 0.16s both;
+  }
+
+  /* Mobile-menu overlay entrance: reuses fade-up at menu speed. Enhancement
+     only — the overlay's presence carries the state, so the reduced-motion
+     block landing it instantly loses nothing. */
+  .landing-menu-in {
+    animation: fade-up 0.24s var(--ease-court) both;
   }
 
   .nav-active-marker {
@@ -640,7 +642,14 @@ body {
         color-mix(in oklab, var(--color-navy) 58%, transparent) 48%,
         color-mix(in oklab, var(--color-navy) 24%, transparent) 100%
       ),
-      linear-gradient(to top, var(--color-navy) 0%, transparent 32%);
+      linear-gradient(to top, var(--color-navy) 0%, transparent 32%),
+      /* Top band: keeps the film's bright ball-path graphic from fighting
+         the fixed nav (logo, links, menu button) for legibility. */
+        linear-gradient(
+          to bottom,
+          color-mix(in oklab, var(--color-navy) 82%, transparent) 0%,
+          transparent 24%
+        );
   }
 
   .hero-court-line {
@@ -701,7 +710,7 @@ body {
     padding: 0.55rem 0.85rem;
     color: var(--color-chalk-dim);
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
@@ -893,8 +902,8 @@ body {
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal,
-  .reveal.reveal-3d {
+  :root.js .reveal:not(.in),
+  :root.js .reveal.reveal-3d:not(.in) {
     opacity: 1;
     transform: none;
   }
