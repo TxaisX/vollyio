@@ -167,7 +167,7 @@ export default function Landing() {
           </Reveal>
           <SpotlightGroup className="mt-10 grid gap-4 md:grid-cols-3">
             {STEPS.map((step, i) => (
-              <Reveal key={step.n} delay={i * 90} className="h-full">
+              <Reveal key={step.n} delay={i * 90} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot h-full p-6">
                     <span className="font-mono text-sm text-gold">{step.n}</span>
@@ -274,7 +274,7 @@ export default function Landing() {
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {SKILLS.map((skill, i) => (
-                <Reveal key={skill} delay={i * 60} className="h-full">
+                <Reveal key={skill} delay={i * 60} className="reveal-3d h-full">
                   <Tilt className="h-full">
                     <div className="card card-lift spot h-full p-6">
                       <div className="flex items-center gap-3">
@@ -360,7 +360,7 @@ export default function Landing() {
               </h2>
             </Reveal>
             <SpotlightGroup className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Reveal className="h-full">
+              <Reveal className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot flex h-full flex-col items-center justify-center gap-2 p-6">
                     <ScoreRing score={72} size={110} label="Overall" />
@@ -370,7 +370,7 @@ export default function Landing() {
                   </div>
                 </Tilt>
               </Reveal>
-              <Reveal delay={70} className="h-full">
+              <Reveal delay={70} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot flex h-full items-center justify-center p-4">
                     <Radar
@@ -387,7 +387,7 @@ export default function Landing() {
                   </div>
                 </Tilt>
               </Reveal>
-              <Reveal delay={140} className="h-full">
+              <Reveal delay={140} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot flex h-full flex-col justify-center p-6">
                     <span className="stat-num text-gold text-5xl">
@@ -401,7 +401,7 @@ export default function Landing() {
                   </div>
                 </Tilt>
               </Reveal>
-              <Reveal delay={210} className="h-full">
+              <Reveal delay={210} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot flex h-full flex-col justify-center p-6">
                     <span className="font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
