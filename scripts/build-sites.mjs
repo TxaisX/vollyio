@@ -48,35 +48,6 @@ if (existsSync(path.join(projectRoot, ".openai/hosting.json"))) {
   );
 }
 
-const launchPage = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>Launch film · Sideout</title>
-    <meta name="robots" content="noindex,nofollow" />
-    <style>
-      :root { color-scheme: dark; }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; min-height: 100%; background: #0f212c; color: #f2efe6; font-family: system-ui, sans-serif; }
-      body { display: grid; min-height: 100svh; place-items: center; }
-      main { width: 100%; }
-      video { display: block; width: 100%; max-height: 100svh; background: #0f212c; }
-      a { position: fixed; top: 1rem; left: 1rem; z-index: 2; border: 1px solid rgb(242 239 230 / .18); border-radius: .625rem; background: rgb(15 33 44 / .82); color: #f2efe6; padding: .75rem 1rem; font-weight: 700; text-decoration: none; backdrop-filter: blur(12px); }
-      a:focus-visible { outline: 2px solid #e8b93b; outline-offset: 2px; }
-    </style>
-  </head>
-  <body>
-    <main aria-label="Sideout launch film">
-      <a href="/">Back to site</a>
-      <video src="/sideout-launch.mp4" poster="/volleyball-hero.webp" autoplay muted playsinline controls aria-label="Sideout launch film"></video>
-    </main>
-  </body>
-</html>`;
-
-mkdirSync(path.join(clientRoot, "launch"), { recursive: true });
-writeFileSync(path.join(clientRoot, "launch/index.html"), launchPage);
-
 const rootHtml = readFileSync(path.join(clientRoot, "index.html"), "utf8");
 if (!rootHtml.includes("Turn every rep into a reason")) {
   throw new Error("The generated landing page is missing the analytics showcase.");

@@ -148,28 +148,6 @@
     }
   }
 
-  @keyframes hero-photo-settle {
-    from {
-      opacity: 0.72;
-      transform: scale(1.035);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes hero-hud-in {
-    from {
-      opacity: 0;
-      transform: translateX(20px) scale(0.97);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
   @keyframes hero-metric-grow {
     from {
       transform: scaleX(0);
@@ -230,64 +208,6 @@
     }
   }
 
-  @keyframes launch-cut {
-    0% {
-      opacity: 0;
-      transform: translateY(24px) scale(0.985);
-    }
-    10% {
-      opacity: 1;
-      transform: none;
-    }
-    78% {
-      opacity: 1;
-      transform: none;
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(-18px) scale(1.01);
-    }
-  }
-
-  @keyframes launch-photo {
-    from {
-      transform: scale(1.09) translateX(2%);
-      filter: saturate(0.72) contrast(1.08);
-    }
-    to {
-      transform: scale(1.01) translateX(-1%);
-      filter: saturate(0.9) contrast(1.03);
-    }
-  }
-
-  @keyframes launch-bar {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-
-  @keyframes launch-step {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes launch-line {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
 }
 
 @keyframes skeleton {
@@ -640,17 +560,18 @@ body {
     animation: reward-arrive 0.34s var(--ease-court) both;
   }
 
-  .hero-photo {
-    filter: saturate(0.86) contrast(1.04);
-    animation: hero-photo-settle 1.35s var(--ease-court) both;
-  }
-
-  .hero-shade {
-    background: color-mix(in oklab, var(--color-navy) 42%, transparent);
-  }
-
-  .auth-photo-shade {
-    background: color-mix(in oklab, var(--color-navy) 74%, transparent);
+  /* Legibility shade over the hero's ambient court film: strong navy on the
+     copy side easing off toward the player, plus a bottom fade into the page
+     so the full-bleed video never fights the headline or the section seam. */
+  .hero-film-shade {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--color-navy) 88%, transparent) 0%,
+        color-mix(in oklab, var(--color-navy) 58%, transparent) 48%,
+        color-mix(in oklab, var(--color-navy) 24%, transparent) 100%
+      ),
+      linear-gradient(to top, var(--color-navy) 0%, transparent 32%);
   }
 
   .hero-court-line {
@@ -680,15 +601,6 @@ body {
     opacity: 0.55;
     animation: hero-glow-drift 21s ease-in-out infinite alternate;
     will-change: transform;
-  }
-
-  .hero-hud {
-    animation: hero-hud-in 0.72s var(--ease-court) 0.42s both;
-  }
-
-  .hero-metric-fill {
-    transform: scaleX(0);
-    animation: hero-metric-grow 0.7s var(--ease-court) both;
   }
 
   .analytics-stage {
@@ -771,141 +683,6 @@ body {
   .analytics-metric-fill {
     transform: scaleX(0);
     animation: hero-metric-grow 0.62s var(--ease-court) both;
-  }
-
-  .launch-canvas {
-    position: relative;
-    isolation: isolate;
-    width: 100%;
-    min-height: 100svh;
-    overflow: hidden;
-    background: var(--color-navy);
-    color: var(--color-chalk);
-  }
-
-  .launch-photo {
-    z-index: -3;
-    animation: launch-photo 19s linear both;
-  }
-
-  .launch-shade {
-    z-index: -2;
-    background: linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--color-navy) 94%, transparent) 0%,
-      color-mix(in oklab, var(--color-navy) 80%, transparent) 46%,
-      color-mix(in oklab, var(--color-navy) 38%, transparent) 100%
-    );
-  }
-
-  .launch-court-line {
-    z-index: -1;
-    transform-origin: left;
-    animation: launch-line 1.2s var(--ease-court) 0.2s both;
-  }
-
-  .launch-scene {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: clamp(3rem, 7vw, 7rem);
-    opacity: 0;
-    animation: launch-cut var(--launch-duration, 3.8s) var(--ease-court)
-      var(--launch-delay, 0s) both;
-  }
-
-  .launch-scene-one {
-    --launch-duration: 3.8s;
-  }
-
-  .launch-scene-two {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(24rem, 0.62fr);
-    align-items: center;
-    gap: 5rem;
-    --launch-duration: 5.1s;
-    --launch-delay: 3.25s;
-  }
-
-  .launch-scene-three {
-    --launch-duration: 4.3s;
-    --launch-delay: 7.85s;
-  }
-
-  .launch-scene-four {
-    --launch-duration: 4.2s;
-    --launch-delay: 11.65s;
-  }
-
-  .launch-scene-five {
-    align-items: center;
-    text-align: center;
-    --launch-duration: 8s;
-    --launch-delay: 15.2s;
-  }
-
-  .launch-analysis-card {
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-card);
-    padding: 2rem;
-    background: color-mix(in oklab, var(--color-navy-light) 86%, transparent);
-    box-shadow: var(--shadow-lift);
-    backdrop-filter: blur(18px);
-  }
-
-  .launch-bar {
-    transform: scaleX(0);
-    animation: launch-bar 0.8s var(--ease-court) both;
-  }
-
-  .launch-frame-badge {
-    width: fit-content;
-    border: 1px solid color-mix(in oklab, var(--color-gold) 60%, var(--color-line));
-    border-radius: 9999px;
-    padding: 0.7rem 1.1rem;
-    background: color-mix(in oklab, var(--color-gold) 10%, transparent);
-    color: var(--color-gold);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.14em;
-  }
-
-  .launch-score-step {
-    min-width: 13rem;
-    border-top: 2px solid var(--color-gold);
-    padding: 1.25rem;
-    opacity: 0;
-    background: color-mix(in oklab, var(--color-navy-light) 82%, transparent);
-    animation: launch-step 0.72s var(--ease-court) both;
-  }
-
-  .launch-final-frame {
-    display: grid;
-    place-items: center;
-    padding: 3rem;
-    background: radial-gradient(
-      circle at center,
-      var(--color-navy-lighter),
-      var(--color-navy) 62%
-    );
-  }
-
-  @media (max-width: 760px) {
-    .launch-scene-two {
-      display: flex;
-      align-items: stretch;
-      gap: 2rem;
-    }
-
-    .launch-analysis-card {
-      padding: 1.25rem;
-    }
-
-    .launch-score-step {
-      min-width: 0;
-    }
   }
 
   .dashboard-heading::after {

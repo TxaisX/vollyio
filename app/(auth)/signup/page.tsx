@@ -20,16 +20,12 @@ export default async function Signup({
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
-      <Image
-        src="/volleyball-hero.webp"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        className="hero-photo object-cover object-[70%_center]"
-      />
-      <div aria-hidden="true" className="auth-photo-shade absolute inset-0" />
-      <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.12} />
+      <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
+        <div className="hero-glow" />
+        <div className="animate-drift absolute inset-0">
+          <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.12} />
+        </div>
+      </div>
       <Reveal className="relative w-full max-w-sm">
         <Link
           href="/"
