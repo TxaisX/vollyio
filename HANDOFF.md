@@ -1,12 +1,14 @@
 # Handoff — sideout
 
-_Last updated 2026-07-11. This file is the persistent project handoff — kept in-repo, updated each session._
+_Last updated 2026-07-12. This file is the persistent project handoff — kept in-repo, updated each session._
 
 ## Goal
 Sideout — volleyball skill-analysis + AI coaching web app. Next.js 16.2.10 (App Router, React 19.2), Supabase (auth + Postgres 17), Anthropic SDK server-side ("the coaching service" — never vendor-named in UI). Deployed on Vercel, repo `github.com/TxaisX/sideout`.
 
 ## State
-- Git: on `master`, even with `origin/master`, working tree clean. History: Phase 1a/1b + Phase 2, premium campaign, CV Phase 1 (on-device pose tracking, D-008), the focus-player pipeline, the 2026-07-11 mobile-upload fixes, and the free-tier onboarding funnel (D-012: `/welcome` quiz → goal → `/analyze?skill=`, breakdown value chips + #1 fix framing + closing share card) all shipped. 48/48 tests, tsc clean, policy lint clean, 57-route build.
+- Git: on `master`, even with `origin/master`, working tree clean. History: Phase 1a/1b + Phase 2, premium campaign, CV Phase 1 (on-device pose tracking, D-008), the focus-player pipeline, the 2026-07-11 mobile-upload fixes + free-tier onboarding funnel (D-012), score bands + overall-coherence guard, and the 2026-07-12 analysis-fidelity work (D-013: full pose landmarker with lite fallback, real-timestamp pose clock, `scene_read` + `rep_scores` in the model contract and breakdown UI, `knee_flexion_at_plant` + `shoulder_hip_separation` measurements) all shipped. 52/52 tests, tsc clean, policy lint clean, 57-route build.
+- **Analysis-quality roadmap** lives in D-013's closing note. Done: fidelity phase (above). Open, in order: (1) **calibration baseline** — build labeled cases from `evals/SOURCING.md` via `scripts/ingest-eval-clip.mjs`, record passRate in a new `evals/BASELINE.md`; blocked on clip acquisition (video CDNs are denied by the cloud-session network policy — user uploads or a policy allowance unblock it; note `storage.googleapis.com` IS reachable). (2) **On-device ball tracking** — the big differentiator; all hooks in place (`ball_track_source: "tracked"`, `ballEstimated` UI label, insertion point in `captureDenseWindows`); needs a small volleyball detector + 10.5 gate. (3) Ball-dependent measurements (toss height, set arc, contact refinement).
+- **Not yet device-verified**: the D-013 surface (scene-read line, "Rep by rep" card, fuller measurements from the full landmarker) — run a multi-rep analysis on the live site to confirm.
 - **Deployed to production** at sideout-jet.vercel.app (Vercel project `txais-xiong-s-projects/sideout`). The Vercel project is **git-connected**: any push to `master` auto-deploys production — no CLI or specific machine required.
 - **MCP servers travel with the repo** (`.mcp.json`): Supabase (project-bound) and Vercel (D-011). Any session — including claude.ai/code from a phone — gets both after a per-user OAuth grant.
   - Supabase project: **sideout**, ref `tbbievneojaxkkjvcwjp`, org `ojvxtqcefdsthcfprauv`, region us-west-2, Postgres 17, `ACTIVE_HEALTHY`.
@@ -31,7 +33,7 @@ See `AGENTS.md` + `docs/decisions.md` D-001: no attribution trailers, no vendor 
 - **Numeric Lighthouse not in CI** (tool not installed); verified manually 99/100. Optional `@lhci/cli` job later.
 
 ## Current next step
-Nothing in flight; the 2026-07-11 funnel + mobile-upload work is deployed and device-verified. Candidate next moves, in rough order: watch whether new signups complete quiz → first analysis; monetization (D-012 records the premium seam: free diagnosis, paid fixes/insights/drills via `canAnalyze` + `BILLING_ENABLED`; needs pricing + Stripe decisions); deferred features (Overall Game option, onboarding motion-tracking demo, launch-teaser remix once the media plan/network allowances exist).
+Device-verify the D-013 analysis surface (multi-rep clip → scene read + Rep by rep card), then continue the analysis-quality roadmap in the State section (calibration baseline → ball tracking). Still open from before: funnel conversion watching; monetization (D-012 premium seam via `canAnalyze` + `BILLING_ENABLED`); deferred features (Overall Game option, onboarding motion-tracking demo, launch-teaser remix — teaser parked in `assets/sideout-launch-teaser.mp4`, not served).
 
 ## Run / deploy quickref
 `npm run dev` (:3000) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run build`. Push to `master` deploys production; `vercel deploy [--prod]` only for ad-hoc previews. Build hits `EPERM: unlink .next/...` (OneDrive lock, local machine only) → `Remove-Item -Recurse -Force .next` and rebuild.
