@@ -21,6 +21,7 @@ import {
   dedupePersons,
   focusPoint,
   focusRegionAround,
+  pickTargetTrack,
   type FocusRegion,
 } from "./pose/kinematics";
 import type { Skill } from "./skills";
@@ -596,10 +597,21 @@ async function sampleContentAware(
   let selectedTrackId: number | null = null;
   if (pose) {
     try {
+      // The framed moment always gets its own dense window: motion peaks can
+      // belong to other players or other moments, and a target that never
+      // falls inside a capture window can never be matched to a track.
+      const windowTimes = pose.target
+        ? [
+            ...new Set([
+              ...peaks.map((p) => p.timeS),
+              Math.min(Math.max(pose.target.t, startS + 0.05), duration - 0.05),
+            ]),
+          ].sort((a, b) => a - b)
+        : peaks.map((p) => p.timeS);
       const dense = await captureDenseWindows(
         video,
         pose.engine,
-        peaks.map((p) => p.timeS),
+        windowTimes,
         duration,
         createFocusTracker(pose.target),
         startS,
@@ -608,34 +620,11 @@ async function sampleContentAware(
       denseFps = dense.denseFps;
       const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
       tracks = buildTracks(personFrames);
-      // A user-pinned player overrides the activity ranking: pick the track
-      // whose hip center sits closest to the frame at the anchored moment.
-      // When no track matches the pin, choose NOBODY rather than silently
-      // analyzing a different player; the flow surfaces the miss.
+      // A user-framed player overrides the activity ranking. When no track
+      // matches the frame, choose NOBODY rather than silently analyzing a
+      // different player; the flow surfaces the miss.
       const target = pose.target;
-      let chosen = target ? null : (tracks[0] ?? null);
-      if (target) {
-        let bestD = 0.35;
-        for (const track of tracks) {
-          let near: LandmarkFrame | null = null;
-          let nearD = 1.5;
-          for (const f of track.frames) {
-            const d = Math.abs(f.t - target.t);
-            if (d < nearD) {
-              nearD = d;
-              near = f;
-            }
-          }
-          if (!near) continue;
-          const c = focusPoint(near.pts);
-          if (!c) continue;
-          const d = Math.hypot(c.x - target.x, c.y - target.y);
-          if (d < bestD) {
-            bestD = d;
-            chosen = track;
-          }
-        }
-      }
+      const chosen = target ? pickTargetTrack(tracks, target) : (tracks[0] ?? null);
       if (chosen) {
         selectedTrackId = chosen.id;
         landmarks = chosen.frames;

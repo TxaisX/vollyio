@@ -8,8 +8,10 @@ import {
   detectJumpReps,
   detectPlatformReps,
   detectSwingReps,
+  focusPoint,
   focusRegionAround,
   headPoint,
+  pickTargetTrack,
   hipCenter,
   mapRegionPersons,
   segmentFrames,
@@ -191,6 +193,29 @@ test("buildTracks is immune to duplicate detections per frame", () => {
   }));
   const tracks = buildTracks(doubled);
   assert.equal(tracks.length, 1, `expected 1 track, got ${tracks.length}`);
+});
+
+test("pickTargetTrack matches the framed player and refuses strangers", () => {
+  const tracks = buildTracks(twoPersonClip());
+  assert.equal(tracks.length, 2);
+  const t = tracks[0].frames[Math.floor(tracks[0].frames.length / 2)];
+  const anchor = focusPoint(t.pts)!;
+  // A frame dropped on the player's own anchor picks their track.
+  const hit = pickTargetTrack(tracks, { x: anchor.x, y: anchor.y, t: t.t });
+  assert.equal(hit?.id, tracks[0].id);
+  // A frame in empty space matches nobody rather than the nearest stranger.
+  assert.equal(pickTargetTrack(tracks, { x: 0.02, y: 0.02, t: t.t }), null);
+  // A drawn box buys tolerance: the framed point sits 0.4 below the anchor
+  // (outside the bare 0.35 budget) but the anchor is inside the tall drawn
+  // box, so the match survives — while the box stays narrow enough in x that
+  // the other athlete (0.4 away horizontally) is not captured by it.
+  const boxed = pickTargetTrack(tracks, {
+    x: anchor.x,
+    y: anchor.y + 0.4,
+    t: t.t,
+    box: { left: anchor.x - 0.1, top: anchor.y - 0.1, width: 0.2, height: 0.6 },
+  });
+  assert.equal(boxed?.id, tracks[0].id);
 });
 
 test("monotonic clock keeps real spacing and rebases on regressions", () => {
