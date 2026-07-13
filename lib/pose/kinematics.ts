@@ -489,6 +489,25 @@ export function hipCenter(pts: Landmark[]): { x: number; y: number } | null {
   };
 }
 
+// Identification bar for user-facing "people in this frame" surfaces (the
+// opening picker and the live candidate boxes): mean visibility of the torso
+// anchors, the landmarks a real, clearly-seen person always carries. The
+// follow pipeline keeps its own lower thresholds so hard footage still
+// measures; this bar only decides who gets OFFERED as a person.
+export const PERSON_CONFIDENCE_MIN = 0.9;
+
+export function personConfidence(pts: Landmark[]): number {
+  const core = [LM.leftShoulder, LM.rightShoulder, LM.leftHip, LM.rightHip];
+  return core.reduce((a, i) => a + (pts[i]?.v ?? 0), 0) / core.length;
+}
+
+export function confidentPersons(
+  persons: Landmark[][],
+  min = PERSON_CONFIDENCE_MIN,
+): Landmark[][] {
+  return persons.filter((pts) => personConfidence(pts) >= min);
+}
+
 // The detector can fire two or three overlapping detections on one body,
 // which would each become their own track and crowd out real players.
 // Collapse detections whose hip centers sit within a fraction of their own

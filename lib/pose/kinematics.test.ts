@@ -4,12 +4,14 @@ import { createMonotonicClock } from "./types.ts";
 import {
   angleAt,
   buildTracks,
+  confidentPersons,
   dedupePersons,
   detectJumpReps,
   detectPlatformReps,
   detectSwingReps,
   focusPoint,
   focusRegionAround,
+  personConfidence,
   headPoint,
   pickTargetTrack,
   hipCenter,
@@ -235,4 +237,18 @@ test("monotonic clock keeps real spacing and rebases on regressions", () => {
   // Identical timestamps never stall the stream.
   const f = clock(540);
   assert.ok(f > e);
+});
+
+test("personConfidence averages the torso anchors", () => {
+  const pts = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, v: 0.2 }));
+  for (const i of [11, 12, 23, 24]) pts[i] = { x: 0.5, y: 0.5, z: 0, v: 0.95 };
+  assert.ok(Math.abs(personConfidence(pts) - 0.95) < 1e-9);
+});
+
+test("confidentPersons keeps only people at the 0.9 identification bar", () => {
+  const person = (v: number) =>
+    Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, v }));
+  const kept = confidentPersons([person(0.95), person(0.89), person(0.9)]);
+  assert.equal(kept.length, 2);
+  assert.ok(kept.every((pts) => personConfidence(pts) >= 0.9));
 });
