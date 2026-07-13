@@ -282,19 +282,26 @@ export function OnboardingFlow({
             breakdown. Set where it should be, and by when, and it becomes a
             goal on your dashboard.
           </p>
+          <p className="mt-2 text-xs text-chalk-dim">
+            Ratings run 0 to 100 on the coaching rubric: 40 reads as
+            developing, 70 as solid, 90 as advanced technique.
+          </p>
           <div className="mt-6 grid grid-cols-2 gap-3">
             {TARGET_OPTIONS.map((t) => (
               <button
-                key={t}
+                key={t.value}
                 type="button"
-                onClick={() => setTarget(t)}
+                onClick={() => setTarget(t.value)}
                 className={`card card-lift p-4 text-center ${
-                  target === t ? "border-gold" : ""
+                  target === t.value ? "border-gold" : ""
                 }`}
               >
-                <span className="font-display text-2xl font-bold">{t}</span>
-                <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-                  rating
+                <span className="font-display text-2xl font-bold">{t.value}</span>
+                <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gold">
+                  {t.band}
+                </span>
+                <span className="mt-1 block text-xs text-chalk-dim">
+                  {t.detail}
                 </span>
               </button>
             ))}

@@ -86,7 +86,15 @@ export const FREQUENCY_LABEL: Record<PlayFrequency, string> = {
   daily: "Every day",
 };
 
-export const TARGET_OPTIONS = [60, 70, 80, 90] as const;
+// Targets carry the rubric's own band vocabulary (~40 developing, ~70 solid,
+// ~90 advanced; see lib/ratings.ts and the Learn anchors) so the numbers mean
+// something before a player has ever been scored.
+export const TARGET_OPTIONS: { value: number; band: string; detail: string }[] = [
+  { value: 60, band: "Closing on solid", detail: "Fundamentals hold up on most reps" },
+  { value: 70, band: "Solid", detail: "Dependable technique, the rubric's solid bar" },
+  { value: 80, band: "Solid, consistently", detail: "Clean reps even under pressure" },
+  { value: 90, band: "Advanced", detail: "Near-flawless, every rep the same" },
+];
 
 export const TIMEFRAMES = [30, 90, 180] as const;
 
