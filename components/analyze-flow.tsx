@@ -382,7 +382,13 @@ function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
   );
 }
 
-export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | null }) {
+export function AnalyzeFlow({
+  initialSkill = null,
+  initialDiscipline = null,
+}: {
+  initialSkill?: Skill | null;
+  initialDiscipline?: Discipline | null;
+}) {
   const router = useRouter();
   const [skill, setSkill] = useState<Skill | null>(initialSkill);
   const [frames, setFrames] = useState<Frame[]>([]);
@@ -392,7 +398,9 @@ export function AnalyzeFlow({ initialSkill = null }: { initialSkill?: Skill | nu
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [useUpload, setUseUpload] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [discipline, setDiscipline] = useState<Discipline>("indoor");
+  const [discipline, setDiscipline] = useState<Discipline>(
+    initialDiscipline ?? "indoor",
+  );
   const [frameDebug, setFrameDebug] = useState<FrameDebug | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);

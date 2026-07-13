@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AnalyzeFlow } from "@/components/analyze-flow";
-import { isSkill } from "@/lib/skills";
+import { isDiscipline, isSkill } from "@/lib/skills";
 
 export const metadata: Metadata = {
   title: "Analyze a rep",
@@ -10,8 +10,15 @@ export const metadata: Metadata = {
 export default async function Analyze({
   searchParams,
 }: {
-  searchParams: Promise<{ skill?: string }>;
+  searchParams: Promise<{ skill?: string; discipline?: string }>;
 }) {
-  const { skill } = await searchParams;
-  return <AnalyzeFlow initialSkill={skill && isSkill(skill) ? skill : null} />;
+  const { skill, discipline } = await searchParams;
+  return (
+    <AnalyzeFlow
+      initialSkill={skill && isSkill(skill) ? skill : null}
+      initialDiscipline={
+        discipline && isDiscipline(discipline) ? discipline : null
+      }
+    />
+  );
 }

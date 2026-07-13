@@ -11,22 +11,22 @@ import type { Level } from "@/lib/skills";
 export const metadata: Metadata = {
   title: "Drills",
   description:
-    "Step-by-step drills for every volleyball skill, beginner to elite.",
+    "Step-by-step drills for every volleyball skill, beginner to pro.",
   robots: { index: true, follow: true },
 };
 
 const LEVEL_ORDER: Record<Level, number> = {
   beginner: 0,
   intermediate: 1,
-  advanced: 2,
-  elite: 3,
+  expert: 2,
+  pro: 3,
 };
 
 const LEVEL_CLASS: Record<Level, string> = {
   beginner: "bg-teal/15 text-teal",
   intermediate: "bg-chalk/10 text-chalk",
-  advanced: "bg-gold/15 text-gold",
-  elite: "bg-gold text-navy",
+  expert: "bg-gold/15 text-gold",
+  pro: "bg-gold text-navy",
 };
 
 export default function Drills() {

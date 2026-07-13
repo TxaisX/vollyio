@@ -482,10 +482,10 @@ export default async function Dashboard({
           <form action={setLevel} className="mt-2 flex flex-wrap gap-2">
             {(
               [
-                ["beginner", "New to the game"],
-                ["intermediate", "Club or school"],
-                ["advanced", "Competitive"],
-                ["elite", "High level"],
+                ["beginner", "Beginner"],
+                ["intermediate", "Intermediate"],
+                ["expert", "Expert"],
+                ["pro", "Pro"],
               ] as const
             ).map(([value, label]) => (
               <button

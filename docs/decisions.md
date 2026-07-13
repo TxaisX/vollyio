@@ -358,3 +358,36 @@ pointer-effect siblings.
 
 State never rides on the tilt (it is feedback, not signal), no layout
 properties move, and no dependency was added.
+
+## D-018 — Quiz-first registration funnel and the four-tier level system
+Date: 2026-07-12 · By: Funnel follow-through on the D-012 teardown
+
+The D-012 teardown adopted the commitment funnel post-signup. This closes the
+gap to the competitor pattern: the funnel now runs before the account exists.
+`/start` (public, in the auth route group) asks discipline, level, position,
+play frequency, focus skill, then target rating with a chosen timeframe
+(30/90/180 days). Answers park in localStorage under `sideout.funnel.v1`;
+`FunnelHandoff` (mounted in the app layout) consumes them on the first authed
+page, and `applyFunnel` validates with the same zod schema as the form path,
+writes the profile, creates the goal with the chosen deadline, and redirects
+into `/analyze` with skill and discipline preselected. Landing CTAs point at
+`/start`; `/welcome` stays as the fallback quiz (same steps) for players who
+sign up directly. The handoff drops its payload for accounts that already
+have reps: the funnel is a first-session ramp, never an overwrite.
+
+Level tiers renamed beginner / intermediate / expert / pro (migration 008,
+applied live: stored `advanced` rows became `expert`, `elite` became `pro`).
+`profiles` gains `discipline`, `position`, `play_frequency`; the coach chat
+context carries position and frequency. Each tier now sets a coaching voice
+in both the analysis output spec and the coach chat prompt: beginner teaches
+patiently, intermediate is direct, expert holds a high bar without praise
+padding, and pro is deliberately harsh: judged against the professional
+standard, verdicts never softened, adequacy never praised. The funnel's pro
+card says exactly that before a player picks it. The scoring rubrics stay
+frozen; voice and return-scale calibration are the only per-level levers.
+
+D-012's rejections stand: no countdowns, no fabricated projections, no
+locked-blur content. No new dependency. Verified end to end against the
+local prod build with a throwaway account (created, SQL-confirmed, applied,
+deleted): profile fields, goal deadline at exactly the chosen timeframe, and
+the `/analyze?skill=&discipline=` landing all confirmed in the database.

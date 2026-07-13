@@ -19,7 +19,7 @@ export const SKILL_BLURB: Record<Skill, string> = {
   dig: "Ready position, reads, platform, pursuit",
 };
 
-export type Level = "beginner" | "intermediate" | "advanced" | "elite";
+export type Level = "beginner" | "intermediate" | "expert" | "pro";
 
 export function isSkill(value: string): value is Skill {
   return (SKILLS as readonly string[]).includes(value);

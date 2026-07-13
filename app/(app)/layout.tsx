@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { SideNavLinks, TabBar } from "@/components/app-nav";
+import { FunnelHandoff } from "@/components/funnel-handoff";
 import { SeamArcs } from "@/components/motif";
 import { logout } from "@/app/(auth)/actions";
 import { LogoutButton } from "./logout-button";
@@ -15,6 +16,7 @@ export default function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
+      <FunnelHandoff />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary"
