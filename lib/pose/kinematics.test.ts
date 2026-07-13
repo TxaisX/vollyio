@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { createMonotonicClock } from "./types.ts";
 import {
   angleAt,
+  boxAtTime,
+  otherTrackBoxes,
+  personBox,
   buildTracks,
   confidentPersons,
   dedupePersons,
@@ -262,4 +265,50 @@ test("offerPersons prefers the confident subset but never returns empty when peo
   const allBelow = offerPersons([person(0.8), person(0.7)]);
   assert.equal(allBelow.length, 2);
   assert.deepEqual(offerPersons([]), []);
+});
+
+test("personBox bounds the visible landmarks and skips sparse detections", () => {
+  const pts = Array.from({ length: 33 }, (_, i) => ({
+    x: 0.4 + (i % 5) * 0.02,
+    y: 0.3 + (i % 7) * 0.04,
+    z: 0,
+    v: 0.9,
+  }));
+  const box = personBox(pts);
+  assert.ok(box);
+  assert.ok(box.left <= 0.4 && box.left >= 0.3);
+  assert.ok(box.top <= 0.3);
+  assert.ok(box.left + box.width >= 0.48);
+  assert.ok(box.top + box.height >= 0.54);
+  const sparse = pts.map((p, i) => (i < 30 ? { ...p, v: 0.1 } : p));
+  assert.equal(personBox(sparse), null);
+});
+
+test("otherTrackBoxes carries every track except the followed one", () => {
+  const tracks = buildTracks(twoPersonClip());
+  assert.ok(tracks.length >= 2);
+  const selected = tracks[0].id;
+  const others = otherTrackBoxes(tracks, selected);
+  assert.equal(others.length, tracks.length - 1);
+  for (const series of others) {
+    assert.ok(series.length >= 2);
+    for (const b of series) {
+      assert.ok(b.width > 0 && b.height > 0);
+      assert.ok(b.left >= 0 && b.top >= 0);
+      assert.ok(b.left + b.width <= 1 && b.top + b.height <= 1);
+    }
+  }
+  const all = otherTrackBoxes(tracks, null);
+  assert.equal(all.length, tracks.length);
+});
+
+test("boxAtTime picks the nearest observation and refuses distant ones", () => {
+  const series = [
+    { t: 1.0, left: 0.1, top: 0.1, width: 0.2, height: 0.3 },
+    { t: 2.0, left: 0.5, top: 0.1, width: 0.2, height: 0.3 },
+  ];
+  assert.equal(boxAtTime(series, 1.1)?.left, 0.1);
+  assert.equal(boxAtTime(series, 1.9)?.left, 0.5);
+  assert.equal(boxAtTime(series, 3.2), null);
+  assert.equal(boxAtTime([], 1), null);
 });

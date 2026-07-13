@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LM, type BallPoint, type KeypointsFile } from "@/lib/pose/types";
+import { LM, type BallPoint, type KeypointsFile, type TimedBox } from "@/lib/pose/types";
+import { boxAtTime } from "@/lib/pose/kinematics";
 import { ballAtTime } from "@/lib/pose/ball-track";
 import { activeAbsence, absenceLabel } from "@/lib/pose/track-state";
 import type { ContinuityAbsenceWire, ContinuityWire } from "@/lib/analysis-types";
@@ -256,6 +257,7 @@ function ClipPlayer({
   const [traceOn, setTraceOn] = useState(true);
   const [playheadPts, setPlayheadPts] = useState<number[] | null>(null);
   const [playheadBall, setPlayheadBall] = useState<{ x: number; y: number } | null>(null);
+  const [playheadOthers, setPlayheadOthers] = useState<TimedBox[]>([]);
   const [mediaAspect, setMediaAspect] = useState<number | null>(null);
   const [boxAspect, setBoxAspect] = useState<number | null>(null);
 
@@ -310,6 +312,7 @@ function ClipPlayer({
     if (!wantSkeleton && !wantBall) {
       setPlayheadPts(null);
       setPlayheadBall(null);
+      setPlayheadOthers([]);
       return;
     }
     let raf = 0;
@@ -330,6 +333,14 @@ function ClipPlayer({
         }
         setPlayheadPts(best);
         setPlayheadBall(wantBall ? ballAtTime(ballPath, t, ballGapS) : null);
+        const otherSeries = wantSkeleton ? track?.others : undefined;
+        setPlayheadOthers(
+          otherSeries?.length
+            ? otherSeries
+                .map((s) => boxAtTime(s, t))
+                .filter((b): b is TimedBox => b != null)
+            : [],
+        );
         const box = boxRef.current;
         if (v.videoWidth && v.videoHeight) setMediaAspect(v.videoWidth / v.videoHeight);
         if (box && box.clientHeight > 0) setBoxAspect(box.clientWidth / box.clientHeight);
@@ -386,8 +397,20 @@ function ClipPlayer({
           const absence = activeAbsence(continuity, nowS);
           return absence ? <AbsenceBadge absence={absence} /> : null;
         })()}
-        {(playheadPts || playheadBall) && (
+        {(playheadPts || playheadBall || playheadOthers.length > 0) && (
           <div style={contentBoxStyle(boxAspect, mediaAspect)} aria-hidden>
+            {playheadOthers.map((b, i) => (
+              <span
+                key={i}
+                className="absolute rounded border border-chalk-dim/50"
+                style={{
+                  left: `${b.left * 100}%`,
+                  top: `${b.top * 100}%`,
+                  width: `${b.width * 100}%`,
+                  height: `${b.height * 100}%`,
+                }}
+              />
+            ))}
             {playheadPts && <SkeletonOverlay pts={playheadPts} />}
             {playheadBall && (
               <BallMarker pos={{ x: playheadBall.x, y: playheadBall.y, visible: true }} />
@@ -407,11 +430,12 @@ function ClipPlayer({
             Motion trace
           </button>
           <span className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-            {ballPath.length === 0
+            {(ballPath.length === 0
               ? "Tracked body lines over your rep"
               : track
                 ? `Body lines and ${ballEstimated ? "estimated" : "measured"} ball over your rep`
-                : `${ballEstimated ? "Estimated" : "Measured"} ball over your rep`}
+                : `${ballEstimated ? "Estimated" : "Measured"} ball over your rep`) +
+              (track?.others?.length ? " · other players boxed" : "")}
           </span>
         </div>
       )}
