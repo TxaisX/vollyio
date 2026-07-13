@@ -1,12 +1,14 @@
 import { MAX_FRAMES, MAX_STORED_FRAMES, MAX_BODY_BYTES } from "@/lib/analysis-types";
 import {
   buildProbeTimes,
+  clampTrimWindow,
   findPeaks,
   planFrameTimes,
   planExtraStoreTimes,
   type Peak,
   type PlannedFrame,
   type FrameKind,
+  type TrimWindow,
 } from "./frame-select";
 import type { PoseEngine } from "./pose/engine";
 import type {
@@ -97,6 +99,10 @@ export type VideoExtraction = {
 
 export type ExtractOpts = {
   debug?: boolean;
+  // A user-trimmed analysis window (absolute clip seconds). Every sampling
+  // path stays inside it; omitted means the whole clip. Lets a long clip be
+  // analyzed by choosing a window instead of being rejected outright.
+  window?: TrimWindow;
   pose?: {
     engine: PoseEngine;
     skill: Skill;
@@ -591,14 +597,17 @@ async function sampleContentAware(
   video: HTMLVideoElement,
   wantDebug: boolean,
   pose?: ExtractOpts["pose"],
+  win?: TrimWindow,
 ): Promise<VideoExtraction | null> {
   const duration = video.duration;
-  // The confirmed framing moment is the start of analysis: nothing earlier is
-  // scanned, captured, measured, or rendered. Keep at least a second of clip.
+  // The trimmed window bounds every sampling path; the confirmed framing
+  // moment then starts analysis inside it. Keep at least a second of clip.
+  const winStart = Math.max(0, win?.startS ?? 0);
+  const endS = Math.min(duration, win?.endS ?? duration);
   const startS = pose?.target
-    ? Math.max(0, Math.min(pose.target.t - 0.05, duration - 1))
-    : 0;
-  const probeTimes = buildProbeTimes(duration, PROBE_COUNT, startS);
+    ? Math.max(winStart, Math.min(pose.target.t - 0.05, endS - 1))
+    : winStart;
+  const probeTimes = buildProbeTimes(endS, PROBE_COUNT, startS);
   const scanStart = Date.now();
   // Each chronological pass gets its own tracker so both start from the
   // user's anchor rather than wherever the previous pass ended.
@@ -635,7 +644,7 @@ async function sampleContentAware(
         ? [
             ...new Set([
               ...peaks.map((p) => p.timeS),
-              Math.min(Math.max(pose.target.t, startS + 0.05), duration - 0.05),
+              Math.min(Math.max(pose.target.t, startS + 0.05), endS - 0.05),
             ]),
           ].sort((a, b) => a - b)
         : peaks.map((p) => p.timeS);
@@ -643,7 +652,7 @@ async function sampleContentAware(
         video,
         pose.engine,
         windowTimes,
-        duration,
+        endS,
         createFocusTracker(pose.target),
         startS,
       );
@@ -690,7 +699,7 @@ async function sampleContentAware(
 
   const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
   const planned = planFrameTimes(
-    duration,
+    endS,
     refinePeaks(peaks, contacts),
     coarseInterval,
     MAX_FRAMES,
@@ -746,7 +755,7 @@ async function sampleContentAware(
   // no byte budget applies. Failure to render extras is non-fatal.
   let extras: Frame[] = [];
   try {
-    const extraPlan = planExtraStoreTimes(duration, planned, STORE_FRAMES, startS);
+    const extraPlan = planExtraStoreTimes(endS, planned, STORE_FRAMES, startS);
     if (extraPlan.length > 0) {
       const renderedExtras = await renderPlanned(video, extraPlan, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY);
       extras = renderedExtras.map((r, i) => ({
@@ -794,11 +803,14 @@ async function sampleContentAware(
   };
 }
 
-async function sampleUniform(video: HTMLVideoElement, startS = 0): Promise<Frame[]> {
-  const duration = video.duration;
-  const span = Math.max(0.1, duration - startS);
+async function sampleUniform(
+  video: HTMLVideoElement,
+  startS = 0,
+  endS = video.duration,
+): Promise<Frame[]> {
+  const span = Math.max(0.1, endS - startS);
   const planned: PlannedFrame[] = sampleFractions(span).map((frac) => ({
-    timeS: Math.min(startS + span * frac, Math.max(duration - 0.05, startS)),
+    timeS: Math.min(startS + span * frac, Math.max(endS - 0.05, startS)),
     kind: "context" as const,
   }));
   const { frames } = await finalizePlanned(video, planned);
@@ -809,19 +821,20 @@ export async function extractFramesFromVideo(
   video: HTMLVideoElement,
   opts?: ExtractOpts,
 ): Promise<VideoExtraction> {
-  // The confirmed framing moment bounds every sampling path.
+  // The trimmed window and the confirmed framing moment bound every path.
+  const win = clampTrimWindow(video.duration, opts?.window ?? null);
   const startS = opts?.pose?.target
-    ? Math.max(0, Math.min(opts.pose.target.t - 0.05, video.duration - 1))
-    : 0;
-  if (video.duration - startS > SHORT_CLIP_SECONDS) {
+    ? Math.max(win.startS, Math.min(opts.pose.target.t - 0.05, win.endS - 1))
+    : win.startS;
+  if (win.endS - startS > SHORT_CLIP_SECONDS) {
     try {
-      const result = await sampleContentAware(video, opts?.debug ?? false, opts?.pose);
+      const result = await sampleContentAware(video, opts?.debug ?? false, opts?.pose, win);
       if (result) return result;
     } catch {
       // Any failure (slow seeks, decode, getImageData) degrades to uniform.
     }
   }
-  const frames = await sampleUniform(video, startS);
+  const frames = await sampleUniform(video, startS, win.endS);
   const debug: FrameDebug | undefined = opts?.debug
     ? {
         curve: [],
@@ -841,9 +854,12 @@ export async function extractFrames(
   const url = URL.createObjectURL(source);
   try {
     const video = await loadVideo(url);
-    if (video.duration > MAX_CLIP_SECONDS + 0.5) {
+    const win = clampTrimWindow(video.duration, opts?.window ?? null);
+    if (win.endS - win.startS > MAX_CLIP_SECONDS + 0.5) {
       throw new Error(
-        `That clip is ${Math.round(video.duration)}s. Trim it to ${MAX_CLIP_SECONDS} seconds or less and try again.`,
+        opts?.window
+          ? `That window is ${Math.round(win.endS - win.startS)}s. Keep the analyzed window to ${MAX_CLIP_SECONDS} seconds or less.`
+          : `That clip is ${Math.round(video.duration)}s. Trim the analyzed window to ${MAX_CLIP_SECONDS} seconds or less.`,
       );
     }
     const extraction = await extractFramesFromVideo(video, opts);

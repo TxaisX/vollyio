@@ -45,6 +45,12 @@ import {
   type Skill,
   type Discipline,
 } from "@/lib/skills";
+import {
+  clampTrimWindow,
+  MIN_TRIM_SPAN_S,
+  type TrimWindow,
+} from "@/lib/frame-select";
+import { clockStamp } from "@/lib/pose/measurement-format";
 import type { AnalyzeRequest, FrameKeypointsWire } from "@/lib/analysis-types";
 
 type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
@@ -76,6 +82,113 @@ function clampBox(b: Box): Box {
     width,
     height,
   };
+}
+
+// Two-handle trim bar over the clip timeline: the gold span is the analyzed
+// window. Drag a handle (or use arrow keys on it; Shift steps bigger) to
+// shorten the window to the reps that matter.
+function TrimBar({
+  duration,
+  trim,
+  onMove,
+}: {
+  duration: number;
+  trim: TrimWindow;
+  onMove: (which: "start" | "end", toS: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<"start" | "end" | null>(null);
+
+  function timeAt(e: React.PointerEvent): number | null {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width < 1) return null;
+    const frac = (e.clientX - rect.left) / rect.width;
+    return Math.min(Math.max(0, frac), 1) * duration;
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    const t = timeAt(e);
+    if (t == null) return;
+    dragRef.current = Math.abs(t - trim.startS) <= Math.abs(t - trim.endS) ? "start" : "end";
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    onMove(dragRef.current, t);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragRef.current) return;
+    const t = timeAt(e);
+    if (t != null) onMove(dragRef.current, t);
+  }
+
+  function handleKey(which: "start" | "end") {
+    return (e: React.KeyboardEvent) => {
+      const step = e.shiftKey ? 2 : 0.5;
+      const at = which === "start" ? trim.startS : trim.endS;
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        e.preventDefault();
+        onMove(which, at - step);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        e.preventDefault();
+        onMove(which, at + step);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        onMove(which, which === "start" ? 0 : trim.startS);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        onMove(which, which === "start" ? trim.endS : duration);
+      }
+    };
+  }
+
+  const pct = (s: number) => `${(s / Math.max(0.1, duration)) * 100}%`;
+  const handleClass =
+    "absolute top-1/2 h-6 w-3.5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize " +
+    "rounded-[4px] bg-gold shadow-lift focus-visible:outline-2 " +
+    "focus-visible:outline-offset-2 focus-visible:outline-gold";
+  const slider = (which: "start" | "end") => ({
+    role: "slider" as const,
+    tabIndex: 0,
+    "aria-label": which === "start" ? "Analysis window start" : "Analysis window end",
+    "aria-valuemin": which === "start" ? 0 : Math.round(trim.startS * 10) / 10,
+    "aria-valuemax":
+      which === "start" ? Math.round(trim.endS * 10) / 10 : Math.round(duration * 10) / 10,
+    "aria-valuenow":
+      Math.round((which === "start" ? trim.startS : trim.endS) * 10) / 10,
+    "aria-valuetext": clockStamp(which === "start" ? trim.startS : trim.endS),
+    onKeyDown: handleKey(which),
+  });
+
+  return (
+    <div>
+      <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+        <span>
+          Analyze {clockStamp(trim.startS)} to {clockStamp(trim.endS)}
+        </span>
+        <span>{Math.round((trim.endS - trim.startS) * 10) / 10}s window</span>
+      </div>
+      <div
+        ref={trackRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={() => (dragRef.current = null)}
+        onPointerCancel={() => (dragRef.current = null)}
+        className="relative mt-1 h-9 select-none"
+        style={{ touchAction: "none" }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-navy-lighter"
+        />
+        <span
+          aria-hidden
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gold/45"
+          style={{ left: pct(trim.startS), width: pct(trim.endS - trim.startS) }}
+        />
+        <span {...slider("start")} className={handleClass} style={{ left: pct(trim.startS) }} />
+        <span {...slider("end")} className={handleClass} style={{ left: pct(trim.endS) }} />
+      </div>
+    </div>
+  );
 }
 
 // Stamp a small gold tracking ring at the focus athlete's hips in each frame,
@@ -453,18 +566,28 @@ export function AnalyzeFlow({
   // start from the opening probe and re-detect live as the user scrubs, so
   // selection always reflects the moment on screen.
   const [candidateBoxes, setCandidateBoxes] = useState<Box[]>([]);
+  // The trimmed analysis window (absolute clip seconds). Dragging a handle
+  // past the longest analyzable span slides the other handle along, so the
+  // window is always valid and long clips become usable by trimming.
+  const [trim, setTrim] = useState<TrimWindow | null>(null);
   // Until the user moves or resizes the frame themselves, it auto-snaps to
-  // the first detected person at each scrubbed moment.
+  // the first detected person at each scrubbed moment. An untouched frame
+  // means the automated identifier picks the player at analyze time; the
+  // state mirror drives the button copy.
   const userFramedRef = useRef(false);
+  const [userFramed, setUserFramed] = useState(false);
 
   // Start the frame on the first detected person's body, else centered at a
-  // person-ish size.
+  // person-ish size. The trim window starts at the clip's head, capped at the
+  // longest analyzable span so long clips begin valid.
   useEffect(() => {
     if (!openingPick) {
       setFrameBox(null);
       setCandidateBoxes([]);
+      setTrim(null);
       boxDragRef.current = null;
       userFramedRef.current = false;
+    setUserFramed(false);
       return;
     }
     const boxes = openingPick.persons
@@ -472,7 +595,14 @@ export function AnalyzeFlow({
       .filter((b): b is Box => b != null);
     setCandidateBoxes(boxes);
     setFrameBox(clampBox(boxes[0] ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
+    setTrim(
+      clampTrimWindow(openingPick.duration_s, {
+        startS: 0,
+        endS: Math.min(openingPick.duration_s, MAX_CLIP_SECONDS),
+      }),
+    );
     userFramedRef.current = false;
+    setUserFramed(false);
   }, [openingPick]);
 
   // Live auto-detection while scrubbing: after the scrubber settles, detect
@@ -517,6 +647,40 @@ export function AnalyzeFlow({
     return () => URL.revokeObjectURL(url);
   }, [openingPick]);
 
+  // The scrubbed moment always stays inside the trimmed window.
+  useEffect(() => {
+    if (!trim) return;
+    const hi = Math.max(trim.startS, trim.endS - 0.05);
+    const clamped = Math.min(Math.max(scrubT, trim.startS), hi);
+    if (clamped !== scrubT) {
+      setScrubT(clamped);
+      const v = frameVideoRef.current;
+      if (v) v.currentTime = clamped;
+    }
+  }, [trim, scrubT]);
+
+  // Move one trim handle. Dragging past the longest analyzable span slides
+  // the other handle along, so the window is valid at every instant.
+  function moveTrim(which: "start" | "end", toS: number) {
+    const opening = openingPick;
+    if (!opening || !trim) return;
+    const dur = opening.duration_s;
+    const snap = (n: number) => Math.round(n * 20) / 20;
+    let { startS, endS } = trim;
+    if (which === "start") {
+      startS = Math.max(0, Math.min(toS, endS - MIN_TRIM_SPAN_S));
+      if (endS - startS > MAX_CLIP_SECONDS) {
+        endS = Math.min(dur, startS + MAX_CLIP_SECONDS);
+      }
+    } else {
+      endS = Math.max(Math.min(dur, toS), Math.min(dur, startS + MIN_TRIM_SPAN_S));
+      if (endS - startS > MAX_CLIP_SECONDS) {
+        startS = Math.max(0, endS - MAX_CLIP_SECONDS);
+      }
+    }
+    setTrim({ startS: snap(startS), endS: snap(endS) });
+  }
+
   function stagePoint(e: React.PointerEvent): { x: number; y: number } | null {
     const rect = frameStageRef.current?.getBoundingClientRect();
     if (!rect || rect.width < 1 || rect.height < 1) return null;
@@ -535,6 +699,7 @@ export function AnalyzeFlow({
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     userFramedRef.current = true;
+    setUserFramed(true);
 
     const corners = {
       nw: { x: box.left, y: box.top },
@@ -622,6 +787,7 @@ export function AnalyzeFlow({
     const box = frameBox;
     if (!box) return;
     userFramedRef.current = true;
+    setUserFramed(true);
     const step = 0.02;
     const b = { ...box };
     if (e.shiftKey) {
@@ -906,6 +1072,7 @@ export function AnalyzeFlow({
     blob: Blob,
     isRecorded: boolean,
     target?: { x: number; y: number; t: number; box?: Box },
+    window?: TrimWindow,
   ) {
     try {
       const engine = poseRef.current ?? (await loadPoseEngine());
@@ -913,7 +1080,7 @@ export function AnalyzeFlow({
       const pose = engine && skill ? { engine, skill, target } : undefined;
       const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
         blob,
-        { debug: debugRef.current, pose },
+        { debug: debugRef.current, pose, window },
       );
       captureRef.current =
         poseCapture && skill
@@ -989,7 +1156,8 @@ export function AnalyzeFlow({
       // drawn frame then anchors tracking on its own.
       if (skill) {
         const opening = await detectOpeningPlayers(blob, engine);
-        if (opening && opening.duration_s <= MAX_CLIP_SECONDS + 0.5) {
+        // Long clips get the card too: the trim window makes them analyzable.
+        if (opening) {
           captureRef.current = null;
           setFrames([]);
           markedRef.current = false;
@@ -1021,11 +1189,25 @@ export function AnalyzeFlow({
     const opening = openingPick;
     const box = frameBox;
     if (!opening || !box) return;
+    const win = trim ?? undefined;
+    // An untouched frame hands the pick to the automated identifier: the
+    // activity ranking follows the most involved player across the trimmed
+    // window, so trimming alone is a complete flow. Touching the frame or
+    // tapping a candidate pins that player instead.
+    if (!userFramedRef.current) {
+      setOpeningPick(null);
+      setStatus({ kind: "reading" });
+      void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
+      return;
+    }
     const video = frameVideoRef.current;
-    const t =
+    const rawT =
       video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
         ? video.currentTime
         : opening.timeS;
+    const t = win
+      ? Math.min(Math.max(rawT, win.startS + 0.02), Math.max(win.startS + 0.02, win.endS - 0.05))
+      : rawT;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
     const cx = box.left + box.width / 2;
@@ -1076,15 +1258,16 @@ export function AnalyzeFlow({
       // area and let the zoomed capture passes find them.
       target = { x: cx, y: box.top + box.height * 0.15, t, box };
     }
-    void runVideoExtraction(opening.blob, opening.isRecorded, target);
+    void runVideoExtraction(opening.blob, opening.isRecorded, target, win);
   }
 
   function skipFraming() {
     const opening = openingPick;
     if (!opening) return;
+    const win = trim ?? undefined;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    void runVideoExtraction(opening.blob, opening.isRecorded);
+    void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
   }
 
   async function onRecorded(blob: Blob) {
@@ -1327,8 +1510,9 @@ export function AnalyzeFlow({
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Scrub to a moment where your player is clear, then size the
-                  frame around them. Tap a teammate to switch.
+                  Trim the window and go: the most active player is picked
+                  automatically. To choose someone yourself, size the frame
+                  around them or tap a teammate.
                 </p>
                 <div
                   ref={frameStageRef}
@@ -1417,8 +1601,12 @@ export function AnalyzeFlow({
                 {framingUrl && !frameVideoFailed && (
                   <input
                     type="range"
-                    min={0}
-                    max={Math.max(0.1, openingPick.duration_s - 0.05)}
+                    min={trim?.startS ?? 0}
+                    max={
+                      trim
+                        ? Math.max(trim.startS + 0.05, trim.endS - 0.05)
+                        : Math.max(0.1, openingPick.duration_s - 0.05)
+                    }
                     step={0.05}
                     value={scrubT}
                     onChange={(e) => {
@@ -1431,12 +1619,27 @@ export function AnalyzeFlow({
                     className="mt-3 h-11 w-full cursor-pointer accent-gold"
                   />
                 )}
+                {trim && openingPick.duration_s > MIN_TRIM_SPAN_S + 0.5 && (
+                  <>
+                    <TrimBar
+                      duration={openingPick.duration_s}
+                      trim={trim}
+                      onMove={moveTrim}
+                    />
+                    {openingPick.duration_s > MAX_CLIP_SECONDS && (
+                      <p className="mt-1 text-xs text-chalk-dim">
+                        Only the gold window is analyzed, up to {MAX_CLIP_SECONDS}s.
+                        Slide it over your best reps.
+                      </p>
+                    )}
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={confirmFraming}
                   className="btn-primary mt-4 min-h-11 w-full"
                 >
-                  Analyze this athlete
+                  {userFramed ? "Analyze this athlete" : "Find my player and analyze"}
                 </button>
                 <button
                   type="button"
