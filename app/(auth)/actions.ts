@@ -16,6 +16,16 @@ export async function login(formData: FormData) {
   redirect("/dashboard");
 }
 
+// Auth errors surface to the form as-is unless mapped here. The rate-limit one
+// is the email-sending cap on the account-confirmation mail, not anything this
+// app enforces; players get told what to actually do about it.
+function friendlyAuthError(message: string): string {
+  if (/rate limit/i.test(message)) {
+    return "Too many signups this hour. Your answers are saved on this device. Wait a bit and try again.";
+  }
+  return message;
+}
+
 export async function signup(formData: FormData) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -27,7 +37,7 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?error=${encodeURIComponent(friendlyAuthError(error.message))}`);
   }
   if (!data.session) {
     redirect(`/login?message=${encodeURIComponent("Check your email to confirm your account.")}`);
