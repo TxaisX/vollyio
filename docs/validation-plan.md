@@ -70,5 +70,4 @@ unprompted return, and only then charge.
 - [ ] Stripe wiring through the D-012 seam (`canAnalyze` + `BILLING_ENABLED`),
       monthly subscription $8 to $12, first breakdown free.
 - [ ] Domain support address live and monitored.
-- [ ] Revisit in-app deletion (policy wording currently promises contact-based
-      deletion within 30 days).
+- [x] In-app deletion shipped 2026-07-12; policy wording updated to match.

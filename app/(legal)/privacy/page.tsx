@@ -105,8 +105,10 @@ export default function PrivacyPage() {
       <Section title="Retention and deletion">
         <p>
           We keep your data for as long as your account is active so your
-          history and rating stay intact. To delete specific footage or your
-          entire account and everything attached to it, email{" "}
+          history and rating stay intact. You can delete your entire account
+          and everything attached to it yourself, immediately: Dashboard,
+          Settings, Delete account. To delete specific footage only, or if you
+          prefer email, contact{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
