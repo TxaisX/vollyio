@@ -11,6 +11,7 @@ import {
   detectSwingReps,
   focusPoint,
   focusRegionAround,
+  offerPersons,
   personConfidence,
   headPoint,
   pickTargetTrack,
@@ -251,4 +252,14 @@ test("confidentPersons keeps only people at the 0.9 identification bar", () => {
   const kept = confidentPersons([person(0.95), person(0.89), person(0.9)]);
   assert.equal(kept.length, 2);
   assert.ok(kept.every((pts) => personConfidence(pts) >= 0.9));
+});
+
+test("offerPersons prefers the confident subset but never returns empty when people exist", () => {
+  const person = (v: number) =>
+    Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, v }));
+  const mixed = offerPersons([person(0.95), person(0.7)]);
+  assert.equal(mixed.length, 1);
+  const allBelow = offerPersons([person(0.8), person(0.7)]);
+  assert.equal(allBelow.length, 2);
+  assert.deepEqual(offerPersons([]), []);
 });

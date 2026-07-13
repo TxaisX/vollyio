@@ -22,10 +22,10 @@ import {
 } from "@/lib/pose/track-state";
 import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
 import {
-  confidentPersons,
   dedupePersons,
   focusPoint,
   focusRegionAround,
+  offerPersons,
 } from "@/lib/pose/kinematics";
 import {
   type BallPoint,
@@ -495,7 +495,7 @@ export function AnalyzeFlow({
       try {
         const found = await engine.detectPersonsFromVideo(video, scrubT);
         if (cancelled || !found) return;
-        const boxes = confidentPersons(dedupePersons(found.persons))
+        const boxes = offerPersons(dedupePersons(found.persons))
           .map((pts) => boxFromPts(pts))
           .filter((b): b is Box => b != null);
         if (boxes.length === 0) return;
