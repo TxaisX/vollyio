@@ -27,12 +27,14 @@ import {
   focusRegionAround,
 } from "@/lib/pose/kinematics";
 import {
+  type BallPoint,
   type Landmark,
   type LandmarkFrame,
   type MeasurementsBlock,
   type KeypointsFile,
   type PersonTrack,
 } from "@/lib/pose/types";
+import { ballMarksForFrames, MIN_TRACK_POINTS } from "@/lib/pose/ball-track";
 import {
   SKILL_LABEL,
   DISCIPLINES,
@@ -52,6 +54,7 @@ type Capture = {
   selectedTrackId: number | null;
   denseFps: number | null;
   continuity: TrackContinuity | null;
+  ball: BallPoint[];
   skill: Skill;
 };
 
@@ -228,14 +231,23 @@ function uploadCaptureArtifacts(
   storedFramePaths: string[],
 ) {
   const supabase = createClient();
-  if (keypointsPath && capture.landmarks.length >= 8) {
+  if (keypointsPath && (capture.landmarks.length >= 8 || capture.ball.length >= 8)) {
     const file: KeypointsFile = {
-      version: 1,
+      version: 2,
       clip_duration_s: durationS,
       frames: capture.landmarks.map((lf) => ({
         t: r3(lf.t),
         pts: lf.pts.map((p) => ({ x: r3(p.x), y: r3(p.y), z: r3(p.z), v: r3(p.v) })),
       })),
+      // The timed on-device ball path; the clip player follows it live.
+      ball: capture.ball.length
+        ? capture.ball.map((b) => ({
+            t: r3(b.t),
+            x: r3(b.x),
+            y: r3(b.y),
+            score: Math.round(b.score * 100) / 100,
+          }))
+        : undefined,
     };
     void supabase.storage
       .from("frames")
@@ -799,6 +811,18 @@ export function AnalyzeFlow({
     const capture = src === "video" ? captureRef.current : null;
     const landmarks = capture?.landmarks ?? [];
     const hasKeypoints = landmarks.length >= 8;
+    // Tracked ball marks replace the model's eyeballed ones only when the
+    // detector demonstrably followed the ball: a real path, landing on at
+    // least a few of the frames actually being sent.
+    const ballPath = capture?.ball ?? [];
+    const trackedMarks =
+      ballPath.length >= MIN_TRACK_POINTS
+        ? ballMarksForFrames(ballPath, payloadFrames)
+        : null;
+    const trackedBall =
+      trackedMarks && trackedMarks.filter((m) => m.visible).length >= 3
+        ? trackedMarks
+        : undefined;
     const body: AnalyzeRequest = {
       skill,
       discipline,
@@ -827,10 +851,13 @@ export function AnalyzeFlow({
       frame_keypoints: hasKeypoints
         ? keypointsForFrames(landmarks, payloadFrames)
         : undefined,
-      has_keypoints: hasKeypoints,
+      // The sidecar file is worth storing when either the skeleton or the
+      // ball path has substance; the server issues its path off this flag.
+      has_keypoints: hasKeypoints || ballPath.length >= MIN_TRACK_POINTS,
       focus_marker: src === "video" && markedRef.current ? true : undefined,
       extra_frame_count: capture?.extras.length ?? 0,
       continuity: capture?.continuity ? continuityToWire(capture.continuity) : undefined,
+      ball_track: trackedBall,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -904,6 +931,7 @@ export function AnalyzeFlow({
               selectedTrackId: poseCapture.selectedTrackId,
               denseFps: poseCapture.denseFps,
               continuity: poseCapture.continuity,
+              ball: poseCapture.ball,
               skill,
             }
           : null;

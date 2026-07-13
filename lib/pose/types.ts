@@ -43,6 +43,17 @@ export type LandmarkFrame = {
 export type PersonFrame = {
   t: number;
   persons: Landmark[][]; // each entry length POSE_LANDMARK_COUNT
+  // Strongest sports-ball detection in the FULL frame at this instant (the
+  // ball leaves any player crop, so it is always detected full-frame).
+  ball?: BallPoint | null;
+};
+
+// One on-device ball detection, full-frame normalized coords.
+export type BallPoint = {
+  t: number; // clip time in seconds
+  x: number; // normalized 0..1
+  y: number; // normalized 0..1
+  score: number; // detector confidence 0..1
 };
 
 // One person followed through the clip, ready to feed the single-athlete
@@ -128,9 +139,11 @@ export type FrameKeypoints = {
   pts: Landmark[] | null;
 };
 
-// Shape of the keypoints.json object uploaded to storage.
+// Shape of the keypoints.json object uploaded to storage. Version 2 adds the
+// timed on-device ball track; version-1 files simply have no ball array.
 export type KeypointsFile = {
   version: number;
   clip_duration_s: number | null;
   frames: LandmarkFrame[];
+  ball?: BallPoint[];
 };

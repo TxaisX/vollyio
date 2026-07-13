@@ -32,6 +32,10 @@ export type AnalyzeRequest = {
   focus_marker?: boolean;
   player_selection?: PlayerSelection;
   continuity?: ContinuityWire;
+  // On-device tracked ball marks for the sent frames (D-019). When present
+  // and plausible they replace the model's eyeballed ball_track in the stored
+  // result and ride the request as trusted measured data.
+  ball_track?: BallMark[];
 };
 
 // Which athlete the tracking followed in multi-player footage.
@@ -123,6 +127,9 @@ export type AnalysisResult = {
   ball_track_source?: "model_estimate" | "tracked";
   player_selection?: PlayerSelection;
   continuity?: ContinuityWire;
+  // Clip time of each sent frame by index, echoed from the request so viewers
+  // can place sparse per-frame data (like ball marks) on the clip timeline.
+  frame_times?: (number | null)[];
 };
 
 export const MAX_FRAMES = 12;

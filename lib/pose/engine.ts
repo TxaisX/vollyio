@@ -21,6 +21,9 @@ const MODELS = [
   { path: "/pose/pose_landmarker_full.task", name: "pose-landmarker-full" },
   { path: "/pose/pose_landmarker_lite.task", name: "pose-landmarker-lite" },
 ];
+// Sports-ball object detector (D-019). Additive: any load or inference
+// failure leaves the pose pipeline untouched.
+const BALL_MODEL = "/pose/efficientdet_lite0_f16.tflite";
 const INIT_TIMEOUT_MS = 12_000;
 const DETECT_TIMEOUT_MS = 4_000;
 const MAX_PERSONS = 4;
@@ -110,7 +113,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   });
 }
 
-type WorkerResult = { count: number; pts: Float32Array | null };
+type WorkerResult = {
+  count: number;
+  pts: Float32Array | null;
+  ball?: { x: number; y: number; score: number } | null;
+};
 
 function createWorkerEngine(): Promise<PoseEngine | null> {
   return new Promise((resolve) => {
@@ -179,6 +186,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
       modelName: loadedModel,
       async detectPersonsFromVideo(video, timeS, region) {
         let bitmap: ImageBitmap;
+        let ballBitmap: ImageBitmap | undefined;
         try {
           if (region) {
             const { sx, sy, sw, sh } = regionRect(video, region);
@@ -187,6 +195,13 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
               resizeWidth: Math.max(1, Math.round(sw * scale)),
               resizeHeight: Math.max(1, Math.round(sh * scale)),
             });
+            // The ball flies outside any player crop; give the detector the
+            // full frame. Non-fatal: without it the crop is searched instead.
+            try {
+              ballBitmap = await createImageBitmap(video, detectSize(video));
+            } catch {
+              ballBitmap = undefined;
+            }
           } else {
             bitmap = await createImageBitmap(video, detectSize(video));
           }
@@ -194,18 +209,28 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
           return null;
         }
         const id = nextId++;
+        const transfers = ballBitmap ? [bitmap, ballBitmap] : [bitmap];
         const result = await withTimeout(
           new Promise<WorkerResult>((settle) => {
             pending.set(id, settle);
-            worker.postMessage({ type: "detect", id, bitmap, tMs: timeS * 1000 }, [bitmap]);
+            worker.postMessage(
+              { type: "detect", id, bitmap, tMs: timeS * 1000, ballBitmap },
+              transfers,
+            );
           }),
           DETECT_TIMEOUT_MS,
           { count: 0, pts: null },
         );
         pending.delete(id);
-        return result.pts && result.count > 0
-          ? remapped(unpack(result.pts, result.count, timeS), region)
+        const ball = result.ball
+          ? { ...result.ball, t: Math.round(timeS * 1000) / 1000 }
           : null;
+        if (result.pts && result.count > 0) {
+          const frame = remapped(unpack(result.pts, result.count, timeS), region);
+          return { ...frame, ball };
+        }
+        // No athlete this instant, but the ball may still be in flight.
+        return ball ? { t: Math.round(timeS * 1000) / 1000, persons: [], ball } : null;
       },
       dispose() {
         pending.clear();
@@ -213,7 +238,12 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
       },
     };
 
-    worker.postMessage({ type: "init", wasmBase: WASM_BASE, models: MODELS });
+    worker.postMessage({
+      type: "init",
+      wasmBase: WASM_BASE,
+      models: MODELS,
+      ballModel: BALL_MODEL,
+    });
   });
 }
 
@@ -221,7 +251,9 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
 // the vision bundle into the page chunk lazily; only the analyze flow pays.
 async function createMainThreadEngine(): Promise<PoseEngine | null> {
   try {
-    const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
+    const { FilesetResolver, ObjectDetector, PoseLandmarker } = await import(
+      "@mediapipe/tasks-vision"
+    );
     const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
     const options = (modelPath: string, delegate: "GPU" | "CPU") => ({
       baseOptions: { modelAssetPath: modelPath, delegate },
@@ -244,7 +276,25 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
       break;
     }
     if (!landmarker) return null;
+    let ballDetector: import("@mediapipe/tasks-vision").ObjectDetector | null = null;
+    try {
+      const ballOptions = (delegate: "GPU" | "CPU") => ({
+        baseOptions: { modelAssetPath: BALL_MODEL, delegate },
+        runningMode: "VIDEO" as const,
+        categoryAllowlist: ["sports ball"],
+        scoreThreshold: 0.2,
+        maxResults: 3,
+      });
+      try {
+        ballDetector = await ObjectDetector.createFromOptions(fileset, ballOptions("GPU"));
+      } catch {
+        ballDetector = await ObjectDetector.createFromOptions(fileset, ballOptions("CPU"));
+      }
+    } catch {
+      ballDetector = null;
+    }
     const clock = createMonotonicClock();
+    const ballClock = createMonotonicClock();
     let cropCanvas: HTMLCanvasElement | null = null;
     return {
       modelName,
@@ -267,8 +317,39 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
           const persons = (result.landmarks ?? []).filter(
             (p) => p.length === POSE_LANDMARK_COUNT,
           );
-          if (persons.length === 0) return null;
-          return remapped(
+          // Ball detection always reads the full frame; the video element is
+          // the full frame here regardless of the player crop above.
+          let ball: import("./types.ts").BallPoint | null = null;
+          if (ballDetector) {
+            try {
+              const detections = ballDetector.detectForVideo(
+                video,
+                ballClock(timeS * 1000),
+              ).detections;
+              const vw = video.videoWidth || 640;
+              const vh = video.videoHeight || 360;
+              let best: { x: number; y: number; score: number } | null = null;
+              for (const d of detections ?? []) {
+                const score = d.categories?.[0]?.score ?? 0;
+                const box = d.boundingBox;
+                if (!box) continue;
+                if (!best || score > best.score) {
+                  best = {
+                    x: (box.originX + box.width / 2) / vw,
+                    y: (box.originY + box.height / 2) / vh,
+                    score,
+                  };
+                }
+              }
+              ball = best ? { ...best, t: Math.round(timeS * 1000) / 1000 } : null;
+            } catch {
+              ball = null;
+            }
+          }
+          if (persons.length === 0) {
+            return ball ? { t: Math.round(timeS * 1000) / 1000, persons: [], ball } : null;
+          }
+          const frame = remapped(
             {
               t: Math.round(timeS * 1000) / 1000,
               persons: persons.slice(0, MAX_PERSONS).map((person) =>
@@ -282,12 +363,14 @@ async function createMainThreadEngine(): Promise<PoseEngine | null> {
             },
             region,
           );
+          return { ...frame, ball };
         } catch {
           return null;
         }
       },
       dispose() {
         landmarker.close();
+        ballDetector?.close();
       },
     };
   } catch {

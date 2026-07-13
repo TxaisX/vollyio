@@ -391,3 +391,42 @@ locked-blur content. No new dependency. Verified end to end against the
 local prod build with a throwaway account (created, SQL-confirmed, applied,
 deleted): profile fields, goal deadline at exactly the chosen timeframe, and
 the `/analyze?skill=&discipline=` landing all confirmed in the database.
+
+## D-019 — On-device ball tracking: vendored sports-ball detector
+Date: 2026-07-12 · By: D-013 roadmap P2 follow-through
+
+The analysis pipeline's remaining eyeballed field becomes measured. A
+MediaPipe ObjectDetector rides the existing pose worker, filtered to the COCO
+"sports ball" class, and its per-instant detections are cleaned into a timed
+ball path (`lib/pose/ball-track.ts`: confidence floor, teleport speed gate
+with two-point re-lock, near-simultaneous dedupe).
+
+10.5 gate for the vendored model, `public/pose/efficientdet_lite0_f16.tflite`
+(EfficientDet-Lite0 float16, 7.25 MB):
+- Publisher/provenance: Google MediaPipe model zoo, same publisher and
+  distribution channel as the already-vendored pose landmarkers.
+- License: Apache 2.0, same as the landmarkers.
+- Pinned: vendored by checksum
+  (sha256 4b59100025bea1235a84c1038879a6cccc9f6c49f5e41144e91e74d99e780993);
+  no runtime fetch from third-party hosts.
+- Scope/security: runs entirely on-device in the existing worker; no new
+  network surface, no new npm dependency (@mediapipe/tasks-vision already
+  ships the ObjectDetector API).
+- Necessity: D-013 named on-device ball tracking the differentiator and left
+  the insertion hooks (`ball_track_source: "tracked"`, `ballEstimated`).
+
+Wiring, all strictly additive and never-worse: detector load failure or zero
+detections leaves every prior behavior intact. Ball detection always reads
+the full frame (the ball leaves any player crop). When the cleaned path is
+substantial (8+ points) and lands on 3+ sent frames, the client sends tracked
+marks; the server then replaces the model's estimated ball_track, flips
+ball_track_source to "tracked", and feeds the measured positions to the
+coaching service as trusted ground truth for toss, contact, and timing. The
+stored result now also carries frame_times (client data, response schema
+unchanged) so sparse marks sit on the clip timeline. The keypoints sidecar is
+version 2 with the timed ball path, and the clip player follows the ball live
+(dense path interpolated at the playhead; sparse timed marks as the fallback,
+labeled measured vs estimated). Verified: 8 node tests on the track helpers,
+real-Chromium WASM smoke over the vendored file paths (detector loads;
+"sports ball" detects at 0.22 on the repo's real volleyball photo, which
+calibrated the cleaner's confidence floor to 0.2), full build.

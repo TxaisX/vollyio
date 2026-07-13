@@ -4,21 +4,40 @@
 // (count x 33 x [x, y, z, v]). The detector requires monotonically increasing
 // timestamps; real clip times feed a rebasing monotonic clock so the temporal
 // filter sees true inter-frame spacing instead of a fixed synthetic tick.
+//
+// A sports-ball object detector rides alongside (D-019): it runs on a
+// FULL-frame bitmap (the ball leaves any player crop) and its absence or
+// failure never affects the pose path.
 
-import { FilesetResolver, PoseLandmarker } from "@mediapipe/tasks-vision";
+import { FilesetResolver, ObjectDetector, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { POSE_LANDMARK_COUNT, createMonotonicClock } from "./types.ts";
 
 const MAX_PERSONS = 4;
 
-type InitMsg = { type: "init"; wasmBase: string; models: { path: string; name: string }[] };
-type DetectMsg = { type: "detect"; id: number; bitmap: ImageBitmap; tMs?: number };
+type InitMsg = {
+  type: "init";
+  wasmBase: string;
+  models: { path: string; name: string }[];
+  ballModel?: string;
+};
+type DetectMsg = {
+  type: "detect";
+  id: number;
+  bitmap: ImageBitmap;
+  tMs?: number;
+  // Full-frame bitmap for ball detection when `bitmap` is a player crop;
+  // omitted when `bitmap` already covers the full frame.
+  ballBitmap?: ImageBitmap;
+};
 type DisposeMsg = { type: "dispose" };
 type InMsg = InitMsg | DetectMsg | DisposeMsg;
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 
 let landmarker: PoseLandmarker | null = null;
+let ballDetector: ObjectDetector | null = null;
 const clock = createMonotonicClock();
+const ballClock = createMonotonicClock();
 let fallbackMs = 0;
 
 async function createLandmarker(wasmBase: string, modelPath: string, delegate: "GPU" | "CPU") {
@@ -28,6 +47,44 @@ async function createLandmarker(wasmBase: string, modelPath: string, delegate: "
     runningMode: "VIDEO",
     numPoses: MAX_PERSONS,
   });
+}
+
+async function createBallDetector(wasmBase: string, modelPath: string, delegate: "GPU" | "CPU") {
+  const fileset = await FilesetResolver.forVisionTasks(wasmBase);
+  return ObjectDetector.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: modelPath, delegate },
+    runningMode: "VIDEO",
+    categoryAllowlist: ["sports ball"],
+    scoreThreshold: 0.2,
+    maxResults: 3,
+  });
+}
+
+// Best sports-ball detection center, normalized to the detected image.
+function detectBall(
+  bitmap: ImageBitmap,
+  stamp: number,
+): { x: number; y: number; score: number } | null {
+  if (!ballDetector) return null;
+  try {
+    const result = ballDetector.detectForVideo(bitmap, stamp);
+    let best: { x: number; y: number; score: number } | null = null;
+    for (const d of result.detections ?? []) {
+      const score = d.categories?.[0]?.score ?? 0;
+      const box = d.boundingBox;
+      if (!box || !(bitmap.width > 0) || !(bitmap.height > 0)) continue;
+      if (!best || score > best.score) {
+        best = {
+          x: (box.originX + box.width / 2) / bitmap.width,
+          y: (box.originY + box.height / 2) / bitmap.height,
+          score,
+        };
+      }
+    }
+    return best;
+  } catch {
+    return null;
+  }
 }
 
 scope.onmessage = async (event: MessageEvent<InMsg>) => {
@@ -49,8 +106,21 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
         lastError = error;
       }
     }
+    // The ball detector is strictly additive: failure to load leaves the
+    // pose pipeline exactly as it was.
+    if (loadedName && msg.ballModel) {
+      try {
+        try {
+          ballDetector = await createBallDetector(msg.wasmBase, msg.ballModel, "GPU");
+        } catch {
+          ballDetector = await createBallDetector(msg.wasmBase, msg.ballModel, "CPU");
+        }
+      } catch {
+        ballDetector = null;
+      }
+    }
     if (loadedName) {
-      scope.postMessage({ type: "ready", model: loadedName });
+      scope.postMessage({ type: "ready", model: loadedName, ball: ballDetector != null });
     } else {
       scope.postMessage({
         type: "init-error",
@@ -61,9 +131,10 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
   }
 
   if (msg.type === "detect") {
-    const { id, bitmap, tMs } = msg;
+    const { id, bitmap, tMs, ballBitmap } = msg;
     let pts: Float32Array | null = null;
     let count = 0;
+    let ball: { x: number; y: number; score: number } | null = null;
     try {
       if (landmarker) {
         fallbackMs += 33.34;
@@ -88,16 +159,23 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
           }
         }
       }
+      if (ballDetector) {
+        const ballStamp = ballClock(
+          typeof tMs === "number" && Number.isFinite(tMs) ? tMs : fallbackMs,
+        );
+        ball = detectBall(ballBitmap ?? bitmap, ballStamp);
+      }
     } catch {
       pts = null;
       count = 0;
     } finally {
       bitmap.close();
+      ballBitmap?.close();
     }
     if (pts) {
-      scope.postMessage({ type: "result", id, count, pts }, [pts.buffer]);
+      scope.postMessage({ type: "result", id, count, pts, ball }, [pts.buffer]);
     } else {
-      scope.postMessage({ type: "result", id, count: 0, pts: null });
+      scope.postMessage({ type: "result", id, count: 0, pts: null, ball });
     }
     return;
   }
@@ -105,6 +183,8 @@ scope.onmessage = async (event: MessageEvent<InMsg>) => {
   if (msg.type === "dispose") {
     landmarker?.close();
     landmarker = null;
+    ballDetector?.close();
+    ballDetector = null;
     scope.close();
   }
 };
