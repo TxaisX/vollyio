@@ -634,7 +634,10 @@ export function AnalyzeFlow({
     e.preventDefault();
     setFrameBox(clampBox(b));
   }
-  const [consentAnswered, setConsentAnswered] = useState<boolean | null>(null);
+  // Gate state lives in a ref, not render state: the queued submit closure
+  // runs synchronously after an answer, before any re-render, and a stale
+  // state read here is how an answered question used to reopen itself.
+  const consentAnsweredRef = useRef<boolean | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
   const pendingSubmitRef = useRef<(() => void) | null>(null);
   const consentAllowRef = useRef<HTMLButtonElement>(null);
@@ -652,10 +655,35 @@ export function AnalyzeFlow({
     };
   }, [skill]);
 
-  // Has this account answered the training-data question yet? Fail open on
-  // read errors: analysis is never blocked, and consent stays false in the
-  // database until explicitly granted.
+  // Settles the has-the-question-been-answered read and releases any submit
+  // that arrived while it was in flight: straight through when answered,
+  // through the modal when not.
+  function resolveConsent(answered: boolean) {
+    consentAnsweredRef.current = answered;
+    const run = pendingSubmitRef.current;
+    if (!run) return;
+    if (answered) {
+      pendingSubmitRef.current = null;
+      run();
+    } else {
+      setConsentOpen(true);
+    }
+  }
+
+  // Has this account answered the training-data question yet? Transient read
+  // errors and hangs fail open (analysis is never blocked; consent stays
+  // false in the database until explicitly granted), but a session whose user
+  // no longer exists is dead everywhere: clear it and start over at login
+  // instead of silently skipping the question and losing every later write.
   useEffect(() => {
+    let settled = false;
+    const settle = (answered: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(failOpen);
+      resolveConsent(answered);
+    };
+    const failOpen = setTimeout(() => settle(true), 6000);
     (async () => {
       try {
         const supabase = createClient();
@@ -663,7 +691,10 @@ export function AnalyzeFlow({
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          setConsentAnswered(true);
+          settled = true;
+          clearTimeout(failOpen);
+          await supabase.auth.signOut();
+          window.location.assign("/login");
           return;
         }
         const { data } = await supabase
@@ -671,11 +702,12 @@ export function AnalyzeFlow({
           .select("training_consent_at")
           .eq("id", user.id)
           .single();
-        setConsentAnswered(data?.training_consent_at != null);
+        settle(data?.training_consent_at != null);
       } catch {
-        setConsentAnswered(true);
+        settle(true);
       }
     })();
+    return () => clearTimeout(failOpen);
   }, []);
 
   useEffect(() => {
@@ -684,20 +716,28 @@ export function AnalyzeFlow({
 
   async function answerConsent(allow: boolean) {
     setConsentOpen(false);
-    setConsentAnswered(true);
+    consentAnsweredRef.current = true;
     try {
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        // supabase-js reports failures in the return value, not by throwing,
+        // and an RLS-blocked update is a silent zero-row success; selecting
+        // the row back makes both visible so an unsaved answer is never
+        // mistaken for a saved one. The analysis itself still runs either way.
+        const { data, error } = await supabase
           .from("profiles")
           .update({
             training_consent: allow,
             training_consent_at: new Date().toISOString(),
           })
-          .eq("id", user.id);
+          .eq("id", user.id)
+          .select("training_consent_at");
+        if (error || !data?.length) {
+          console.warn("Training-consent answer did not save; it will be asked again.", error?.message);
+        }
       }
     } catch {
       // The default in the database is no consent; a failed write stays safe.
@@ -744,11 +784,13 @@ export function AnalyzeFlow({
   ) {
     if (!skill || payloadFrames.length === 0) return;
     // One-time training-data question before the first analysis ever runs.
-    if (consentAnswered === false) {
+    // While the answered-check is still in flight (null), the submit waits for
+    // it; skipping ahead here is how the question used to get lost entirely.
+    if (consentAnsweredRef.current !== true) {
       pendingSubmitRef.current = () => {
         void submit(payloadFrames, src, dur, isRetry);
       };
-      setConsentOpen(true);
+      if (consentAnsweredRef.current === false) setConsentOpen(true);
       return;
     }
     setRetrying(isRetry);
