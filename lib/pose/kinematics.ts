@@ -508,6 +508,15 @@ export function confidentPersons(
   return persons.filter((pts) => personConfidence(pts) >= min);
 }
 
+// Who to OFFER as tappable candidates: everyone at the identification bar,
+// or, when nobody clears it, the best available detections. Being able to
+// choose the analyzed player always beats an empty list; the drawn framing
+// box stays the final override either way.
+export function offerPersons(persons: Landmark[][]): Landmark[][] {
+  const confident = confidentPersons(persons);
+  return confident.length > 0 ? confident : persons;
+}
+
 // The detector can fire two or three overlapping detections on one body,
 // which would each become their own track and crowd out real players.
 // Collapse detections whose hip centers sit within a fraction of their own

@@ -20,10 +20,10 @@ import { cleanBallTrack } from "./pose/ball-track";
 import { buildMeasurementsBlock } from "./pose/metrics";
 import {
   buildTracks,
-  confidentPersons,
   dedupePersons,
   focusPoint,
   focusRegionAround,
+  offerPersons,
   pickTargetTrack,
   type FocusRegion,
 } from "./pose/kinematics";
@@ -191,9 +191,9 @@ export async function detectOpeningPlayers(
       } catch {
         frame = null;
       }
-      // Only people the landmarker identifies with high confidence are
-      // offered for framing; junk detections never become tappable boxes.
-      const persons = frame ? confidentPersons(dedupePersons(frame.persons)) : [];
+      // High-confidence people are offered first; when nobody clears the
+      // bar, the best available detections still give the player a choice.
+      const persons = frame ? offerPersons(dedupePersons(frame.persons)) : [];
       if (persons.length > 0) {
         return {
           dataUrl: render(),
