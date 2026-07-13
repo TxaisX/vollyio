@@ -164,7 +164,7 @@ export type OpeningPlayers = {
 
 export async function detectOpeningPlayers(
   source: File | Blob,
-  engine: PoseEngine,
+  engine: PoseEngine | null,
 ): Promise<OpeningPlayers | null> {
   const url = URL.createObjectURL(source);
   try {
@@ -181,15 +181,24 @@ export async function detectOpeningPlayers(
       canvas.getContext("2d")!.drawImage(video, 0, 0, w, h);
       return canvas.toDataURL("image/jpeg", VIDEO_JPEG_QUALITY);
     };
-    const probeTimes = [0.4, 1.2, 2.4].filter((t) => t < video.duration - 0.05);
+    // Without an engine one probe still yields the framing frame: the player
+    // draws who to follow themselves, and detection is skipped entirely.
+    const probeTimes = (engine ? [0.4, 1.2, 2.4] : [0.4]).filter(
+      (t) => t < video.duration - 0.05,
+    );
+    if (probeTimes.length === 0 && video.duration > 0.15) {
+      probeTimes.push(video.duration / 2);
+    }
     let fallback: OpeningPlayers | null = null;
     for (const t of probeTimes) {
       await seekTo(video, t);
       let frame: PersonFrame | null = null;
-      try {
-        frame = await engine.detectPersonsFromVideo(video, video.currentTime);
-      } catch {
-        frame = null;
+      if (engine) {
+        try {
+          frame = await engine.detectPersonsFromVideo(video, video.currentTime);
+        } catch {
+          frame = null;
+        }
       }
       // High-confidence people are offered first; when nobody clears the
       // bar, the best available detections still give the player a choice.

@@ -139,11 +139,23 @@ export type FrameKeypoints = {
   pts: Landmark[] | null;
 };
 
+// A normalized bounding box at a clip time, for viewer overlays.
+export type TimedBox = {
+  t: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 // Shape of the keypoints.json object uploaded to storage. Version 2 adds the
 // timed on-device ball track; version-1 files simply have no ball array.
+// `others` (optional, additive) carries the non-followed players' timed
+// boxes so the results player can show who else was on the court.
 export type KeypointsFile = {
   version: number;
   clip_duration_s: number | null;
   frames: LandmarkFrame[];
   ball?: BallPoint[];
+  others?: TimedBox[][];
 };

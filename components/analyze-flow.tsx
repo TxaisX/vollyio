@@ -26,6 +26,8 @@ import {
   focusPoint,
   focusRegionAround,
   offerPersons,
+  otherTrackBoxes,
+  personBox,
 } from "@/lib/pose/kinematics";
 import {
   type BallPoint,
@@ -58,26 +60,6 @@ type Capture = {
   ball: BallPoint[];
   skill: Skill;
 };
-
-// Bounding box (normalized, padded) around one detected person.
-function boxFromPts(
-  pts: Landmark[],
-): { left: number; top: number; width: number; height: number } | null {
-  const xs: number[] = [];
-  const ys: number[] = [];
-  for (const p of pts) {
-    if (p.v < 0.4) continue;
-    xs.push(p.x);
-    ys.push(p.y);
-  }
-  if (xs.length < 6) return null;
-  const pad = 0.035;
-  const left = Math.max(0, Math.min(...xs) - pad);
-  const top = Math.max(0, Math.min(...ys) - pad);
-  const right = Math.min(1, Math.max(...xs) + pad);
-  const bottom = Math.min(1, Math.max(...ys) + pad);
-  return { left, top, width: right - left, height: bottom - top };
-}
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -233,6 +215,15 @@ function uploadCaptureArtifacts(
 ) {
   const supabase = createClient();
   if (keypointsPath && (capture.landmarks.length >= 8 || capture.ball.length >= 8)) {
+    const others = otherTrackBoxes(capture.tracks, capture.selectedTrackId).map((series) =>
+      series.map((b) => ({
+        t: r3(b.t),
+        left: r3(b.left),
+        top: r3(b.top),
+        width: r3(b.width),
+        height: r3(b.height),
+      })),
+    );
     const file: KeypointsFile = {
       version: 2,
       clip_duration_s: durationS,
@@ -249,6 +240,8 @@ function uploadCaptureArtifacts(
             score: Math.round(b.score * 100) / 100,
           }))
         : undefined,
+      // The other players' timed boxes; the clip player shows the court.
+      others: others.length ? others : undefined,
     };
     void supabase.storage
       .from("frames")
@@ -475,7 +468,7 @@ export function AnalyzeFlow({
       return;
     }
     const boxes = openingPick.persons
-      .map((pts) => boxFromPts(pts))
+      .map((pts) => personBox(pts))
       .filter((b): b is Box => b != null);
     setCandidateBoxes(boxes);
     setFrameBox(clampBox(boxes[0] ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
@@ -496,7 +489,7 @@ export function AnalyzeFlow({
         const found = await engine.detectPersonsFromVideo(video, scrubT);
         if (cancelled || !found) return;
         const boxes = offerPersons(dedupePersons(found.persons))
-          .map((pts) => boxFromPts(pts))
+          .map((pts) => personBox(pts))
           .filter((b): b is Box => b != null);
         if (boxes.length === 0) return;
         setCandidateBoxes(boxes);
@@ -991,7 +984,10 @@ export function AnalyzeFlow({
     try {
       const engine = poseRef.current ?? (await loadPoseEngine());
       poseRef.current = engine;
-      if (engine && skill) {
+      // Choosing the moment and the player is always the user's: the framing
+      // card opens even when the pose engine failed or found nobody. The
+      // drawn frame then anchors tracking on its own.
+      if (skill) {
         const opening = await detectOpeningPlayers(blob, engine);
         if (opening && opening.duration_s <= MAX_CLIP_SECONDS + 0.5) {
           captureRef.current = null;
@@ -1054,7 +1050,7 @@ export function AnalyzeFlow({
     let bestPts: (typeof persons)[number] | null = null;
     let bestOverlap = 0.25;
     for (const pts of persons) {
-      const bb = boxFromPts(pts);
+      const bb = personBox(pts);
       if (!bb) continue;
       const ix =
         Math.max(
@@ -1074,7 +1070,7 @@ export function AnalyzeFlow({
     let target: { x: number; y: number; t: number; box?: Box };
     if (bestPts) {
       const head = focusPoint(bestPts) ?? { x: cx, y: cy };
-      target = { x: head.x, y: head.y, t, box: boxFromPts(bestPts) ?? box };
+      target = { x: head.x, y: head.y, t, box: personBox(bestPts) ?? box };
     } else {
       // Nobody detected inside the frame yet: anchor near the frame's head
       // area and let the zoomed capture passes find them.

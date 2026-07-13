@@ -11,6 +11,7 @@ import {
   type PersonFrame,
   type PersonTrack,
   type RepWindow,
+  type TimedBox,
 } from "./types.ts";
 
 export type Baseline = {
@@ -539,6 +540,65 @@ export function dedupePersons(persons: Landmark[][]): Landmark[][] {
     if (!duplicate) kept.push(pts);
   }
   return kept;
+}
+
+// Bounding box (normalized, padded) around one detected person, from the
+// landmarks visible enough to trust. Null when too few are.
+export function personBox(
+  pts: Landmark[],
+): { left: number; top: number; width: number; height: number } | null {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of pts) {
+    if (p.v < 0.4) continue;
+    xs.push(p.x);
+    ys.push(p.y);
+  }
+  if (xs.length < 6) return null;
+  const pad = 0.035;
+  const left = Math.max(0, Math.min(...xs) - pad);
+  const top = Math.max(0, Math.min(...ys) - pad);
+  const right = Math.min(1, Math.max(...xs) + pad);
+  const bottom = Math.min(1, Math.max(...ys) + pad);
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+// Timed boxes for every tracked player EXCEPT the followed one, so viewers
+// can show who else was on the court without carrying full landmark series.
+export function otherTrackBoxes(
+  tracks: PersonTrack[],
+  selectedId: number | null,
+): TimedBox[][] {
+  const out: TimedBox[][] = [];
+  for (const track of tracks) {
+    if (track.id === selectedId) continue;
+    const series: TimedBox[] = [];
+    for (const f of track.frames) {
+      const box = personBox(f.pts);
+      if (box) series.push({ t: f.t, ...box });
+    }
+    if (series.length >= 2) out.push(series);
+  }
+  return out;
+}
+
+// The box nearest a playhead time, or null when the track has no observation
+// close enough to trust (a stale box drifting off the player reads as wrong).
+export function boxAtTime(
+  series: TimedBox[],
+  t: number,
+  maxGapS = 0.45,
+): TimedBox | null {
+  let best: TimedBox | null = null;
+  let bestD = maxGapS;
+  for (const b of series) {
+    const d = Math.abs(b.t - t);
+    if (d < bestD) {
+      bestD = d;
+      best = b;
+    }
+  }
+  return best;
 }
 
 type OpenTrack = {

@@ -19,13 +19,13 @@ export function Filmstrip({
 
   if (variant === "grid") {
     return (
-      <ul role="list" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <ul role="list" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {frames.map((f) => {
           const on = highlight?.has(f.index);
           return (
             <li
               key={f.index}
-              className={`relative overflow-hidden rounded-lg border-2 ${
+              className={`relative self-start overflow-hidden rounded-lg border-2 ${
                 on ? "border-gold" : "border-line"
               }`}
             >
@@ -33,7 +33,7 @@ export function Filmstrip({
               <img
                 src={f.dataUrl}
                 alt={`Frame ${f.index + 1}`}
-                className="block aspect-video w-full object-cover"
+                className="block w-full"
               />
               <span
                 className={`absolute left-1.5 top-1.5 rounded px-1.5 py-0.5 font-mono text-[11px] ${
