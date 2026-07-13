@@ -37,8 +37,8 @@ export const maxDuration = 300;
 const LEVELS: readonly Level[] = [
   "beginner",
   "intermediate",
-  "advanced",
-  "elite",
+  "expert",
+  "pro",
 ];
 function toLevel(value: unknown): Level {
   return typeof value === "string" &&

@@ -24,7 +24,7 @@ export async function completeChallenge() {
   revalidatePath("/dashboard");
 }
 
-const LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
+const LEVELS = ["beginner", "intermediate", "expert", "pro"] as const;
 
 export async function setLevel(formData: FormData) {
   const supabase = await createClient();

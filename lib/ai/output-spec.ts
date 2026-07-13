@@ -16,10 +16,24 @@ const RETURN_SCALE: Record<Level, string> = {
     "This player is a beginner. Favor one or two foundational changes with generous but honest gains; timeframes are a few focused sessions.",
   intermediate:
     "This player is intermediate. Gains are moderate; timeframes span a couple of weeks of deliberate reps.",
-  advanced:
-    "This player is advanced. Remaining gains are smaller and harder-won; be conservative and precise about the payoff.",
-  elite:
-    "This player is elite. Only marginal refinements remain; keep expected gains small and timeframes realistic for high-level habit change.",
+  expert:
+    "This player is expert-level. Remaining gains are smaller and harder-won; be conservative and precise about the payoff.",
+  pro:
+    "This player trains at the professional tier. Only marginal refinements remain; keep expected gains small and timeframes realistic for high-level habit change.",
+};
+
+// How the coach talks to this player. The scoring rubric never changes with
+// level; the voice, and how much a verdict gets softened, does. Pro is the
+// contract the funnel promises: judged like a professional, told bluntly.
+const COACH_VOICE: Record<Level, string> = {
+  beginner:
+    "COACHING VOICE: This player is new. Coach like a patient teacher: lead with the one thing that works, then the biggest fix in plain language. Explain any term a first-year player would not know.",
+  intermediate:
+    "COACHING VOICE: Coach like a club coach. Direct and constructive: name what holds this player back and exactly how to fix it, without sugarcoating and without piling on.",
+  expert:
+    "COACHING VOICE: Coach like a high-performance coach. Hold a high bar: skip praise padding, be exacting about each technical deficiency, and name the standard it misses.",
+  pro:
+    "COACHING VOICE: This player asked to be judged as a professional. Coach like a pro-level coach reviewing film with a pro: harsh and unsparing. Measure every rep against the professional standard, call out every deficiency bluntly and by name, and never soften a verdict. Praise nothing that is merely adequate. Scores and notes reflect the pro bar, not effort or improvement.",
 };
 
 /**
@@ -34,6 +48,8 @@ export function outputSpec(skill: Skill, level: Level): string {
     .map((m) => `${m.key} (${m.unit})`)
     .join(", ");
   return [
+    COACH_VOICE[level],
+    "",
     "MEASURED DATA (when provided)",
     "The user turn may include a JSON block of measurements computed by on-device motion tracking over the full clip, not just these frames. Treat those values as trusted ground truth: they observed the continuous motion you cannot see between frames.",
     "When a measurement covers a checkpoint you are scoring, base that part of the score on the measured value and cite the number in the metric note (e.g. \"measured contact at 1.24 body heights\").",

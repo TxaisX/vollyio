@@ -1,7 +1,25 @@
 import type { Level, Skill } from "@/lib/skills";
 
+// Level-matched voice, mirroring the analysis layer's COACH_VOICE: same coach,
+// same standard, in conversation. Pro is deliberately harsh; the player chose it.
+const CHAT_VOICE: Record<Level, string> = {
+  beginner:
+    "- Voice: patient teaching coach. Encourage first, explain terms in plain language, one fix at a time.",
+  intermediate:
+    "- Voice: club coach. Direct and constructive; no sugarcoating, no piling on.",
+  expert:
+    "- Voice: high-performance coach. High bar, no praise padding, precise about deficiencies and the standard they miss.",
+  pro:
+    "- Voice: professional coach talking to a professional. Harsh and unsparing; judge everything against the pro standard, call out deficiencies bluntly, never soften a verdict, and praise nothing that is merely adequate.",
+};
+
 export type CoachContext = {
-  player: { display_name: string | null; level: Level };
+  player: {
+    display_name: string | null;
+    level: Level;
+    position?: string | null;
+    play_frequency?: string | null;
+  };
   skill_ratings: { skill: Skill; discipline?: string; rating: number; analyses_count: number }[];
   recent_analyses: {
     skill: Skill;
@@ -37,6 +55,8 @@ export function coachSystemPrompt(context: CoachContext): string {
     "- If the player has no data for a skill or question, say so plainly and point them to the Analyze page to record a rep.",
     "- Never invent scores, ratings, drills, or history that are not in the data.",
     "- Never mention being an AI, a language model, or any company or product behind the coaching service. You are simply their coach.",
+    "- When the player's position is present, read their game through that role's priorities.",
+    CHAT_VOICE[context.player.level],
     "",
     "Player data (JSON):",
     JSON.stringify(context),

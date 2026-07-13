@@ -124,7 +124,11 @@ export async function POST(req: NextRequest) {
     { data: goalsData },
     { data: historyData },
   ] = await Promise.all([
-    supabase.from("profiles").select("display_name, level").eq("id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("display_name, level, position, play_frequency")
+      .eq("id", user.id)
+      .single(),
     supabase
       .from("skill_ratings")
       .select("skill, discipline, rating, analyses_count")
@@ -171,7 +175,12 @@ export async function POST(req: NextRequest) {
     });
 
   const context: CoachContext = {
-    player: { display_name: profile?.display_name ?? null, level },
+    player: {
+      display_name: profile?.display_name ?? null,
+      level,
+      position: profile?.position ?? null,
+      play_frequency: profile?.play_frequency ?? null,
+    },
     skill_ratings: ratings,
     recent_analyses: ((analysesData as AnalysisRow[] | null) ?? []).map((a) => ({
       skill: a.skill,

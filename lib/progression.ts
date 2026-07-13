@@ -112,8 +112,8 @@ export const challengeReason = (dateKey: string) => `challenge:${dateKey}`;
 const CHALLENGE_POOL: Record<Level, Level[]> = {
   beginner: ["beginner"],
   intermediate: ["beginner", "intermediate"],
-  advanced: ["intermediate", "advanced"],
-  elite: ["advanced", "elite"],
+  expert: ["intermediate", "expert"],
+  pro: ["expert", "pro"],
 };
 
 function fnv1a(input: string) {

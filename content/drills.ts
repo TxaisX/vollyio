@@ -91,7 +91,7 @@ export const DRILLS: Drill[] = [
     "slug": "serve-jump-float-approach",
     "name": "Jump Float Approach",
     "skill": "serve",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 20,
     "equipment": [
       "volleyball",
@@ -120,7 +120,7 @@ export const DRILLS: Drill[] = [
     "slug": "serve-jump-topspin-zone-attack",
     "name": "Jump Topspin Zone Attack",
     "skill": "serve",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 25,
     "equipment": [
       "volleyball",
@@ -210,7 +210,7 @@ export const DRILLS: Drill[] = [
     "slug": "pass-shuffle-triangle",
     "name": "Shuffle Triangle",
     "skill": "pass",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 15,
     "equipment": [
       "volleyball",
@@ -239,7 +239,7 @@ export const DRILLS: Drill[] = [
     "slug": "pass-live-serve-receive-read",
     "name": "Live Serve-Receive Read",
     "skill": "pass",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 20,
     "equipment": [
       "volleyball",
@@ -383,7 +383,7 @@ export const DRILLS: Drill[] = [
     "slug": "set-jump-set-quick-release",
     "name": "Jump-Set Quick Release",
     "skill": "set",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 15,
     "equipment": [
       "volleyball",
@@ -413,7 +413,7 @@ export const DRILLS: Drill[] = [
     "slug": "set-read-block-tempo-call",
     "name": "Read-the-Block Tempo Call",
     "skill": "set",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 18,
     "equipment": [
       "volleyball",
@@ -528,7 +528,7 @@ export const DRILLS: Drill[] = [
     "slug": "attack-high-set-line-cross",
     "name": "Live High-Set Line & Cross Reps",
     "skill": "attack",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 30,
     "equipment": [
       "volleyball",
@@ -560,7 +560,7 @@ export const DRILLS: Drill[] = [
     "slug": "attack-transition-bounce-finish",
     "name": "Transition Bounce Finisher",
     "skill": "attack",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 30,
     "equipment": [
       "volleyball",
@@ -677,7 +677,7 @@ export const DRILLS: Drill[] = [
     "slug": "block-read-close-live",
     "name": "Read & Close vs. Live Hitter",
     "skill": "block",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 15,
     "equipment": [
       "net",
@@ -708,7 +708,7 @@ export const DRILLS: Drill[] = [
     "slug": "block-double-seam-close",
     "name": "Double-Block Seam Close",
     "skill": "block",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 15,
     "equipment": [
       "net",
@@ -794,7 +794,7 @@ export const DRILLS: Drill[] = [
     "slug": "dig-read-the-arm",
     "name": "Read-the-Arm Reaction Digs",
     "skill": "dig",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 12,
     "equipment": [
       "volleyball"
@@ -821,7 +821,7 @@ export const DRILLS: Drill[] = [
     "slug": "dig-pursuit-roll-recovery",
     "name": "Pursuit-and-Roll Recovery",
     "skill": "dig",
-    "level": "advanced",
+    "level": "expert",
     "duration_min": 12,
     "equipment": [
       "volleyball",
@@ -849,7 +849,7 @@ export const DRILLS: Drill[] = [
     "slug": "dig-live-random-defense",
     "name": "Live Random Defense Rotation",
     "skill": "dig",
-    "level": "elite",
+    "level": "pro",
     "duration_min": 15,
     "equipment": [
       "volleyball"
