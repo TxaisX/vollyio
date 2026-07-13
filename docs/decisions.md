@@ -430,3 +430,24 @@ labeled measured vs estimated). Verified: 8 node tests on the track helpers,
 real-Chromium WASM smoke over the vendored file paths (detector loads;
 "sports ball" detects at 0.22 on the repo's real volleyball photo, which
 calibrated the cleaner's confidence floor to 0.2), full build.
+
+## D-020 — First-party web analytics on the platform
+Date: 2026-07-13 · By: owner request
+
+The site gains traffic analytics via the deployment platform's own analytics
+package, mounted once in the root layout. It renders no UI, adds no
+user-facing vendor naming, and sends page-view beacons to the site's own
+domain (`/_vercel/insights/*`), so no third-party origin enters the CSP
+surface.
+
+10.5 gate for `@vercel/analytics@2.0.1`:
+- Publisher/provenance: the deployment platform's first-party package, same
+  vendor already trusted with hosting and build.
+- License: MPL-2.0, published on npm by the platform org.
+- Pinned: caret on 2.0.1 in package.json, resolved exact in the lockfile.
+- Scope/security: client beacon to the first-party `/_vercel/insights`
+  endpoint only; no cookies, no cross-site identifiers; script is served
+  from the app's own domain.
+- Necessity: the funnel work (D-012, D-018) is live and unmeasured; the
+  owner asked for traffic analytics directly. The platform dashboard must
+  have Web Analytics enabled for beacons to be recorded.
