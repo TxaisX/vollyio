@@ -3,6 +3,7 @@ import { ViewTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
+import { DeleteAccount } from "@/components/delete-account";
 import { LinkPending } from "@/components/link-pending";
 import { ScoreRing } from "@/components/score-ring";
 import { Radar } from "@/components/radar";
@@ -500,6 +501,7 @@ export default async function Dashboard({
               </button>
             ))}
           </form>
+          <DeleteAccount />
         </div>
       </Reveal>
     </section>
