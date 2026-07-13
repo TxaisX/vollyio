@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { LM, type KeypointsFile } from "@/lib/pose/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LM, type BallPoint, type KeypointsFile } from "@/lib/pose/types";
+import { ballAtTime } from "@/lib/pose/ball-track";
 import { activeAbsence, absenceLabel } from "@/lib/pose/track-state";
 import type { ContinuityAbsenceWire, ContinuityWire } from "@/lib/analysis-types";
 
@@ -254,10 +255,12 @@ function ClipPlayer({
   const [track, setTrack] = useState<KeypointsFile | null>(null);
   const [traceOn, setTraceOn] = useState(true);
   const [playheadPts, setPlayheadPts] = useState<number[] | null>(null);
+  const [playheadBall, setPlayheadBall] = useState<{ x: number; y: number } | null>(null);
   const [mediaAspect, setMediaAspect] = useState<number | null>(null);
   const [boxAspect, setBoxAspect] = useState<number | null>(null);
 
   // Dense keypoints are optional and load lazily; absence means no trace.
+  // Version 2 adds the timed ball path; version-1 files still draw skeletons.
   useEffect(() => {
     if (!keypointsUrl) return;
     let cancelled = false;
@@ -266,7 +269,11 @@ function ClipPlayer({
         const res = await fetch(keypointsUrl);
         if (!res.ok) return;
         const file = (await res.json()) as KeypointsFile;
-        if (!cancelled && file?.version === 1 && Array.isArray(file.frames)) {
+        if (
+          !cancelled &&
+          (file?.version === 1 || file?.version === 2) &&
+          Array.isArray(file.frames)
+        ) {
           setTrack(file);
         }
       } catch {
@@ -278,10 +285,31 @@ function ClipPlayer({
     };
   }, [keypointsUrl]);
 
+  // The path the ball marker follows: the dense on-device track when the
+  // sidecar carries one, otherwise the sparse per-frame marks placed on the
+  // timeline via each frame's stored clip time.
+  const ballPath = useMemo<BallPoint[]>(() => {
+    if (track?.ball && track.ball.length > 1) return track.ball;
+    if (!fallbackBall) return [];
+    const pts: BallPoint[] = [];
+    frames.forEach((f, i) => {
+      const b = fallbackBall.get(i);
+      if (b?.visible && f.time_s != null) {
+        pts.push({ t: f.time_s, x: b.x, y: b.y, score: 1 });
+      }
+    });
+    return pts.sort((a, b) => a.t - b.t);
+  }, [track, fallbackBall, frames]);
+  // Sparse marks sit up to ~1s apart; the dense track interpolates tightly.
+  const ballGapS = track?.ball && track.ball.length > 1 ? 0.6 : 1.2;
+
   // Follow the playhead: nearest tracked instant within 150ms of currentTime.
   useEffect(() => {
-    if (!track || !traceOn) {
+    const wantSkeleton = !!track && traceOn;
+    const wantBall = traceOn && ballPath.length > 0;
+    if (!wantSkeleton && !wantBall) {
       setPlayheadPts(null);
+      setPlayheadBall(null);
       return;
     }
     let raf = 0;
@@ -290,15 +318,18 @@ function ClipPlayer({
       if (v) {
         const t = v.currentTime;
         let best: number[] | null = null;
-        let bestD = 0.15;
-        for (const lf of track.frames) {
-          const d = Math.abs(lf.t - t);
-          if (d < bestD) {
-            bestD = d;
-            best = lf.pts.flatMap((p) => [p.x, p.y, p.z, p.v]);
+        if (wantSkeleton && track) {
+          let bestD = 0.15;
+          for (const lf of track.frames) {
+            const d = Math.abs(lf.t - t);
+            if (d < bestD) {
+              bestD = d;
+              best = lf.pts.flatMap((p) => [p.x, p.y, p.z, p.v]);
+            }
           }
         }
         setPlayheadPts(best);
+        setPlayheadBall(wantBall ? ballAtTime(ballPath, t, ballGapS) : null);
         const box = boxRef.current;
         if (v.videoWidth && v.videoHeight) setMediaAspect(v.videoWidth / v.videoHeight);
         if (box && box.clientHeight > 0) setBoxAspect(box.clientWidth / box.clientHeight);
@@ -307,7 +338,7 @@ function ClipPlayer({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [track, traceOn]);
+  }, [track, traceOn, ballPath, ballGapS]);
 
   if (failed) {
     return (
@@ -355,14 +386,17 @@ function ClipPlayer({
           const absence = activeAbsence(continuity, nowS);
           return absence ? <AbsenceBadge absence={absence} /> : null;
         })()}
-        {playheadPts && (
+        {(playheadPts || playheadBall) && (
           <div style={contentBoxStyle(boxAspect, mediaAspect)} aria-hidden>
-            <SkeletonOverlay pts={playheadPts} />
+            {playheadPts && <SkeletonOverlay pts={playheadPts} />}
+            {playheadBall && (
+              <BallMarker pos={{ x: playheadBall.x, y: playheadBall.y, visible: true }} />
+            )}
           </div>
         )}
       </div>
 
-      {track && (
+      {(track || ballPath.length > 0) && (
         <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
@@ -373,7 +407,11 @@ function ClipPlayer({
             Motion trace
           </button>
           <span className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-            Tracked body lines over your rep
+            {ballPath.length === 0
+              ? "Tracked body lines over your rep"
+              : track
+                ? `Body lines and ${ballEstimated ? "estimated" : "measured"} ball over your rep`
+                : `${ballEstimated ? "Estimated" : "Measured"} ball over your rep`}
           </span>
         </div>
       )}

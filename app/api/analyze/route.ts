@@ -76,6 +76,18 @@ const bodySchema = z.object({
         .max(12),
     })
     .optional(),
+  // On-device tracked ball marks for the sent frames (D-019).
+  ball_track: z
+    .array(
+      z.object({
+        frame_index: z.number().int().min(0).max(MAX_FRAMES - 1),
+        x: z.number().min(0).max(1),
+        y: z.number().min(0).max(1),
+        visible: z.boolean(),
+      }),
+    )
+    .max(MAX_FRAMES)
+    .optional(),
 });
 
 function safeClipExt(ext: string | null | undefined): string {
@@ -165,6 +177,15 @@ export async function POST(req: NextRequest) {
           ]
         : [];
 
+      const trackedBallBlock = parsedBody.data.ball_track?.length
+        ? [
+            {
+              type: "text" as const,
+              text: `Ball positions measured by on-device tracking for the sent frames (trusted ground truth; normalized to each frame, origin top-left). Entries with visible=false were not measured at that instant; never invent a position for them:\n${JSON.stringify(parsedBody.data.ball_track)}\nUse these measured positions when judging toss, contact point, and timing.`,
+            },
+          ]
+        : [];
+
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
         max_tokens: 4096,
@@ -187,6 +208,7 @@ export async function POST(req: NextRequest) {
               ...content,
               ...focusBlock,
               ...measuredBlock,
+              ...trackedBallBlock,
               {
                 type: "text",
                 text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
@@ -247,10 +269,24 @@ export async function POST(req: NextRequest) {
   }
 
   result.discipline = discipline;
-  // Every current ball_track is the coaching service's visual estimate; the
-  // marker lets the UI label it honestly and lets real tracking replace it
-  // later without a contract change.
-  result.ball_track_source = "model_estimate";
+  // The model's ball_track is a visual estimate. When the client measured the
+  // ball on-device (D-019), the measured marks replace it and the source flag
+  // flips so the UI can drop the "estimated" label.
+  const trackedBall = parsedBody.data.ball_track?.filter(
+    (b) => b.frame_index < frames.length,
+  );
+  if (trackedBall?.some((b) => b.visible)) {
+    result.ball_track = trackedBall;
+    result.ball_track_source = "tracked";
+  } else {
+    result.ball_track_source = "model_estimate";
+  }
+  // Clip time per sent frame, keyed by frame index, so viewers can place
+  // per-frame data on the clip timeline (client data, not model output; the
+  // response schema stays frozen).
+  const frameTimes: (number | null)[] = [];
+  for (const f of frames) frameTimes[f.index] = f.time_s;
+  result.frame_times = Array.from(frameTimes, (t) => t ?? null);
   if (measurements) result.measurements = measurements;
   if (parsedBody.data.player_selection) {
     result.player_selection = parsedBody.data.player_selection;

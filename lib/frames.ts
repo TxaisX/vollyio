@@ -10,11 +10,13 @@ import {
 } from "./frame-select";
 import type { PoseEngine } from "./pose/engine";
 import type {
+  BallPoint,
   LandmarkFrame,
   MeasurementsBlock,
   PersonFrame,
   PersonTrack,
 } from "./pose/types";
+import { cleanBallTrack } from "./pose/ball-track";
 import { buildMeasurementsBlock } from "./pose/metrics";
 import {
   buildTracks,
@@ -81,6 +83,8 @@ export type PoseCapture = {
   selectedTrackId: number | null;
   // How the follow went: coverage plus evidenced occlusions and frame exits.
   continuity: TrackContinuity | null;
+  // Cleaned on-device ball path (D-019), full-frame normalized, timed.
+  ball: BallPoint[];
 };
 
 export type VideoExtraction = {
@@ -319,7 +323,7 @@ async function scanMotion(
   probeTimes: number[],
   engine?: PoseEngine,
   tracker?: ReturnType<typeof createFocusTracker>,
-): Promise<{ motion: number[]; poseFrames: PersonFrame[] }> {
+): Promise<{ motion: number[]; poseFrames: PersonFrame[]; balls: BallPoint[] }> {
   const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -327,6 +331,7 @@ async function scanMotion(
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const motion = new Array(probeTimes.length).fill(0);
   const poseFrames: PersonFrame[] = [];
+  const balls: BallPoint[] = [];
   let prev: Uint8Array | null = null;
   const start = Date.now();
 
@@ -356,14 +361,16 @@ async function scanMotion(
           video.currentTime,
           tracker?.region(),
         );
-        if (frame) poseFrames.push(frame);
+        if (frame?.ball) balls.push(frame.ball);
+        // Ball-only instants (nobody detected) never become person frames.
+        if (frame && frame.persons.length > 0) poseFrames.push(frame);
         tracker?.update(frame);
       } catch {
         // Probe landmarks are optional; the luminance scan is the contract.
       }
     }
   }
-  return { motion, poseFrames };
+  return { motion, poseFrames, balls };
 }
 
 // Wait until the video presents its next frame; falls back to a short timer
@@ -400,8 +407,14 @@ async function captureDenseWindows(
   duration: number,
   tracker?: ReturnType<typeof createFocusTracker>,
   analysisStartS = 0,
-): Promise<{ frames: PersonFrame[]; denseFps: number | null; denseMs: number }> {
+): Promise<{
+  frames: PersonFrame[];
+  balls: BallPoint[];
+  denseFps: number | null;
+  denseMs: number;
+}> {
   const frames: PersonFrame[] = [];
+  const balls: BallPoint[] = [];
   const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
   const started = Date.now();
   let coveredS = 0;
@@ -437,7 +450,8 @@ async function captureDenseWindows(
           video.currentTime,
           tracker?.region(),
         );
-        if (frame) {
+        if (frame?.ball) balls.push(frame.ball);
+        if (frame && frame.persons.length > 0) {
           frames.push(frame);
           captured++;
         }
@@ -452,7 +466,7 @@ async function captureDenseWindows(
 
   const denseMs = Date.now() - started;
   const denseFps = coveredS > 0.2 ? Math.round((frames.length / coveredS) * 10) / 10 : null;
-  return { frames, denseFps, denseMs };
+  return { frames, balls, denseFps, denseMs };
 }
 
 // Snap luminance peaks to measured rep contacts when tracking found reps
@@ -576,7 +590,7 @@ async function sampleContentAware(
   const scanStart = Date.now();
   // Each chronological pass gets its own tracker so both start from the
   // user's anchor rather than wherever the previous pass ended.
-  const { motion, poseFrames } = await scanMotion(
+  const { motion, poseFrames, balls: probeBalls } = await scanMotion(
     video,
     probeTimes,
     pose?.engine,
@@ -599,6 +613,7 @@ async function sampleContentAware(
   let tracks: PersonTrack[] = [];
   let selectedTrackId: number | null = null;
   let continuity: TrackContinuity | null = null;
+  let ballTrack: BallPoint[] = [];
   if (pose) {
     try {
       // The framed moment always gets its own dense window: motion peaks can
@@ -622,6 +637,7 @@ async function sampleContentAware(
       );
       denseMs = dense.denseMs;
       denseFps = dense.denseFps;
+      ballTrack = cleanBallTrack([...probeBalls, ...dense.balls]);
       const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
       tracks = buildTracks(personFrames);
       // A user-framed player overrides the activity ranking. When no track
@@ -656,6 +672,7 @@ async function sampleContentAware(
       tracks = [];
       selectedTrackId = null;
       continuity = null;
+      ballTrack = [];
     }
   }
 
@@ -751,7 +768,15 @@ async function sampleContentAware(
     frames,
     extras,
     pose: pose
-      ? { landmarks, measurements, denseFps, tracks, selectedTrackId, continuity }
+      ? {
+          landmarks,
+          measurements,
+          denseFps,
+          tracks,
+          selectedTrackId,
+          continuity,
+          ball: ballTrack,
+        }
       : null,
     debug,
   };

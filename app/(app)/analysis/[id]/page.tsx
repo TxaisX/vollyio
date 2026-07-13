@@ -136,7 +136,9 @@ export default async function AnalysisDetail({
 
   const playerFrames = urls.map((url, i) => ({
     url: url ?? "",
-    time_s: timeByFrame.get(i) ?? null,
+    // frame_times covers every sent frame on newer rows; older rows only
+    // know the times the model cited (insights and the priority fix).
+    time_s: result.frame_times?.[i] ?? timeByFrame.get(i) ?? null,
     highlighted: highlight.has(i),
   }));
 
