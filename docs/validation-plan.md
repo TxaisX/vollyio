@@ -37,8 +37,17 @@ unprompted return, and only then charge.
 8. **Build focus during validation: freeze plus quality.** No new surfaces.
    Allowed: fixes the cohort's usage exposes, eval-measured coaching-quality
    work (ball-dependent measurements qualify), and the ops items above.
-   Explicitly deferred: Overall Game option, coach/team view, in-app deletion
-   flow, billing UI.
+   Explicitly deferred: Overall Game option, coach/team view, billing UI.
+   (In-app deletion shipped 2026-07-12, ahead of schedule.)
+12. **Product shape is frozen at the five core surfaces** (decided 2026-07-12
+    after the competitor re-check): Analyze, Drills, Coach, Scoreboard, and
+    the progress family (Dashboard, Goals, History, Learn). This matches the
+    strongest competitor's shape and nothing new gets added to it. The two
+    competitor surfaces we deliberately do not carry are recorded as
+    **post-validation candidates, in this order of fit**: Community/Challenges
+    first (the cohort is literally an existing offline community; leaderboards
+    and challenges compound the XP system already built) and Nutrition second
+    (furthest from the analyze-and-improve core; revisit only if users ask).
 9. **Measurement: SQL over the database.** No analytics dependency. The
    analyses table answers the return-rate question; check it weekly.
 10. **Grass footage maps to Beach.** One line of guidance in the funnel copy;
