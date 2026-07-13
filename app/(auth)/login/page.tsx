@@ -94,7 +94,7 @@ export default async function Login({
         <p className="mt-5 text-center text-sm text-chalk-dim">
           New here?{" "}
           <Link
-            href="/signup"
+            href="/start"
             className="text-gold underline-offset-4 transition-colors hover:underline"
           >
             Create an account
