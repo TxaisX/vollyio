@@ -102,6 +102,39 @@ export default async function Signup({
                 className="input-field text-sm"
               />
             </div>
+            <label
+              htmlFor="terms"
+              className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-relaxed text-chalk-dim"
+            >
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                required
+                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-gold"
+              />
+              <span>
+                I am at least 13 years old and agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                >
+                  Privacy Policy
+                </Link>
+                . If I am under 18, a parent or guardian consents.
+              </span>
+            </label>
             <SubmitButton
               idleLabel="Start your first breakdown"
               pendingLabel="Creating your account…"

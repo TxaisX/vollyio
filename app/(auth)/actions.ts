@@ -27,12 +27,23 @@ function friendlyAuthError(message: string): string {
 }
 
 export async function signup(formData: FormData) {
+  // Clickwrap: the terms only bind people who assent, so assent is required
+  // here on the server, not just by the checkbox in the browser. The
+  // acceptance instant rides the auth record as evidence.
+  if (formData.get("terms") !== "on") {
+    redirect(
+      `/signup?error=${encodeURIComponent("Please confirm you are at least 13 and agree to the terms.")}`,
+    );
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
     options: {
-      data: { display_name: String(formData.get("display_name") ?? "") },
+      data: {
+        display_name: String(formData.get("display_name") ?? ""),
+        terms_accepted_at: new Date().toISOString(),
+      },
     },
   });
 
