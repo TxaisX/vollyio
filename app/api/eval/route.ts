@@ -21,6 +21,7 @@ import {
   type EvalExpectation,
   type ScoreInput,
 } from "@/lib/eval-score";
+import { coherentOverall, scoreBand } from "@/lib/ratings";
 import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
 import type { MeasurementsBlock } from "@/lib/pose/types";
 
@@ -58,6 +59,9 @@ type EvalCase = {
   // compare grounded vs vision-only scoring on identical frames
   // (?measurements=off replays all cases without their blocks).
   measurements: MeasurementsBlock | null;
+  // Folder-ingested cases can be flagged excluded (no scoreable action);
+  // they are skipped unless ?all=1.
+  excluded: boolean;
 };
 
 async function loadCases(): Promise<EvalCase[]> {
@@ -86,6 +90,7 @@ async function loadCases(): Promise<EvalCase[]> {
           frames: c.frames,
           expected: (c.expected ?? {}) as EvalExpectation,
           measurements: sanitizeMeasurements(c.measurements),
+          excluded: c.excluded === true,
         });
       }
     } catch {
@@ -95,7 +100,10 @@ async function loadCases(): Promise<EvalCase[]> {
   return cases;
 }
 
-async function runModel(c: EvalCase, useMeasurements: boolean): Promise<ScoreInput | null> {
+async function runModel(
+  c: EvalCase,
+  useMeasurements: boolean,
+): Promise<{ score: ScoreInput; raw: unknown } | null> {
   const content = c.frames.flatMap((f, i) => [
     {
       type: "text" as const,
@@ -163,15 +171,18 @@ async function runModel(c: EvalCase, useMeasurements: boolean): Promise<ScoreInp
 
   const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
   return {
-    overall_score: raw.overall_score,
-    metrics: METRICS[c.skill].map((m) => ({ key: m.key, score: metricsMap[m.key].score })),
-    frameIndices: [
-      ...raw.insights.map((i) => i.frame_index),
-      raw.focus.frame_index,
-      raw.contact_frame_index,
-      ...raw.ball_track.map((b) => b.frame_index),
-    ],
-    frameCount: c.frames.length,
+    score: {
+      overall_score: raw.overall_score,
+      metrics: METRICS[c.skill].map((m) => ({ key: m.key, score: metricsMap[m.key].score })),
+      frameIndices: [
+        ...raw.insights.map((i) => i.frame_index),
+        raw.focus.frame_index,
+        raw.contact_frame_index,
+        ...raw.ball_track.map((b) => b.frame_index),
+      ],
+      frameCount: c.frames.length,
+    },
+    raw,
   };
 }
 
@@ -183,8 +194,15 @@ export async function GET(req: NextRequest) {
   const runs = Math.max(1, Math.min(3, Number(url.searchParams.get("runs")) || 1));
   // ?measurements=off replays every case vision-only for A/B comparison.
   const useMeasurements = url.searchParams.get("measurements") !== "off";
+  // ?case=<id prefix> narrows the run; ?full=1 includes the parsed analysis
+  // (and its band) per case; ?all=1 also runs excluded cases.
+  const caseFilter = url.searchParams.get("case");
+  const full = url.searchParams.get("full") === "1";
+  const includeExcluded = url.searchParams.get("all") === "1";
 
-  const cases = await loadCases();
+  let cases = await loadCases();
+  if (caseFilter) cases = cases.filter((c) => c.id.startsWith(caseFilter));
+  if (!includeExcluded) cases = cases.filter((c) => !c.excluded);
   if (cases.length === 0) {
     return NextResponse.json({
       cases: 0,
@@ -197,28 +215,35 @@ export async function GET(req: NextRequest) {
   for (const c of cases) {
     try {
       const overalls: number[] = [];
-      let last: ScoreInput | null = null;
+      let last: { score: ScoreInput; raw: unknown } | null = null;
       for (let r = 0; r < runs; r++) {
         const out = await runModel(c, useMeasurements);
         if (!out) break;
-        overalls.push(out.overall_score);
+        overalls.push(out.score.overall_score);
         last = out;
       }
       if (!last) {
         results.push({ id: c.id, error: "no model output" });
         continue;
       }
-      const checks = checkCase(last, c.expected);
+      const checks = checkCase(last.score, c.expected);
+      const coherent = coherentOverall(
+        last.score.overall_score,
+        last.score.metrics.map((m) => m.score),
+      );
       results.push({
         id: c.id,
         skill: c.skill,
         discipline: c.discipline,
-        overall: last.overall_score,
+        overall: last.score.overall_score,
         overalls,
+        coherent_overall: coherent,
+        band: scoreBand(coherent),
         checks,
         pass: checks.every((x) => x.ok),
         stability: runs > 1 ? checkStability(overalls) : undefined,
         grounded: useMeasurements && c.measurements != null,
+        analysis: full ? last.raw : undefined,
       });
     } catch (e) {
       // Never surface the raw SDK message (it can name the vendor or model id);

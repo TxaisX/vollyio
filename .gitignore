@@ -58,3 +58,9 @@ next-env.d.ts
 /dist/
 .codex/
 .openai/
+
+# local eval data (frames from personal/source footage; never committed)
+evals/cases/*.json
+evals/work/
+evals/RESULTS.json
+evals/GROUPS.json
