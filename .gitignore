@@ -64,3 +64,6 @@ evals/cases/*.json
 evals/work/
 evals/RESULTS.json
 evals/GROUPS.json
+
+# downloaded source clips (never committed; same policy as eval frames)
+.cache/
