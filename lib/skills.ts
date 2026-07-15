@@ -25,12 +25,13 @@ export function isSkill(value: string): value is Skill {
   return (SKILLS as readonly string[]).includes(value);
 }
 
-export const DISCIPLINES = ["indoor", "beach"] as const;
+export const DISCIPLINES = ["indoor", "beach", "grass"] as const;
 export type Discipline = (typeof DISCIPLINES)[number];
 
 export const DISCIPLINE_LABEL: Record<Discipline, string> = {
   indoor: "Indoor",
   beach: "Beach",
+  grass: "Grass",
 };
 
 export function isDiscipline(value: string): value is Discipline {

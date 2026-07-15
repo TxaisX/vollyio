@@ -22,9 +22,38 @@ const RETURN_SCALE: Record<Level, string> = {
     "This player trains at the professional tier. Only marginal refinements remain; keep expected gains small and timeframes realistic for high-level habit change.",
 };
 
-// How the coach talks to this player. The scoring rubric never changes with
-// level; the voice, and how much a verdict gets softened, does. Pro is the
-// contract the funnel promises: judged like a professional, told bluntly.
+// Where the 0-100 scale is anchored. The per-skill RUBRIC anchors describe
+// technique from developing (~40) to advanced (~90), but its ~90 prose is written
+// to an elite/pro ceiling. Left unqualified the model measures every rep against
+// that professional bar, so a fundamentally sound club rep lands in the 50s. This
+// block re-anchors the NUMBER to an advanced competitive-amateur ceiling for the
+// default tiers, and only restores the professional ceiling for players who chose
+// the pro tier. The rubric prose stays frozen; this governs how it is scored.
+const AMATEUR_STANDARD = [
+  "SCORING STANDARD (how to turn the rubric anchors into a number)",
+  "Calibrate the number you assign to an advanced competitive-amateur and club ceiling, NOT a professional one. The rubric's ~90 prose describes elite execution; treat that as the top of strong amateur play, not the national-team bar.",
+  "- A rep whose fundamentals are sound and repeatable, with no major technical breakdown, belongs at 70-82 even if it lacks pro-level explosiveness, whip, or the last few degrees of extension. That is the target for a committed club, high-school, or serious recreational player.",
+  "- Reserve 85-91 for genuinely standout execution within that amateur population, and 92+ only for near-flawless, elite-amateur reps.",
+  "- Keep the floor honest: a rep with a clear, repeated technical fault (an arm-only push, contact well below full reach, a jump mistimed every rep) still sits at 45-60, and a broken or absent fundamental scores below 45. Never hand out a 70 for effort alone.",
+  "- Weight consistency: uniform, repeatable technique across the reps earns the TOP of a band; one clean rep buried among erratic ones earns the bottom. Rewarding consistency is the point.",
+  "Score honestly against this amateur ceiling: a strong amateur rep should feel rewarded, and a weak one should still be told the truth.",
+].join("\n");
+
+const PRO_STANDARD = [
+  "SCORING STANDARD (how to turn the rubric anchors into a number)",
+  "This player chose the professional tier: measure the number against the professional ceiling the rubric anchors describe. Reserve 90+ for professional-grade execution and do not inflate a merely sound amateur rep.",
+].join("\n");
+
+const SCORING_STANDARD: Record<Level, string> = {
+  beginner: AMATEUR_STANDARD,
+  intermediate: AMATEUR_STANDARD,
+  expert: AMATEUR_STANDARD,
+  pro: PRO_STANDARD,
+};
+
+// How the coach talks to this player. The scoring STANDARD above sets where the
+// scale sits; this sets the voice, and how much a verdict gets softened. Pro is
+// the contract the funnel promises: judged like a professional, told bluntly.
 const COACH_VOICE: Record<Level, string> = {
   beginner:
     "COACHING VOICE: This player is new. Coach like a patient teacher: lead with the one thing that works, then the biggest fix in plain language. Explain any term a first-year player would not know.",
@@ -48,6 +77,8 @@ export function outputSpec(skill: Skill, level: Level): string {
     .map((m) => `${m.key} (${m.unit})`)
     .join(", ");
   return [
+    SCORING_STANDARD[level],
+    "",
     COACH_VOICE[level],
     "",
     "MEASURED DATA (when provided)",
