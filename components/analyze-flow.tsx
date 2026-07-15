@@ -24,7 +24,6 @@ import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
 import {
   dedupePersons,
   focusPoint,
-  focusRegionAround,
   offerPersons,
   otherTrackBoxes,
   personBox,
@@ -53,7 +52,10 @@ import {
 import { clockStamp } from "@/lib/pose/measurement-format";
 import type { AnalyzeRequest, FrameKeypointsWire } from "@/lib/analysis-types";
 
-type Status = { kind: "idle" | "reading" | "sending" } | { kind: "error"; message: string };
+type Status =
+  | { kind: "idle" | "reading" | "sending" }
+  | { kind: "tracking"; pct: number }
+  | { kind: "error"; message: string };
 
 type Capture = {
   landmarks: LandmarkFrame[];
@@ -69,19 +71,17 @@ type Capture = {
 
 type Box = { left: number; top: number; width: number; height: number };
 
-// The user-drawn player frame never collapses below a graspable size and
-// never leaves the clip.
-const MIN_BOX_W = 0.08;
-const MIN_BOX_H = 0.12;
-function clampBox(b: Box): Box {
-  const width = Math.min(1, Math.max(MIN_BOX_W, b.width));
-  const height = Math.min(1, Math.max(MIN_BOX_H, b.height));
-  return {
-    left: Math.min(Math.max(0, b.left), 1 - width),
-    top: Math.min(Math.max(0, b.top), 1 - height),
-    width,
-    height,
-  };
+// A detected person on the framing card: their box plus the landmarks it
+// came from, so confirming a tap needs no fresh detection.
+type Candidate = { box: Box; pts: Landmark[] };
+
+// Overlap over the smaller box, for re-attaching the selection to the same
+// human after a scrub re-detection.
+function boxOverlap(a: Box, b: Box): number {
+  const ix =
+    Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left)) *
+    Math.max(0, Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top));
+  return ix / Math.max(1e-6, Math.min(a.width * a.height, b.width * b.height));
 }
 
 // Two-handle trim bar over the clip timeline: the gold span is the analyzed
@@ -240,17 +240,12 @@ async function markFocusFrames(
             const style = getComputedStyle(document.documentElement);
             const gold = style.getPropertyValue("--color-gold").trim();
             const navy = style.getPropertyValue("--color-navy").trim();
-            // Cropped frames: place the ring in the crop's coordinate space.
-            const crop = f.crop;
-            const nx = crop ? (cx - crop.left) / crop.width : cx;
-            const ny = crop ? (cy - crop.top) / crop.height : cy;
-            if (nx < 0.02 || nx > 0.98 || ny < 0.02 || ny > 0.98) {
+            if (cx < 0.02 || cx > 0.98 || cy < 0.02 || cy > 0.98) {
               return resolve(null);
             }
-            const x = nx * canvas.width;
-            const y = ny * canvas.height;
-            const bodyHRel = crop ? bodyH / crop.height : bodyH;
-            const r = Math.min(24, Math.max(5, bodyHRel * canvas.height * 0.07));
+            const x = cx * canvas.width;
+            const y = cy * canvas.height;
+            const r = Math.min(24, Math.max(5, bodyH * canvas.height * 0.07));
             // Dark halo first so the ring reads on any background.
             ctx.lineWidth = Math.max(4.5, r * 0.45);
             ctx.strokeStyle = navy;
@@ -302,16 +297,9 @@ function keypointsForFrames(landmarks: LandmarkFrame[], sent: Frame[]): FrameKey
       }
     }
     if (!best) continue;
-    // Cropped frames carry their window; overlays live in that window's space.
-    const c = f.crop;
     out.push({
       frame_index: f.index,
-      pts: best.pts.flatMap((p) => [
-        r3(c ? (p.x - c.left) / c.width : p.x),
-        r3(c ? (p.y - c.top) / c.height : p.y),
-        r3(p.z),
-        r3(p.v),
-      ]),
+      pts: best.pts.flatMap((p) => [r3(p.x), r3(p.y), r3(p.z), r3(p.v)]),
     });
   }
   return out;
@@ -338,7 +326,7 @@ function uploadCaptureArtifacts(
       })),
     );
     const file: KeypointsFile = {
-      version: 2,
+      version: 3,
       clip_duration_s: durationS,
       frames: capture.landmarks.map((lf) => ({
         t: r3(lf.t),
@@ -538,76 +526,93 @@ export function AnalyzeFlow({
   const [lastOpening, setLastOpening] = useState<
     (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // The sizeable frame the user draws around their player (normalized).
-  // Everything downstream — zoomed detection, track matching, crops — follows
-  // this box.
-  const [frameBox, setFrameBox] = useState<Box | null>(null);
-  const boxDragRef = useRef<{
-    pointerId: number;
-    mode: "move" | "nw" | "ne" | "sw" | "se";
-    grabX: number;
-    grabY: number;
-    start: Box;
-  } | null>(null);
-  const frameStageRef = useRef<HTMLDivElement>(null);
   // Scrubbable clip inside the framing card: pick the moment, then the player.
   const frameVideoRef = useRef<HTMLVideoElement>(null);
   const [framingUrl, setFramingUrl] = useState<string | null>(null);
   const [frameVideoFailed, setFrameVideoFailed] = useState(false);
   const [scrubT, setScrubT] = useState(0);
-  // The pinned player was never found in the clip; nobody else was analyzed.
+  // The picked player was never found in the clip; nobody else was analyzed.
   const [poiMissed, setPoiMissed] = useState(false);
   // One human line about how the follow went (exits, occlusions, coverage).
   const [trackNote, setTrackNote] = useState<string | null>(null);
   const markedRef = useRef(false);
   const [markerShown, setMarkerShown] = useState(false);
 
-  // Every detected person renders as a tappable candidate frame. Candidates
-  // start from the opening probe and re-detect live as the user scrubs, so
-  // selection always reflects the moment on screen.
-  const [candidateBoxes, setCandidateBoxes] = useState<Box[]>([]);
+  // Every detected person renders as a tappable box. Candidates start from
+  // the opening probe and re-detect live as the user scrubs, so selection
+  // always reflects the moment on screen. The most confident candidate is
+  // pre-selected; a tap pins that player explicitly.
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  // Whether the selection was the user's own tap (kept glued to the same
+  // human across re-detections, dropped when they vanish) or the automatic
+  // pre-select (free to follow the strongest detection).
+  const userPickedRef = useRef(false);
+  const selectedBoxRef = useRef<Box | null>(null);
   // The trimmed analysis window (absolute clip seconds). Dragging a handle
   // past the longest analyzable span slides the other handle along, so the
   // window is always valid and long clips become usable by trimming.
   const [trim, setTrim] = useState<TrimWindow | null>(null);
-  // Until the user moves or resizes the frame themselves, it auto-snaps to
-  // the first detected person at each scrubbed moment. An untouched frame
-  // means the automated identifier picks the player at analyze time; the
-  // state mirror drives the button copy.
-  const userFramedRef = useRef(false);
-  const [userFramed, setUserFramed] = useState(false);
 
-  // Start the frame on the first detected person's body, else centered at a
-  // person-ish size. The trim window starts at the clip's head, capped at the
-  // longest analyzable span so long clips begin valid.
-  useEffect(() => {
-    if (!openingPick) {
-      setFrameBox(null);
-      setCandidateBoxes([]);
-      setTrim(null);
-      boxDragRef.current = null;
-      userFramedRef.current = false;
-    setUserFramed(false);
+  function selectCandidate(idx: number | null, byUser: boolean) {
+    setSelectedIdx(idx);
+    userPickedRef.current = byUser ? idx != null : userPickedRef.current && idx != null;
+    selectedBoxRef.current = idx != null ? (candidatesRef.current[idx]?.box ?? null) : null;
+  }
+  const candidatesRef = useRef<Candidate[]>([]);
+
+  function applyCandidates(next: Candidate[]) {
+    candidatesRef.current = next;
+    setCandidates(next);
+    const prevBox = selectedBoxRef.current;
+    if (userPickedRef.current && prevBox) {
+      // Re-attach the pick to the same human; a vanished pick stays lost
+      // rather than silently switching players.
+      let bestIdx: number | null = null;
+      let bestOv = 0.3;
+      next.forEach((c, i) => {
+        const ov = boxOverlap(prevBox, c.box);
+        if (ov > bestOv) {
+          bestOv = ov;
+          bestIdx = i;
+        }
+      });
+      setSelectedIdx(bestIdx);
+      selectedBoxRef.current = bestIdx != null ? next[bestIdx].box : prevBox;
+      if (bestIdx == null) userPickedRef.current = false;
       return;
     }
-    const boxes = openingPick.persons
-      .map((pts) => personBox(pts))
-      .filter((b): b is Box => b != null);
-    setCandidateBoxes(boxes);
-    setFrameBox(clampBox(boxes[0] ?? { left: 0.38, top: 0.26, width: 0.24, height: 0.44 }));
+    setSelectedIdx(next.length > 0 ? 0 : null);
+    selectedBoxRef.current = next[0]?.box ?? null;
+  }
+
+  // Seed candidates from the opening probe. The trim window starts at the
+  // clip's head, capped at the longest analyzable span so long clips begin
+  // valid.
+  useEffect(() => {
+    userPickedRef.current = false;
+    selectedBoxRef.current = null;
+    if (!openingPick) {
+      applyCandidates([]);
+      setTrim(null);
+      return;
+    }
+    applyCandidates(
+      openingPick.persons
+        .map((pts) => ({ box: personBox(pts), pts }))
+        .filter((c): c is Candidate => c.box != null),
+    );
     setTrim(
       clampTrimWindow(openingPick.duration_s, {
         startS: 0,
         endS: Math.min(openingPick.duration_s, MAX_CLIP_SECONDS),
       }),
     );
-    userFramedRef.current = false;
-    setUserFramed(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openingPick]);
 
   // Live auto-detection while scrubbing: after the scrubber settles, detect
-  // the people at the current moment and refresh the candidate frames. The
-  // user's own framing is never overridden once they have touched it.
+  // the people at the current moment and refresh the tappable boxes.
   useEffect(() => {
     if (!openingPick || !framingUrl || frameVideoFailed) return;
     let cancelled = false;
@@ -618,20 +623,20 @@ export function AnalyzeFlow({
       try {
         const found = await engine.detectPersonsFromVideo(video, scrubT);
         if (cancelled || !found) return;
-        const boxes = offerPersons(dedupePersons(found.persons))
-          .map((pts) => personBox(pts))
-          .filter((b): b is Box => b != null);
-        if (boxes.length === 0) return;
-        setCandidateBoxes(boxes);
-        if (!userFramedRef.current) setFrameBox(clampBox(boxes[0]));
+        const next = offerPersons(dedupePersons(found.persons))
+          .map((pts) => ({ box: personBox(pts), pts }))
+          .filter((c): c is Candidate => c.box != null);
+        if (next.length === 0) return;
+        applyCandidates(next);
       } catch {
-        // Stale candidates are still tappable; the frame remains draggable.
+        // Stale candidates are still tappable.
       }
     }, 350);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrubT, openingPick, framingUrl, frameVideoFailed]);
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
@@ -681,131 +686,6 @@ export function AnalyzeFlow({
     setTrim({ startS: snap(startS), endS: snap(endS) });
   }
 
-  function stagePoint(e: React.PointerEvent): { x: number; y: number } | null {
-    const rect = frameStageRef.current?.getBoundingClientRect();
-    if (!rect || rect.width < 1 || rect.height < 1) return null;
-    return {
-      x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
-      y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
-    };
-  }
-
-  // Corner drags resize, inside drags move. A tap outside the frame snaps it
-  // to the detected person under the tap, else recenters it there.
-  function onStagePointerDown(e: React.PointerEvent) {
-    const p = stagePoint(e);
-    const box = frameBox;
-    if (!p || !box) return;
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    userFramedRef.current = true;
-    setUserFramed(true);
-
-    const corners = {
-      nw: { x: box.left, y: box.top },
-      ne: { x: box.left + box.width, y: box.top },
-      sw: { x: box.left, y: box.top + box.height },
-      se: { x: box.left + box.width, y: box.top + box.height },
-    } as const;
-    let mode: "move" | keyof typeof corners = "move";
-    let best = 0.05;
-    for (const [k, c] of Object.entries(corners)) {
-      const d = Math.hypot(p.x - c.x, p.y - c.y);
-      if (d < best) {
-        best = d;
-        mode = k as keyof typeof corners;
-      }
-    }
-
-    let next = box;
-    if (mode === "move") {
-      const inside =
-        p.x >= box.left &&
-        p.x <= box.left + box.width &&
-        p.y >= box.top &&
-        p.y <= box.top + box.height;
-      if (!inside) {
-        const candidate = candidateBoxes.find(
-          (b) =>
-            p.x >= b.left &&
-            p.x <= b.left + b.width &&
-            p.y >= b.top &&
-            p.y <= b.top + b.height,
-        );
-        next = clampBox(
-          candidate ?? { ...box, left: p.x - box.width / 2, top: p.y - box.height / 2 },
-        );
-        setFrameBox(next);
-      }
-    }
-    boxDragRef.current = {
-      pointerId: e.pointerId,
-      mode,
-      grabX: p.x - next.left,
-      grabY: p.y - next.top,
-      start: next,
-    };
-  }
-
-  function onStagePointerMove(e: React.PointerEvent) {
-    const drag = boxDragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
-    const p = stagePoint(e);
-    if (!p) return;
-    const s = drag.start;
-    if (drag.mode === "move") {
-      setFrameBox(clampBox({ ...s, left: p.x - drag.grabX, top: p.y - drag.grabY }));
-      return;
-    }
-    const right = s.left + s.width;
-    const bottom = s.top + s.height;
-    const nx = Math.min(p.x, right - MIN_BOX_W);
-    const ny = Math.min(p.y, bottom - MIN_BOX_H);
-    let next: Box;
-    if (drag.mode === "nw") {
-      next = { left: nx, top: ny, width: right - nx, height: bottom - ny };
-    } else if (drag.mode === "ne") {
-      next = { left: s.left, top: ny, width: Math.max(MIN_BOX_W, p.x - s.left), height: bottom - ny };
-    } else if (drag.mode === "sw") {
-      next = { left: nx, top: s.top, width: right - nx, height: Math.max(MIN_BOX_H, p.y - s.top) };
-    } else {
-      next = {
-        left: s.left,
-        top: s.top,
-        width: Math.max(MIN_BOX_W, p.x - s.left),
-        height: Math.max(MIN_BOX_H, p.y - s.top),
-      };
-    }
-    setFrameBox(clampBox(next));
-  }
-
-  function onStagePointerUp(e: React.PointerEvent) {
-    if (boxDragRef.current?.pointerId === e.pointerId) boxDragRef.current = null;
-  }
-
-  function onBoxKeyDown(e: React.KeyboardEvent) {
-    const box = frameBox;
-    if (!box) return;
-    userFramedRef.current = true;
-    setUserFramed(true);
-    const step = 0.02;
-    const b = { ...box };
-    if (e.shiftKey) {
-      if (e.key === "ArrowRight") b.width += step;
-      else if (e.key === "ArrowLeft") b.width -= step;
-      else if (e.key === "ArrowDown") b.height += step;
-      else if (e.key === "ArrowUp") b.height -= step;
-      else return;
-    } else {
-      if (e.key === "ArrowLeft") b.left -= step;
-      else if (e.key === "ArrowRight") b.left += step;
-      else if (e.key === "ArrowUp") b.top -= step;
-      else if (e.key === "ArrowDown") b.top += step;
-      else return;
-    }
-    e.preventDefault();
-    setFrameBox(clampBox(b));
-  }
   // Gate state lives in a ref, not render state: the queued submit closure
   // runs synchronously after an answer, before any re-render, and a stale
   // state read here is how an answered question used to reopen itself.
@@ -815,12 +695,22 @@ export function AnalyzeFlow({
   const consentAllowRef = useRef<HTMLButtonElement>(null);
 
   // Warm the motion-tracking engine once a skill is picked; a null engine
-  // simply means extraction runs without measurements.
+  // simply means extraction runs without measurements. The first-ever load
+  // downloads the tracking models, so surface its progress.
+  const [modelPct, setModelPct] = useState<number | null>(null);
   useEffect(() => {
     if (!skill) return;
     let cancelled = false;
-    loadPoseEngine().then((engine) => {
-      if (!cancelled) poseRef.current = engine;
+    loadPoseEngine({
+      onProgress: (p) => {
+        if (cancelled) return;
+        setModelPct(Math.min(100, Math.round((p.loadedBytes / p.totalBytes) * 100)));
+      },
+    }).then((engine) => {
+      if (!cancelled) {
+        poseRef.current = engine;
+        setModelPct(null);
+      }
     });
     return () => {
       cancelled = true;
@@ -929,7 +819,8 @@ export function AnalyzeFlow({
     }
   }, []);
 
-  const busy = status.kind === "reading" || status.kind === "sending";
+  const busy =
+    status.kind === "reading" || status.kind === "sending" || status.kind === "tracking";
   const canSubmit = frames.length > 0 && (source === "photos" || useUpload);
 
   // Release the preview object URL when it is replaced or on unmount.
@@ -1080,8 +971,15 @@ export function AnalyzeFlow({
       const pose = engine && skill ? { engine, skill, target } : undefined;
       const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
         blob,
-        { debug: debugRef.current, pose, window },
+        {
+          debug: debugRef.current,
+          pose,
+          window,
+          onProgress: (pct) =>
+            setStatus({ kind: "tracking", pct: Math.round(pct * 100) }),
+        },
       );
+      setStatus({ kind: "reading" });
       captureRef.current =
         poseCapture && skill
           ? {
@@ -1180,26 +1078,15 @@ export function AnalyzeFlow({
     }
   }
 
-  // The frame is confirmed: find the body inside it at the scrubbed moment. A
-  // fresh detection zoomed on the drawn frame finds the player even when they
-  // are small; the anchor snaps to their head and the detected body's bounds
-  // drive the zoom and crops downstream. When nobody is detected yet, the
-  // drawn frame itself anchors tracking — the user's intent survives.
-  async function confirmFraming() {
+  // The pick is confirmed: the selected candidate's own landmarks anchor
+  // tracking (no fresh detection needed). With nothing selected, the
+  // automated identifier follows the most involved player across the trimmed
+  // window, so trimming alone stays a complete flow.
+  function confirmFraming() {
     const opening = openingPick;
-    const box = frameBox;
-    if (!opening || !box) return;
+    if (!opening) return;
     const win = trim ?? undefined;
-    // An untouched frame hands the pick to the automated identifier: the
-    // activity ranking follows the most involved player across the trimmed
-    // window, so trimming alone is a complete flow. Touching the frame or
-    // tapping a candidate pins that player instead.
-    if (!userFramedRef.current) {
-      setOpeningPick(null);
-      setStatus({ kind: "reading" });
-      void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
-      return;
-    }
+    const picked = selectedIdx != null ? (candidates[selectedIdx] ?? null) : null;
     const video = frameVideoRef.current;
     const rawT =
       video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
@@ -1210,55 +1097,20 @@ export function AnalyzeFlow({
       : rawT;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    const cx = box.left + box.width / 2;
-    const cy = box.top + box.height / 2;
-    // Opening detections only describe the opening probe; re-detect when the
-    // player scrubbed elsewhere (or to sharpen the snap when they did not).
-    let persons = Math.abs(t - opening.timeS) < 0.2 ? opening.persons : [];
-    const engine = poseRef.current;
-    if (video && engine) {
-      try {
-        const found = await engine.detectPersonsFromVideo(
-          video,
-          t,
-          focusRegionAround(cx, cy, box),
-        );
-        if (found && found.persons.length > 0) persons = dedupePersons(found.persons);
-      } catch {
-        // The drawn frame still anchors tracking.
-      }
+    if (!picked) {
+      void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
+      return;
     }
-    // The body most contained by the drawn frame wins.
-    let bestPts: (typeof persons)[number] | null = null;
-    let bestOverlap = 0.25;
-    for (const pts of persons) {
-      const bb = personBox(pts);
-      if (!bb) continue;
-      const ix =
-        Math.max(
-          0,
-          Math.min(box.left + box.width, bb.left + bb.width) - Math.max(box.left, bb.left),
-        ) *
-        Math.max(
-          0,
-          Math.min(box.top + box.height, bb.top + bb.height) - Math.max(box.top, bb.top),
-        );
-      const overlap = ix / Math.max(1e-6, bb.width * bb.height);
-      if (overlap > bestOverlap) {
-        bestOverlap = overlap;
-        bestPts = pts;
-      }
-    }
-    let target: { x: number; y: number; t: number; box?: Box };
-    if (bestPts) {
-      const head = focusPoint(bestPts) ?? { x: cx, y: cy };
-      target = { x: head.x, y: head.y, t, box: personBox(bestPts) ?? box };
-    } else {
-      // Nobody detected inside the frame yet: anchor near the frame's head
-      // area and let the zoomed capture passes find them.
-      target = { x: cx, y: box.top + box.height * 0.15, t, box };
-    }
-    void runVideoExtraction(opening.blob, opening.isRecorded, target, win);
+    const anchor = focusPoint(picked.pts) ?? {
+      x: picked.box.left + picked.box.width / 2,
+      y: picked.box.top + picked.box.height / 2,
+    };
+    void runVideoExtraction(
+      opening.blob,
+      opening.isRecorded,
+      { x: anchor.x, y: anchor.y, t, box: picked.box },
+      win,
+    );
   }
 
   function skipFraming() {
@@ -1504,25 +1356,16 @@ export function AnalyzeFlow({
               </div>
             )}
 
-            {openingPick && frameBox && (
+            {openingPick && (
               <div className="card mb-3 p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Trim the window and go: the most active player is picked
-                  automatically. To choose someone yourself, size the frame
-                  around them or tap a teammate.
+                  Tap the boxed player you want analyzed. Scrub to any moment
+                  and trim the window; every frame inside it gets tracked.
                 </p>
-                <div
-                  ref={frameStageRef}
-                  onPointerDown={onStagePointerDown}
-                  onPointerMove={onStagePointerMove}
-                  onPointerUp={onStagePointerUp}
-                  onPointerCancel={onStagePointerUp}
-                  className="relative mx-auto mt-3 w-fit max-w-full cursor-crosshair select-none overflow-hidden rounded-lg bg-navy"
-                  style={{ touchAction: "none" }}
-                >
+                <div className="relative mx-auto mt-3 w-fit max-w-full select-none overflow-hidden rounded-lg bg-navy">
                   {framingUrl && !frameVideoFailed ? (
                     <video
                       ref={frameVideoRef}
@@ -1542,61 +1385,51 @@ export function AnalyzeFlow({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={openingPick.dataUrl}
-                      alt="Opening frame. Frame the player to analyze."
+                      alt="Opening frame. Tap the player to analyze."
                       className="block max-h-[45vh] w-auto max-w-full"
                       draggable={false}
                     />
                   )}
-                  {/* Auto-framed candidates: every detected person, tappable. */}
-                  {candidateBoxes.map((b, i) => (
-                    <span
+                  {/* Every detected person is a tappable box; gold = watching. */}
+                  {candidates.map((c, i) => (
+                    <button
                       key={i}
-                      aria-hidden
-                      className="pointer-events-none absolute rounded border border-chalk-dim/60"
+                      type="button"
+                      onClick={() => selectCandidate(i, true)}
+                      aria-pressed={i === selectedIdx}
+                      aria-label={`Player ${i + 1}${i === selectedIdx ? ", selected" : ""}`}
+                      className={`absolute rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                        i === selectedIdx
+                          ? "border-2 border-gold"
+                          : "border border-chalk-dim/60"
+                      }`}
                       style={{
-                        left: `${b.left * 100}%`,
-                        top: `${b.top * 100}%`,
-                        width: `${b.width * 100}%`,
-                        height: `${b.height * 100}%`,
-                      }}
-                    />
-                  ))}
-                  <div
-                    role="group"
-                    aria-label="Player frame. Drag to move, drag a corner to resize. Arrow keys move; hold Shift and use arrow keys to resize."
-                    tabIndex={0}
-                    onKeyDown={onBoxKeyDown}
-                    className="absolute cursor-grab focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-                    style={{
-                      left: `${frameBox.left * 100}%`,
-                      top: `${frameBox.top * 100}%`,
-                      width: `${frameBox.width * 100}%`,
-                      height: `${frameBox.height * 100}%`,
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 rounded-md border-2 border-gold"
-                      style={{
+                        left: `${c.box.left * 100}%`,
+                        top: `${c.box.top * 100}%`,
+                        width: `${c.box.width * 100}%`,
+                        height: `${c.box.height * 100}%`,
                         boxShadow:
-                          "0 0 0 100vmax color-mix(in srgb, var(--color-navy) 40%, transparent), 0 0 14px color-mix(in srgb, var(--color-gold) 45%, transparent)",
+                          i === selectedIdx
+                            ? "0 0 14px color-mix(in srgb, var(--color-gold) 45%, transparent)"
+                            : undefined,
                       }}
-                    />
-                    {(
-                      [
-                        ["-left-1.5", "-top-1.5"],
-                        ["-right-1.5", "-top-1.5"],
-                        ["-left-1.5", "-bottom-1.5"],
-                        ["-right-1.5", "-bottom-1.5"],
-                      ] as const
-                    ).map(([x, y]) => (
-                      <span
-                        key={`${x}${y}`}
-                        aria-hidden
-                        className={`absolute ${x} ${y} h-3 w-3 rounded-[3px] bg-gold shadow-lift`}
-                      />
-                    ))}
-                  </div>
+                    >
+                      {i === selectedIdx && (
+                        <span
+                          aria-hidden
+                          className="absolute -top-5 left-0 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-navy"
+                        >
+                          watching
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {candidates.length === 0 && (
+                    <p className="absolute inset-x-0 bottom-2 mx-auto w-fit rounded bg-navy/80 px-2 py-1 text-center text-[11px] text-chalk-dim">
+                      No players spotted at this moment. Scrub to a clearer
+                      point in the clip.
+                    </p>
+                  )}
                 </div>
                 {framingUrl && !frameVideoFailed && (
                   <input
@@ -1639,7 +1472,9 @@ export function AnalyzeFlow({
                   onClick={confirmFraming}
                   className="btn-primary mt-4 min-h-11 w-full"
                 >
-                  {userFramed ? "Analyze this athlete" : "Find my player and analyze"}
+                  {selectedIdx != null
+                    ? "Analyze this player"
+                    : "Find my player and analyze"}
                 </button>
                 <button
                   type="button"
@@ -1655,8 +1490,8 @@ export function AnalyzeFlow({
               <div className="reward-earned">
                 {poiMissed && (
                   <p className="mb-2 text-xs text-coral">
-                    Couldn't find your framed player in the clip, so nobody
-                    else was measured in their place. Reframe to try again.
+                    Couldn't find your picked player in the clip, so nobody
+                    else was measured in their place. Pick again to retry.
                   </p>
                 )}
                 {trackNote && !poiMissed && (
@@ -1741,7 +1576,15 @@ export function AnalyzeFlow({
             <div className="mt-4 min-h-6 font-mono text-sm" aria-live="polite">
               {status.kind === "reading" && (
                 <span className="flex items-center gap-2.5 text-teal">
-                  <WorkingDots /> Pulling key frames…
+                  <WorkingDots />{" "}
+                  {modelPct != null && modelPct < 100
+                    ? `Preparing motion tracking… ${modelPct}%`
+                    : "Reading your clip…"}
+                </span>
+              )}
+              {status.kind === "tracking" && (
+                <span className="flex items-center gap-2.5 text-teal">
+                  <WorkingDots /> Tracking the play… {status.pct}%
                 </span>
               )}
               {status.kind === "sending" && !retrying && (

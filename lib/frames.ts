@@ -4,8 +4,8 @@ import {
   clampTrimWindow,
   findPeaks,
   planFrameTimes,
+  planFromPose,
   planExtraStoreTimes,
-  type Peak,
   type PlannedFrame,
   type FrameKind,
   type TrimWindow,
@@ -24,9 +24,9 @@ import {
   buildTracks,
   dedupePersons,
   focusPoint,
-  focusRegionAround,
   offerPersons,
   pickTargetTrack,
+  speedPeakTimes,
   type FocusRegion,
 } from "./pose/kinematics";
 import { trackContinuity, type TrackContinuity } from "./pose/track-state";
@@ -46,21 +46,17 @@ const SHORT_CLIP_SECONDS = 6; // below this, skip the scan and sample uniformly
 const NOISE_FLOOR = 12; // per-pixel luminance diff below this is treated as noise
 
 // Motion-tracking capture tuning. Tracking is strictly additive: any failure
-// or budget overrun degrades to the exact pre-existing pipeline.
+// or budget overrun degrades to the luminance-scan pipeline.
 export const STORE_FRAMES = MAX_STORED_FRAMES; // stored permanently; only the send set ships to the model
-const POSE_PROBE_BUDGET_MS = 4000; // probe landmarks stop consuming time after this
-const DENSE_WINDOW_S = 1.2; // dense capture reaches this far around each peak
-const DENSE_WINDOW_MAX_FRAMES = 48;
-const DENSE_TOTAL_BUDGET_MS = 9000;
+// The full-clip pass plays in real time; the wall clock only intervenes when
+// playback stalls well beyond the window it should cover.
+const FULL_PASS_SLACK_FACTOR = 2.5;
+const FULL_PASS_SLACK_MS = 20_000;
 
 export type Frame = {
   index: number;
   time_s: number | null;
   dataUrl: string;
-  // When the frame is a crop that follows the framed player, the source
-  // window in full-frame normalized coordinates. Landmark and marker overlays
-  // must be transformed into this window's space.
-  crop?: FocusRegion;
 };
 
 export type FrameDebug = {
@@ -69,9 +65,8 @@ export type FrameDebug = {
   scanMs: number;
   fellBack: boolean;
   totalBytes: number;
-  poseProbeCount?: number;
-  denseCount?: number;
-  denseMs?: number;
+  trackedFrames?: number;
+  passMs?: number;
   repContacts?: number[];
 };
 
@@ -103,60 +98,18 @@ export type ExtractOpts = {
   // path stays inside it; omitted means the whole clip. Lets a long clip be
   // analyzed by choosing a window instead of being rejected outright.
   window?: TrimWindow;
+  // Full-clip tracking progress, 0..1 across the trimmed window.
+  onProgress?: (pct: number) => void;
   pose?: {
     engine: PoseEngine;
     skill: Skill;
-    // A user-pinned focus player: normalized head/focus-point position at a
-    // clip time. Track selection anchors to this instead of the activity
-    // ranking, and detection zooms into a region around it so a small,
-    // distant player still registers. box is the detected body's bounds.
+    // A user-picked focus player: normalized focus-point position at a clip
+    // time. Track selection anchors to this instead of the activity ranking,
+    // and the engine prioritizes the person nearest it on slow tiers. box is
+    // the detected body's bounds at that moment.
     target?: { x: number; y: number; t: number; box?: FocusRegion };
   };
 };
-
-// Follows the framed player through the capture passes: detection runs on a
-// padded crop around their last known position, re-centering on every hit.
-// A few consecutive misses widen back to the full frame; a full-frame hit
-// near the last known position re-tightens the zoom.
-function createFocusTracker(target: NonNullable<ExtractOpts["pose"]>["target"]): {
-  region(): FocusRegion | undefined;
-  update(frame: PersonFrame | null): void;
-} | null {
-  if (!target) return null;
-  const box = target.box ?? null;
-  let region: FocusRegion | null = focusRegionAround(target.x, target.y, box);
-  let misses = 0;
-  let lastX = target.x;
-  let lastY = target.y;
-  return {
-    region: () => region ?? undefined,
-    update(frame) {
-      const persons = frame?.persons ?? [];
-      let best: { x: number; y: number } | null = null;
-      let bestD = Infinity;
-      for (const pts of persons) {
-        const c = focusPoint(pts);
-        if (!c) continue;
-        const d = Math.hypot(c.x - lastX, c.y - lastY);
-        if (d < bestD) {
-          bestD = d;
-          best = c;
-        }
-      }
-      // Never latch onto somebody else: a detection far from the player's
-      // last known position counts as a miss, zoomed or not. The lock only
-      // resumes when someone reappears near where the player was lost.
-      if (!best || bestD > 0.3) {
-        if (region && ++misses >= 3) region = null;
-        return;
-      }
-      misses = 0;
-      lastX = best.x;
-      lastY = best.y;
-      region = focusRegionAround(best.x, best.y, box);
-    },
-  };
-}
 
 // The opening of the clip: a rendered frame from the first seconds plus any
 // people detected in it, so the player can frame who to follow. persons is
@@ -331,25 +284,17 @@ function b64Bytes(dataUrl: string): number {
   return comma < 0 ? dataUrl.length : dataUrl.length - comma - 1;
 }
 
-// Pass A: seek through probe timestamps and score motion by luminance
+// Fallback pass: seek through probe timestamps and score motion by luminance
 // frame-differencing on a tiny canvas. Throws on time budget → uniform
-// fallback. When a tracking engine is provided, the same seek pass also
-// collects a probe landmark frame until the pose sub-budget runs out; that
-// part is best-effort garnish and can never fail the scan.
-async function scanMotion(
-  video: HTMLVideoElement,
-  probeTimes: number[],
-  engine?: PoseEngine,
-  tracker?: ReturnType<typeof createFocusTracker>,
-): Promise<{ motion: number[]; poseFrames: PersonFrame[]; balls: BallPoint[] }> {
+// fallback. Only runs when the tracking engine is absent or its full-clip
+// pass produced nothing to plan from.
+async function scanMotion(video: HTMLVideoElement, probeTimes: number[]): Promise<number[]> {
   const [w, h] = scaledSize(video.videoWidth || 640, video.videoHeight || 360, SCAN_DIM);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const motion = new Array(probeTimes.length).fill(0);
-  const poseFrames: PersonFrame[] = [];
-  const balls: BallPoint[] = [];
   let prev: Uint8Array | null = null;
   const start = Date.now();
 
@@ -371,24 +316,8 @@ async function scanMotion(
       motion[i] = acc / lum.length;
     }
     prev = lum;
-
-    if (engine && Date.now() - start <= POSE_PROBE_BUDGET_MS) {
-      try {
-        const frame = await engine.detectPersonsFromVideo(
-          video,
-          video.currentTime,
-          tracker?.region(),
-        );
-        if (frame?.ball) balls.push(frame.ball);
-        // Ball-only instants (nobody detected) never become person frames.
-        if (frame && frame.persons.length > 0) poseFrames.push(frame);
-        tracker?.update(frame);
-      } catch {
-        // Probe landmarks are optional; the luminance scan is the contract.
-      }
-    }
   }
-  return { motion, poseFrames, balls };
+  return motion;
 }
 
 // Wait until the video presents its next frame; falls back to a short timer
@@ -415,100 +344,104 @@ function nextVideoFrame(video: HTMLVideoElement, timeoutMs = 400): Promise<boole
   });
 }
 
-// Stage 2: play short muted segments around each peak and collect dense
-// landmark frames. Serial detection while the video plays in real time; the
-// effective capture rate is whatever the device manages inside the budget.
-async function captureDenseWindows(
+// Seek stride when real-time playback cannot drive the pass (see below).
+const FULL_PASS_STEP_S = 1 / 12;
+
+// The tracking pass: play the whole trimmed window once at real speed and
+// detect on every presented frame the device keeps up with. Slow devices
+// simply skip frames (detection is serial); coverage stays wall-to-wall.
+// requestVideoFrameCallback only fires while the page composites, so a
+// hidden tab (or a browser that never presents a detached video) drops the
+// pass into deterministic seek-stepping instead of losing coverage.
+async function captureFullClip(
   video: HTMLVideoElement,
   engine: PoseEngine,
-  peakTimes: number[],
-  duration: number,
-  tracker?: ReturnType<typeof createFocusTracker>,
-  analysisStartS = 0,
+  startS: number,
+  endS: number,
+  target?: NonNullable<ExtractOpts["pose"]>["target"],
+  onProgress?: (pct: number) => void,
 ): Promise<{
   frames: PersonFrame[];
   balls: BallPoint[];
-  denseFps: number | null;
-  denseMs: number;
+  effectiveFps: number | null;
+  passMs: number;
 }> {
   const frames: PersonFrame[] = [];
   const balls: BallPoint[] = [];
-  const deadline = Date.now() + DENSE_TOTAL_BUDGET_MS;
   const started = Date.now();
-  let coveredS = 0;
+  const span = Math.max(0.1, endS - startS);
+  const deadline = started + span * 1000 * FULL_PASS_SLACK_FACTOR + FULL_PASS_SLACK_MS;
+  // The focus hint follows the picked player between frames; it only steers
+  // which person gets pose priority on slow tiers, never what is detected.
+  let hint: { x: number; y: number } | null = target ? { x: target.x, y: target.y } : null;
 
-  const sorted = [...peakTimes].sort((a, b) => a - b);
-  let lastEnd = 0;
-  for (const peak of sorted) {
-    if (Date.now() >= deadline) break;
-    const startS = Math.max(0.05, analysisStartS, peak - DENSE_WINDOW_S, lastEnd);
-    const endS = Math.min(duration - 0.05, peak + DENSE_WINDOW_S);
-    if (endS - startS < 0.3) continue;
-    lastEnd = endS;
-
-    try {
-      await seekTo(video, startS);
-      await video.play();
-    } catch {
-      continue;
-    }
-
-    let captured = 0;
-    while (
-      !video.ended &&
-      video.currentTime < endS &&
-      captured < DENSE_WINDOW_MAX_FRAMES &&
-      Date.now() < deadline
-    ) {
-      const presented = await nextVideoFrame(video);
-      if (!presented) break;
-      try {
-        const frame = await engine.detectPersonsFromVideo(
-          video,
-          video.currentTime,
-          tracker?.region(),
-        );
-        if (frame?.ball) balls.push(frame.ball);
-        if (frame && frame.persons.length > 0) {
-          frames.push(frame);
-          captured++;
-        }
-        tracker?.update(frame);
-      } catch {
-        break;
-      }
-    }
-    video.pause();
-    coveredS += Math.max(0, Math.min(video.currentTime, endS) - startS);
+  let playing = false;
+  try {
+    await seekTo(video, Math.max(0.05, startS));
+  } catch {
+    return { frames, balls, effectiveFps: null, passMs: Date.now() - started };
+  }
+  try {
+    await video.play();
+    playing = true;
+  } catch {
+    playing = false;
   }
 
-  const denseMs = Date.now() - started;
-  const denseFps = coveredS > 0.2 ? Math.round((frames.length / coveredS) * 10) / 10 : null;
-  return { frames, balls, denseFps, denseMs };
-}
-
-// Snap luminance peaks to measured rep contacts when tracking found reps
-// close by; contact instants are where the frames must land.
-function refinePeaks(peaks: Peak[], contacts: number[]): Peak[] {
-  if (contacts.length === 0) return peaks;
-  const used = new Set<number>();
-  return peaks.map((peak) => {
-    let best = -1;
-    let bestD = 0.8;
-    contacts.forEach((c, i) => {
-      const d = Math.abs(c - peak.timeS);
-      if (!used.has(i) && d < bestD) {
-        bestD = d;
-        best = i;
+  while (!video.ended && video.currentTime < endS && Date.now() < deadline) {
+    if (playing) {
+      const presented = await nextVideoFrame(video);
+      if (!presented) {
+        // No composited frame: fall back to stepping from right here.
+        playing = false;
+        video.pause();
+        continue;
       }
-    });
-    if (best < 0) return peak;
-    used.add(best);
-    return { timeS: contacts[best], score: peak.score };
-  });
+    } else {
+      const next = video.currentTime + FULL_PASS_STEP_S;
+      if (next >= endS - 0.02) break;
+      await seekTo(video, next);
+    }
+    try {
+      const frame = await engine.detectPersonsFromVideo(
+        video,
+        video.currentTime,
+        undefined,
+        hint,
+      );
+      if (frame?.ball) balls.push(frame.ball);
+      if (frame && frame.persons.length > 0) {
+        frames.push(frame);
+        if (hint) {
+          let best: { x: number; y: number } | null = null;
+          let bestD = 0.3;
+          for (const pts of frame.persons) {
+            const c = focusPoint(pts);
+            if (!c) continue;
+            const d = Math.hypot(c.x - hint.x, c.y - hint.y);
+            if (d < bestD) {
+              bestD = d;
+              best = c;
+            }
+          }
+          if (best) hint = best;
+        }
+      }
+    } catch {
+      break;
+    }
+    onProgress?.(Math.min(1, (video.currentTime - startS) / span));
+  }
+  video.pause();
+
+  const passMs = Date.now() - started;
+  const coveredS = Math.max(0, Math.min(video.currentTime, endS) - startS);
+  const effectiveFps =
+    coveredS > 0.2 ? Math.round((frames.length / coveredS) * 10) / 10 : null;
+  return { frames, balls, effectiveFps, passMs };
 }
 
-type Rendered = { time_s: number; dataUrl: string; kind: FrameKind; crop?: FocusRegion };
+type Rendered = { time_s: number; dataUrl: string; kind: FrameKind };
 
 async function renderPlanned(
   video: HTMLVideoElement,
@@ -523,30 +456,16 @@ async function renderPlanned(
   const out: Rendered[] = [];
   for (const pf of planned) {
     await seekTo(video, pf.timeS);
-    if (pf.crop) {
-      // Crop that follows the framed player: render the window at native
-      // resolution (capped at dim), a real zoom rather than a scale-up.
-      const sx = pf.crop.left * vw;
-      const sy = pf.crop.top * vh;
-      const sw = Math.max(8, Math.round(pf.crop.width * vw));
-      const sh = Math.max(8, Math.round(pf.crop.height * vh));
-      const [w, h] = scaledSize(sw, sh, dim);
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
-    } else {
-      const [w, h] = scaledSize(vw, vh, dim);
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(video, 0, 0, w, h);
-    }
+    const [w, h] = scaledSize(vw, vh, dim);
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
     out.push({
       // Read the ACTUAL post-seek frame time so time_s matches the image the
       // model sees (the route maps frame_index → time_s from this value).
       time_s: Math.round(video.currentTime * 10) / 10,
       dataUrl: canvas.toDataURL("image/jpeg", quality),
       kind: pf.kind,
-      crop: pf.crop,
     });
   }
   return out;
@@ -587,7 +506,6 @@ async function finalizePlanned(
     index,
     time_s: r.time_s,
     dataUrl: r.dataUrl,
-    crop: r.crop,
   }));
   const chosen = rendered.map((r) => ({ t: r.time_s, kind: r.kind }));
   return { frames, chosen, totalBytes: total };
@@ -598,71 +516,45 @@ async function sampleContentAware(
   wantDebug: boolean,
   pose?: ExtractOpts["pose"],
   win?: TrimWindow,
+  onProgress?: (pct: number) => void,
 ): Promise<VideoExtraction | null> {
   const duration = video.duration;
-  // The trimmed window bounds every sampling path; the confirmed framing
-  // moment then starts analysis inside it. Keep at least a second of clip.
-  const winStart = Math.max(0, win?.startS ?? 0);
+  // The trimmed window bounds every path; full-clip tracking covers all of
+  // it regardless of where the player confirmed their pick.
+  const startS = Math.max(0, win?.startS ?? 0);
   const endS = Math.min(duration, win?.endS ?? duration);
-  const startS = pose?.target
-    ? Math.max(winStart, Math.min(pose.target.t - 0.05, endS - 1))
-    : winStart;
-  const probeTimes = buildProbeTimes(endS, PROBE_COUNT, startS);
-  const scanStart = Date.now();
-  // Each chronological pass gets its own tracker so both start from the
-  // user's anchor rather than wherever the previous pass ended.
-  const { motion, poseFrames, balls: probeBalls } = await scanMotion(
-    video,
-    probeTimes,
-    pose?.engine,
-    createFocusTracker(pose?.target),
-  );
-  const scanMs = Date.now() - scanStart;
 
-  const peaks = findPeaks(motion, probeTimes);
-  if (peaks.length === 0) return null;
-
-  // Stage 2 + measurement: strictly additive, every failure leaves the
-  // luminance plan untouched. Multi-player footage becomes per-person tracks;
-  // the strongest track (most active, most prominent) is followed by default
-  // and the rest ride along for the focus-player picker.
+  // Tracking pass + measurement. Multi-player footage becomes per-person
+  // tracks; the picked player's track is followed (or the strongest track
+  // when analysis was started without a pick).
   let landmarks: LandmarkFrame[] = [];
   let measurements: MeasurementsBlock | null = null;
-  let denseFps: number | null = null;
-  let denseMs = 0;
+  let effectiveFps: number | null = null;
+  let passMs = 0;
   let contacts: number[] = [];
   let tracks: PersonTrack[] = [];
   let selectedTrackId: number | null = null;
   let continuity: TrackContinuity | null = null;
   let ballTrack: BallPoint[] = [];
+  let planned: PlannedFrame[] = [];
+  const coarseInterval = Math.max(0.1, (endS - startS) / PROBE_COUNT);
+
   if (pose) {
     try {
-      // The framed moment always gets its own dense window: motion peaks can
-      // belong to other players or other moments, and a target that never
-      // falls inside a capture window can never be matched to a track.
-      const windowTimes = pose.target
-        ? [
-            ...new Set([
-              ...peaks.map((p) => p.timeS),
-              Math.min(Math.max(pose.target.t, startS + 0.05), endS - 0.05),
-            ]),
-          ].sort((a, b) => a - b)
-        : peaks.map((p) => p.timeS);
-      const dense = await captureDenseWindows(
+      const pass = await captureFullClip(
         video,
         pose.engine,
-        windowTimes,
-        endS,
-        createFocusTracker(pose.target),
         startS,
+        endS,
+        pose.target,
+        onProgress,
       );
-      denseMs = dense.denseMs;
-      denseFps = dense.denseFps;
-      ballTrack = cleanBallTrack([...probeBalls, ...dense.balls]);
-      const personFrames = [...poseFrames, ...dense.frames].sort((a, b) => a.t - b.t);
-      tracks = buildTracks(personFrames);
-      // A user-framed player overrides the activity ranking. When no track
-      // matches the frame, choose NOBODY rather than silently analyzing a
+      passMs = pass.passMs;
+      effectiveFps = pass.effectiveFps;
+      ballTrack = cleanBallTrack(pass.balls);
+      tracks = buildTracks(pass.frames);
+      // A user-picked player overrides the activity ranking. When no track
+      // matches the pick, choose NOBODY rather than silently analyzing a
       // different player; the flow surfaces the miss.
       const target = pose.target;
       const chosen = target ? pickTargetTrack(tracks, target) : (tracks[0] ?? null);
@@ -672,8 +564,9 @@ async function sampleContentAware(
         measurements = buildMeasurementsBlock(
           pose.skill,
           landmarks,
-          denseFps,
+          effectiveFps,
           pose.engine.modelName,
+          "full",
         );
         contacts = (measurements?.reps ?? [])
           .map((r) => r.contact_s)
@@ -687,6 +580,16 @@ async function sampleContentAware(
           const exits = continuity.absences.filter((a) => a.kind === "off_frame").length;
           if (exits > 0) measurements.session.frame_exits = exits;
         }
+        // The sent frames come from the measured motion itself: rep contacts
+        // first, strongest wrist-speed instants after.
+        planned = planFromPose(
+          endS,
+          contacts,
+          speedPeakTimes(landmarks),
+          coarseInterval,
+          MAX_FRAMES,
+          startS,
+        );
       }
     } catch {
       measurements = null;
@@ -694,60 +597,34 @@ async function sampleContentAware(
       selectedTrackId = null;
       continuity = null;
       ballTrack = [];
+      landmarks = [];
+      planned = [];
     }
   }
 
-  const coarseInterval = probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : 0;
-  const planned = planFrameTimes(
-    endS,
-    refinePeaks(peaks, contacts),
-    coarseInterval,
-    MAX_FRAMES,
-    startS,
-  );
+  // Luminance fallback plan: no engine, engine failure, or nobody tracked.
+  let fallbackCurve: { t: number; score: number }[] = [];
+  let scanMs = 0;
+  if (planned.length < 2) {
+    const probeTimes = buildProbeTimes(endS, PROBE_COUNT, startS);
+    const scanStart = Date.now();
+    const motion = await scanMotion(video, probeTimes);
+    scanMs = Date.now() - scanStart;
+    const peaks = findPeaks(motion, probeTimes);
+    if (peaks.length === 0) return null;
+    fallbackCurve = probeTimes.map((t, i) => ({
+      t: Math.round(t * 10) / 10,
+      score: Math.round(motion[i] * 100) / 100,
+    }));
+    planned = planFrameTimes(
+      endS,
+      peaks,
+      probeTimes.length > 1 ? probeTimes[1] - probeTimes[0] : coarseInterval,
+      MAX_FRAMES,
+      startS,
+    );
+  }
   if (planned.length < 2) return null;
-
-  // Stay true to the user's framing: when a framed player was followed, the
-  // frames sent for analysis are crops of one fixed-size window (scaled up
-  // from the drawn box) re-centered on the player's hips at each moment.
-  // Frames where the player was not seen nearby stay full-frame.
-  const cropBox = pose?.target?.box;
-  if (cropBox && landmarks.length > 0) {
-    const cw = Math.min(1, Math.max(0.3, cropBox.width * 2.2));
-    const ch = Math.min(1, Math.max(0.4, cropBox.height * 1.9));
-    if (cw < 0.999 || ch < 0.999) {
-      for (const pf of planned) {
-        let near: LandmarkFrame | null = null;
-        let nearD = 0.8;
-        for (const lf of landmarks) {
-          const d = Math.abs(lf.t - pf.timeS);
-          if (d < nearD) {
-            nearD = d;
-            near = lf;
-          }
-        }
-        if (!near) continue;
-        // Center the window on the whole visible body so the crop never
-        // beheads or cuts the legs off the player.
-        const xs: number[] = [];
-        const ys: number[] = [];
-        for (const p of near.pts) {
-          if (p.v < 0.4) continue;
-          xs.push(p.x);
-          ys.push(p.y);
-        }
-        if (xs.length < 6) continue;
-        const bx = (Math.min(...xs) + Math.max(...xs)) / 2;
-        const by = (Math.min(...ys) + Math.max(...ys)) / 2;
-        pf.crop = {
-          left: Math.min(Math.max(0, bx - cw / 2), 1 - cw),
-          top: Math.min(Math.max(0, by - ch / 2), 1 - ch),
-          width: cw,
-          height: ch,
-        };
-      }
-    }
-  }
 
   const { frames, chosen, totalBytes } = await finalizePlanned(video, planned);
 
@@ -770,17 +647,13 @@ async function sampleContentAware(
 
   const debug: FrameDebug | undefined = wantDebug
     ? {
-        curve: probeTimes.map((t, i) => ({
-          t: Math.round(t * 10) / 10,
-          score: Math.round(motion[i] * 100) / 100,
-        })),
+        curve: fallbackCurve,
         chosen,
         scanMs,
         fellBack: false,
         totalBytes,
-        poseProbeCount: poseFrames.length,
-        denseCount: landmarks.length,
-        denseMs,
+        trackedFrames: landmarks.length,
+        passMs,
         repContacts: contacts.map((c) => Math.round(c * 10) / 10),
       }
     : undefined;
@@ -792,7 +665,7 @@ async function sampleContentAware(
       ? {
           landmarks,
           measurements,
-          denseFps,
+          denseFps: effectiveFps,
           tracks,
           selectedTrackId,
           continuity,
@@ -821,20 +694,25 @@ export async function extractFramesFromVideo(
   video: HTMLVideoElement,
   opts?: ExtractOpts,
 ): Promise<VideoExtraction> {
-  // The trimmed window and the confirmed framing moment bound every path.
+  // The trimmed window bounds every path. With a tracking engine the full
+  // pass runs even on short clips (it is cheap there); without one, short
+  // clips go straight to uniform sampling.
   const win = clampTrimWindow(video.duration, opts?.window ?? null);
-  const startS = opts?.pose?.target
-    ? Math.max(win.startS, Math.min(opts.pose.target.t - 0.05, win.endS - 1))
-    : win.startS;
-  if (win.endS - startS > SHORT_CLIP_SECONDS) {
+  if (opts?.pose || win.endS - win.startS > SHORT_CLIP_SECONDS) {
     try {
-      const result = await sampleContentAware(video, opts?.debug ?? false, opts?.pose, win);
+      const result = await sampleContentAware(
+        video,
+        opts?.debug ?? false,
+        opts?.pose,
+        win,
+        opts?.onProgress,
+      );
       if (result) return result;
     } catch {
       // Any failure (slow seeks, decode, getImageData) degrades to uniform.
     }
   }
-  const frames = await sampleUniform(video, startS, win.endS);
+  const frames = await sampleUniform(video, win.startS, win.endS);
   const debug: FrameDebug | undefined = opts?.debug
     ? {
         curve: [],

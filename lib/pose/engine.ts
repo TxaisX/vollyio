@@ -2,46 +2,62 @@
 // null on any failure: callers treat a null engine as "no measurements" and
 // the extraction pipeline degrades to its pre-existing behavior.
 //
-// Detection is multi-person (up to 4): callers receive every athlete in the
-// frame and choose who to follow via the track builder in kinematics.
+// The engine lives entirely in a worker (OffscreenCanvas + ImageBitmap
+// transfer); browsers without worker support get a null engine. Detection is
+// multi-person (up to 4): callers receive every athlete in the frame and
+// choose who to follow via the track builder in kinematics.
 
 import {
   POSE_LANDMARK_COUNT,
-  createMonotonicClock,
   type Landmark,
   type PersonFrame,
 } from "./types.ts";
 import { mapRegionPersons, type FocusRegion } from "./kinematics.ts";
+import {
+  DETECTOR_MODEL,
+  POSE_MODEL,
+  ENGINE_NAME_BASE,
+  modelChunkUrls,
+} from "./rtm/model-manifest.ts";
 
-const WASM_BASE = "/pose/wasm";
-// Ordered preference: the full landmarker tracks fast volleyball motion better
-// than lite (same 33 landmarks, same license, bigger net); devices that fail
-// to load it fall back to lite rather than losing measurements entirely.
-const MODELS = [
-  { path: "/pose/pose_landmarker_full.task", name: "pose-landmarker-full" },
-  { path: "/pose/pose_landmarker_lite.task", name: "pose-landmarker-lite" },
-];
+// Runtime assets for the inference sessions, vendored same-origin.
+const ORT_WASM_BASE = "/pose/ort/";
 // Sports-ball object detector (D-019). Additive: any load or inference
 // failure leaves the pose pipeline untouched.
+const BALL_WASM_BASE = "/pose/wasm";
 const BALL_MODEL = "/pose/efficientdet_lite0_f16.tflite";
-const INIT_TIMEOUT_MS = 12_000;
-const DETECT_TIMEOUT_MS = 4_000;
-const MAX_PERSONS = 4;
+
+// Worker boot (script + wasm runtime) must show a first sign of life within
+// this window; the model download gets its own stall watchdog because its
+// duration is connection-bound, not fixed.
+const BOOT_TIMEOUT_MS = 20_000;
+const MODEL_STALL_TIMEOUT_MS = 30_000;
+const INIT_MAX_MS = 300_000;
+// First inferences compile shaders on the GPU tier and the fallback tier is
+// simply slow; both get generous per-detect bounds.
+const DETECT_TIMEOUT_GPU_MS = 10_000;
+const DETECT_TIMEOUT_WASM_MS = 30_000;
 // Long edge for detection input; normalized outputs are size-invariant.
-const DETECT_DIM = 512;
+// Sized so a distant player still spans enough pixels for the pose crop
+// (this replaces the old region-zoom machinery).
+const CAPTURE_DIM = 1280;
 
 export type PoseEngine = {
-  // Which landmarker variant actually loaded (reported in measurements).
+  // Which engine tier actually loaded (reported in measurements).
   modelName: string;
-  // With a region, detection runs on that crop of the frame (a distant player
-  // fills the model's input) and landmarks come back in full-frame coords.
+  // With a region, detection runs on that crop of the frame and landmarks
+  // come back in full-frame coords. The hint is a normalized focus point:
+  // low-power tiers prioritize the person nearest it between detector runs.
   detectPersonsFromVideo(
     video: HTMLVideoElement,
     timeS: number,
     region?: FocusRegion,
+    hint?: { x: number; y: number } | null,
   ): Promise<PersonFrame | null>;
   dispose(): void;
 };
+
+export type ModelProgress = { loadedBytes: number; totalBytes: number };
 
 function regionRect(
   video: HTMLVideoElement,
@@ -82,7 +98,7 @@ function unpack(pts: Float32Array, count: number, timeS: number): PersonFrame {
 function detectSize(video: HTMLVideoElement): { resizeWidth: number; resizeHeight: number } {
   const w = video.videoWidth || 640;
   const h = video.videoHeight || 360;
-  const scale = Math.min(1, DETECT_DIM / Math.max(w, h));
+  const scale = Math.min(1, CAPTURE_DIM / Math.max(w, h));
   return {
     resizeWidth: Math.max(1, Math.round(w * scale)),
     resizeHeight: Math.max(1, Math.round(h * scale)),
@@ -119,6 +135,14 @@ type WorkerResult = {
   ball?: { x: number; y: number; score: number } | null;
 };
 
+const progressListeners = new Set<(p: ModelProgress) => void>();
+let lastProgress: ModelProgress | null = null;
+
+function emitProgress(p: ModelProgress): void {
+  lastProgress = p;
+  for (const listener of progressListeners) listener(p);
+}
+
 function createWorkerEngine(): Promise<PoseEngine | null> {
   return new Promise((resolve) => {
     let worker: Worker;
@@ -132,42 +156,50 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     let nextId = 1;
     const pending = new Map<number, (result: WorkerResult) => void>();
     let settledInit = false;
-    let loadedModel = MODELS[MODELS.length - 1].name;
+    let detectTimeoutMs = DETECT_TIMEOUT_WASM_MS;
 
-    const initTimer = setTimeout(() => {
+    const failInit = () => {
       if (!settledInit) {
         settledInit = true;
-        worker.terminate();
-        resolve(null);
-      }
-    }, INIT_TIMEOUT_MS);
-
-    worker.onerror = () => {
-      if (!settledInit) {
-        settledInit = true;
-        clearTimeout(initTimer);
+        clearTimeout(watchdog);
+        clearTimeout(maxTimer);
         worker.terminate();
         resolve(null);
       }
     };
 
+    // Boot watchdog, re-armed by model download progress so a slow network
+    // is not mistaken for a dead worker.
+    let watchdog = setTimeout(failInit, BOOT_TIMEOUT_MS);
+    const maxTimer = setTimeout(failInit, INIT_MAX_MS);
+
+    worker.onerror = failInit;
+
     worker.onmessage = (event: MessageEvent) => {
       const msg = event.data;
+      if (msg?.type === "model-progress" && !settledInit) {
+        clearTimeout(watchdog);
+        watchdog = setTimeout(failInit, MODEL_STALL_TIMEOUT_MS);
+        if (typeof msg.loaded === "number" && typeof msg.total === "number") {
+          emitProgress({ loadedBytes: msg.loaded, totalBytes: msg.total });
+        }
+        return;
+      }
       if (msg?.type === "ready" && !settledInit) {
         settledInit = true;
-        clearTimeout(initTimer);
+        clearTimeout(watchdog);
+        clearTimeout(maxTimer);
         if (typeof msg.model === "string" && msg.model) {
-          loadedModel = msg.model;
           engine.modelName = msg.model;
         }
+        detectTimeoutMs = engine.modelName.endsWith("/webgpu")
+          ? DETECT_TIMEOUT_GPU_MS
+          : DETECT_TIMEOUT_WASM_MS;
         resolve(engine);
         return;
       }
       if (msg?.type === "init-error" && !settledInit) {
-        settledInit = true;
-        clearTimeout(initTimer);
-        worker.terminate();
-        resolve(null);
+        failInit();
         return;
       }
       if (msg?.type === "result") {
@@ -177,20 +209,24 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
           settle({
             count: typeof msg.count === "number" ? msg.count : 0,
             pts: msg.pts instanceof Float32Array ? msg.pts : null,
+            ball:
+              msg.ball && typeof msg.ball.x === "number"
+                ? { x: msg.ball.x, y: msg.ball.y, score: msg.ball.score }
+                : null,
           });
         }
       }
     };
 
     const engine: PoseEngine = {
-      modelName: loadedModel,
-      async detectPersonsFromVideo(video, timeS, region) {
+      modelName: `${ENGINE_NAME_BASE}/wasm`,
+      async detectPersonsFromVideo(video, timeS, region, hint) {
         let bitmap: ImageBitmap;
         let ballBitmap: ImageBitmap | undefined;
         try {
           if (region) {
             const { sx, sy, sw, sh } = regionRect(video, region);
-            const scale = Math.min(1, DETECT_DIM / Math.max(sw, sh));
+            const scale = Math.min(1, CAPTURE_DIM / Math.max(sw, sh));
             bitmap = await createImageBitmap(video, sx, sy, sw, sh, {
               resizeWidth: Math.max(1, Math.round(sw * scale)),
               resizeHeight: Math.max(1, Math.round(sh * scale)),
@@ -214,11 +250,11 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
           new Promise<WorkerResult>((settle) => {
             pending.set(id, settle);
             worker.postMessage(
-              { type: "detect", id, bitmap, tMs: timeS * 1000, ballBitmap },
+              { type: "detect", id, bitmap, tMs: timeS * 1000, ballBitmap, hint: hint ?? null },
               transfers,
             );
           }),
-          DETECT_TIMEOUT_MS,
+          detectTimeoutMs,
           { count: 0, pts: null },
         );
         pending.delete(id);
@@ -240,156 +276,32 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
 
     worker.postMessage({
       type: "init",
-      wasmBase: WASM_BASE,
-      models: MODELS,
+      detectorUrls: modelChunkUrls(DETECTOR_MODEL),
+      poseUrls: modelChunkUrls(POSE_MODEL),
+      detectorSpec: DETECTOR_MODEL,
+      poseSpec: POSE_MODEL,
+      ortWasmBase: ORT_WASM_BASE,
+      ballWasmBase: BALL_WASM_BASE,
       ballModel: BALL_MODEL,
     });
   });
-}
-
-// Main-thread fallback for browsers without OffscreenCanvas in workers. Loads
-// the vision bundle into the page chunk lazily; only the analyze flow pays.
-async function createMainThreadEngine(): Promise<PoseEngine | null> {
-  try {
-    const { FilesetResolver, ObjectDetector, PoseLandmarker } = await import(
-      "@mediapipe/tasks-vision"
-    );
-    const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
-    const options = (modelPath: string, delegate: "GPU" | "CPU") => ({
-      baseOptions: { modelAssetPath: modelPath, delegate },
-      runningMode: "VIDEO" as const,
-      numPoses: MAX_PERSONS,
-    });
-    let landmarker: import("@mediapipe/tasks-vision").PoseLandmarker | undefined;
-    let modelName = MODELS[MODELS.length - 1].name;
-    for (const model of MODELS) {
-      try {
-        landmarker = await PoseLandmarker.createFromOptions(fileset, options(model.path, "GPU"));
-      } catch {
-        try {
-          landmarker = await PoseLandmarker.createFromOptions(fileset, options(model.path, "CPU"));
-        } catch {
-          continue;
-        }
-      }
-      modelName = model.name;
-      break;
-    }
-    if (!landmarker) return null;
-    let ballDetector: import("@mediapipe/tasks-vision").ObjectDetector | null = null;
-    try {
-      const ballOptions = (delegate: "GPU" | "CPU") => ({
-        baseOptions: { modelAssetPath: BALL_MODEL, delegate },
-        runningMode: "VIDEO" as const,
-        categoryAllowlist: ["sports ball"],
-        scoreThreshold: 0.2,
-        maxResults: 3,
-      });
-      try {
-        ballDetector = await ObjectDetector.createFromOptions(fileset, ballOptions("GPU"));
-      } catch {
-        ballDetector = await ObjectDetector.createFromOptions(fileset, ballOptions("CPU"));
-      }
-    } catch {
-      ballDetector = null;
-    }
-    const clock = createMonotonicClock();
-    const ballClock = createMonotonicClock();
-    let cropCanvas: HTMLCanvasElement | null = null;
-    return {
-      modelName,
-      async detectPersonsFromVideo(video, timeS, region) {
-        try {
-          const stamp = clock(timeS * 1000);
-          let source: HTMLVideoElement | HTMLCanvasElement = video;
-          if (region) {
-            const { sx, sy, sw, sh } = regionRect(video, region);
-            const scale = Math.min(1, DETECT_DIM / Math.max(sw, sh));
-            cropCanvas ??= document.createElement("canvas");
-            cropCanvas.width = Math.max(1, Math.round(sw * scale));
-            cropCanvas.height = Math.max(1, Math.round(sh * scale));
-            cropCanvas
-              .getContext("2d")!
-              .drawImage(video, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
-            source = cropCanvas;
-          }
-          const result = landmarker.detectForVideo(source, stamp);
-          const persons = (result.landmarks ?? []).filter(
-            (p) => p.length === POSE_LANDMARK_COUNT,
-          );
-          // Ball detection always reads the full frame; the video element is
-          // the full frame here regardless of the player crop above.
-          let ball: import("./types.ts").BallPoint | null = null;
-          if (ballDetector) {
-            try {
-              const detections = ballDetector.detectForVideo(
-                video,
-                ballClock(timeS * 1000),
-              ).detections;
-              const vw = video.videoWidth || 640;
-              const vh = video.videoHeight || 360;
-              let best: { x: number; y: number; score: number } | null = null;
-              for (const d of detections ?? []) {
-                const score = d.categories?.[0]?.score ?? 0;
-                const box = d.boundingBox;
-                if (!box) continue;
-                if (!best || score > best.score) {
-                  best = {
-                    x: (box.originX + box.width / 2) / vw,
-                    y: (box.originY + box.height / 2) / vh,
-                    score,
-                  };
-                }
-              }
-              ball = best ? { ...best, t: Math.round(timeS * 1000) / 1000 } : null;
-            } catch {
-              ball = null;
-            }
-          }
-          if (persons.length === 0) {
-            return ball ? { t: Math.round(timeS * 1000) / 1000, persons: [], ball } : null;
-          }
-          const frame = remapped(
-            {
-              t: Math.round(timeS * 1000) / 1000,
-              persons: persons.slice(0, MAX_PERSONS).map((person) =>
-                person.map((p) => ({
-                  x: p.x,
-                  y: p.y,
-                  z: p.z ?? 0,
-                  v: p.visibility ?? 0,
-                })),
-              ),
-            },
-            region,
-          );
-          return { ...frame, ball };
-        } catch {
-          return null;
-        }
-      },
-      dispose() {
-        landmarker.close();
-        ballDetector?.close();
-      },
-    };
-  } catch {
-    return null;
-  }
 }
 
 let enginePromise: Promise<PoseEngine | null> | null = null;
 
 // Resolves to null when the device, browser, or asset load cannot support
 // tracking. Callers must handle null by proceeding without measurements.
-export function loadPoseEngine(): Promise<PoseEngine | null> {
+// onProgress reports model download progress (a one-time cost per device).
+export function loadPoseEngine(opts?: {
+  onProgress?: (p: ModelProgress) => void;
+}): Promise<PoseEngine | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
+  if (opts?.onProgress) {
+    progressListeners.add(opts.onProgress);
+    if (lastProgress) opts.onProgress(lastProgress);
+  }
   if (!enginePromise) {
-    enginePromise = withTimeout(
-      supportsWorkerPath() ? createWorkerEngine() : createMainThreadEngine(),
-      INIT_TIMEOUT_MS + 2_000,
-      null,
-    );
+    enginePromise = supportsWorkerPath() ? createWorkerEngine() : Promise.resolve(null);
   }
   return enginePromise;
 }
