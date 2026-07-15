@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LM, type BallPoint, type KeypointsFile, type TimedBox } from "@/lib/pose/types";
+import {
+  POSE_LANDMARK_COUNT,
+  SKELETON_JOINTS,
+  SKELETON_MIN_V,
+  SKELETON_REGION_BONES,
+  SKELETON_REGION_COLOR,
+  headGeometry,
+  type BallPoint,
+  type KeypointsFile,
+  type TimedBox,
+} from "@/lib/pose/types";
+
+const SKELETON_REGIONS = ["arms", "torso", "legs"] as const;
 import { boxAtTime } from "@/lib/pose/kinematics";
 import { ballAtTime } from "@/lib/pose/ball-track";
 import { activeAbsence, absenceLabel } from "@/lib/pose/track-state";
@@ -14,28 +26,18 @@ export type FrameSkeletons = Map<number, number[]>;
 
 const FRAME_MS = 700;
 
-// Skeleton bone graph over the 33-landmark body model.
-const BONES: [number, number][] = [
-  [LM.leftShoulder, LM.rightShoulder],
-  [LM.leftShoulder, LM.leftElbow],
-  [LM.leftElbow, LM.leftWrist],
-  [LM.rightShoulder, LM.rightElbow],
-  [LM.rightElbow, LM.rightWrist],
-  [LM.leftShoulder, LM.leftHip],
-  [LM.rightShoulder, LM.rightHip],
-  [LM.leftHip, LM.rightHip],
-  [LM.leftHip, LM.leftKnee],
-  [LM.leftKnee, LM.leftAnkle],
-  [LM.rightHip, LM.rightKnee],
-  [LM.rightKnee, LM.rightAnkle],
-  [LM.leftAnkle, LM.leftHeel],
-  [LM.rightAnkle, LM.rightHeel],
-];
-const SKELETON_MIN_V = 0.5;
-
-/** Tracked body lines over the frame, in normalized image coordinates. */
+/** Tracked body lines over the frame, color-coded by region, in normalized
+ *  image coordinates. Matches the skeleton baked into analysis frames. */
 function SkeletonOverlay({ pts }: { pts: number[] }) {
   const at = (i: number) => ({ x: pts[i * 4], y: pts[i * 4 + 1], v: pts[i * 4 + 3] });
+  const head = headGeometry(
+    Array.from({ length: POSE_LANDMARK_COUNT }, (_, i) => ({
+      x: pts[i * 4],
+      y: pts[i * 4 + 1],
+      z: pts[i * 4 + 2],
+      v: pts[i * 4 + 3],
+    })),
+  );
   return (
     <svg
       aria-hidden
@@ -43,38 +45,54 @@ function SkeletonOverlay({ pts }: { pts: number[] }) {
       preserveAspectRatio="none"
       className="pointer-events-none absolute inset-0 h-full w-full"
     >
-      {BONES.map(([a, b], i) => {
-        const pa = at(a);
-        const pb = at(b);
-        if (pa.v < SKELETON_MIN_V || pb.v < SKELETON_MIN_V) return null;
-        return (
+      {SKELETON_REGIONS.flatMap((region) =>
+        SKELETON_REGION_BONES[region].map(([a, b], i) => {
+          const pa = at(a);
+          const pb = at(b);
+          if (pa.v < SKELETON_MIN_V || pb.v < SKELETON_MIN_V) return null;
+          return (
+            <line
+              key={`${region}-${i}`}
+              x1={pa.x}
+              y1={pa.y}
+              x2={pb.x}
+              y2={pb.y}
+              strokeWidth={0.006}
+              strokeLinecap="round"
+              style={{ stroke: `var(--color-${SKELETON_REGION_COLOR[region]})`, opacity: 0.85 }}
+            />
+          );
+        }),
+      )}
+      {head && (
+        <g
+          fill="none"
+          strokeLinecap="round"
+          style={{ stroke: `var(--color-${SKELETON_REGION_COLOR.head})`, opacity: 0.9 }}
+        >
           <line
-            key={i}
-            x1={pa.x}
-            y1={pa.y}
-            x2={pb.x}
-            y2={pb.y}
+            x1={head.neckX}
+            y1={head.neckY}
+            x2={head.cx}
+            y2={head.cy}
             strokeWidth={0.006}
-            strokeLinecap="round"
-            style={{ stroke: "var(--color-teal)", opacity: 0.85 }}
+          />
+          <circle cx={head.cx} cy={head.cy} r={head.r} strokeWidth={0.006} />
+        </g>
+      )}
+      {SKELETON_JOINTS.map((i) => {
+        const p = at(i);
+        if (p.v < SKELETON_MIN_V) return null;
+        return (
+          <circle
+            key={`j${i}`}
+            cx={p.x}
+            cy={p.y}
+            r={0.007}
+            style={{ fill: "var(--color-chalk)", opacity: 0.9 }}
           />
         );
       })}
-      {BONES.flat()
-        .filter((v, i, arr) => arr.indexOf(v) === i)
-        .map((i) => {
-          const p = at(i);
-          if (p.v < SKELETON_MIN_V) return null;
-          return (
-            <circle
-              key={`j${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={0.007}
-              style={{ fill: "var(--color-chalk)", opacity: 0.9 }}
-            />
-          );
-        })}
     </svg>
   );
 }

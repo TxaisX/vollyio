@@ -28,7 +28,7 @@ export type AnalyzeRequest = {
   frame_keypoints?: FrameKeypointsWire[];
   has_keypoints?: boolean;
   extra_frame_count?: number;
-  // True when the sent frames carry a gold tracking ring on the focus athlete.
+  // True when the sent frames carry a skeleton overlay on the focus athlete.
   focus_marker?: boolean;
   player_selection?: PlayerSelection;
   continuity?: ContinuityWire;

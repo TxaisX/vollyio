@@ -27,6 +27,95 @@ export const LM = {
   rightFootIndex: 32,
 } as const;
 
+// Skeleton bone graph over the 33-landmark body model, grouped by body region.
+// Single source of truth for both the live results-viewer overlay and the
+// skeleton baked into frames, so the two always match. The head has no straight
+// bones here; it is drawn as a ring plus a neck line (see headGeometry).
+export type SkeletonRegion = "head" | "arms" | "torso" | "legs";
+
+export const SKELETON_REGION_BONES: Record<
+  Exclude<SkeletonRegion, "head">,
+  [number, number][]
+> = {
+  arms: [
+    [LM.leftShoulder, LM.leftElbow],
+    [LM.leftElbow, LM.leftWrist],
+    [LM.rightShoulder, LM.rightElbow],
+    [LM.rightElbow, LM.rightWrist],
+  ],
+  torso: [
+    [LM.leftShoulder, LM.rightShoulder],
+    [LM.leftShoulder, LM.leftHip],
+    [LM.rightShoulder, LM.rightHip],
+    [LM.leftHip, LM.rightHip],
+  ],
+  legs: [
+    [LM.leftHip, LM.leftKnee],
+    [LM.leftKnee, LM.leftAnkle],
+    [LM.rightHip, LM.rightKnee],
+    [LM.rightKnee, LM.rightAnkle],
+    [LM.leftAnkle, LM.leftHeel],
+    [LM.rightAnkle, LM.rightHeel],
+  ],
+};
+
+// The design-token color name each body region draws in. Renderers turn these
+// into `var(--color-<name>)` (SVG) or a resolved hex (canvas).
+export const SKELETON_REGION_COLOR: Record<SkeletonRegion, string> = {
+  head: "gold",
+  arms: "teal",
+  torso: "chalk",
+  legs: "coral",
+};
+
+// Every landmark index that is an endpoint of some bone, for drawing joint pins.
+export const SKELETON_JOINTS: number[] = [
+  ...new Set(Object.values(SKELETON_REGION_BONES).flat().flat()),
+];
+
+// Min landmark visibility before a bone, joint, or head part is drawn.
+export const SKELETON_MIN_V = 0.5;
+
+// Head placement in normalized image coords: a ring centered on the head with a
+// neck line down to the shoulder midpoint. Returns null when neither a head
+// landmark (nose, else an ear) nor a shoulder anchor is confidently visible.
+// `r` is a radius on the normalized x-axis scale; renderers size it as needed.
+export function headGeometry(
+  pts: Landmark[],
+): { cx: number; cy: number; r: number; neckX: number; neckY: number } | null {
+  const seen = (i: number) => {
+    const p = pts[i];
+    return p && p.v >= SKELETON_MIN_V ? p : null;
+  };
+  const ls = seen(LM.leftShoulder);
+  const rs = seen(LM.rightShoulder);
+  const shoulder = ls ?? rs;
+  if (!shoulder) return null;
+  const neckX = ls && rs ? (ls.x + rs.x) / 2 : shoulder.x;
+  const neckY = ls && rs ? (ls.y + rs.y) / 2 : shoulder.y;
+
+  const nose = seen(LM.nose);
+  const le = seen(LM.leftEar);
+  const re = seen(LM.rightEar);
+  const ear = le ?? re;
+  let cx: number;
+  let cy: number;
+  if (nose) {
+    cx = nose.x;
+    cy = nose.y;
+  } else if (ear) {
+    cx = le && re ? (le.x + re.x) / 2 : ear.x;
+    cy = le && re ? (le.y + re.y) / 2 : ear.y;
+  } else {
+    return null;
+  }
+
+  const shoulderW = ls && rs ? Math.abs(ls.x - rs.x) : 0;
+  const gap = Math.hypot(cx - neckX, cy - neckY);
+  const r = Math.min(0.11, Math.max(0.028, shoulderW > 0.02 ? shoulderW * 0.35 : gap * 0.9));
+  return { cx, cy, r, neckX, neckY };
+}
+
 export type Landmark = {
   x: number; // normalized 0..1, image space
   y: number; // normalized 0..1, image space (y grows downward)
