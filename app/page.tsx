@@ -243,9 +243,10 @@ export default function Landing() {
                 Watch a rep get read.
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
-                This is the read itself: motion traced on the player, the ball
-                path projected, checkpoints measured in real units, and the one
-                fix that buys the most. The whole read, in a ten-second loop.
+                This is the read itself: every player on the court found, the
+                one you tap tracked joint by joint, the ball measured,
+                checkpoints in real units, and the one fix that buys the most.
+                The whole read, in a ten-second loop.
               </p>
             </Reveal>
             <Reveal delay={120}>
@@ -257,8 +258,8 @@ export default function Landing() {
                     src="/sideout-court-vision.mp4"
                     srcWebm="/sideout-court-vision.webm"
                     poster="/sideout-court-vision-poster.webp"
-                    label="Ten-second loop: a jump serve is scanned, the player's motion is traced joint by joint, the ball path is projected over the net, measured checkpoints appear in real units, and the serve scores 82 with one priority fix."
-                    posterAlt="A jump serve with motion tracking drawn over the player, measured checkpoints, and a serve score of 82."
+                    label="Ten-second loop: a two-player rep is scanned, every player is boxed, the tapped athlete is tracked joint by joint, the ball is measured, checkpoints appear in real units, and the serve scores 82 with one priority fix."
+                    posterAlt="A two-player volleyball rep: the tracked athlete boxed in gold and traced with a skeleton, the other player boxed, measured checkpoints, and a serve score of 82."
                     className="absolute inset-0"
                     controlCorner="bottom-4 right-4"
                     sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
@@ -269,7 +270,7 @@ export default function Landing() {
             <Reveal delay={200}>
               <div className="mt-6 flex flex-wrap gap-2">
                 {[
-                  "Motion traced on the player",
+                  "Tap a player, track the whole rep",
                   "Checkpoints in real units",
                   "One priority fix",
                 ].map((chip) => (

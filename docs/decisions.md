@@ -529,3 +529,49 @@ the archived Python reference (boxes ±0.5 px, keypoints ±0.75 px, scores
 94 node tests, policy lint, tsc, real-Chromium smoke (engine ready, multiple
 persons found on the failure frame, ball detector live), full build, and the
 storage-hosted chunks reassembling to the exact pinned hashes.
+
+## D-022 — Landing films rebuilt to match the D-021 tool (real multi-player read)
+Date: 2026-07-14 · By: owner request ("apply the new analysis tool look so it is accurate")
+
+The D-015 court films depicted the OLD analysis look: a fabricated 11-bone
+skeleton with a head-circle and neck node the product never draws, gold "key
+joints", and a ball shown as a projected arc, all over a synthetic single-
+player plate. After D-021 (multi-player detection, tap-to-select, full-clip
+tracking) that reading was inaccurate. The films are rebuilt so what the
+landing shows is what the product literally does.
+
+The rebuild is grounded in real output, not a stylized approximation:
+- Plate: `public/film-court.webp`, frame 0225 of the D-021 calibration clip
+  (a genuine two-player rep), graded via ffmpeg. Replaces the synthetic
+  `volleyball-hero.webp`, now retired as the plate.
+- Skeleton, boxes, and ball positions are the ACTUAL RTMPose detector/pose
+  output for that frame (dumped from the same `rtmlib` reference the engine
+  was validated against), baked into `components/film-scene.tsx`. The bone
+  graph is the product's real topology (torso, both arms, both legs to the
+  ankles, hip line — no feet, no head node, since RTMPose emits neither), and
+  every joint is chalk, matching the live `SkeletonOverlay`.
+- The scene is composed like the real breakdown page: a vertical clip panel
+  with the tracked player boxed in gold (a "watching" tag, the tap-to-select
+  signature) and skeleton-traced, the other player in a thin chalk box
+  (multi-player detection), the ball on a gold crosshair over its measured
+  path, and a left HUD column (score 82, real measured checkpoints, priority
+  fix). Copy on the landing (`app/page.tsx` film-room section) updated:
+  "the ball path projected" became "the ball measured", and the beats now say
+  every player is found and the tapped one tracked.
+
+`scripts/render-hero-film.mjs` gains VP9 WebM output (it only emitted MP4 +
+WebP before) and headless/own-profile Chrome flags so it runs on a desktop
+with Chrome already open. The plate drift was dropped so the static
+background compresses: both takes fell to ~0.4 MB each (from ~4 MB with
+drift), leaner than the D-015 originals.
+
+RIGHTS CAVEAT (see `docs/assets.md`): unlike the synthetic D-007 plate, the
+new plate shows real, identifiable people from the owner's own test clip.
+The owner chose this footage for the rebuild; owner must confirm likeness
+consent for commercial use before the films ship to the public site.
+
+Verified: `/film?variant=film|ambient` inspected in Chrome (skeleton/boxes/
+ball register on the real players; HUD reads right), both takes re-rendered
+with byte-identical loop seams (frame 300 = frame 0), and both play in place
+on the landing hero and film-room section (desktop + 402px). Not yet pushed
+(owner review pending on the likeness point).

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +9,7 @@ import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
+import { drillSlugs } from "@/content/drills";
 import { updateRating, coherentOverall } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import { canAnalyze } from "@/lib/entitlements";
@@ -257,14 +259,26 @@ export async function POST(req: NextRequest) {
           frame_index: raw.focus.frame_index,
           time_s: timeAt(raw.focus.frame_index),
         },
-        drill_slugs: raw.drill_slugs,
+        // The model is guided to the valid slugs but not hard-bound to them
+        // (see lib/ai/schema.ts); drop any it invents so drill lookups can't 404.
+        drill_slugs: raw.drill_slugs.filter((s) => drillSlugs(skill).includes(s)),
         summary: raw.summary,
       };
-    } catch {
-      return NextResponse.json(
-        { error: "The coaching service is unavailable. Try again." },
-        { status: 502 },
-      );
+    } catch (err) {
+      // Log the real cause server-side only. The client message stays generic
+      // and vendor-neutral (no-vendor-names rule); an opaque 502 with a bare
+      // `catch` hid whatever the coaching call actually threw.
+      const apiErr = err instanceof Anthropic.APIError ? err : null;
+      console.error("[analyze] coaching call failed", {
+        status: apiErr?.status,
+        requestId: apiErr?.requestID,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      const clientMessage =
+        apiErr?.status === 429
+          ? "The coaching service is busy right now. Try again in a moment."
+          : "The coaching service is unavailable. Try again.";
+      return NextResponse.json({ error: clientMessage }, { status: 502 });
     }
   }
 
