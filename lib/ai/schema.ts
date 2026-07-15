@@ -6,10 +6,10 @@ import { drillSlugs } from "@/content/drills";
 // Value constraints (enums, min/max counts, numeric ranges) are intentionally
 // kept OUT of this schema. The SDK's zodOutputFormat demotes them to schema
 // description text rather than API-enforced keywords, so the model is guided by
-// them but not bound — yet messages.parse() still validates the reply against
-// this schema client-side. Encoding them here made a slightly-off reply (an
+// them but not bound. Yet messages.parse() still validates the reply against this
+// schema client-side, so encoding them here made a slightly-off reply (an
 // out-of-list drill slug, a 7th insight) throw and surface as a coaching-service
-// outage. So this schema enforces only structure and types; the prompt (RUBRIC +
+// outage. This schema now enforces only structure and types; the prompt (RUBRIC +
 // outputSpec) carries the value guidance, and the route sanitizes the one field
 // that feeds a lookup (drill_slugs).
 export function analysisSchema(skill: Skill) {
