@@ -1,0 +1,11 @@
+[
+  {"url":"https://www.youtube.com/watch?v=WhXt-RqHQIM","skill":"serve","discipline":"indoor","level":"beginner","id":"serve-indoor-dev-basics","note":"jump serve basics, developing form -> bottom of band"},
+  {"url":"https://www.youtube.com/watch?v=MPmRiCadruU","skill":"serve","discipline":"indoor","level":"intermediate","id":"serve-indoor-jumpfloat-short","note":"jump float, short-form framing like user uploads"},
+  {"url":"https://www.youtube.com/watch?v=qd5UVYmBjQM","skill":"serve","discipline":"indoor","level":"expert","id":"serve-indoor-float-slowmo","note":"clean standing float, checked follow-through"},
+  {"url":"https://www.youtube.com/watch?v=kgXAm48Ash0","skill":"serve","discipline":"indoor","level":"pro","id":"serve-indoor-jump-stahl","note":"high-level jump serve form -> top of band"},
+  {"url":"https://www.youtube.com/watch?v=lEkr3qgIDlI","skill":"set","discipline":"indoor","level":"intermediate","id":"set-indoor-fundamentals","note":"overhead set fundamentals demo"},
+  {"url":"https://www.youtube.com/watch?v=u-WhjYYocBs","skill":"attack","discipline":"indoor","level":"beginner","id":"attack-indoor-armswing-faults","note":"arm swing tutorial with deliberate fault demonstrations -> weakest_metric cases"},
+  {"url":"https://www.youtube.com/watch?v=WSieqgGFfk0","skill":"attack","discipline":"indoor","level":"intermediate","id":"attack-indoor-contact-body","note":"ball contact + body position -> contact_height cases"},
+  {"url":"https://www.youtube.com/watch?v=FMtUqoxfR50","skill":"attack","discipline":"indoor","level":"expert","id":"attack-indoor-spike-slowmo","note":"spike slow-mo tutorial, full chain single athlete"},
+  {"url":"https://www.youtube.com/watch?v=o0AduQRRq-I","skill":"pass","discipline":"indoor","level":"intermediate","id":"pass-indoor-receive-tutorial","note":"serve receive platform/posture demo at real speed"}
+]

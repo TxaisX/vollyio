@@ -52,6 +52,31 @@ supply their own footage) onto the machine; then the Python cutter above turns
 each into a case with no Node required. Everything downstream (cut → label →
 run) is ready.
 
+## Batch machinery (`scripts/batch_ingest.py`)
+
+Scaling the set = adding reviewed rows to a manifest, then:
+`python scripts/batch_ingest.py evals/manifest.json`. It downloads (cached) and
+cuts each row into a case; it never invents labels (`expected` stays TODO).
+
+**Hard lesson — every row MUST carry a trim window (`start`/`end`).** A batch run
+without windows was tried and produced junk: sampling 10 frames across a whole
+10-minute tutorial yields talking-head/title-card frames, not one rep, and the
+source list's per-clip "type" and any guessed `level` do not survive contact
+with the actual frames (a "float-serve slow-mo" clip was really a wide junior
+match). So the real per-clip work, the thing that can't be automated, is:
+
+1. Watch the clip; find ONE athlete performing ONE rep of the named skill.
+2. Set `start`/`end` to that rep's window (a few seconds).
+3. Confirm the skill/discipline from the frames; assign `level` only if the
+   footage actually justifies it, else leave it off.
+4. After ingest, **verify the montage** before labeling (`evals/work/` or a
+   quick ffmpeg tile) — a case you haven't looked at is not a case.
+
+This is why "100 of each level" is a curation project, not a download job.
+Downloads and cutting are solved; steps 1–4 are per-clip human judgment. A
+tighter, verified set (a few correctly-trimmed, honestly-leveled reps per
+skill×level×discipline cell) is a better benchmark than hundreds of raw grabs.
+
 ## Curated clips (type-identified 2026-07-11)
 
 ### Serve
