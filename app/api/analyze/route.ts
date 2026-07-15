@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         ? [
             {
               type: "text" as const,
-              text: "A small gold ring with a center dot is stamped at the hips of the focus athlete in each frame. Analyze ONLY that athlete: every score, metric note, insight, and change refers to them. Ignore every other person in the frames, and ignore the ring itself when judging form (it is a tracking overlay, not part of the scene).",
+              text: "A thin, color-coded skeleton overlay is drawn on the focus athlete in each frame to mark exactly who to analyze: gold head ring and neck, teal arms, chalk-white torso, coral legs, with light joint dots. Analyze ONLY that athlete: every score, metric note, insight, and change refers to them. Ignore every other person in the frames, and ignore the overlay lines themselves when judging form (they are a tracking overlay, not part of the athlete or the scene).",
             },
           ]
         : [];

@@ -29,6 +29,10 @@ import {
   personBox,
 } from "@/lib/pose/kinematics";
 import {
+  SKELETON_REGION_BONES,
+  SKELETON_REGION_COLOR,
+  SKELETON_MIN_V,
+  headGeometry,
   type BallPoint,
   type Landmark,
   type LandmarkFrame,
@@ -191,9 +195,10 @@ function TrimBar({
   );
 }
 
-// Stamp a small gold tracking ring at the focus athlete's hips in each frame,
-// so the player sees who is being tracked and the coaching service is told
-// exactly which athlete to analyze. Returns new frames; originals untouched.
+// Bake a thin skeleton onto the focus athlete in each frame, so the player
+// sees the tracked body and the coaching service is told exactly which athlete
+// to analyze. Uses the shared bone graph so it matches the live viewer overlay.
+// Returns new frames; originals untouched.
 async function markFocusFrames(
   rawFrames: Frame[],
   landmarks: LandmarkFrame[],
@@ -213,20 +218,13 @@ async function markFocusFrames(
         }
       }
       if (!best) return f;
-      const xs: number[] = [];
-      const ys: number[] = [];
-      for (const p of best.pts) {
-        if (p.v < 0.4) continue;
-        xs.push(p.x);
-        ys.push(p.y);
-      }
-      if (xs.length < 6) return f;
-      // The ring rides on the player's head.
-      const head = focusPoint(best.pts);
-      if (!head) return f;
-      const cx = head.x;
-      const cy = head.y;
-      const bodyH = Math.max(...ys) - Math.min(...ys);
+      const pts = best.pts;
+      const vis = (i: number) => {
+        const p = pts[i];
+        return !!p && p.v >= SKELETON_MIN_V;
+      };
+      // Skip frames the tracker barely saw, so we never bake a noisy stick.
+      if (pts.filter((p) => p.v >= SKELETON_MIN_V).length < 6) return f;
       const stamped = await new Promise<string | null>((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -238,31 +236,67 @@ async function markFocusFrames(
             if (!ctx) return resolve(null);
             ctx.drawImage(img, 0, 0);
             const style = getComputedStyle(document.documentElement);
-            const gold = style.getPropertyValue("--color-gold").trim();
-            const navy = style.getPropertyValue("--color-navy").trim();
-            if (cx < 0.02 || cx > 0.98 || cy < 0.02 || cy > 0.98) {
-              return resolve(null);
-            }
-            const x = cx * canvas.width;
-            const y = cy * canvas.height;
-            const r = Math.min(24, Math.max(5, bodyH * canvas.height * 0.07));
-            // Dark halo first so the ring reads on any background.
-            ctx.lineWidth = Math.max(4.5, r * 0.45);
+            const color = (name: string) =>
+              style.getPropertyValue(`--color-${name}`).trim();
+            const chalk = color("chalk");
+            const navy = color("navy");
+            const W = canvas.width;
+            const H = canvas.height;
+            const S = (W + H) / 2;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            const allBones = Object.values(SKELETON_REGION_BONES).flat();
+            const head = headGeometry(pts);
+            const line = (ax: number, ay: number, bx: number, by: number) => {
+              ctx.beginPath();
+              ctx.moveTo(ax, ay);
+              ctx.lineTo(bx, by);
+              ctx.stroke();
+            };
+            const strokeBones = (bones: [number, number][]) => {
+              for (const [a, b] of bones) {
+                if (!vis(a) || !vis(b)) continue;
+                line(pts[a].x * W, pts[a].y * H, pts[b].x * W, pts[b].y * H);
+              }
+            };
+            const strokeHead = () => {
+              if (!head) return;
+              line(head.neckX * W, head.neckY * H, head.cx * W, head.cy * H);
+              ctx.beginPath();
+              ctx.arc(head.cx * W, head.cy * H, head.r * W, 0, Math.PI * 2);
+              ctx.stroke();
+            };
+            // Dark halo first so the lines read on any background.
             ctx.strokeStyle = navy;
-            ctx.globalAlpha = 0.9;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = Math.max(3, S * 0.012);
+            strokeBones(allBones);
+            strokeHead();
+            // Color-coded body regions on top, matching the live viewer overlay.
+            ctx.globalAlpha = 0.92;
+            ctx.lineWidth = Math.max(1.5, S * 0.006);
+            for (const region of ["arms", "torso", "legs"] as const) {
+              ctx.strokeStyle = color(SKELETON_REGION_COLOR[region]);
+              strokeBones(SKELETON_REGION_BONES[region]);
+            }
+            ctx.strokeStyle = color(SKELETON_REGION_COLOR.head);
+            strokeHead();
+            // Chalk joint pins at each visible bone endpoint.
+            ctx.fillStyle = chalk;
+            ctx.globalAlpha = 0.95;
+            const jr = Math.max(1.5, S * 0.007);
+            const seen = new Set<number>();
+            for (const [a, b] of allBones) {
+              for (const i of [a, b]) {
+                if (seen.has(i)) continue;
+                seen.add(i);
+                if (!vis(i)) continue;
+                ctx.beginPath();
+                ctx.arc(pts[i].x * W, pts[i].y * H, jr, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
             ctx.globalAlpha = 1;
-            ctx.lineWidth = Math.max(2.5, r * 0.25);
-            ctx.strokeStyle = gold;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.fillStyle = gold;
-            ctx.beginPath();
-            ctx.arc(x, y, Math.max(1.5, r * 0.2), 0, Math.PI * 2);
-            ctx.fill();
             resolve(canvas.toDataURL("image/jpeg", 0.7));
           } catch {
             resolve(null);
@@ -1503,10 +1537,10 @@ export function AnalyzeFlow({
                       <>
                         <span
                           aria-hidden
-                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border-2 border-gold"
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-teal"
                         />
                         <span>
-                          The gold ring marks the tracked player in every frame.
+                          The skeleton traces the tracked player in every frame.
                         </span>
                       </>
                     )}
