@@ -21,7 +21,7 @@ import path from "node:path";
 
 // Mirrors lib/skills.ts (scripts stay dependency-free of the TS graph).
 const SKILLS = ["serve", "pass", "set", "attack", "block", "dig"];
-const DISCIPLINES = ["indoor", "beach"];
+const DISCIPLINES = ["indoor", "beach", "grass"];
 // Mirrors lib/analysis-types.ts / lib/frames.ts.
 const MAX_FRAMES = 12;
 const MAX_BODY_BYTES = 4_000_000;

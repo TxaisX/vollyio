@@ -9,11 +9,17 @@ through the exact scoring path as `/api/analyze` and reports agreement.
 1. **Capture** — run the app in dev, open `/analyze?debug`, pick a skill +
    discipline, and record/upload a rep. The debug panel appears (no API call is
    spent). Click **Download eval case** to save the extracted frames as JSON.
-2. **Label** — open the JSON and fill in `expected`:
+2. **Label** — open the JSON and fill in `expected`, grading against
+   `TECHNIQUE-REFERENCE.md` (the correct-vs-fault standard, so labels stay
+   consistent across sessions):
    - `overall_min` / `overall_max` — the score band a coach would give this rep.
    - `weakest_metric` — the metric key that should score lowest (the real fault).
-     Optional: `strongest_metric`.
+     Leave `""` when the footage is too coarse to isolate one. Optional:
+     `strongest_metric`.
    - Metric keys per skill are in `lib/ai/metrics.ts`.
+   - No Node? Use `scripts/ingest_eval_clip.py` (ffmpeg only) instead of the
+     `.mjs` in step 1's capture flow; it also takes `--level` and
+     `--discipline grass`.
 3. **Add** — drop the file into `evals/cases/` (it's git-ignored by nothing; commit
    the ones you want tracked).
 4. **Run** — with `ANTHROPIC_API_KEY` set, hit
@@ -51,5 +57,9 @@ through the exact scoring path as `/api/analyze` and reports agreement.
 
 - The route is **dev-only** (404 in production) and requires a real API key —
   `AI_MOCK` output is hard-coded and won't reflect quality.
-- This is a starting harness; add cases across skills and both disciplines so a
+- Add cases across skills and all three disciplines (indoor / beach / grass) so a
   frame-sampling or prompt change can be judged by the change in `passRate`.
+- The current set (v01–v12, 23 cases) is all **pro** footage and validates the
+  top of the scale; every `weakest_metric` is empty because the reps are
+  flawless. The priority gap is **amateur** fault cases — see `SOURCING.md`
+  ("Amateur cases — the priority gap").

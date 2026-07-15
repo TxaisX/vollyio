@@ -15,16 +15,42 @@ them — and prefer your own footage where you can film it.
 1. Download locally: `yt-dlp -f "mp4" <url> -o clip.mp4`
 2. Trim to ONE athlete performing one or a few reps of ONE skill
    (`ffmpeg -ss <start> -to <end> -i clip.mp4 -c copy rep.mp4`).
-3. Ingest: `node scripts/ingest-eval-clip.mjs rep.mp4 --skill serve [--discipline indoor] [--frames 10]`
-   - Samples frames uniformly (deterministic — same clip, same case),
-     sized and budgeted like the production request.
-4. Label `expected` in the emitted JSON (score band, weakest metric) and drop
-   it in `evals/cases/`.
+3. Ingest (pick the one your machine supports):
+   - **Node:** `node scripts/ingest-eval-clip.mjs rep.mp4 --skill serve [--discipline indoor|beach|grass] [--frames 10]`
+   - **No Node (ffmpeg only):** `python scripts/ingest_eval_clip.py rep.mp4 --skill serve [--discipline grass] [--level intermediate] [--frames 10]`
+   - Both sample frames uniformly (deterministic — same clip, same case),
+     sized and budgeted like the production request, and emit an identical
+     case JSON. The Python twin also accepts `--level` and `--discipline grass`.
+4. Label `expected` against `evals/TECHNIQUE-REFERENCE.md` (score band, weakest
+   metric) and drop the JSON in `evals/cases/`.
 5. Run `GET /api/eval` locally with a real key.
 
 Labeling guidance: tutorial slow-motion footage is great for *fault
 identification* cases (the flaw is unmistakable) but poor for *timing* metrics
 (tempo, read) — prefer real-speed reps for those; note it in `expected.notes`.
+
+## Amateur cases — the priority gap
+
+The 23 labeled cases (v01–v12) are all **pro** highlights: they validate the top
+of the scale but every one has an empty `weakest_metric` (flawless reps, nothing
+to detect) and none exercise the amateur ladder the app actually recalibrated to
+(`lib/ai/anchors.ts` `AMATEUR_STANDARD`). What the set needs next:
+
+- **Amateur reps with real faults**, labeled with a `weakest_metric` and a band
+  in the 40–70 range, at `--level intermediate` (or `beginner`). These are what
+  prove the model *finds the fault* and *scores it honestly*, the whole point of
+  the recalibration.
+- Coverage target: per skill, at least one clearly-**developing** rep, one
+  **solid** rep, one **advanced** rep, per discipline where possible.
+- The curated list below already flags developing-level and deliberate-fault
+  clips (e.g. "Jump serve basics" WhXt-RqHQIM, "Arm swing tutorial — deliberate
+  fault demonstrations" u-WhjYYocBs) — start there.
+
+**Blocker (needs a human): source clips must be downloaded locally.** This
+environment cannot reach video CDNs, so someone has to `yt-dlp` the clips (or
+supply their own footage) onto the machine; then the Python cutter above turns
+each into a case with no Node required. Everything downstream (cut → label →
+run) is ready.
 
 ## Curated clips (type-identified 2026-07-11)
 

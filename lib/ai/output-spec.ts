@@ -1,6 +1,7 @@
-import type { Level, Skill } from "@/lib/skills";
+import type { Discipline, Level, Skill } from "@/lib/skills";
 import { METRICS } from "@/lib/ai/metrics";
 import { MEASUREMENT_CATALOG } from "@/lib/pose/metrics";
+import { scoreAnchors } from "@/lib/ai/anchors";
 
 const CONTACT_MOMENT: Record<Skill, string> = {
   serve: "the frame where the hand strikes the ball",
@@ -71,13 +72,19 @@ const COACH_VOICE: Record<Level, string> = {
  * fixes as realistic return-on-effort changes. Kept out of the RUBRIC strings so
  * the six scoring prompts stay frozen and these rules stay consistent across skills.
  */
-export function outputSpec(skill: Skill, level: Level): string {
+export function outputSpec(
+  skill: Skill,
+  level: Level,
+  discipline: Discipline,
+): string {
   const keys = METRICS[skill].map((m) => m.key);
   const measured = MEASUREMENT_CATALOG[skill]
     .map((m) => `${m.key} (${m.unit})`)
     .join(", ");
   return [
     SCORING_STANDARD[level],
+    "",
+    scoreAnchors(skill, discipline),
     "",
     COACH_VOICE[level],
     "",

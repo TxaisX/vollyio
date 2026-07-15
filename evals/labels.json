@@ -1,0 +1,351 @@
+{
+  "note": "Frame-free label sidecar for evals/cases/*.json (cases themselves are gitignored: they embed copyrighted source frames). This is the committable calibration record. Regenerate via scripts/export_labels.py.",
+  "count": 23,
+  "cases": [
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p1",
+      "skill": "serve",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "8K FINALS RALLY🏆😮_💨💨 #beachvolleyballworld #volleyball #beach #volley #athlete #volleyballworld - Beach Volleyball Media (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 78,
+        "overall_max": 92,
+        "weakest_metric": "",
+        "strongest_metric": "contact_point",
+        "notes": "Featured female jump serve: high in-front toss, straight-up sand takeoff, full-reach contact above the shoulder; wide shot can't resolve wrist/spin so no fault isolated."
+      }
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p2",
+      "skill": "dig",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "8K FINALS RALLY🏆😮_💨💨 #beachvolleyballworld #volleyball #beach #volley #athlete #volleyballworld - Beach Volleyball Media (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 76,
+        "overall_max": 90,
+        "weakest_metric": "",
+        "strongest_metric": "movement_pursuit",
+        "notes": "Featured diving cross-court dig: explosive full-extension layout keeps the ball alive; distance caps the platform read so no fault isolated."
+      }
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p3",
+      "skill": "pass",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "8K FINALS RALLY🏆😮_💨💨 #beachvolleyballworld #volleyball #beach #volley #athlete #volleyballworld - Beach Volleyball Media (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 78,
+        "overall_max": 92,
+        "weakest_metric": "",
+        "strongest_metric": "body_posture",
+        "notes": "Featured forearm pass of a high ball: low loaded base, platform joined early under the ball; wide shot can't resolve fine platform angle."
+      }
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p4",
+      "skill": "block",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "8K FINALS RALLY🏆😮_💨💨 #beachvolleyballworld #volleyball #beach #volley #athlete #volleyballworld - Beach Volleyball Media (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 74,
+        "overall_max": 88,
+        "weakest_metric": "",
+        "strongest_metric": "read_timing",
+        "notes": "Featured net block: tall player rises with the red hitter, arms extended; side-distance shot can't resolve hand penetration over the seam."
+      }
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p5",
+      "skill": "attack",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "8K FINALS RALLY🏆😮_💨💨 #beachvolleyballworld #volleyball #beach #volley #athlete #volleyballworld - Beach Volleyball Media (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 78,
+        "overall_max": 92,
+        "weakest_metric": "",
+        "strongest_metric": "jump_timing",
+        "notes": "Featured attack: hitter elevates and swings over the net vs a red blocker, contact above net height; wide shot can't resolve elbow/wrist."
+      }
+    },
+    {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p1",
+      "skill": "serve",
+      "discipline": "grass",
+      "level": "pro",
+      "source": "AQOWL8XFnIrpSWrq5w7OVAN1SrF5krblmulPhDt1QVwRHcIYNq6wF4GCa10_8L9ffrYz0cGN_j_rFO4KiFK5C6eTVcOH1WWYlVrRn7M.mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 70,
+        "overall_max": 84,
+        "weakest_metric": "",
+        "strongest_metric": "body_alignment",
+        "notes": "Grass serve: woman loads a squared athletic base, ball in front of the shoulder; toss/contact apex not isolable in the grid."
+      }
+    },
+    {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p2",
+      "skill": "attack",
+      "discipline": "grass",
+      "level": "pro",
+      "source": "AQOWL8XFnIrpSWrq5w7OVAN1SrF5krblmulPhDt1QVwRHcIYNq6wF4GCa10_8L9ffrYz0cGN_j_rFO4KiFK5C6eTVcOH1WWYlVrRn7M.mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 68,
+        "overall_max": 82,
+        "weakest_metric": "",
+        "strongest_metric": "jump_timing",
+        "notes": "Grass attack: man in plaid rises to a high ball, contact above the net; wide shot caps elbow/wrist cues."
+      }
+    },
+    {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p1",
+      "skill": "set",
+      "discipline": "grass",
+      "level": "pro",
+      "source": "AQOdS4_lOj5PeH0b8jsF6m634R1GNHjk9HBAbYz8TkWm-vdejIm3CWjfzauoAh2yGwGKWLxUp21D-X4Fuz8txo8e5pz5IGdNI5iN1tg.mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 72,
+        "overall_max": 86,
+        "weakest_metric": "",
+        "strongest_metric": "body_alignment",
+        "notes": "Grass set: clean two-hand overhead set, contact above the forehead, square and balanced; distance hides any fine fault."
+      }
+    },
+    {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p2",
+      "skill": "set",
+      "discipline": "grass",
+      "level": "pro",
+      "source": "AQOdS4_lOj5PeH0b8jsF6m634R1GNHjk9HBAbYz8TkWm-vdejIm3CWjfzauoAh2yGwGKWLxUp21D-X4Fuz8txo8e5pz5IGdNI5iN1tg.mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 74,
+        "overall_max": 88,
+        "weakest_metric": "",
+        "strongest_metric": "body_alignment",
+        "notes": "Grass jump set near the net: airborne hands in a symmetric window, squared to target; fine cues unresolvable at distance."
+      }
+    },
+    {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p3",
+      "skill": "attack",
+      "discipline": "grass",
+      "level": "pro",
+      "source": "AQOdS4_lOj5PeH0b8jsF6m634R1GNHjk9HBAbYz8TkWm-vdejIm3CWjfzauoAh2yGwGKWLxUp21D-X4Fuz8txo8e5pz5IGdNI5iN1tg.mp4",
+      "excluded": true,
+      "expected": {
+        "overall_min": 0,
+        "overall_max": 100,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "Mostly apparel-brand outro; only an arms-up jump/celebration, no clear attack contact to score."
+      }
+    },
+    {
+      "id": "v04-do-not-upset-mammoth-p1",
+      "skill": "block",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "DO NOT UPSET THE MAMMOTH  Taylor Crabb vs Alison #beachvolleyball - AVP Beach Volleyball (1080p, h264, youtube).mp4",
+      "excluded": true,
+      "expected": {
+        "overall_min": 0,
+        "overall_max": 100,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "All frames are post-point celebration; the block itself is never shown, no scoreable action."
+      }
+    },
+    {
+      "id": "v05-his-vertical-jump-is-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "His vertical jump is crazy 😮_💨🥵 #epicvolleyball #volleyballworld #volleyball - Epic Volleyball (720p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "approach_footwork",
+        "notes": "Pro indoor back-row/pipe approach with explosive plant-to-lift and huge vertical; wide shot resolves footwork but not contact."
+      }
+    },
+    {
+      "id": "v06-is-taylor-crabb-most-p1",
+      "skill": "block",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "Is Taylor Crabb the most underrated blocker - AVP Beach Volleyball (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "hand_penetration",
+        "notes": "AVP beach block wins the net joust; hands penetrate over the tape and seal; wide net frame too coarse to isolate a fault."
+      }
+    },
+    {
+      "id": "v06-is-taylor-crabb-most-p2",
+      "skill": "attack",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "Is Taylor Crabb the most underrated blocker - AVP Beach Volleyball (1080p, h264, youtube).mp4",
+      "excluded": true,
+      "expected": {
+        "overall_min": 0,
+        "overall_max": 100,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "Celebration and handshakes only, no ball or attack action in the grid."
+      }
+    },
+    {
+      "id": "v07-powerful-ace-volleyball-shorts-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "POWERFUL ACE 🥇#volleyball #shorts #volleyballplayers - VolleyballSPIKE (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 94,
+        "weakest_metric": "",
+        "strongest_metric": "contact_point",
+        "notes": "Airborne jump serve from deep: full approach, high in-front toss, full-reach contact above the net; wide rear shot caps fine detail."
+      }
+    },
+    {
+      "id": "v07-powerful-ace-volleyball-shorts-p2",
+      "skill": "serve",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "POWERFUL ACE 🥇#volleyball #shorts #volleyballplayers - VolleyballSPIKE (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 79,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "Same jump serve behind the ref stand plus serve receive; occluded angle too coarse to isolate a fault."
+      }
+    },
+    {
+      "id": "v08-taylor-crabbs-welcome-to-p1",
+      "skill": "attack",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "Taylor Crabbs WELCOME TO BOUNCE TOWN #beachvolleyballworld #avp24 #volleyball #voleibol #beach - The Beach Network (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 92,
+        "weakest_metric": "",
+        "strongest_metric": "jump_timing",
+        "notes": "Pro AVP hitter rising off a clean straight-up sand takeoff to a ball above the net; wide shot can't resolve arm swing/contact."
+      }
+    },
+    {
+      "id": "v08-taylor-crabbs-welcome-to-p2",
+      "skill": "attack",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "Taylor Crabbs WELCOME TO BOUNCE TOWN #beachvolleyballworld #avp24 #volleyball #voleibol #beach - The Beach Network (1080p, h264, youtube).mp4",
+      "excluded": true,
+      "expected": {
+        "overall_min": 0,
+        "overall_max": 100,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "Attack aftermath only: ball on the sand and players celebrating, no scoreable swing."
+      }
+    },
+    {
+      "id": "v09-power-behind-yuji-nishida-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "The power behind Yuji Nishida’s serve 🤯 #shorts - ESL Volleyball (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "arm_swing",
+        "notes": "Explosive baseline jump serve, high contact above the head with hard arm speed; distant fan-POV caps fine-fault reads."
+      }
+    },
+    {
+      "id": "v09-power-behind-yuji-nishida-p2",
+      "skill": "attack",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "The power behind Yuji Nishida’s serve 🤯 #shorts - ESL Volleyball (1080p, h264, youtube).mp4",
+      "excluded": true,
+      "expected": {
+        "overall_min": 0,
+        "overall_max": 100,
+        "weakest_metric": "",
+        "strongest_metric": "",
+        "notes": "Distant full-court rally, no resolvable featured attack (approach/contact indistinct)."
+      }
+    },
+    {
+      "id": "v10-what-an-amazing-spike-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "What An Amazing Spike😲Power Hit😱💥 #volleyball #shorts #trending #volleydonor #volley #viralvideo - volley donor (1080p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "arm_swing",
+        "notes": "Outside hitter rises off the jump set and swings over the block: high-and-back elbow load, full extension, contact above and in front near apex; no isolable fault."
+      }
+    },
+    {
+      "id": "v11-wild-rally-ends-in-p1",
+      "skill": "dig",
+      "discipline": "beach",
+      "level": "pro",
+      "source": "Wild Rally Ends In a Stunning Upset  Taylor Crabb, Trevor Crabb - SANDCAST Media (720p, h264, youtube).mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 94,
+        "weakest_metric": "",
+        "strongest_metric": "movement_pursuit",
+        "notes": "Beach Pro Tour scramble rally kept alive by repeated digs; wide shots show strong court-covering pursuit but no fine platform/ready fault."
+      }
+    },
+    {
+      "id": "v12-videoplayback-mp4-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "level": "pro",
+      "source": "videoplayback.mp4",
+      "excluded": false,
+      "expected": {
+        "overall_min": 80,
+        "overall_max": 93,
+        "weakest_metric": "",
+        "strongest_metric": "contact_height",
+        "notes": "OH elevates over a two-man block, contact at full extension well above the net for a bounce kill; clean high-and-back load, no isolable fault."
+      }
+    }
+  ]
+}

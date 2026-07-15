@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
           },
           {
             type: "text",
-            text: outputSpec(skill, level),
+            text: outputSpec(skill, level, discipline),
             cache_control: { type: "ephemeral" },
           },
         ],
