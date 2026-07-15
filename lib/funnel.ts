@@ -50,6 +50,14 @@ export const POSITION_OPTIONS: Record<
     { value: "defender", label: "Defender" },
     { value: "all_around", label: "I split / not sure yet" },
   ],
+  grass: [
+    { value: "setter", label: "Setter" },
+    { value: "outside", label: "Outside hitter" },
+    { value: "opposite", label: "Opposite" },
+    { value: "middle", label: "Middle blocker" },
+    { value: "libero", label: "Libero" },
+    { value: "all_around", label: "All-around / not sure yet" },
+  ],
 };
 
 export const POSITION_LABEL: Record<Position, string> = {
