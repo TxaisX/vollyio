@@ -99,7 +99,9 @@ export type MeasurementsBlock = {
   version: number;
   capture: {
     dense_fps: number | null;
-    coverage: "windows" | "probes";
+    // "full" = every presented frame of the trimmed window; "windows"/
+    // "probes" are legacy captures from the peak-windowed sampler.
+    coverage: "windows" | "probes" | "full";
     engine: string;
   };
   units: string;
@@ -151,7 +153,9 @@ export type TimedBox = {
 // Shape of the keypoints.json object uploaded to storage. Version 2 adds the
 // timed on-device ball track; version-1 files simply have no ball array.
 // `others` (optional, additive) carries the non-followed players' timed
-// boxes so the results player can show who else was on the court.
+// boxes so the results player can show who else was on the court. Version 3
+// keeps the same shape but `frames` covers the whole trimmed window (full-
+// clip capture) instead of short windows around motion peaks.
 export type KeypointsFile = {
   version: number;
   clip_duration_s: number | null;

@@ -35,7 +35,7 @@ export const measurementsSchema = z
     version: z.literal(1),
     capture: z.object({
       dense_fps: z.number().min(0).max(240).nullable(),
-      coverage: z.enum(["windows", "probes"]),
+      coverage: z.enum(["windows", "probes", "full"]),
       engine: z.string().max(60),
     }),
     units: z.string().max(240),

@@ -669,7 +669,8 @@ export function buildMeasurementsBlock(
   skill: Skill,
   frames: LandmarkFrame[],
   denseFps: number | null,
-  engineName = "pose-landmarker-lite",
+  engineName = "unknown",
+  coverage: MeasurementsBlock["capture"]["coverage"] = "windows",
 ): MeasurementsBlock | null {
   if (frames.length < 8) return null;
   const baseline = standingBaseline(frames);
@@ -737,7 +738,7 @@ export function buildMeasurementsBlock(
     version: MEASUREMENTS_VERSION,
     capture: {
       dense_fps: denseFps,
-      coverage: "windows",
+      coverage,
       engine: engineName,
     },
     units: UNITS_NOTE,

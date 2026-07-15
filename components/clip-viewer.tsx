@@ -262,7 +262,8 @@ function ClipPlayer({
   const [boxAspect, setBoxAspect] = useState<number | null>(null);
 
   // Dense keypoints are optional and load lazily; absence means no trace.
-  // Version 2 adds the timed ball path; version-1 files still draw skeletons.
+  // Version 2 adds the timed ball path; version 3 covers the whole trimmed
+  // window (full-clip capture); version-1 files still draw skeletons.
   useEffect(() => {
     if (!keypointsUrl) return;
     let cancelled = false;
@@ -273,7 +274,7 @@ function ClipPlayer({
         const file = (await res.json()) as KeypointsFile;
         if (
           !cancelled &&
-          (file?.version === 1 || file?.version === 2) &&
+          (file?.version === 1 || file?.version === 2 || file?.version === 3) &&
           Array.isArray(file.frames)
         ) {
           setTrack(file);

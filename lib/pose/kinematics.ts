@@ -319,6 +319,35 @@ export function detectReps(
   return detectPlatformReps(frames, baseline);
 }
 
+// Strongest wrist-speed instants across the series, for anchoring the sent
+// frames when no rep detector fired on a full-clip capture.
+export function speedPeakTimes(
+  frames: LandmarkFrame[],
+  minSeparationS = 1.0,
+  maxPeaks = 3,
+): { timeS: number; score: number }[] {
+  const candidates: { timeS: number; score: number }[] = [];
+  for (const segment of segmentFrames(frames)) {
+    const times = segment.map((f) => f.t);
+    const left = landmarkSpeed(segment, LM.leftWrist);
+    const right = landmarkSpeed(segment, LM.rightWrist);
+    const speed = smooth(
+      segment.map((_, i) => Math.max(left[i], right[i])),
+      1,
+    );
+    for (const peak of seriesPeaks(speed, times, { minSeparationS, thresholdRatio: 0.5 })) {
+      candidates.push({ timeS: times[peak.index], score: peak.strength });
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  const picked: { timeS: number; score: number }[] = [];
+  for (const c of candidates) {
+    if (picked.length >= maxPeaks) break;
+    if (picked.every((p) => Math.abs(p.timeS - c.timeS) >= minSeparationS)) picked.push(c);
+  }
+  return picked;
+}
+
 // ---------------------------------------------------------------------------
 // Shared rep-scoped helpers used by the metric definitions.
 
@@ -370,23 +399,6 @@ export function mapRegionPersons(persons: Landmark[][], region: FocusRegion): La
       v: p.v,
     })),
   );
-}
-
-// Generous detection window around a followed player: sized from the user's
-// frame so movement between detections stays inside, clamped to the frame.
-export function focusRegionAround(
-  cx: number,
-  cy: number,
-  box: FocusRegion | null,
-): FocusRegion {
-  const width = Math.min(1, Math.max(0.45, (box?.width ?? 0.3) * 2.5));
-  const height = Math.min(1, Math.max(0.45, (box?.height ?? 0.4) * 2.2));
-  return {
-    left: Math.min(Math.max(0, cx - width / 2), 1 - width),
-    top: Math.min(Math.max(0, cy - height / 2), 1 - height),
-    width,
-    height,
-  };
 }
 
 export type FocusTarget = { x: number; y: number; t: number; box?: FocusRegion };

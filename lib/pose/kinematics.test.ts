@@ -13,7 +13,6 @@ import {
   detectPlatformReps,
   detectSwingReps,
   focusPoint,
-  focusRegionAround,
   offerPersons,
   personConfidence,
   headPoint,
@@ -154,17 +153,6 @@ test("mapRegionPersons maps crop landmarks back to full-frame coordinates", () =
   assert.ok(Math.abs(mapped[0].y - 0.5) < 1e-9);
   assert.ok(Math.abs(mapped[0].z - 0.04) < 1e-9);
   assert.equal(mapped[0].v, 0.9);
-});
-
-test("focusRegionAround pads the box and clamps to the frame", () => {
-  const box = { left: 0.1, top: 0.1, width: 0.1, height: 0.2 };
-  const centered = focusRegionAround(0.5, 0.5, box);
-  assert.ok(centered.width >= 0.25 && centered.width <= 1, `w=${centered.width}`);
-  assert.ok(Math.abs(centered.left + centered.width / 2 - 0.5) < 1e-9);
-  const corner = focusRegionAround(0.02, 0.98, box);
-  assert.ok(corner.left >= 0 && corner.top + corner.height <= 1 + 1e-9);
-  const huge = focusRegionAround(0.5, 0.5, { left: 0, top: 0, width: 0.9, height: 0.9 });
-  assert.ok(huge.width <= 1 && huge.height <= 1);
 });
 
 test("headPoint finds the nose, falls back to the ears, else null", () => {

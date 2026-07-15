@@ -451,3 +451,81 @@ surface.
 - Necessity: the funnel work (D-012, D-018) is live and unmeasured; the
   owner asked for traffic analytics directly. The platform dashboard must
   have Web Analytics enabled for beacons to be recorded.
+
+## D-021 — Motion tracking engine replaced: two-stage detector + pose models, full-clip capture
+Date: 2026-07-14 · By: owner request (full-video analysis; old model removal approved)
+
+A measured failure, not a hypothetical: on a 296-frame handheld volleyball
+test clip (comparison harness and per-frame results archived at
+`D:\posecmp\`, stats in `stats.json`), the shipped pose landmarker returned
+at most 1 person per frame across all 296 frames and zero people on 8 frames
+with players clearly visible, despite `numPoses: 4` — the exact production
+configuration. The replacement two-stage pipeline (person detector + top-down
+pose estimator) found every player in every frame (avg 2.02 people, zero
+empty frames). The landmarker models are removed; the ball detector (D-019)
+is unaffected and keeps `@mediapipe/tasks-vision` in place.
+
+10.5 gate for `onnxruntime-web@1.27.0` (new npm dependency):
+- Publisher/provenance: Microsoft's official ONNX Runtime web build, npm
+  `onnxruntime-web`.
+- License: MIT (verified from the installed package metadata).
+- Pinned: exact `1.27.0` in package.json (no range), resolved in the
+  lockfile; runtime wasm/mjs assets vendored same-origin under
+  `public/pose/ort/` (no CDN fetch).
+- Scope/security: on-device inference only, loaded inside the existing pose
+  worker; no telemetry, no new network surface beyond the app's own model
+  bucket below.
+- Necessity: the empirical result above; the replacement models are ONNX and
+  need a runtime the browser can execute (webgpu with single-thread wasm
+  fallback; the app ships no cross-origin isolation headers, so
+  SharedArrayBuffer threading is deliberately not assumed).
+
+10.5 gate for the vendored detector model
+`yolox_m_8xb8-300e_humanart-c2c7a14a.onnx` (101,400,344 bytes):
+- Publisher/provenance: Megvii YOLOX architecture, exported and distributed
+  through the OpenMMLab MMPose model zoo (`download.openmmlab.com`, the
+  `onnx_sdk` channel); the exact file validated in the comparison above.
+- License: Apache-2.0 (YOLOX and MMPose distributions).
+- Pinned: sha256
+  `3dea6513388889f0fff4b77bf7a26013600321b9eb9ceb0e9a400a82572f5f23`,
+  hash-verified in the client before any inference session is created
+  (`lib/pose/model-fetch.ts`); manifest in `lib/pose/rtm/model-manifest.ts`.
+- Scope/security: hosted in the app's own public storage bucket `models` as
+  40 MiB parts (storage caps single objects below this file's size),
+  reassembled and hash-checked on device, cached via the Cache API; no
+  third-party host at runtime.
+- Necessity: the pose stage is top-down and needs person boxes; this is the
+  exact detector the validated comparison ran.
+
+10.5 gate for the vendored pose model
+`rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.onnx`
+(54,330,655 bytes):
+- Publisher/provenance: OpenMMLab MMPose (RTMPose-m, body7 training set),
+  same distribution channel and session as above.
+- License: Apache-2.0 (MMPose model zoo).
+- Pinned: sha256
+  `5c0a4bf67953e6d2ac43ce15e77dc9d5d354ae18430a47d2c5963a7bc5683e3c`, same
+  client-side verification, chunked hosting, and caching as the detector.
+- Necessity: the model whose per-frame output the comparison validated;
+  17-keypoint output adapts losslessly into the existing 33-slot landmark
+  contract (`lib/pose/rtm/coco33.ts`), so kinematics, metrics, and the
+  viewer are unchanged.
+
+Retired: `public/pose/pose_landmarker_full.task` and
+`pose_landmarker_lite.task` (D-013) are deleted; `@mediapipe/tasks-vision`
+stays only for the D-019 ball detector, which now also works on the worker
+path (the worker's ball result was previously dropped on the main thread).
+
+Capture semantics change with the same grant: the peak-windowed dense
+sampler is replaced by one full-clip pass over the trimmed window
+(`captureFullClip` in `lib/frames.ts`), `coverage: "full"` joins the
+measurements schema, the keypoints sidecar bumps to version 3 (same shape,
+wall-to-wall frames), the sent frames are planned from measured rep contacts
+and wrist-speed peaks instead of the luminance scan (kept as fallback), and
+the framing card offers tap-to-select boxes over every detected player in
+place of the draggable crop frame. Verified: decode parity fixtures against
+the archived Python reference (boxes ±0.5 px, keypoints ±0.75 px, scores
+±0.005 on two frames including one the old model returned nobody for),
+94 node tests, policy lint, tsc, real-Chromium smoke (engine ready, multiple
+persons found on the failure frame, ball detector live), full build, and the
+storage-hosted chunks reassembling to the exact pinned hashes.
