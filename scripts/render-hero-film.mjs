@@ -36,10 +36,19 @@ rmSync(frameDirectory, { recursive: true, force: true });
 mkdirSync(frameDirectory, { recursive: true });
 
 const port = 9222 + Math.floor(Math.random() * 500);
+// A dedicated profile + headless keeps this independent of any Chrome the
+// user already has open (otherwise a full Chrome just re-attaches to the
+// running instance and never opens a debuggable target).
+const userDataDir = path.join(tmpdir(), `sideout-film-chrome-${variant}-${port}`);
+rmSync(userDataDir, { recursive: true, force: true });
 const chrome = spawn(
   chromePath,
   [
     `--remote-debugging-port=${port}`,
+    `--user-data-dir=${userDataDir}`,
+    "--headless=new",
+    "--no-first-run",
+    "--no-default-browser-check",
     "--no-sandbox",
     "--disable-gpu",
     "--hide-scrollbars",
@@ -184,6 +193,35 @@ const encode = spawnSync(
 );
 if (encode.status !== 0) throw new Error(encode.stderr || "Video encoding failed.");
 
+// Smaller VP9 companion for capable browsers (listed first in the <source>
+// order). Same 300 frames, same seam.
+const webmPath = outputPath.replace(/\.mp4$/, ".webm");
+const encodeWebm = spawnSync(
+  ffmpegPath,
+  [
+    "-y",
+    "-framerate",
+    String(fps),
+    "-i",
+    path.join(frameDirectory, "frame-%05d.png"),
+    "-frames:v",
+    String(frameTotal),
+    "-vf",
+    "format=yuv420p",
+    "-c:v",
+    "libvpx-vp9",
+    "-b:v",
+    "0",
+    "-crf",
+    "34",
+    "-row-mt",
+    "1",
+    webmPath,
+  ],
+  { encoding: "utf8" },
+);
+if (encodeWebm.status !== 0) throw new Error(encodeWebm.stderr || "WebM encoding failed.");
+
 if (posterPath) {
   const poster = spawnSync(
     ffmpegPath,
@@ -202,4 +240,4 @@ if (posterPath) {
   if (poster.status !== 0) throw new Error(poster.stderr || "Poster encoding failed.");
 }
 
-console.log(JSON.stringify({ outputPath, posterPath, frameTotal, frameDirectory }));
+console.log(JSON.stringify({ outputPath, webmPath, posterPath, frameTotal, frameDirectory }));
