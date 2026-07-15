@@ -41,7 +41,8 @@ const STEPS = [
 
 const DISCIPLINE_DETAIL: Record<Discipline, string> = {
   indoor: "Six a side, rotations, a roof",
-  beach: "Two a side, sand, wind. Grass pickup fits here too",
+  beach: "Two a side, sand, wind",
+  grass: "Firm footing outdoors, wind and sun, fours or sixes",
 };
 
 /**

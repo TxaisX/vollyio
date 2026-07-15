@@ -13,7 +13,16 @@ import type {
 // pro-technique study (docs/pro-technique-study.html). One entry per METRICS[skill]
 // key per discipline. See content/technique.test.ts for the invariants this must hold.
 
-export const TECHNIQUE: Record<Skill, SkillTechnique> = {
+// The authored core carries indoor + beach. Grass is assembled below by reusing
+// the indoor knowledge (grass shares indoor's firm-footing technique) with a
+// grass-specific context note, so the Learn library and Record<Discipline> stay
+// whole without duplicating ~40KB of near-identical prose. The dedicated grass
+// SCORING lives in lib/ai/rubrics; this is the player-facing teaching content.
+type SkillTechniqueBase = Omit<SkillTechnique, "byDiscipline"> & {
+  byDiscipline: Record<"indoor" | "beach", DisciplineVariant>;
+};
+
+const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
   serve: {
     skill: "serve",
     persona: "an elite indoor volleyball serving coach",
@@ -1152,6 +1161,25 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = {
     },
   },
 };
+
+const GRASS_CONTEXT =
+  "Grass: firm footing, so the indoor approach, jump, and swing apply. Read the wind and sun on the ball, and expect a softer, less even surface than a court.";
+
+export const TECHNIQUE: Record<Skill, SkillTechnique> = Object.fromEntries(
+  SKILLS.map((skill): [Skill, SkillTechnique] => {
+    const base = TECHNIQUE_BASE[skill];
+    return [
+      skill,
+      {
+        ...base,
+        byDiscipline: {
+          ...base.byDiscipline,
+          grass: { ...base.byDiscipline.indoor, context_note: GRASS_CONTEXT },
+        },
+      },
+    ];
+  }),
+) as Record<Skill, SkillTechnique>;
 
 export function techniqueFor(
   skill: Skill,
