@@ -575,3 +575,47 @@ ball register on the real players; HUD reads right), both takes re-rendered
 with byte-identical loop seams (frame 300 = frame 0), and both play in place
 on the landing hero and film-room section (desktop + 402px). Not yet pushed
 (owner review pending on the likeness point).
+
+## D-023 — Scoring re-calibration: neutralize the missing-evidence penalty, add a situational-difficulty axis
+Date: 2026-07-14 · By: owner report ("metrics are undervalued... it's always targeting perfect form but volleyball is a variable-dependent game")
+
+Two structural causes of systematically low scores, both fixed in
+`lib/ai/output-spec.ts` (the per-request override layer that already carries
+`AMATEUR_STANDARD`), so the six frozen RUBRIC prompts stay untouched.
+
+Cause A — the invisibility penalty. The frozen rubric instructs, on every
+sub-metric, to "score conservatively rather than assuming competence" when a
+cue is occluded, out of frame, or motion-blurred (24 occurrences of
+"conservativ" across the rubric string). On short mobile clips with the
+D-021 on-device tracking those conditions fire constantly, turning the
+instruction into a standing downward bias: reps get docked for cues the
+model could not see. New `EVIDENCE_STANDARD` block re-reads the rule as
+symmetric — an unconfirmed cue is neutral, not a deduction; only a
+POSITIVELY visible fault docks a metric; contact-frame blur is not itself a
+defect — while still forbidding invented competence or fabricated detail.
+
+Cause B — no situational axis ("targeting perfect form"). The rubric grades
+absolute biomechanics against invariant ideals with almost no notion of what
+the play demanded, so a correct adaptation forced by the situation (set on
+the move off a shanked pass, emergency dig off a bullet, beach cut over a
+power swing) is scored as a fault. New `SITUATIONAL_DIFFICULTY` block adds a
+degree-of-difficulty axis: judge execution relative to what the situation
+allowed, never dock textbook form the play made impossible, but never credit
+looseness the situation did not force (leniency is earned by difficulty, not
+handed out). Adjusts the NUMBER only; the coaching still names the ideal.
+
+Both blocks are appended after the rubric and the score anchors, before
+`COACH_VOICE`, and apply to every tier (they correct a measurement artifact
+and a difficulty judgment, not the amateur/pro ceiling). Prompt-only; no
+schema, tracking, or UI change.
+
+NOT YET VERIFIED: no Node in the authoring session, so tsc/tests did not run
+here (the change is pure string additions to a string array, no type
+surface). Calibration is still unmeasured — cause C from the diagnosis (the
+scoring has never been run against labeled reps; `evals/BASELINE.md` does not
+exist). Next: finish the `eval-harness-calibration` loop, confirm known-~70
+reps now land ~70 (not the 50s), and shift `AMATEUR_STANDARD` / the
+`SCORE_ANCHORS` ladder by any residual measured delta. Consider a GPU
+server-side measurement upgrade (3D mesh recovery, e.g. SMPLer-X / 4D-Humans,
+plus TrackNetV3 for the ball) only if measurement noise is still the limiter
+after this re-calibration.

@@ -52,6 +52,39 @@ const SCORING_STANDARD: Record<Level, string> = {
   pro: PRO_STANDARD,
 };
 
+// The frozen RUBRIC tells the model, on every sub-metric, to "score conservatively
+// rather than assuming competence" whenever a cue is occluded, out of frame, or
+// motion-blurred. On short mobile clips with imperfect on-device tracking that
+// condition fires constantly, so the instruction becomes a standing DOWNWARD bias:
+// the model docks reps for cues it simply could not see. This block re-reads that
+// rule as symmetric — an unconfirmed cue is neutral, not a deduction — without
+// licensing invented competence. Applies to every tier; it corrects a measurement
+// artifact, not a difficulty judgment. (D-023, cause A.)
+const EVIDENCE_STANDARD = [
+  "EVIDENCE STANDARD (governs how missing evidence affects the number; overrides the rubric's default-conservative rule)",
+  "The rubric says to score a cue conservatively when it is occluded, out of frame, or motion-blurred. Read that as: do not INVENT competence you cannot see, and do not INVENT a fault you cannot see either. An unconfirmed cue is NEUTRAL, not a deduction.",
+  "- Score a cue you cannot clearly see at the level the rest of the visible rep implies, not at the floor. If everything you CAN see is sound, presume an unseen cue sound rather than broken.",
+  "- Only dock a metric for a fault that is POSITIVELY visible in the frames. Absence of evidence is not evidence of a fault.",
+  "- Contact-frame blur is normal at high speed and is not itself a defect; judge contact from the load and follow-through around it rather than penalizing the blur.",
+  "- Still never fabricate a measurement or a specific detail you did not see. Presuming a cue sound is not the same as claiming to have observed it, so keep the metric note honest about what was and was not visible.",
+].join("\n");
+
+// The rubric grades absolute biomechanics against invariant ideals, with almost no
+// notion of what the play demanded. So a correct ADAPTATION to a hard situation (a
+// set on the move off a shanked pass, an emergency dig off a bullet, a beach cut over
+// a power swing) gets docked for not looking textbook. Volleyball is a constraint
+// game; this block adds the degree-of-difficulty axis so execution is judged relative
+// to what the situation allowed. It moves the NUMBER only — the coaching still names
+// the ideal. Leniency is earned by difficulty, never handed out. (D-023, cause B.)
+const SITUATIONAL_DIFFICULTY = [
+  "SITUATIONAL DIFFICULTY (grade the play the situation allowed, not an ideal in a vacuum)",
+  "Before scoring, read the difficulty the athlete was under: the speed and quality of the incoming ball, in-system vs out-of-system, on-balance vs emergency, and whether the play pulled them out of position.",
+  "- Judge execution RELATIVE to what that situation allowed. A technically correct adaptation the play forced is the right choice and is NOT a fault; do not dock textbook form the situation made impossible.",
+  "- Conversely, do not credit sloppy technique the situation did NOT force. An easy, in-system ball played loosely is scored strictly. The leniency is earned by difficulty, not handed out.",
+  "- When situational difficulty materially moves a metric up or down, name the constraint in that metric's note (e.g. \"platform angle is correct for an emergency dig off a hard-driven ball\").",
+  "- This adjusts the NUMBER only. Still coach the ideal: name what elite execution would look like so the player has a target, even when the rep was the right call for the moment.",
+].join("\n");
+
 // How the coach talks to this player. The scoring STANDARD above sets where the
 // scale sits; this sets the voice, and how much a verdict gets softened. Pro is
 // the contract the funnel promises: judged like a professional, told bluntly.
@@ -85,6 +118,10 @@ export function outputSpec(
     SCORING_STANDARD[level],
     "",
     scoreAnchors(skill, discipline),
+    "",
+    EVIDENCE_STANDARD,
+    "",
+    SITUATIONAL_DIFFICULTY,
     "",
     COACH_VOICE[level],
     "",
