@@ -24,6 +24,7 @@ import {
 import { coherentOverall, scoreBand } from "@/lib/ratings";
 import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
 import type { MeasurementsBlock } from "@/lib/pose/types";
+import { hasLocalEvalAccess } from "@/lib/security/request";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
 // through the SAME scoring path as /api/analyze — identical system blocks
@@ -187,7 +188,10 @@ async function runModel(
 }
 
 export async function GET(req: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
+  if (
+    process.env.NODE_ENV === "production" ||
+    !hasLocalEvalAccess(req, process.env.EVAL_TOKEN)
+  ) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const url = new URL(req.url);

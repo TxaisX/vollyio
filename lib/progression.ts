@@ -91,20 +91,7 @@ export async function awardXp(
   const { error } = await supabase
     .from("xp_events")
     .insert({ user_id: userId, amount, reason });
-  if (error) return false;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("xp")
-    .eq("id", userId)
-    .single();
-  if (profile) {
-    await supabase
-      .from("profiles")
-      .update({ xp: profile.xp + amount })
-      .eq("id", userId);
-  }
-  return true;
+  return !error;
 }
 
 export const challengeReason = (dateKey: string) => `challenge:${dateKey}`;

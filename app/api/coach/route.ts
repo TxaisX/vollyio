@@ -7,12 +7,14 @@ import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
 import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
+import { consumeApiQuota } from "@/lib/security/rate-limit";
+import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const bodySchema = z.object({
-  message: z.string().min(1).max(2000),
+  message: z.string().trim().min(1).max(2000),
   session_id: z.string().uuid().optional(),
 });
 
@@ -56,11 +58,9 @@ function* textChunks(text: string, size = 12) {
 }
 
 export async function POST(req: NextRequest) {
-  const parsed = bodySchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  if (!hasTrustedMutationOrigin(req)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
-  const { message, session_id } = parsed.data;
 
   const supabase = await createClient();
   const {
@@ -70,19 +70,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
-  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
-  const { count } = await supabase
-    .from("chat_messages")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("role", "user")
-    .gte("created_at", hourAgo);
-  if ((count ?? 0) >= 60) {
+  const quota = await consumeApiQuota(supabase, "coach");
+  if (!quota.ok) {
     return NextResponse.json(
-      { error: "You've hit the hourly message limit. Try again soon." },
-      { status: 429 },
+      { error: "The coaching service is unavailable. Try again." },
+      { status: 503 },
     );
   }
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: "You've hit the hourly message limit. Try again soon." },
+      { status: 429, headers: { "Retry-After": "3600" } },
+    );
+  }
+
+  const json = await readJsonRequest(req, 16_384);
+  if (!json.ok) {
+    const status =
+      json.error === "payload_too_large"
+        ? 413
+        : json.error === "unsupported_media_type"
+          ? 415
+          : 400;
+    return NextResponse.json({ error: "Bad request." }, { status });
+  }
+  const parsed = bodySchema.safeParse(json.value);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  }
+  const { message, session_id } = parsed.data;
 
   // Resolve the conversation: verify ownership of an existing session, or
   // start a new one titled from this first message.

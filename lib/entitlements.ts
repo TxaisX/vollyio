@@ -1,26 +1,70 @@
-import { createClient } from "@/lib/supabase/server";
+type RpcResult = PromiseLike<{ data: unknown; error: unknown }>;
 
-export async function canAnalyze(
-  userId: string,
-): Promise<{ ok: boolean; reason?: string }> {
-  if (process.env.BILLING_ENABLED !== "true") return { ok: true };
+type EntitlementClient = {
+  rpc(name: string, args?: Record<string, unknown>): RpcResult;
+};
 
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan")
-    .eq("id", userId)
-    .single();
+type ReservationResult =
+  | { ok: true; allowed: true; reservationId: string }
+  | { ok: true; allowed: false; reason: "used" | "in_progress" }
+  | { ok: false; allowed: false };
 
-  if (profile?.plan && profile.plan !== "free") return { ok: true };
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  const { count } = await supabase
-    .from("analyses")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  if ((count ?? 0) >= 1) {
-    return { ok: false, reason: "Your free analysis is used. Upgrade to keep training." };
+export async function reserveAnalysisEntitlement(
+  client: EntitlementClient,
+  enforceBilling: boolean,
+): Promise<ReservationResult> {
+  let data: unknown;
+  let error: unknown;
+  try {
+    ({ data, error } = await client.rpc("reserve_analysis_entitlement", {
+      p_enforce_free: enforceBilling,
+    }));
+  } catch {
+    return { ok: false, allowed: false };
   }
-  return { ok: true };
+  if (error || !data || typeof data !== "object") {
+    return { ok: false, allowed: false };
+  }
+
+  const row = data as Record<string, unknown>;
+  if (
+    typeof row.allowed !== "boolean" ||
+    !("reservation_id" in row) ||
+    !("reason" in row)
+  ) {
+    return { ok: false, allowed: false };
+  }
+
+  if (row.allowed) {
+    const reservationId = row.reservation_id;
+    if (
+      typeof reservationId !== "string" ||
+      !UUID_PATTERN.test(reservationId)
+    ) {
+      return { ok: false, allowed: false };
+    }
+    return { ok: true, allowed: true, reservationId };
+  }
+
+  if (row.reason === "used" || row.reason === "in_progress") {
+    return { ok: true, allowed: false, reason: row.reason };
+  }
+  return { ok: false, allowed: false };
+}
+
+export async function releaseAnalysisEntitlement(
+  client: EntitlementClient,
+  reservationId: string,
+): Promise<boolean> {
+  try {
+    const { error } = await client.rpc("release_analysis_entitlement", {
+      p_reservation_id: reservationId,
+    });
+    return !error;
+  } catch {
+    return false;
+  }
 }

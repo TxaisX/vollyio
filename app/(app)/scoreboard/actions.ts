@@ -11,12 +11,17 @@ const payloadSchema = z.object({
   team_b: z.string().trim().min(1).max(30),
   best_of: z.union([z.literal(3), z.literal(5)]),
   sets: z
-    .array(z.object({ a: z.number().int().min(0), b: z.number().int().min(0) }))
+    .array(
+      z.object({
+        a: z.number().int().min(0).max(200),
+        b: z.number().int().min(0).max(200),
+      }),
+    )
     .min(1)
     .max(5),
   winner: z.enum(["a", "b"]),
   started_at: z.iso.datetime(),
-  duration_s: z.number().int().min(0),
+  duration_s: z.number().int().min(0).max(86_400),
 });
 
 export type SaveGamePayload = z.infer<typeof payloadSchema>;

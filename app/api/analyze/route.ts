@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { coach, ANALYZE_MODEL } from "@/lib/ai/client";
 import { analysisSchema } from "@/lib/ai/schema";
@@ -12,97 +11,28 @@ import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
 import { updateRating, coherentOverall } from "@/lib/ratings";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
-import { canAnalyze } from "@/lib/entitlements";
-import { SKILLS, SKILL_LABEL, DISCIPLINES, type Level } from "@/lib/skills";
-import { MAX_FRAMES, MAX_STORED_FRAMES, type AnalysisResult } from "@/lib/analysis-types";
+import {
+  releaseAnalysisEntitlement,
+  reserveAnalysisEntitlement,
+} from "@/lib/entitlements";
+import { SKILL_LABEL, type Level } from "@/lib/skills";
+import { MAX_BODY_BYTES, type AnalysisResult } from "@/lib/analysis-types";
 import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
-import { POSE_LANDMARK_COUNT } from "@/lib/pose/types";
+import { analyzeRequestSchema } from "@/lib/analyze-request";
+import {
+  hasTrustedMutationOrigin,
+  readJsonRequest,
+  safeClipExtension,
+} from "@/lib/security/request";
+import { consumeApiQuota } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const bodySchema = z.object({
-  skill: z.enum(SKILLS),
-  discipline: z.enum(DISCIPLINES).default("indoor"),
-  source: z.enum(["video", "photos"]),
-  duration_s: z.number().nullable(),
-  has_clip: z.boolean().optional(),
-  clip_ext: z.string().nullable().optional(),
-  frames: z
-    .array(
-      z.object({
-        index: z.number().int(),
-        time_s: z.number().nullable(),
-        data: z.string().min(1),
-      }),
-    )
-    .min(2)
-    .max(MAX_FRAMES),
-  // Motion-tracking sidecar. measurements is validated separately by
-  // sanitizeMeasurements and dropped (never 400) on mismatch.
-  measurements: z.unknown().optional(),
-  frame_keypoints: z
-    .array(
-      z.object({
-        frame_index: z.number().int().min(0),
-        pts: z.array(z.number()).length(POSE_LANDMARK_COUNT * 4),
-      }),
-    )
-    .max(MAX_FRAMES)
-    .optional(),
-  has_keypoints: z.boolean().optional(),
-  // The extraction planner stores up to MAX_STORED_FRAMES total; the send set
-  // is at least 2, so extras can reach MAX_STORED_FRAMES - 2 (not MAX_FRAMES).
-  extra_frame_count: z.number().int().min(0).max(MAX_STORED_FRAMES - 2).optional(),
-  focus_marker: z.boolean().optional(),
-  player_selection: z
-    .object({
-      candidates: z.number().int().min(1).max(8),
-      selected_rank: z.number().int().min(1).max(8),
-      auto: z.boolean(),
-    })
-    .optional(),
-  continuity: z
-    .object({
-      coverage: z.number().min(0).max(1),
-      lost: z.boolean(),
-      absences: z
-        .array(
-          z.object({
-            kind: z.enum(["occluded", "off_frame"]),
-            edge: z.enum(["left", "right", "top", "bottom"]).optional(),
-            start_s: z.number().min(0).max(600),
-            returned_at_s: z.number().min(0).max(600).nullable(),
-          }),
-        )
-        .max(12),
-    })
-    .optional(),
-  // On-device tracked ball marks for the sent frames (D-019).
-  ball_track: z
-    .array(
-      z.object({
-        frame_index: z.number().int().min(0).max(MAX_FRAMES - 1),
-        x: z.number().min(0).max(1),
-        y: z.number().min(0).max(1),
-        visible: z.boolean(),
-      }),
-    )
-    .max(MAX_FRAMES)
-    .optional(),
-});
-
-function safeClipExt(ext: string | null | undefined): string {
-  const e = (ext ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  return e.length >= 2 && e.length <= 4 ? e : "webm";
-}
-
 export async function POST(req: NextRequest) {
-  const parsedBody = bodySchema.safeParse(await req.json().catch(() => null));
-  if (!parsedBody.success) {
-    return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  if (!hasTrustedMutationOrigin(req)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
-  const { skill, discipline, source, duration_s, frames } = parsedBody.data;
 
   const supabase = await createClient();
   const {
@@ -112,25 +42,62 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
-  const gate = await canAnalyze(user.id);
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.reason }, { status: 402 });
+  const json = await readJsonRequest(req, MAX_BODY_BYTES);
+  if (!json.ok) {
+    const status =
+      json.error === "payload_too_large"
+        ? 413
+        : json.error === "unsupported_media_type"
+          ? 415
+          : 400;
+    return NextResponse.json({ error: "Bad request." }, { status });
   }
+  const parsedBody = analyzeRequestSchema.safeParse(json.value);
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  }
+  const { skill, discipline, source, duration_s, frames } = parsedBody.data;
 
-  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
-  const { count } = await supabase
-    .from("analyses")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .gte("created_at", hourAgo);
-  if ((count ?? 0) >= 20) {
+  const quota = await consumeApiQuota(supabase, "analyze");
+  if (!quota.ok) {
+    return NextResponse.json(
+      { error: "The coaching service is unavailable. Try again." },
+      { status: 503 },
+    );
+  }
+  if (!quota.allowed) {
     return NextResponse.json(
       { error: "You've hit the hourly analysis limit. Try again soon." },
-      { status: 429 },
+      { status: 429, headers: { "Retry-After": "3600" } },
     );
   }
 
-  const timeAt = (index: number) =>
+  const entitlement = await reserveAnalysisEntitlement(
+    supabase,
+    process.env.BILLING_ENABLED === "true",
+  );
+  if (!entitlement.ok) {
+    return NextResponse.json(
+      { error: "The coaching service is unavailable. Try again." },
+      { status: 503 },
+    );
+  }
+  if (!entitlement.allowed) {
+    const inProgress = entitlement.reason === "in_progress";
+    return NextResponse.json(
+      {
+        error: inProgress
+          ? "An analysis is already running."
+          : "Your free analysis is used. Upgrade to keep training.",
+      },
+      { status: inProgress ? 409 : 402 },
+    );
+  }
+
+  const reservationId = entitlement.reservationId;
+
+  const performAnalysis = async () => {
+    const timeAt = (index: number) =>
     frames.find((f) => f.index === index)?.time_s ?? null;
 
   // Invalid measurement blocks are telemetry failures, not request failures:
@@ -317,7 +284,7 @@ export async function POST(req: NextRequest) {
 
   const wantsClip = source === "video" && parsedBody.data.has_clip === true;
   const clipPath = wantsClip
-    ? `${user.id}/${analysisId}/clip.${safeClipExt(parsedBody.data.clip_ext)}`
+    ? `${user.id}/${analysisId}/clip.${safeClipExtension(parsedBody.data.clip_ext)}`
     : null;
 
   // Predetermine storage paths for the client's post-response uploads (same
@@ -333,15 +300,10 @@ export async function POST(req: NextRequest) {
     (_, i) => `${user.id}/${analysisId}/x${String(frames.length + i).padStart(2, "0")}.jpg`,
   );
 
-  const framePaths: string[] = [];
-  for (const f of frames) {
-    const path = `${user.id}/${analysisId}/f${String(f.index).padStart(2, "0")}.jpg`;
-    const bytes = Buffer.from(f.data, "base64");
-    const { error } = await supabase.storage
-      .from("frames")
-      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
-    if (!error) framePaths.push(path);
-  }
+  const framePaths = frames.map(
+    (frame) =>
+      `${user.id}/${analysisId}/f${String(frame.index).padStart(2, "0")}.jpg`,
+  );
 
   const { error: insertError } = await supabase.from("analyses").insert({
     id: analysisId,
@@ -361,7 +323,44 @@ export async function POST(req: NextRequest) {
     model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
   });
   if (insertError) {
+    if (insertError.message.includes("analysis rate limit exceeded")) {
+      return NextResponse.json(
+        { error: "You've hit the hourly analysis limit. Try again soon." },
+        { status: 429, headers: { "Retry-After": "3600" } },
+      );
+    }
     return NextResponse.json({ error: "Couldn't save your analysis." }, { status: 500 });
+  }
+
+  const uploadedFramePaths: string[] = [];
+  let frameUploadFailed = false;
+  for (let i = 0; i < frames.length; i++) {
+    const bytes = Buffer.from(frames[i].data, "base64");
+    const { error } = await supabase.storage
+      .from("frames")
+      .upload(framePaths[i], bytes, { contentType: "image/jpeg", upsert: false });
+    if (error) {
+      console.error("[analyze] required frame upload failed", {
+        analysisId,
+        frameIndex: i,
+      });
+      frameUploadFailed = true;
+      break;
+    }
+    uploadedFramePaths.push(framePaths[i]);
+  }
+  if (frameUploadFailed) {
+    if (uploadedFramePaths.length > 0) {
+      await supabase.storage.from("frames").remove(uploadedFramePaths);
+    }
+    await supabase.rpc("discard_new_analysis", {
+      p_analysis_id: analysisId,
+      p_reservation_id: reservationId,
+    });
+    return NextResponse.json(
+      { error: "Couldn't save your analysis. Try again." },
+      { status: 500 },
+    );
   }
 
   const { data: prev } = await supabase
@@ -398,4 +397,11 @@ export async function POST(req: NextRequest) {
     storedFramePaths,
     xpAwarded: awarded ? XP_AWARDS.analysis : 0,
   });
+  };
+
+  try {
+    return await performAnalysis();
+  } finally {
+    await releaseAnalysisEntitlement(supabase, reservationId);
+  }
 }

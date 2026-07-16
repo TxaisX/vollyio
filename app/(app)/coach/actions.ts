@@ -2,12 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 
 export async function deleteCoachSession(formData: FormData) {
   const id = formData.get("id");
-  if (typeof id !== "string" || id.length === 0) return;
+  if (typeof id !== "string" || !z.uuid().safeParse(id).success) return;
 
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
