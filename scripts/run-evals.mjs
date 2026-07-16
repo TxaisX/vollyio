@@ -19,6 +19,16 @@ const BASE = args.base ?? "http://localhost:3222";
 const RUNS = Math.max(1, Math.min(3, Number(args.runs ?? 2)));
 const STABILITY_TOLERANCE = 8;
 const RESULTS_PATH = "evals/RESULTS.json";
+const EVAL_TOKEN = process.env.EVAL_TOKEN;
+
+if (!EVAL_TOKEN) {
+  throw new Error("EVAL_TOKEN is required.");
+}
+
+const requestOptions = () => ({
+  headers: { authorization: `Bearer ${EVAL_TOKEN}` },
+  signal: AbortSignal.timeout(15 * 60 * 1000),
+});
 
 const ids = readdirSync("evals/cases")
   .filter((f) => f.endsWith(".json"))
@@ -48,7 +58,7 @@ for (const id of ids) {
   try {
     const res = await fetch(
       `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=${RUNS}&full=1`,
-      { signal: AbortSignal.timeout(15 * 60 * 1000) },
+      requestOptions(),
     );
     const body = await res.json();
     const r = body.results?.[0];
@@ -63,7 +73,7 @@ for (const id of ids) {
     if (r.overalls.length > 1 && spread(r.overalls) > STABILITY_TOLERANCE) {
       const extra = await fetch(
         `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=1&full=1`,
-        { signal: AbortSignal.timeout(15 * 60 * 1000) },
+        requestOptions(),
       );
       const eb = await extra.json();
       const er = eb.results?.[0];

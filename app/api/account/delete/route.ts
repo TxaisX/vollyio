@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { consumeApiQuota } from "@/lib/security/rate-limit";
+import { hasTrustedMutationOrigin } from "@/lib/security/request";
 
 // Self-serve account deletion: the Privacy Policy's deletion promise, in-app.
 // Stored footage goes first (own-folder storage policies, while the session
@@ -7,13 +9,31 @@ import { createClient } from "@/lib/supabase/server";
 // database row cascades away (profiles from auth.users, the rest from
 // profiles). Storage listing failures never block the account deletion
 // itself: rows and access die with the user even if a blob lingers.
-export async function POST() {
+export async function POST(request: NextRequest) {
+  if (!hasTrustedMutationOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
+  }
+
+  const quota = await consumeApiQuota(supabase, "account_delete");
+  if (!quota.ok) {
+    return NextResponse.json(
+      { error: "Account deletion is unavailable. Try again." },
+      { status: 503 },
+    );
+  }
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": "3600" } },
+    );
   }
 
   for (const bucket of ["frames", "clips"] as const) {

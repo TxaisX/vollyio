@@ -23,6 +23,7 @@ Set in `.env.local` for dev and mirrored to Vercel (`vercel env add <NAME> produ
 | `ANTHROPIC_API_KEY` | server only | the only vendor-named string in the repo; never prefix `NEXT_PUBLIC` |
 | `AI_MOCK` | server | `true` runs the full flow with canned coaching-service results at zero cost (used locally and in CI) |
 | `BILLING_ENABLED` | server | left empty until a paid tier ships |
+| `EVAL_TOKEN` | server | long random bearer token for the local-only eval route; leave unset in hosted environments |
 
 Model routing (D-004) is env-driven server-side: `COACH_MODEL` (fast conversational tier for coach chat) and `ANALYZE_MODEL` (top reasoning tier for frame analysis); `AI_MOCK=true` bypasses both.
 
@@ -50,6 +51,10 @@ vercel deploy --prod       # production
 ```
 
 Production is pushed from a green tree only. Preview URLs are generated per deploy for review before promotion.
+
+### Security migration order
+
+Use an expand, deploy, contract rollout. First apply `011_security_hardening.sql`, which adds the atomic functions without replacing storage policies. Then deploy the matching application and wait for the previous server deployment to drain. Verify a new analysis and its required frames, then apply `012_security_contract.sql` to revoke broad grants and tighten storage. The paid endpoints fail closed when migration 011 is absent. Finally, publish a baseline per-IP hosting-firewall limit across all public paths, with stricter POST limits for `/login`, `/signup`, and `/api/*`, then run the verification list in `docs/security.md`.
 
 ### Production deploy record (2026-07-08)
 - Core mission deployed and verified live (middot title, on-page mark, OG image, zero user-facing em dashes).

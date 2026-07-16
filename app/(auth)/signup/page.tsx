@@ -58,6 +58,7 @@ export default async function Signup({
                 id="display_name"
                 name="display_name"
                 type="text"
+                maxLength={80}
                 autoComplete="name"
                 placeholder="What your team calls you"
                 className="input-field text-sm"
@@ -75,6 +76,7 @@ export default async function Signup({
                 name="email"
                 type="email"
                 required
+                maxLength={254}
                 autoComplete="email"
                 placeholder="you@club.com"
                 aria-invalid={error ? true : undefined}
@@ -95,6 +97,7 @@ export default async function Signup({
                 type="password"
                 required
                 minLength={8}
+                maxLength={128}
                 autoComplete="new-password"
                 placeholder="8+ characters"
                 aria-invalid={error ? true : undefined}

@@ -16,9 +16,9 @@ through the exact scoring path as `/api/analyze` and reports agreement.
    - Metric keys per skill are in `lib/ai/metrics.ts`.
 3. **Add** — drop the file into `evals/cases/` (it's git-ignored by nothing; commit
    the ones you want tracked).
-4. **Run** — with `ANTHROPIC_API_KEY` set, hit
-   `GET /api/eval` (or `/api/eval?runs=2` to also measure run-to-run stability).
-   You get a `passRate` and per-case `checks`.
+4. **Run**: with the coaching key and a long random `EVAL_TOKEN` set, use
+   `node scripts/run-evals.mjs`. The script sends the required bearer token to
+   the loopback-only endpoint. You get a `passRate` and per-case `checks`.
 
 ## Case format (`evals/cases/*.json`)
 

@@ -382,7 +382,7 @@ function uploadCaptureArtifacts(
       .from("frames")
       .upload(keypointsPath, new Blob([JSON.stringify(file)], { type: "application/json" }), {
         contentType: "application/json",
-        upsert: true,
+        upsert: false,
       })
       .catch(() => {});
   }
@@ -393,7 +393,7 @@ function uploadCaptureArtifacts(
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       void supabase.storage
         .from("frames")
-        .upload(storedFramePaths[i], bytes, { contentType: "image/jpeg", upsert: true })
+        .upload(storedFramePaths[i], bytes, { contentType: "image/jpeg", upsert: false })
         .catch(() => {});
     } catch {
       // Skip a frame that fails to decode; the rest still upload.
@@ -962,7 +962,7 @@ export function AnalyzeFlow({
             .storage.from("clips")
             .upload(clipPath, clip, {
               contentType: (clip.type || "video/webm").split(";")[0],
-              upsert: true,
+              upsert: false,
             });
         } catch {
           // Non-fatal: the results page falls back to the frame player.

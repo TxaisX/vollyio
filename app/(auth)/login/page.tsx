@@ -62,6 +62,7 @@ export default async function Login({
                 name="email"
                 type="email"
                 required
+                maxLength={254}
                 autoComplete="email"
                 placeholder="you@club.com"
                 aria-invalid={error ? true : undefined}
@@ -81,6 +82,7 @@ export default async function Login({
                 name="password"
                 type="password"
                 required
+                maxLength={128}
                 autoComplete="current-password"
                 placeholder="••••••••"
                 aria-invalid={error ? true : undefined}

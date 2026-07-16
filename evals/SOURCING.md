@@ -20,7 +20,7 @@ them — and prefer your own footage where you can film it.
      sized and budgeted like the production request.
 4. Label `expected` in the emitted JSON (score band, weakest metric) and drop
    it in `evals/cases/`.
-5. Run `GET /api/eval` locally with a real key.
+5. Set the coaching key and `EVAL_TOKEN`, then run `node scripts/run-evals.mjs` locally.
 
 Labeling guidance: tutorial slow-motion footage is great for *fault
 identification* cases (the flaw is unmistakable) but poor for *timing* metrics

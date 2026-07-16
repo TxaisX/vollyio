@@ -1,3 +1,4 @@
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
 // D-004 (CS-5): cheapest capable model per call.
