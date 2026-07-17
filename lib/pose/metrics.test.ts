@@ -1,7 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildMeasurementsBlock, detectRepsForSkill } from "./metrics.ts";
-import { serveClip, blockClip, passClip, standingFrame } from "./test-fixtures.ts";
+import {
+  buildMeasurementsBlock,
+  confidenceScore,
+  detectRepsForSkill,
+  keyJointsForSkill,
+  NOISE_FLOOR,
+} from "./metrics.ts";
+import { LM } from "./types.ts";
+import { attackClip, serveClip, blockClip, passClip, standingFrame } from "./test-fixtures.ts";
 
 test("serve clip yields a grounded measurements block", () => {
   const block = buildMeasurementsBlock("serve", serveClip(), 30);
@@ -24,7 +31,7 @@ test("serve clip yields a grounded measurements block", () => {
 
   // Every surviving metric respects the confidence floor semantics.
   for (const [key, m] of Object.entries(rep.metrics)) {
-    assert.ok(m.confidence >= 0.55, `${key} confidence=${m.confidence}`);
+    assert.ok(m.confidence >= NOISE_FLOOR, `${key} confidence=${m.confidence}`);
     assert.ok(!block.omitted_below_confidence.includes(key));
   }
   assert.equal(block.session.rep_count, 1);
@@ -65,7 +72,7 @@ test("low visibility collapses confidence and omits metrics rather than lying", 
     assert.ok(block.omitted_below_confidence.length > 0);
     for (const rep of block.reps) {
       for (const m of Object.values(rep.metrics)) {
-        assert.ok(m.confidence >= 0.55);
+        assert.ok(m.confidence >= NOISE_FLOOR);
       }
     }
   } else {
@@ -104,6 +111,64 @@ test("new load metrics stay in physical ranges or are omitted", () => {
   } else {
     assert.ok(attackBlock.omitted_below_confidence.includes("knee_flexion_at_plant"));
   }
+});
+
+test("clean RTM attack footage keeps leg and hip checkpoints instead of omitting them", () => {
+  const block = buildMeasurementsBlock("attack", attackClip(0.7), 30);
+  assert.ok(block, "expected an attack measurements block on clean RTM footage");
+  const rep = block.reps[0];
+
+  for (const key of ["knee_flexion_at_plant", "shoulder_hip_separation", "jump_height"]) {
+    assert.ok(rep.metrics[key], `${key} should survive gating at RTM-clean visibility`);
+    assert.ok(!block.omitted_below_confidence.includes(key), `${key} wrongly omitted`);
+    assert.ok(rep.metrics[key].confidence >= NOISE_FLOOR, `${key} conf=${rep.metrics[key].confidence}`);
+  }
+
+  // Every surviving metric carries a real confidence at or above the floor.
+  for (const [key, m] of Object.entries(rep.metrics)) {
+    assert.ok(m.confidence >= NOISE_FLOOR, `${key} confidence=${m.confidence}`);
+  }
+});
+
+test("occluded attack footage still fails closed below the noise floor", () => {
+  const block = buildMeasurementsBlock("attack", attackClip(0.4), 30);
+  if (block) {
+    for (const key of ["knee_flexion_at_plant", "shoulder_hip_separation", "jump_height"]) {
+      assert.ok(
+        !block.reps[0].metrics[key],
+        `${key} should not survive on occluded footage`,
+      );
+    }
+    for (const rep of block.reps) {
+      for (const m of Object.values(rep.metrics)) {
+        assert.ok(m.confidence >= NOISE_FLOOR);
+      }
+    }
+  } else {
+    assert.equal(block, null);
+  }
+});
+
+test("confidenceScore is anchored to the RTM engine scale", () => {
+  // Clean RTM body-joint mean (~0.70) maps to ~0.90 at full fit and reliability.
+  const clean = confidenceScore(0.7, 1, 1);
+  assert.ok(clean >= 0.86 && clean <= 0.94, `clean=${clean}`);
+  // Genuine occlusion (~0.40) falls below the noise floor at any reliability.
+  assert.ok(confidenceScore(0.4, 1, 1) < NOISE_FLOOR);
+  // A clean leg checkpoint (vis ~0.55, reliability 0.70) survives the floor.
+  assert.ok(confidenceScore(0.55, 1, 0.7) > NOISE_FLOOR);
+  // High visibility clamps rather than overflowing.
+  assert.ok(confidenceScore(0.95, 1, 0.95) >= 0.9);
+  assert.ok(confidenceScore(1, 1, 1) <= 1);
+});
+
+test("keyJointsForSkill derives the landmark set from the skill's metric defs", () => {
+  const joints = keyJointsForSkill("attack");
+  assert.ok(joints.length > 0);
+  // Sorted, de-duplicated indices.
+  assert.deepEqual(joints, [...new Set(joints)].sort((a, b) => a - b));
+  // Attack scores leg and ankle checkpoints, so those joints must be present.
+  assert.ok(joints.includes(LM.leftKnee) && joints.includes(LM.leftAnkle));
 });
 
 test("detectRepsForSkill maps skills to families", () => {

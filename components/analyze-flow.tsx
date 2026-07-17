@@ -42,6 +42,11 @@ import {
 } from "@/lib/pose/types";
 import { ballMarksForFrames, MIN_TRACK_POINTS } from "@/lib/pose/ball-track";
 import {
+  captureQuality,
+  type CaptureQualityReason,
+} from "@/lib/pose/capture-quality";
+import { Reveal } from "@/components/motion";
+import {
   SKILL_LABEL,
   DISCIPLINES,
   DISCIPLINE_LABEL,
@@ -78,6 +83,15 @@ type Box = { left: number; top: number; width: number; height: number };
 // A detected person on the framing card: their box plus the landmarks it
 // came from, so confirming a tap needs no fresh detection.
 type Candidate = { box: Box; pts: Landmark[] };
+
+// Human copy for each capture-quality reason code. Kept here (not in the pure
+// module) so wording, tone, and the no-vendor/no-em-dash rules live in the
+// lint-checked component.
+const CAPTURE_TIP_COPY: Record<CaptureQualityReason, string> = {
+  too_small: "This player is small in the frame. Move closer or zoom in for a sharper read.",
+  low_visibility: "The joints that matter for this skill are hard to make out. Face the player more side-on.",
+  edge_cut: "Part of the body is cut off at the frame edge. Fit the whole player in.",
+};
 
 // Overlap over the smaller box, for re-attaching the selection to the same
 // human after a scrub re-detection.
@@ -578,6 +592,9 @@ export function AnalyzeFlow({
   // pre-selected; a tap pins that player explicitly.
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  // Capture-quality reasons for the selected player, settled so a momentary bad
+  // frame does not nag. A warning only, never a block.
+  const [captureWarn, setCaptureWarn] = useState<CaptureQualityReason[]>([]);
   // Whether the selection was the user's own tap (kept glued to the same
   // human across re-detections, dropped when they vanish) or the automatic
   // pre-select (free to follow the strongest detection).
@@ -672,6 +689,22 @@ export function AnalyzeFlow({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrubT, openingPick, framingUrl, frameVideoFailed]);
+
+  // Capture-quality check on the selected player, settled ~350ms so a fleeting
+  // bad frame does not flash a warning. Nothing selected (or no skill yet) shows
+  // nothing; the check reads the same key joints and visibility scale the
+  // scoring gate uses, so the tip never contradicts the eventual result.
+  useEffect(() => {
+    const picked = selectedIdx != null ? candidates[selectedIdx] : null;
+    if (!skill || !picked) {
+      setCaptureWarn([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCaptureWarn(captureQuality(picked.pts, skill).reasons);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [selectedIdx, candidates, skill]);
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
   useEffect(() => {
@@ -1500,6 +1533,29 @@ export function AnalyzeFlow({
                       </p>
                     )}
                   </>
+                )}
+                {captureWarn.length > 0 && (
+                  <Reveal className="mt-3">
+                    <div className="flex items-start gap-2 text-xs text-coral">
+                      <span
+                        aria-hidden
+                        className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-coral"
+                      />
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.12em]">
+                          Capture tip
+                        </p>
+                        <ul className="mt-1 space-y-0.5">
+                          {captureWarn.map((r) => (
+                            <li key={r}>{CAPTURE_TIP_COPY[r]}</li>
+                          ))}
+                        </ul>
+                        <p className="mt-1 text-chalk-dim">
+                          You can still analyze now; this only helps accuracy.
+                        </p>
+                      </div>
+                    </div>
+                  </Reveal>
                 )}
                 <button
                   type="button"

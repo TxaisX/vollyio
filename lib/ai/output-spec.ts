@@ -1,6 +1,6 @@
-import type { Level, Skill } from "@/lib/skills";
-import { METRICS } from "@/lib/ai/metrics";
-import { MEASUREMENT_CATALOG } from "@/lib/pose/metrics";
+import type { Level, Skill } from "../skills.ts";
+import { METRICS } from "./metrics.ts";
+import { MEASUREMENT_CATALOG } from "../pose/metrics.ts";
 
 const CONTACT_MOMENT: Record<Skill, string> = {
   serve: "the frame where the hand strikes the ball",
@@ -82,10 +82,10 @@ export function outputSpec(skill: Skill, level: Level): string {
     COACH_VOICE[level],
     "",
     "MEASURED DATA (when provided)",
-    "The user turn may include a JSON block of measurements computed by on-device motion tracking over the full clip, not just these frames. Treat those values as trusted ground truth: they observed the continuous motion you cannot see between frames.",
-    "When a measurement covers a checkpoint you are scoring, base that part of the score on the measured value and cite the number in the metric note (e.g. \"measured contact at 1.24 body heights\").",
+    "The user turn may include a JSON block of measurements computed by on-device motion tracking over the full clip, not just these frames. It observed the continuous motion between frames that you cannot see.",
+    "Each measurement carries a confidence from 0 to 1. Score the checkpoint it covers from the measured value in proportion to that confidence: at high confidence let the number drive that part of the score and cite it in the metric note (e.g. \"measured contact at 1.24 body heights\"); at lower confidence lean on it but cross-check it against the frames. A checkpoint measured with high confidence that also looks sound is allowed into the reward band on that evidence; do not withhold credit for a rep the measurements confirm.",
     "Checkpoints that may arrive measured for this skill: " + measured + ".",
-    "Anything absent from the block was not measured confidently; assess it visually as usual. Never contradict a measured value with a visual guess, and never invent measurements that were not provided.",
+    "A checkpoint that is absent from the block (including any name listed under omitted_below_confidence) was not measured; assess it visually as usual and keep the honesty floor for anything you cannot confirm. Never contradict a high-confidence measured value with a visual guess, and never invent measurements that were not provided.",
     "Units are body-relative (standing body heights, shoulder widths) plus degrees and seconds; treat them as consistent within the clip.",
     "",
     "SCENE READ",

@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         ? [
             {
               type: "text" as const,
-              text: `Measured data from on-device motion tracking (trusted ground truth; observed the full clip, not just these frames):\n${JSON.stringify(measurements)}`,
+              text: `Measured data from on-device motion tracking over the full clip (not just these frames). Each measurement carries a confidence from 0 to 1: treat high-confidence values as reliable evidence and let them drive the matching checkpoint's score; weigh lower-confidence values proportionally and cross-check them against what the frames show. Never invent a measurement that is not here, and never override a high-confidence value with a visual guess:\n${JSON.stringify(measurements)}`,
             },
           ]
         : [];

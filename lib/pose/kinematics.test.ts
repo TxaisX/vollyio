@@ -21,6 +21,7 @@ import {
   mapRegionPersons,
   segmentFrames,
   smooth,
+  smoothPreservingPeaks,
   standingBaseline,
   stddev,
 } from "./kinematics.ts";
@@ -50,6 +51,35 @@ test("smooth is a centered moving average", () => {
 
 test("stddev of a constant series is zero", () => {
   assert.equal(stddev([2, 2, 2, 2]), 0);
+});
+
+test("smoothPreservingPeaks keeps a single-frame spike at its index and height", () => {
+  const s = [0, 0, 0, 10, 0, 0, 0];
+  const kept = smoothPreservingPeaks(s, 1);
+  const argmax = kept.indexOf(Math.max(...kept));
+  assert.equal(argmax, 3, `peak index ${argmax}`);
+  assert.equal(kept[3], 10, "spike height is not attenuated");
+  // Plain smoothing flattens the same spike to the 3-tap mean (10/3).
+  assert.ok(Math.abs(smooth(s, 1)[3] - 10 / 3) < 1e-9, "plain smooth attenuates the spike");
+});
+
+test("smoothPreservingPeaks suppresses jitter without inventing peaks", () => {
+  const jitter = [1, 1.1, 0.9, 1.05, 0.95, 1.1, 0.9, 1.0, 1.05, 0.95];
+  const out = smoothPreservingPeaks(jitter, 1);
+  const localMaxima = (v: number[]) => {
+    let n = 0;
+    for (let i = 1; i < v.length - 1; i++) if (v[i] >= v[i - 1] && v[i] > v[i + 1]) n++;
+    return n;
+  };
+  assert.ok(localMaxima(out) <= localMaxima(jitter), "no spurious extra peaks");
+  assert.ok(stddev(out) <= stddev(jitter) + 1e-9, "jitter is not amplified");
+});
+
+test("detectSwingReps anchors contact at the true spike within one frame", () => {
+  const frames = serveClip();
+  const reps = detectSwingReps(frames, standingBaseline(frames));
+  assert.equal(reps.length, 1);
+  assert.ok(Math.abs(reps[0].contactS! - 2.2) <= 1 / 30, `contact=${reps[0].contactS}`);
 });
 
 test("segmentFrames splits on time gaps", () => {
