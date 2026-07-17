@@ -11,12 +11,12 @@ const REPS = [
     delta: 0,
     frame: 8,
     time: "0:00.8",
-    insight: "Toss drifts behind your hitting shoulder.",
-    fix: "Finish the toss twelve inches farther into the court.",
+    insight: "The last two approach steps stay even instead of accelerating.",
+    fix: "Make the penultimate step long and the final step fast.",
     metrics: [
-      ["Toss path", 61],
-      ["Contact height", 72],
-      ["Arm speed", 70],
+      ["Approach footwork", 61],
+      ["Jump timing", 72],
+      ["Arm swing", 70],
     ],
     trace: "M4 74 C36 72 48 65 78 63 S122 60 145 51 S185 22 219 29 S258 56 292 42",
   },
@@ -27,12 +27,12 @@ const REPS = [
     delta: 8,
     frame: 12,
     time: "0:01.2",
-    insight: "Contact is higher and six inches farther forward.",
-    fix: "Keep the same toss. Let your last two steps stay fast.",
+    insight: "The faster close puts contact higher and farther forward.",
+    fix: "Keep the same approach tempo. Reach through the top of the ball.",
     metrics: [
-      ["Toss path", 78],
-      ["Contact height", 81],
-      ["Arm speed", 72],
+      ["Approach footwork", 78],
+      ["Jump timing", 81],
+      ["Arm swing", 72],
     ],
     trace: "M4 74 C32 72 51 67 79 62 S118 58 145 43 S183 14 220 22 S260 48 292 35",
   },
@@ -43,12 +43,12 @@ const REPS = [
     delta: 14,
     frame: 15,
     time: "0:01.5",
-    insight: "Your best contact point is becoming repeatable.",
-    fix: "Bank this serve. Next, hold your finish through landing.",
+    insight: "Your full-reach contact window is becoming repeatable.",
+    fix: "Bank this swing. Next, finish across your body through landing.",
     metrics: [
-      ["Toss path", 84],
-      ["Contact height", 86],
-      ["Arm speed", 79],
+      ["Approach footwork", 84],
+      ["Jump timing", 86],
+      ["Arm swing", 79],
     ],
     trace: "M4 74 C34 72 48 65 77 60 S115 52 145 37 S180 10 220 18 S260 40 292 30",
   },
@@ -75,13 +75,13 @@ export function AnalyticsShowcase() {
         <div>
           <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-teal">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
-            Rep intelligence · example serve session
+            Rep intelligence · example attack session
           </div>
           <h3 className="mt-2 font-display text-2xl font-bold md:text-3xl">
             See the change, not just the number.
           </h3>
         </div>
-        <div className="flex gap-2" role="group" aria-label="Example serve reps">
+        <div className="flex gap-2" role="group" aria-label="Example attack reps">
           {REPS.map((item, index) => (
             <button
               key={item.label}
@@ -103,7 +103,7 @@ export function AnalyticsShowcase() {
           <div className="relative flex items-start justify-between">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
-                Contact path · shoulder to ball
+                Attack path · load to contact
               </p>
               <p className="mt-1 text-sm text-chalk-dim">
                 The trace lifts as your timing locks in.
@@ -174,7 +174,7 @@ export function AnalyticsShowcase() {
           <div className="flex items-end justify-between border-b border-line pb-5">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
-                Serve score
+                Spike score
               </p>
               <p className="stat-num mt-2 text-6xl text-gold md:text-7xl">
                 <CountUp to={rep.score} duration={620} />

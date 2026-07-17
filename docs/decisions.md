@@ -575,3 +575,28 @@ ball register on the real players; HUD reads right), both takes re-rendered
 with byte-identical loop seams (frame 300 = frame 0), and both play in place
 on the landing hero and film-room section (desktop + 402px). Not yet pushed
 (owner review pending on the likeness point).
+
+## D-023 - Animation library source pool, no speculative installs
+Date: 2026-07-16 · By: animation library intake
+
+Record Lenis, GSAP, Vanta, and React Bits in
+`docs/animation-library-pool.md` so future motion work starts from vetted
+sources instead of rediscovering the transcript. No runtime package is added
+in this pass because none has a current product interaction to own, and an
+unused dependency fails the 10.5 necessity gate.
+
+GSAP 3.15.0 is the primary future runtime candidate for a concrete complex
+timeline, SVG path or morph, or scroll sequence that the existing primitives
+cannot express cleanly. React Bits is a source catalog, not a whole-repository
+dependency: one component may be copied only after its code, transitive
+dependencies, MIT + Commons Clause terms, tokens, and reduced-motion behavior
+are audited, with the required copyright and license notice retained. Lenis
+1.3.25 stays on hold because replacing native scroll would touch anchors,
+fixed navigation, nested scrollers, touch behavior, and the accessibility
+surface without a stated need. Vanta 0.5.24 remains rejected on the
+D-016/D-017 WebGL necessity ruling and its 2022 npm release age.
+
+The pool records exact install triggers and validation requirements. Moving
+any candidate into `package.json` still requires a feature-scoped Decision Log
+entry, an exact version pin, minimal imports, settled reduced-motion output,
+and the section 10.2 performance floor.

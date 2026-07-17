@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CourtFilm } from "@/components/court-film";
+import { CinematicHero } from "@/components/cinematic-hero";
 import { StickyCta } from "@/components/sticky-cta";
 import { CursorGlow, SpotlightGroup, Tilt } from "@/components/cursor-glow";
 import { LandingNav } from "@/components/landing-nav";
@@ -138,70 +139,55 @@ export default function Landing() {
       <LandingNav />
 
       <main id="main" tabIndex={-1} className="relative">
-        <section className="landing-hero relative flex min-h-[calc(100svh-7.5rem)] items-end overflow-hidden border-b border-line pt-24 md:min-h-[calc(100svh-4.5rem)] md:items-center md:pt-28">
-          <CourtFilm
-            src="/sideout-hero-loop.mp4"
-            srcWebm="/sideout-hero-loop.webm"
-            poster="/sideout-hero-loop-poster.webp"
-            className="absolute inset-0"
-            controlCorner="bottom-24 right-4 md:bottom-4"
-            objectPosition="72% 50%"
-          />
-          <div aria-hidden="true" className="hero-film-shade pointer-events-none absolute inset-0" />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="animate-drift absolute inset-0">
-              <SeamArcs opacity={0.1} />
-            </div>
-          </div>
-          <div
-            aria-hidden="true"
-            className="hero-court-line pointer-events-none absolute inset-x-0 bottom-[18%]"
-          />
-          <div className="pointer-events-none relative mx-auto w-full max-w-6xl px-5 pb-6 md:px-8 md:pb-12">
-            <div className="pointer-events-auto max-w-2xl">
-              <Reveal immediate>
-                <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">
-                  Your film · your fix
-                  <span className="hidden sm:inline"> · your next level</span>
-                </p>
-              </Reveal>
-              <Reveal delay={80} immediate>
-                <h1 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-chalk md:text-6xl">
-                  Fix the one thing holding your game back.
-                </h1>
-              </Reveal>
-              <Reveal delay={160} immediate>
-                <p className="mt-5 max-w-lg text-base leading-relaxed text-chalk-dim md:text-lg">
-                  Record a rep. Get the exact frame, the score, and the one
-                  correction that buys the most across every volleyball skill.
-                </p>
-              </Reveal>
-              <Reveal delay={240} immediate>
-                <div className="mt-7 flex flex-wrap items-center gap-3">
-                  <Link
-                    id="hero-cta"
-                    href="/start"
-                    className="btn-primary min-h-12 text-base"
-                  >
-                    Analyze your first rep
-                  </Link>
-                  <a href="#film" className="btn-ghost min-h-12 text-base">
-                    Watch a rep get read
-                  </a>
+        <CinematicHero />
+
+        <section id="film" className="cinematic-film-section scroll-mt-24 border-t border-line">
+          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                The film room
+              </p>
+              <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
+                Watch a rep get read.
+              </h2>
+              <p className="mt-4 max-w-xl text-chalk-dim">
+                This is the read itself: every player on the court found, the
+                one you tap tracked joint by joint, the ball measured,
+                checkpoints in real units, and the one fix that buys the most.
+                The whole read, in a ten-second loop.
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              {/* max kept at 2deg: the film is the attention object, the tilt
+                  only signals "this is an object you can examine". */}
+              <Tilt max={2}>
+                <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
+                  <CourtFilm
+                    src="/sideout-court-vision.mp4"
+                    srcWebm="/sideout-court-vision.webm"
+                    poster="/sideout-court-vision-poster.webp"
+                    label="Ten-second loop: a two-player rep is scanned, every player is boxed, the tapped hitter is tracked joint by joint, the ball is measured, spike checkpoints appear in real units, and the spike scores 82 with one priority fix."
+                    posterAlt="A two-player volleyball spike: the tracked hitter boxed in gold and traced with a skeleton, the other player boxed, measured attack checkpoints, and a spike score of 82."
+                    className="absolute inset-0"
+                    controlCorner="bottom-4 right-4"
+                    sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
+                  />
                 </div>
-              </Reveal>
-              <Reveal delay={300} immediate>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {["Six skills", "Frame-cited feedback", "Free to start"].map(
-                    (chip) => (
-                      <span key={chip} className="tag bg-navy/55 backdrop-blur-md">
-                        {chip}
-                      </span>
-                    ),
-                  )}
-                </div>
-              </Reveal>
-            </div>
+              </Tilt>
+            </Reveal>
+            <Reveal delay={200}>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {[
+                  "Tap a player, track the whole rep",
+                  "Checkpoints in real units",
+                  "One priority fix",
+                ].map((chip) => (
+                  <span key={chip} className="tag">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </Reveal>
           </div>
         </section>
 
@@ -231,56 +217,6 @@ export default function Landing() {
               </Reveal>
             ))}
           </SpotlightGroup>
-        </section>
-
-        <section id="film" className="scroll-mt-24 border-t border-line">
-          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-            <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-                The film room
-              </p>
-              <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
-                Watch a rep get read.
-              </h2>
-              <p className="mt-4 max-w-xl text-chalk-dim">
-                This is the read itself: every player on the court found, the
-                one you tap tracked joint by joint, the ball measured,
-                checkpoints in real units, and the one fix that buys the most.
-                The whole read, in a ten-second loop.
-              </p>
-            </Reveal>
-            <Reveal delay={120}>
-              {/* max kept at 2deg: the film is the attention object, the tilt
-                  only signals "this is an object you can examine". */}
-              <Tilt max={2}>
-                <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
-                  <CourtFilm
-                    src="/sideout-court-vision.mp4"
-                    srcWebm="/sideout-court-vision.webm"
-                    poster="/sideout-court-vision-poster.webp"
-                    label="Ten-second loop: a two-player rep is scanned, every player is boxed, the tapped athlete is tracked joint by joint, the ball is measured, checkpoints appear in real units, and the serve scores 82 with one priority fix."
-                    posterAlt="A two-player volleyball rep: the tracked athlete boxed in gold and traced with a skeleton, the other player boxed, measured checkpoints, and a serve score of 82."
-                    className="absolute inset-0"
-                    controlCorner="bottom-4 right-4"
-                    sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
-                  />
-                </div>
-              </Tilt>
-            </Reveal>
-            <Reveal delay={200}>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {[
-                  "Tap a player, track the whole rep",
-                  "Checkpoints in real units",
-                  "One priority fix",
-                ].map((chip) => (
-                  <span key={chip} className="tag">
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            </Reveal>
-          </div>
         </section>
 
         <section id="analytics" className="scroll-mt-24 border-t border-line">

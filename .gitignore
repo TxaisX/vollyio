@@ -64,3 +64,6 @@ evals/cases/*.json
 evals/work/
 evals/RESULTS.json
 evals/GROUPS.json
+
+# local render/lighthouse scratch
+/.cache/
