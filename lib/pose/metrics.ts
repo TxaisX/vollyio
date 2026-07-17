@@ -1,14 +1,18 @@
 // Per-skill metric definitions over detected reps. Pure and DOM-free.
 //
 // The contract that makes all six skills safe to ship: every metric carries a
-// confidence, and anything below its threshold is omitted from the payload
-// entirely (its name is listed in omitted_below_confidence, never its value).
-// Confidence = sqrt(landmark visibility) x (0.8 + 0.2 x detector fit)
-// x a per-metric reliability factor that encodes how well 33 landmarks can
-// actually see that checkpoint. Calibration anchors: clean footage
-// (visibility ~0.95, moderate-or-better fit) passes the 0.7 floor for
-// reliability >= 0.78; occluded footage (visibility ~0.5) fails everywhere;
-// reliability ~0.7 metrics need near-perfect capture to survive, by design.
+// confidence, and only genuine noise is omitted (its name is listed in
+// omitted_below_confidence, never its value); everything else is passed through
+// WITH its confidence so the coaching service can weigh it.
+//
+// Confidence = confidenceScore(landmark visibility, detector fit, reliability):
+// an affine remap of visibility x (0.8 + 0.2 x fit) x a per-metric reliability
+// factor. The remap is calibrated to the on-device pose engine, whose peak
+// scores are NOT MediaPipe visibilities: a cleanly-seen body joint reads ~0.70
+// (not ~0.95) and legs/ankles ~0.55. Anchors: a clean body-joint mean (~0.70)
+// maps to ~0.90 confidence at full fit and reliability; genuine occlusion
+// (~0.40) falls below NOISE_FLOOR at any reliability, so it is omitted.
+// Reliability attenuates the transmitted confidence; it is no longer a gate.
 
 import type { Skill } from "../skills.ts";
 import {
@@ -52,7 +56,10 @@ export const SKILL_FAMILY: Record<Skill, DetectorFamily> = {
   set: "platform",
 };
 
-const DEFAULT_THRESHOLD = 0.7;
+// The single include/exclude gate. A metric whose confidence lands below this
+// is genuine noise and is omitted (fail-closed abstain lane); anything at or
+// above it is passed through carrying its confidence for the model to weigh.
+export const NOISE_FLOOR = 0.4;
 const MAX_REPS = 8;
 
 type Ctx = {
@@ -67,7 +74,6 @@ type MetricDef = {
   key: string;
   unit: string;
   reliability: number;
-  threshold?: number;
   landmarks: number[];
   compute: (ctx: Ctx) => MeasurementValue | null;
 };
@@ -274,7 +280,6 @@ const SERVE: MetricDef[] = [
     key: "shoulder_hip_separation",
     unit: "deg",
     reliability: 0.65,
-    threshold: 0.6,
     landmarks: [LM.leftShoulder, LM.rightShoulder, LM.leftHip, LM.rightHip],
     compute: shoulderHipSeparation,
   },
@@ -285,7 +290,6 @@ const ATTACK: MetricDef[] = [
     key: "approach_tempo",
     unit: "s_between_steps",
     reliability: 0.65,
-    threshold: 0.6,
     landmarks: [LM.leftAnkle, LM.rightAnkle],
     compute: (ctx) => {
       const steps = stepTimes(ctx);
@@ -299,7 +303,6 @@ const ATTACK: MetricDef[] = [
     key: "penultimate_step_length",
     unit: "body_heights",
     reliability: 0.65,
-    threshold: 0.6,
     landmarks: [LM.leftAnkle, LM.rightAnkle],
     compute: (ctx) => {
       const steps = stepTimes(ctx);
@@ -313,7 +316,6 @@ const ATTACK: MetricDef[] = [
     key: "arms_back_on_plant",
     unit: "bool",
     reliability: 0.6,
-    threshold: 0.55,
     landmarks: [LM.leftWrist, LM.rightWrist, LM.leftHip, LM.rightHip],
     compute: (ctx) => {
       const plant = plantFrame(ctx);
@@ -336,7 +338,6 @@ const ATTACK: MetricDef[] = [
     key: "shoulder_hip_separation",
     unit: "deg",
     reliability: 0.65,
-    threshold: 0.6,
     landmarks: [LM.leftShoulder, LM.rightShoulder, LM.leftHip, LM.rightHip],
     compute: shoulderHipSeparation,
   },
@@ -484,7 +485,6 @@ const PASS: MetricDef[] = [
     key: "footwork_pattern",
     unit: "pattern",
     reliability: 0.65,
-    threshold: 0.55,
     landmarks: [LM.leftAnkle, LM.rightAnkle],
     compute: (ctx) => {
       if (ctx.repFrames.length < 4) return null;
@@ -549,7 +549,6 @@ const SET: MetricDef[] = [
     key: "leg_to_arm_sequence_lag",
     unit: "s",
     reliability: 0.6,
-    threshold: 0.55,
     landmarks: [LM.leftKnee, LM.rightKnee, LM.leftWrist, LM.rightWrist],
     compute: (ctx) => {
       if (!ctx.contact || ctx.repFrames.length < 5) return null;
@@ -585,7 +584,6 @@ const DIG: MetricDef[] = [
     key: "lunge_depth",
     unit: "body_heights",
     reliability: 0.6,
-    threshold: 0.55,
     landmarks: [LM.leftHip, LM.rightHip],
     compute: (ctx) => {
       if (!ctx.contact) return null;
@@ -606,7 +604,6 @@ const DIG: MetricDef[] = [
     key: "recovery_time",
     unit: "s",
     reliability: 0.65,
-    threshold: 0.6,
     landmarks: [LM.nose],
     compute: (ctx) => {
       if (!ctx.contact) return null;
@@ -653,16 +650,40 @@ export const MEASUREMENT_CATALOG: Record<Skill, { key: string; unit: string }[]>
     ]),
   ) as Record<Skill, { key: string; unit: string }[]>;
 
+// The distinct landmark indices every metric for a skill depends on, sorted.
+// The single source of truth for "which joints matter for this skill", so a
+// capture-quality warning and the scoring gate agree on what to check.
+export function keyJointsForSkill(skill: Skill): number[] {
+  return [...new Set(METRIC_DEFS[skill].flatMap((d) => d.landmarks))].sort((a, b) => a - b);
+}
+
 // ---------------------------------------------------------------------------
 // Block assembly
+
+// Affine remap constants for the RTM visibility scale: 1.8*0.70 - 0.36 = 0.90
+// (clean body joint -> high confidence) and 1.8*0.40 - 0.36 = 0.36 (occluded ->
+// below NOISE_FLOOR for every reliability, since reliability and fit are <= 1).
+const RTM_VIS_GAIN = 1.8;
+const RTM_VIS_BIAS = -0.36;
+
+function clamp01(x: number): number {
+  return Math.min(1, Math.max(0, x));
+}
+
+// Pure confidence model, exported so the calibration can be pinned at named
+// anchors. Visibility is remapped to the engine's real scale, attenuated by
+// detector fit and the checkpoint's reliability.
+export function confidenceScore(vis: number, fit: number, reliability: number): number {
+  const visAdj = clamp01(RTM_VIS_GAIN * Math.max(0, vis) + RTM_VIS_BIAS);
+  return clamp01(visAdj * (0.8 + 0.2 * fit) * reliability);
+}
 
 function metricConfidence(def: MetricDef, ctx: Ctx): number {
   const frames = ctx.repFrames.length > 0 ? ctx.repFrames : ctx.contact ? [ctx.contact] : [];
   if (frames.length === 0) return 0;
   const vis =
     frames.reduce((acc, f) => acc + visibilityMean(f, def.landmarks), 0) / frames.length;
-  const conf = Math.sqrt(Math.max(0, vis)) * (0.8 + 0.2 * ctx.rep.fit) * def.reliability;
-  return Math.min(1, Math.max(0, conf));
+  return confidenceScore(vis, ctx.rep.fit, def.reliability);
 }
 
 export function buildMeasurementsBlock(
@@ -698,7 +719,7 @@ export function buildMeasurementsBlock(
         continue;
       }
       const confidence = metricConfidence(def, ctx);
-      if (confidence < (def.threshold ?? DEFAULT_THRESHOLD)) {
+      if (confidence < NOISE_FLOOR) {
         omitted.add(def.key);
         continue;
       }

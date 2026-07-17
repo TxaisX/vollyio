@@ -204,6 +204,41 @@ export function passClip(): LandmarkFrame[] {
   return frames;
 }
 
+// An attack: the serve's approach + overhead swing with a real jump layered on.
+// The lower body translates vertically through a continuous jump profile so the
+// feet leave the ground (jump_height), a plant precedes contact, and a landing
+// follows it, while the arm swing stays identical to the serve so the swing
+// detector still finds the same contact. Default visibility 0.70 is the clean
+// RTM body-joint mean the confidence scale is anchored to.
+export function attackClip(visibility = 0.7): LandmarkFrame[] {
+  const lower: number[] = [
+    LM.leftHip,
+    LM.rightHip,
+    LM.leftKnee,
+    LM.rightKnee,
+    LM.leftAnkle,
+    LM.rightAnkle,
+    LM.leftHeel,
+    LM.rightHeel,
+    LM.leftFootIndex,
+    LM.rightFootIndex,
+  ];
+  // Up-offset in image units: 0 until 1.9s, linear to a 0.12 apex at 2.15s
+  // (just under the swing contact at ~2.2s), back to 0 by 2.45s.
+  const rise = (t: number): number => {
+    if (t <= 1.9 || t >= 2.45) return 0;
+    return t < 2.15 ? ((t - 1.9) / 0.25) * 0.12 : ((2.45 - t) / 0.3) * 0.12;
+  };
+  return serveClip(visibility).map((frame) => {
+    const dy = rise(frame.t);
+    if (dy === 0) return frame;
+    const pts = frame.pts.map((p, i) =>
+      lower.includes(i) ? { ...p, y: p.y - dy } : p,
+    );
+    return { t: frame.t, pts };
+  });
+}
+
 // Two-player scene: person A (shifted left) performs the serve, person B
 // (shifted right) stands idle. Person order alternates per frame to exercise
 // track association.

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import { DET_SCORE_MIN, decodeDetections, letterboxRatio } from "./yolox-decode.ts";
 import { BOX_PADDING, boxToCrop, cropPlacement, cropToFrame } from "./topdown.ts";
-import { decodeSimcc } from "./simcc-decode.ts";
+import { SIMCC_SPLIT_RATIO, decodeSimcc, decodeSimccArgmax } from "./simcc-decode.ts";
 
 type Fixture = {
   image: { file: string; width: number; height: number };
@@ -76,7 +76,7 @@ for (const fx of FIXTURES) {
     for (const person of fx.persons) {
       const [x1, y1, x2, y2] = person.bbox;
       const crop = boxToCrop({ x1, y1, x2, y2 });
-      const points = decodeSimcc(
+      const points = decodeSimccArgmax(
         Float32Array.from(person.simcc_x.flat()),
         Float32Array.from(person.simcc_y.flat()),
         crop,
@@ -99,6 +99,77 @@ for (const fx of FIXTURES) {
     }
   });
 }
+
+test("decodeSimcc lands a symmetric two-bin peak at the fractional midpoint", () => {
+  const wx = 384;
+  const wy = 512;
+  const simccX = new Float32Array(wx);
+  const simccY = new Float32Array(wy);
+  // Symmetric peak straddling bins 10 and 11 on x, 20 and 21 on y: the true
+  // sub-pixel location is the midpoint (10.5 / 20.5), which plain argmax cannot
+  // reach but the windowed centroid must.
+  simccX[9] = 0.2;
+  simccX[10] = 0.8;
+  simccX[11] = 0.8;
+  simccX[12] = 0.2;
+  simccY[19] = 0.2;
+  simccY[20] = 0.8;
+  simccY[21] = 0.8;
+  simccY[22] = 0.2;
+  const crop = boxToCrop({ x1: 0, y1: 0, x2: 192, y2: 256 });
+  const [pt] = decodeSimcc(simccX, simccY, crop, 1);
+  const expected = cropToFrame(10.5 / SIMCC_SPLIT_RATIO, 20.5 / SIMCC_SPLIT_RATIO, crop);
+  assert.ok(Math.abs(pt.x - expected.x) < 1e-6, `x ${pt.x} vs ${expected.x}`);
+  assert.ok(Math.abs(pt.y - expected.y) < 1e-6, `y ${pt.y} vs ${expected.y}`);
+  const [argmaxPt] = decodeSimccArgmax(simccX, simccY, crop, 1);
+  assert.ok(Math.abs(argmaxPt.x - expected.x) > 1e-3, "argmax cannot reach the midpoint");
+});
+
+for (const fx of FIXTURES) {
+  test(`${fx.image.file}: decodeSimcc score is byte-identical to argmax`, () => {
+    for (const person of fx.persons) {
+      const [x1, y1, x2, y2] = person.bbox;
+      const crop = boxToCrop({ x1, y1, x2, y2 });
+      const simccX = Float32Array.from(person.simcc_x.flat());
+      const simccY = Float32Array.from(person.simcc_y.flat());
+      const soft = decodeSimcc(simccX, simccY, crop);
+      const argmax = decodeSimccArgmax(simccX, simccY, crop);
+      for (let k = 0; k < soft.length; k++) {
+        assert.equal(soft[k].score, argmax[k].score, `kpt ${k} score`);
+      }
+    }
+  });
+
+  test(`${fx.image.file}: decodeSimcc stays within 1.5px of argmax`, () => {
+    for (const person of fx.persons) {
+      const [x1, y1, x2, y2] = person.bbox;
+      const crop = boxToCrop({ x1, y1, x2, y2 });
+      const simccX = Float32Array.from(person.simcc_x.flat());
+      const simccY = Float32Array.from(person.simcc_y.flat());
+      const soft = decodeSimcc(simccX, simccY, crop);
+      const argmax = decodeSimccArgmax(simccX, simccY, crop);
+      for (let k = 0; k < soft.length; k++) {
+        assert.ok(Math.abs(soft[k].x - argmax[k].x) < 1.5, `kpt ${k} x drift`);
+        assert.ok(Math.abs(soft[k].y - argmax[k].y) < 1.5, `kpt ${k} y drift`);
+      }
+    }
+  });
+}
+
+test("decodeSimcc preserves the score<=0 sentinel exactly", () => {
+  const wx = 384;
+  const wy = 512;
+  // All-zero classification rows: xMax=yMax=0 → score 0 → sentinel path.
+  const simccX = new Float32Array(wx);
+  const simccY = new Float32Array(wy);
+  const crop = boxToCrop({ x1: 40, y1: 60, x2: 160, y2: 400 });
+  const [soft] = decodeSimcc(simccX, simccY, crop, 1);
+  const [argmax] = decodeSimccArgmax(simccX, simccY, crop, 1);
+  assert.equal(soft.score, argmax.score);
+  assert.ok(soft.score <= 0);
+  assert.equal(soft.x, argmax.x);
+  assert.equal(soft.y, argmax.y);
+});
 
 test("cropToFrame inverts the crop mapping", () => {
   const crop = boxToCrop({ x1: 100, y1: 50, x2: 220, y2: 400 });

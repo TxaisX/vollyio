@@ -664,3 +664,77 @@ End-to-end verified, not just probed: a throwaway account with four planted
 files, deleted through the admin API to imitate the exact path that stranded
 the originals, lost every file within two seconds.
 `net._http_response` recorded `200 {"ok":true,"removed":4,"failed":0}`.
+
+## D-025 — SimCC sub-pixel decode layered over the pinned argmax anchor
+Date: 2026-07-17 · By: Pose-precision workstream (A1)
+
+The pose decode gained sub-pixel keypoint position without disturbing the only
+verified parity anchor. `lib/pose/rtm/simcc-decode.ts` now exports two layers
+over the same buffers:
+
+- `decodeSimccArgmax` is the original plain-argmax function, byte-for-byte
+  unchanged (score is the mean of the two axis maxima, coord via the split
+  ratio, `score<=0` sentinel preserved). The fixture parity test
+  (`rtm-decode.test.ts`, `simcc decode matches reference keypoints`, ≤0.75 px /
+  ≤0.005 score against the Python `rtmlib` dumps) is repointed to it and stays
+  green, so the buffers are still proven to be read correctly.
+- `decodeSimcc` refines only the coordinate with a windowed soft-argmax: a
+  normalized weighted centroid over ±2 bins around the argmax, weighting by the
+  value clamped at zero. The score and the sentinel path are identical to the
+  argmax layer. `pose-worker.ts` already imported `decodeSimcc`, so runtime
+  picks up the refinement with no worker change.
+
+Layer, do not re-run Python. The reference `get_simcc_maximum`
+(`D:\posecmp\dump_fixtures.py`) is itself plain argmax with no soft-argmax or
+DARK, so a soft-argmax decode necessarily diverges from the pinned keypoints.
+Regenerating the fixtures would need the owner's offline `D:\posecmp` venv and
+would discard the sole validated anchor; instead the argmax layer keeps the
+anchor and three new synthetic/derived tests bound the refinement: a symmetric
+two-bin peak lands at the exact fractional midpoint (argmax cannot), the score
+is byte-identical to argmax on both fixtures, and the coordinate stays within
+1.5 px of argmax on every real fixture keypoint. The sentinel is asserted
+identical across both layers.
+
+Logits vs values: the SimCC head emits values, not raw logits. Measured over
+the two fixtures the classification rows span about [-0.74, 0.96] with peaks
+~0.76-0.96 and scores ≤0.93 — bounded, Gaussian-response activations, and no
+softmax exists anywhere in the path. The centroid therefore normalizes by the
+window sum of non-negative weights (matching how `rtmlib` treats the outputs as
+values); clamping tail negatives at zero keeps the measured -0.74 tails from
+dragging the estimate off the true peak, and an all-zero window falls back to
+the argmax bin.
+
+No new dependency, so the 10.5 dependency gate and 10.2 motion discipline are
+not triggered by this change.
+
+## D-026 — Confidence scale recalibrated to the on-device pose engine; noise-floor gate replaces per-metric thresholds
+Date: 2026-07-17 · By: Use-the-data workstream (B)
+
+The measurement confidence model (`lib/pose/metrics.ts`) was anchored to a
+MediaPipe-style visibility scale (~0.95 clean), but the RTMPose SimCC engine
+produces peak scores that top out ~0.75-0.85 (arms) and ~0.5-0.6 (legs/ankles).
+Every attack leg/hip checkpoint therefore fell under the old 0.70 gate and
+landed in `omitted_below_confidence`, so the coaching service received zero
+measured values and scored vision-only — the verified cause of the attack/grass
+score collapsing to 48 on every run despite full coverage and a locked track.
+
+Fix: `metricConfidence` now calls a pure exported `confidenceScore(vis, fit,
+reliability)` that affinely remaps visibility (`clamp01(1.8*vis - 0.36)`) so a
+clean body-joint mean (~0.70) maps to ~0.90 confidence and genuine occlusion
+(~0.40) falls below the floor. A single `NOISE_FLOOR = 0.4` is now the only
+include/exclude gate; the per-metric `threshold` field and `DEFAULT_THRESHOLD`
+were removed. Reliability is now a confidence attenuator, not a gate —
+measurements between the floor and the old threshold are passed through WITH
+their confidence. Prompts (`app/api/analyze/route.ts`, `lib/ai/output-spec.ts`)
+were reframed from "trusted ground truth" to confidence-weighted evidence,
+allowing a confidently-measured sound rep into the reward band while keeping the
+honesty floor and the never-invent clause.
+
+Rejected a global `coco33.ts` visibility remap: it would shift `SKELETON_MIN_V`,
+`personConfidence`/`PERSON_CONFIDENCE_MIN`, and `PERSON_MIN_SCORE` and break
+`coco33.test.ts`, so the recalibration is contained to `metricConfidence`.
+
+No new dependency. Open follow-up: `PERSON_CONFIDENCE_MIN = 0.9` is likely
+miscalibrated against the same ~0.75-max scale (the framing card's confident set
+is almost always empty and falls back to raw detections); revisit separately.
+Scoring quality is only verifiable post-deploy on a real device.

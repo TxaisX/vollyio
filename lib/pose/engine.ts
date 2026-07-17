@@ -39,8 +39,12 @@ const DETECT_TIMEOUT_GPU_MS = 10_000;
 const DETECT_TIMEOUT_WASM_MS = 30_000;
 // Long edge for detection input; normalized outputs are size-invariant.
 // Sized so a distant player still spans enough pixels for the pose crop
-// (this replaces the old region-zoom machinery).
+// (this replaces the old region-zoom machinery). The detector input is a fixed
+// 640, so a larger capture only costs the bitmap resize plus pose-crop
+// sampling, not detection: the webgpu tier can afford a sharper crop while the
+// single-thread wasm fallback stays at the lower dim.
 const CAPTURE_DIM = 1280;
+const CAPTURE_DIM_WEBGPU = 1600;
 
 export type PoseEngine = {
   // Which engine tier actually loaded (reported in measurements).
@@ -95,10 +99,13 @@ function unpack(pts: Float32Array, count: number, timeS: number): PersonFrame {
   return { t: Math.round(timeS * 1000) / 1000, persons };
 }
 
-function detectSize(video: HTMLVideoElement): { resizeWidth: number; resizeHeight: number } {
+function detectSize(
+  video: HTMLVideoElement,
+  captureDim = CAPTURE_DIM,
+): { resizeWidth: number; resizeHeight: number } {
   const w = video.videoWidth || 640;
   const h = video.videoHeight || 360;
-  const scale = Math.min(1, CAPTURE_DIM / Math.max(w, h));
+  const scale = Math.min(1, captureDim / Math.max(w, h));
   return {
     resizeWidth: Math.max(1, Math.round(w * scale)),
     resizeHeight: Math.max(1, Math.round(h * scale)),
@@ -221,12 +228,16 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     const engine: PoseEngine = {
       modelName: `${ENGINE_NAME_BASE}/wasm`,
       async detectPersonsFromVideo(video, timeS, region, hint) {
+        // The GPU tier can afford a sharper capture; wasm stays at the base dim.
+        const captureDim = engine.modelName.endsWith("/webgpu")
+          ? CAPTURE_DIM_WEBGPU
+          : CAPTURE_DIM;
         let bitmap: ImageBitmap;
         let ballBitmap: ImageBitmap | undefined;
         try {
           if (region) {
             const { sx, sy, sw, sh } = regionRect(video, region);
-            const scale = Math.min(1, CAPTURE_DIM / Math.max(sw, sh));
+            const scale = Math.min(1, captureDim / Math.max(sw, sh));
             bitmap = await createImageBitmap(video, sx, sy, sw, sh, {
               resizeWidth: Math.max(1, Math.round(sw * scale)),
               resizeHeight: Math.max(1, Math.round(sh * scale)),
@@ -234,12 +245,12 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
             // The ball flies outside any player crop; give the detector the
             // full frame. Non-fatal: without it the crop is searched instead.
             try {
-              ballBitmap = await createImageBitmap(video, detectSize(video));
+              ballBitmap = await createImageBitmap(video, detectSize(video, captureDim));
             } catch {
               ballBitmap = undefined;
             }
           } else {
-            bitmap = await createImageBitmap(video, detectSize(video));
+            bitmap = await createImageBitmap(video, detectSize(video, captureDim));
           }
         } catch {
           return null;

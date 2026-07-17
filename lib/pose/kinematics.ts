@@ -86,6 +86,31 @@ export function smooth(values: number[], radius = 1): number[] {
   });
 }
 
+// Centered moving average that leaves the peak instant sharp: any sample within
+// one index of a local maximum keeps its raw value, everything else is meaned
+// as in `smooth`. Use this only where the ARGMAX TIME of the series is consumed
+// (contact/apex anchors) — plain averaging shifts and attenuates the very
+// sample those consumers read. Monotone flanks stay smoothed, so jitter between
+// real peaks is still suppressed.
+export function smoothPreservingPeaks(values: number[], radius = 1): number[] {
+  if (radius <= 0) return [...values];
+  const isLocalMax = (i: number) =>
+    values[i] >= (values[i - 1] ?? -Infinity) && values[i] >= (values[i + 1] ?? -Infinity);
+  const nearPeak = values.map(
+    (_, i) => isLocalMax(i - 1) || isLocalMax(i) || isLocalMax(i + 1),
+  );
+  return values.map((v, i) => {
+    if (nearPeak[i]) return v;
+    let acc = 0;
+    let n = 0;
+    for (let j = Math.max(0, i - radius); j <= Math.min(values.length - 1, i + radius); j++) {
+      acc += values[j];
+      n++;
+    }
+    return acc / n;
+  });
+}
+
 // Speed of one landmark between consecutive frames, in image units per second.
 export function landmarkSpeed(segment: LandmarkFrame[], index: number): number[] {
   const out: number[] = new Array(segment.length).fill(0);
@@ -192,7 +217,9 @@ export function detectSwingReps(frames: LandmarkFrame[], baseline: Baseline | nu
   const reps: RepWindow[] = [];
   for (const segment of segmentFrames(frames)) {
     const times = segment.map((f) => f.t);
-    const speed = smooth(
+    // Contact time anchors contactS and every "at contact" metric, so keep the
+    // peak instant sharp instead of blurring it across neighbours.
+    const speed = smoothPreservingPeaks(
       segment.map((_, i) => {
         const l = landmarkSpeed(segment, LM.leftWrist)[i];
         const r = landmarkSpeed(segment, LM.rightWrist)[i];
@@ -331,7 +358,8 @@ export function speedPeakTimes(
     const times = segment.map((f) => f.t);
     const left = landmarkSpeed(segment, LM.leftWrist);
     const right = landmarkSpeed(segment, LM.rightWrist);
-    const speed = smooth(
+    // These peak TIMES anchor the sent frames, so preserve the peak instant.
+    const speed = smoothPreservingPeaks(
       segment.map((_, i) => Math.max(left[i], right[i])),
       1,
     );
