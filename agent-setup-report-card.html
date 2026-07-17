@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Setup Report Card — 2026-07-04</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-900:#0d1b2e; --navy-800:#122240; --navy-700:#1a3054; --navy-600:#234270;
+  --navy-200:#c8d4e8; --navy-100:#e4eaf4; --navy-50:#f0f4fa;
+  --gold-600:#9c7c38; --gold-500:#b8952e; --gold-400:#c9a84c; --gold-200:#e8d9a8; --gold-100:#f5efd4; --gold-50:#faf7ee;
+  --cream:#f8f5ef; --ivory:#fdfbf7;
+  --wg-600:#6b6456; --wg-400:#9e9486; --wg-200:#d8d2c8; --wg-100:#ede9e2;
+  --serif:'Source Serif 4',Georgia,serif; --sans:'Inter',-apple-system,Segoe UI,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--ivory);color:var(--navy-900);font-family:var(--sans);font-size:15px;line-height:1.6;
+  background-image:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(13,27,46,.025) 60px,rgba(13,27,46,.025) 61px)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.eyebrow{font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold-600)}
+h1{font:400 42px/1.15 var(--serif);color:var(--navy-900);margin:10px 0 8px}
+h2{font:400 27px/1.25 var(--serif);color:var(--navy-900);margin:0 0 6px}
+h3{font:600 15px var(--sans);color:var(--navy-900);margin:0 0 8px}
+section{padding:52px 0;border-bottom:1px solid rgba(13,27,46,.08)}
+header.page{padding:60px 0 44px}
+.sub{color:var(--wg-600);max-width:720px}
+.band{background:var(--navy-900);color:var(--navy-100);padding:40px 0}
+.band .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:26px}
+.stat .n{font:600 34px/1.1 var(--serif);color:var(--gold-400)}
+.stat .l{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--navy-200);margin-top:5px}
+.tablewrap{overflow-x:auto;background:#fff;border:1px solid rgba(13,27,46,.09);border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--gold-600);text-align:left;
+  padding:12px 14px;border-bottom:2px solid var(--gold-200);background:var(--gold-50);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--wg-100);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.g{display:inline-block;font:600 13px var(--sans);padding:2px 10px;border-radius:3px;min-width:34px;text-align:center}
+.gA{background:var(--navy-900);color:var(--gold-200)}
+.gB{background:var(--navy-100);color:var(--navy-700)}
+.gC{background:var(--gold-100);color:var(--gold-600)}
+.gD{background:#f3e3df;color:#a05540}
+.gF{background:#a05540;color:#fff}
+.arrow{color:var(--gold-500);font-weight:600;padding:0 4px}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.card{background:#fff;border:1px solid rgba(13,27,46,.09);border-radius:4px;padding:22px 24px}
+.card ul{margin:6px 0 0 18px}
+.card li{margin:5px 0}
+code{font-family:Consolas,Menlo,monospace;font-size:12.5px;background:var(--navy-50);color:var(--navy-700);
+  padding:1px 5px;border-radius:3px;word-break:break-all}
+details{margin-top:10px}
+summary{cursor:pointer;font:600 12.5px var(--sans);color:var(--gold-600)}
+details .list{margin-top:8px;font-size:12.5px;color:var(--wg-600);line-height:1.9}
+.ok{color:#3f7048;font-weight:600}
+.warn{color:#a05540;font-weight:600}
+.note{background:var(--cream);border-left:3px solid var(--gold-500);padding:14px 18px;border-radius:0 4px 4px 0;
+  color:var(--wg-600);font-size:13.5px;margin-top:20px}
+.big{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin:26px 0 6px}
+.gradebox{background:#fff;border:1px solid rgba(13,27,46,.09);border-radius:4px;padding:22px 34px;text-align:center}
+.gradebox .mark{font:600 52px/1 var(--serif)}
+.gradebox .cap{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--wg-400);margin-top:8px}
+.before .mark{color:#a05540}.after .mark{color:var(--navy-900)}
+footer{padding:36px 0 60px;color:var(--wg-400);font-size:12.5px}
+@media(max-width:640px){h1{font-size:32px}section{padding:38px 0}}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <div class="wrap">
+    <div class="eyebrow">Setup Audit · Remediation Verified</div>
+    <h1>Agent Setup Report Card</h1>
+    <p class="sub">Before-and-after grading of the Claude Code environment. Baseline audit and full remediation executed July 4, 2026, drawing on 129 sessions of transcript evidence (May 1 – July 4). Revised the same evening after the owner-confirmed cleanup pass and full Hermes removal.</p>
+    <div class="big">
+      <div class="gradebox before"><div class="mark">D+</div><div class="cap">Before · July 4, AM</div></div>
+      <div class="gradebox after"><div class="mark">A&minus;</div><div class="cap">After · July 4, PM</div></div>
+    </div>
+    <p class="sub" style="font-size:13px;margin-top:10px">The remaining half-grade is earned by evidence, not configuration: a month of sessions where handoffs land without manual <code>/handoff</code> and every session boots with correct vault state.</p>
+  </div>
+</header>
+
+<div class="band">
+  <div class="wrap">
+    <div class="stat"><div class="n">110 &rarr; 6</div><div class="l">Installed skills</div></div>
+    <div class="stat"><div class="n">20 &rarr; 11</div><div class="l">Commands</div></div>
+    <div class="stat"><div class="n">~5.9k &rarr; ~1.1k</div><div class="l">Tokens burned / session</div></div>
+    <div class="stat"><div class="n">9 &rarr; 0</div><div class="l">Dead paths in live config</div></div>
+    <div class="stat"><div class="n">129</div><div class="l">Sessions audited</div></div>
+    <div class="stat"><div class="n">~2.1 GB</div><div class="l">Disk reclaimed</div></div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Scorecard</div>
+    <h2>Grades by dimension</h2>
+    <div class="tablewrap" style="margin-top:16px">
+      <table>
+        <tr><th>Dimension</th><th>Before</th><th>Evidence (before)</th><th>After</th><th>What changed</th></tr>
+        <tr><td><strong>Skills portfolio</strong></td><td><span class="g gD">D</span></td>
+          <td>103 of 110 skills never invoked; 37 Skill calls all-time; ~5,900 tokens of descriptions injected every session; jailbreak skill (godmode) in the catalog.</td>
+          <td><span class="g gA">A</span></td>
+          <td>6 skills + 11 commands, every one with real usage history; 104 skills and 8 commands benched, then hard-deleted with owner confirmation; godmode gone.</td></tr>
+        <tr><td><strong>Hooks &amp; automation</strong></td><td><span class="g gD">D&minus;</span></td>
+          <td>ROUTING declaration obeyed in 2 of 129 sessions; patterns.md written in 5/129; ~1,407 hook injections for &lt;5% compliance; hook contradicted a Learned Rule.</td>
+          <td><span class="g gA">A</span></td>
+          <td>One slim LEDGER hook; ROUTING clause deleted; contradiction resolved; automation moved from prose to mechanics.</td></tr>
+        <tr><td><strong>Vault bootstrap</strong></td><td><span class="g gF">F</span></td>
+          <td>Every configured pointer targeted the deleted <code>GitHub\</code> tree; vault reads happened in 29% of sessions; index.md ~6 weeks stale.</td>
+          <td><span class="g gA">A</span></td>
+          <td>SessionStart hook now injects index.md + latest daily note automatically (dry-run verified); index.md carries a Current State block; all paths true.</td></tr>
+        <tr><td><strong>Memory</strong></td><td><span class="g gD">D+</span></td>
+          <td>Primary working dir had zero memories; identity facts stranded in home-dir and System32 slugs; 4 conflicting values for the vault path.</td>
+          <td><span class="g gB">A&minus;</span></td>
+          <td>13 memories + index in the primary Documents slug; project facts moved to Projects-based slugs; 6 stale/duplicate memories deleted; pointer stubs left behind.</td></tr>
+        <tr><td><strong>Continuity (handoff)</strong></td><td><span class="g gC">C+</span></td>
+          <td>Auto-load worked but writes fired in 30/129 sessions; user typed handoff requests 26 times and <code>/clear</code> 50 times to compensate.</td>
+          <td><span class="g gB">A&minus;</span></td>
+          <td>Write-side instruction kept (single hook line); load-side now also restores vault state, so even a missed write no longer boots blind.</td></tr>
+        <tr><td><strong>Self-learning loop</strong></td><td><span class="g gC">C</span></td>
+          <td>patterns.md high quality but updated in 5/129 sessions; 2 graduated skills barely reused.</td>
+          <td><span class="g gB">B+</span></td>
+          <td>Same mechanics, one clear hook line, catalog now small enough that graduated skills are visible. Proves out with use.</td></tr>
+        <tr><td><strong>Safety posture</strong></td><td><span class="g gD">D</span></td>
+          <td><code>bypassPermissions</code> + <code>skipDangerousModePermissionPrompt</code> + godmode advertised in every prompt.</td>
+          <td><span class="g gC">C</span></td>
+          <td>godmode benched. Bypass mode retained deliberately (your call) — this is the ceiling on the safety grade.</td></tr>
+        <tr><td><strong>Overall</strong></td><td><span class="g gD">D+</span></td>
+          <td>An OS of unenforced prose the model ignored and the user routed around by hand.</td>
+          <td><span class="g gB">A&minus;</span></td>
+          <td>Mechanical automation, true paths, memory where you work, catalog matching reality.</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Changelog</div>
+    <h2>Every change made</h2>
+    <p class="sub" style="margin-bottom:18px">All changes executed July 4, 2026, in two passes: the remediation (cards 1–6, reversible moves) and the owner-confirmed cleanup (cards 7–8, permanent deletions).</p>
+    <div class="cardgrid">
+
+      <div class="card">
+        <h3>1 · Skills &amp; commands</h3>
+        <ul>
+          <li><strong>Kept 6 skills:</strong> concept-diagrams, graphify, impeccable, obsidian, pd-ai-business-idea-generator, ui-ux-pro-max</li>
+          <li><strong>Kept 11 commands:</strong> diagnose, grill-me, handoff, humanizer, job-search, jurisdiction-portal-vendor-mapping, reverse-prompt, ship-verify, tdd, verify-loop, write-skill</li>
+          <li><strong>Benched 104 skills</strong> &rarr; <code>~\.claude\skills-bench\</code> (bench hard-deleted in the evening cleanup, card 7)</li>
+          <li><strong>Benched 8 commands</strong> &rarr; <code>~\.claude\commands-bench\</code>: caveman, consensus, handoffclear, huashu-design, multi-agent-chrome, prompt-contract, video-to-action, zoom-out (also hard-deleted, card 7)</li>
+          <li>Moved <code>jurisdiction-portal-vendor-mapping-ref.md</code> (no frontmatter, registered as a broken command) &rarr; <code>~\.claude\references\</code>; updated the pointer inside the main command</li>
+        </ul>
+        <details><summary>Full benched-skills list (104)</summary>
+          <div class="list">1password · 3-statement-model · airtable · architecture-diagram · arxiv · ascii-art · ascii-video · audiocraft · baoyu-infographic · blender-mcp · blogwatcher · claude-code · claude-design · cli · codebase-inspection · codex · comfyui · comps-analysis · computer-use · creative-ideation · dcf-model · defuddle · design-md · docker-management · dogfood · evm · excalidraw · excel-author · fastmcp · fitness-nutrition · gif-search · github-auth · github-code-review · github-issues · github-pr-workflow · github-repo-management · godmode · google-workspace · heartmula · hermes-agent · hermes-agent-skill-authoring · himalaya · huggingface-hub · humanizer (skill twin; command kept) · hyperliquid · json-canvas · jupyter-live-kernel · lbo-model · llama-cpp · llm-wiki · lm-evaluation-harness · manim-video · maps · mcporter · meme-generation · merger-model · nano-pdf · node-inspect-debugger · notion · obsidian-bases · obsidian-cli · obsidian-markdown · ocr-and-documents · opencode · openhue · oss-forensics · p5js · page-agent · petdex · pinggy-tunnel · pixel-art · plan · polymarket · popular-web-designs · powerpoint · pptx-author · pretext · python-debugpy · requesting-code-review · research-paper-writing · segment-anything · sherlock · simplify-code · sketch · solana · songsee · songwriting-and-ai-music · spike · stocks · stripe-link-cli · stripe-projects · supabase · supabase-postgres-best-practices · systematic-debugging · teams-meeting-pipeline · test-driven-development · touchdesigner-mcp · vllm · watchers · web-pentest · weights-and-biases · xurl · youtube-content · yuanbao</div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h3>2 · settings.json</h3>
+        <ul>
+          <li><strong>Deleted</strong> the ROUTING hook (Model/Skills/Subagents declaration — 1.6% session compliance, contradicted the 2026-07-01 model-tier Learned Rule)</li>
+          <li><strong>Merged</strong> the PATTERN CHECK hook into one slim LEDGER hook (handoff write + patterns.md logging in a single line)</li>
+          <li><strong>Rewrote SessionStart hook:</strong> still loads-and-deletes handoff.md, now also injects the first 4,000 chars of vault <code>index.md</code> and 3,000 chars of the latest daily note — mechanically, every session</li>
+          <li><strong>Removed</strong> the <code>"model": "sonnet"</code> pin (per the retired model-tier rule; re-pin via /model if wanted)</li>
+          <li><strong>Removed</strong> the skillOverrides block (all five entries pointed at now-benched items)</li>
+          <li><strong>Disabled</strong> the frontend-design plugin (your own catalog recorded it retired 2026-06-15, but it was still loading)</li>
+          <li>Verified: file parses as valid JSON; hook command dry-run in the hook's own bash produced correct output</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>3 · Global CLAUDE.md (rewritten)</h3>
+        <ul>
+          <li>Vault path corrected: <code>GitHub\Txais Brain</code> &rarr; <code>Projects\Txais Brain</code></li>
+          <li>Session Start Protocol (manual 3-file read, followed 29% of the time) replaced with a note that the hook injects state</li>
+          <li>Removed: the skill routing table, the stale Available Skills catalog, dead <code>vault/11 - Skills</code> and <code>vault/09 - Agents</code> pointers, the stray graphify block, the generic Context Hygiene section</li>
+          <li>Added to Core Defaults: no em dashes (promoted from a stranded memory file)</li>
+          <li>All 3 Learned Rules preserved verbatim; added a 4th: automation must be mechanical, not prose (with the audit numbers as the why)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>4 · Memory consolidation</h3>
+        <ul>
+          <li><strong>To primary slug</strong> (<code>...\C--Users-txion-OneDrive-Documents\memory\</code>), from the home-dir slug: user_txais_profile, user_tori, feedback_resume_reverse_chronological, feedback_mastery_framework, feedback_one_draft_per_jurisdiction, feedback_gmail_write_scope, feedback_start_from_vault, project_data_integrity_business, project_storaiq, project_ca_permit_pipeline, project_ca_permit_registry; from the Txais-Brain slug: feedback_design_standard</li>
+          <li><strong>New</strong>: vault-location memory (vault is at Projects\, GitHub\ is deleted) + full MEMORY.md index (13 entries)</li>
+          <li><strong>To new AOE slug</strong>: project_aoe2_guide, onedrive-phantom-dirty, relic-replay-download-blocked</li>
+          <li><strong>To new Txais-Brain slug</strong>: project_tv_backtest_mcp</li>
+          <li><strong>Deleted 6</strong>: feedback_no_claude_attribution + feedback_auto_skill_routing (already Learned Rules), feedback_no_em_dashes (now a Core Default), project_storaiq_brand (superseded), project_avoidance_loop_escalation (time-expired), project_job_search_agent (stale May design, dead paths)</li>
+          <li>Pointer stubs left in all 4 old slugs; after the evening cleanup only the home-dir stub survives (the System32 and GitHub-era slugs were deleted whole, card 7)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>5 · Vault (Txais Brain)</h3>
+        <ul>
+          <li><code>index.md</code>: added a Current State (2026-07-04) block — StorAIQ, ca-housing-permits + registry, data-integrity business, AOE 2 Database, Mission Control, job search — plus a note recording the GitHub&rarr;Projects move</li>
+          <li><code>index.md</code>: Agents row marked dormant, Skills row marked superseded</li>
+          <li><code>11 - Skills\skills.md</code>: superseded banner with the new 6+11 set and bench locations</li>
+          <li><code>09 - Agents\agents.md</code>: dormant banner (both consumer skills gone; restore /consensus from bench to reactivate)</li>
+          <li><code>log.md</code>: consolidation entry appended per vault schema</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>6 · Dead-path fixes (9 files)</h3>
+        <ul>
+          <li><code>~\.claude\commands\verify-loop.md</code> — 2 output paths</li>
+          <li><code>~\.claude\commands\reverse-prompt.md</code> — 2 experience-folder paths</li>
+          <li><code>~\.claude\commands\jurisdiction-portal-vendor-mapping.md</code> — ref-file pointer</li>
+          <li><code>user_txais_profile.md</code> — vault path (fixed during move)</li>
+          <li><code>project_aoe2_guide.md</code>, <code>onedrive-phantom-dirty.md</code> — repo paths (fixed during move)</li>
+          <li><code>Projects\Business Mind\CLAUDE.md</code> + <code>README.md</code> — Txais Brain pointer, and LinkedIn Portfolio Vault (folder no longer exists anywhere) repointed to <code>Txais Brain\06 - Projects\LinkedIn Portfolio</code></li>
+          <li>Left intentionally: dated historical docs (<code>AOE 2 Database\docs\*2026-06/07*</code>, vault <code>log.md</code> history), generated <code>graphify-out</code> manifests, and prose in <code>storaiq\CLAUDE.md</code> that merely describes the old paths</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>7 · Confirmed cleanup pass (evening)</h3>
+        <ul>
+          <li>Every item below was surfaced with sizes first and owner-approved before deletion</li>
+          <li><strong>Bench folders hard-deleted</strong> (6.4 MB): the 104 skills + 8 commands staged in card 1</li>
+          <li><strong>8 orphan transcript slugs deleted</strong> (~90 MB): System32, <code>C--</code>, career-ops (path gone), GitHub-root, ai-ran-investments (project gone), a stale worktree, and the GitHub-era AOE 2 Database (40 MB) + Txais Brain (44 MB) session history. Exactly 4 slugs remain, all mapping to real current directories</li>
+          <li><strong>Vault strays deleted</strong>: <code>graphify-out</code> in both vaults (regenerable via /graphify), the empty <code>Untitled.canvas</code>, <code>active\consensus</code></li>
+          <li><strong>Permission allowlist trimmed 85 &rarr; 28</strong> in settings.local.json: dropped dead-path entries, one-offs, and blanket delete permissions (<code>Remove-Item *</code>, vault delete)</li>
+          <li>Kept deliberately: <code>file-history</code> (undo net), the 120 MB of real work transcripts, SacData and vault <code>spending\</code> (real content)</li>
+          <li>This report relocated to <code>Projects\</code> — the home for generated output going forward</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>8 · Hermes uninstalled (~2.04 GB)</h3>
+        <ul>
+          <li>Owner call: not in use at this time — full removal, not archive</li>
+          <li>Deleted <code>AppData\Local\hermes\</code> (2 GB Python venv install incl. the CLI), <code>~\.hermes\</code> (empty config), and <code>~\.agents\</code> (7.6 MB skill tree — the last local copies of Hermes-origin skills; recover only from original sources)</li>
+          <li>Removed both Hermes entries from the user PATH and the Start Menu <code>Hermes.lnk</code></li>
+          <li>Verified clean: no processes, no scheduled tasks, no npm package; <code>hermes</code> no longer resolves in a fresh shell (terminals opened earlier keep the old PATH until restarted)</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="note"><strong>Restore paths after the cleanup:</strong> deleted skills and commands come back only via marketplace or original-source reinstall — there is no local bench or Hermes copy anymore. Left untouched by design: <code>bypassPermissions</code> mode (still the ceiling on the safety grade), the karpathy plugin, <code>file-history</code>, and all real work history.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Connectivity Audit</div>
+    <h2>Project path verification</h2>
+    <p class="sub" style="margin-bottom:16px">All 11 folders under <code>C:\Users\txion\OneDrive\Documents\Projects\</code>, re-verified July 4, 2026 (latest pass). Five of your repos are correctly wired to your GitHub account; one is a third-party tool clone; five are local-only by design. No live config anywhere still references the deleted <code>GitHub\</code> tree. Since the earlier revision the owner removed <strong>career-ops</strong> (third-party clone, confirmed gone); <strong>claude-dashboard</strong> briefly vanished from a directory scan but reappeared shortly after — OneDrive sync lag, still present.</p>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Project</th><th>Git</th><th>Remote</th><th>Branch</th><th>Working tree</th><th>Verdict</th></tr>
+        <tr><td><strong>storaiq</strong></td><td>yes</td><td>TxaisX/storaiq</td><td>master</td><td>1 changed</td><td class="ok">Connected — live at storaiq.com</td></tr>
+        <tr><td><strong>ca-housing-permits</strong></td><td>yes</td><td>TxaisX/ca-housing-permits</td><td>master</td><td>7 changed</td><td class="ok">Connected — active work in flight</td></tr>
+        <tr><td><strong>AOE 2 Database</strong></td><td>yes</td><td>TxaisX/aoe2-guide</td><td>main</td><td>3 changed</td><td class="ok">Connected — note: OneDrive causes phantom "modified" flags here (known, in memory)</td></tr>
+        <tr><td><strong>Txais Brain</strong></td><td>yes</td><td>TxaisX/txais-brain</td><td>main</td><td>41 changed</td><td class="ok">Connected — vault churn plus today's audit edits; commit when ready</td></tr>
+        <tr><td><strong>Business Mind</strong></td><td>yes</td><td>TxaisX/business-mind</td><td>main</td><td>4 changed</td><td class="ok">Connected — dead vault refs in CLAUDE.md/README fixed today</td></tr>
+        <tr><td><strong>graphify</strong></td><td>yes</td><td>safishamsi/graphify</td><td>v8</td><td>clean</td><td class="ok">Third-party tool clone — expected, healthy</td></tr>
+        <tr><td><strong>mission-control</strong></td><td>no</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="warn">Local-only, built July 4 — worth <code>git init</code> + private repo so it survives a disk failure</td></tr>
+        <tr><td><strong>OpenRouter</strong></td><td>no</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="ok">Parked idea (July 4): hybrid-model CLI plan + visual breakdown; build-ready README, no code yet — local-only is fine</td></tr>
+        <tr><td><strong>claude-dashboard</strong></td><td>no</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="ok">Local Electron app — local-only is fine (reappeared after OneDrive sync lapse)</td></tr>
+        <tr><td><strong>CIRB</strong></td><td>no</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="ok">Archival data project (2023/2024 records, models) — local by design</td></tr>
+        <tr><td><strong>SacData</strong></td><td>no</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td class="ok">Real data project (311 requests, budget-finance, demographics) inside a double-nested folder — healthy; flatten the nesting only if it bothers you</td></tr>
+      </table>
+    </div>
+    <div class="note"><strong>Memory wiring (post-cleanup):</strong> sessions launched from <code>Documents\</code> load the 13-memory primary index; sessions in <code>Projects\AOE 2 Database</code> and <code>Projects\Txais Brain</code> load their own project memories. Exactly 4 transcript slugs remain (home, Documents, and the two Projects-based ones) — the System32, GitHub-era, and career-ops slugs were deleted in the cleanup pass; the home-dir slug keeps a pointer stub to the primary index. <strong>Loose files at Projects root:</strong> this report card and <code>rancho-cordova-hero-full.png</code> — the image looks like a stray asset from the permit work; consider moving it into <code>ca-housing-permits\</code>.</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Generated 2026-07-04, revised same day (evening) after the confirmed cleanup + Hermes removal · Sources: 129 session transcripts (~447 MB, May 1 – Jul 4), 4 parallel audit passes, live disk + git verification · Lives at <code>Projects\agent-setup-report-card.html</code></div>
+</footer>
+
+</body>
+</html>
