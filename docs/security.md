@@ -84,6 +84,7 @@ Public authentication endpoints use the authentication service's own rate limits
 ## Deployment order and verification
 
 1. Apply the expand migration `011_security_hardening.sql`. It adds the quota, entitlement, cleanup, and analysis-insert controls without replacing the old storage policies.
+1b. Apply `013_reservation_link_after_insert.sql` in the same window. Migration 011 shipped a defect: it linked the entitlement reservation to its analysis from inside the BEFORE INSERT trigger, pointing `analysis_entitlement_reservations.analysis_id` at a row Postgres had not written yet. That foreign key is not deferrable, so the check fired immediately and aborted every insert with SQLSTATE 23503, and every save returned "Couldn't save your analysis." 013 moves the link to an AFTER INSERT trigger, where the row exists and the constraint stays strict. Never apply 011 without 013.
 2. Deploy the matching application code. The new paid endpoints intentionally fail closed if migration 011 is absent.
 3. Wait for the previous server deployment to drain, then verify one new analysis completes with all required frames.
 4. Apply the contract migration `012_security_contract.sql` to revoke broad grants and replace the storage policies.
@@ -95,3 +96,5 @@ Public authentication endpoints use the authentication service's own rate limits
 10. Run `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`, and `npm.cmd run build`.
 
 Do not apply migration 012 before the matching server deployment is active. The previous route uploads media before creating its analysis row, which the contract policy correctly rejects.
+
+Step 3 is not optional. It is the only step that exercises an insert end to end, and it is the step that catches a trigger that cannot write. Skipping it on 2026-07-17 let the 011 reservation-link defect reach production, where it broke every save until 013 landed. A green schema probe is not a completed analysis.
