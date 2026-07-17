@@ -222,3 +222,25 @@ export function twoPersonClip(): import("./types.ts").PersonFrame[] {
 export function onePersonClip(): import("./types.ts").PersonFrame[] {
   return serveClip().map((frame) => ({ t: frame.t, persons: [frame.pts] }));
 }
+
+// Two players of the same build at the same depth walking through each other:
+// A crosses left to right, B right to left, meeting mid-frame. Rally-realistic
+// scale (each ~30% of frame height) so they are distinct bodies, not one blob.
+// Position alone cannot resolve the meeting point; only motion can.
+export function crossingPlayersClip(): import("./types.ts").PersonFrame[] {
+  const place = (cx: number, cy: number, h: number): Landmark[] => {
+    const s = h / 0.58;
+    return standingFrame(0).pts.map((p) => ({
+      ...p,
+      x: cx + (p.x - 0.5) * s,
+      y: cy + (p.y - 0.57) * s,
+    }));
+  };
+  return range(0, 2).map((t) => {
+    const u = t / 2;
+    return {
+      t,
+      persons: [place(0.35 + 0.3 * u, 0.55, 0.3), place(0.65 - 0.3 * u, 0.55, 0.3)],
+    };
+  });
+}
