@@ -22,6 +22,7 @@ This file is the authority for who may call each Sideout operation. Update it in
 | `POST /api/coach` | Denied | Read and append own conversation | None | Same-origin, verified user, atomic 60 per hour quota, 16 KB JSON cap, 2,000 character message cap, session ownership check |
 | `POST /api/account/delete` | Denied | Delete own account | Support fallback | Same-origin, verified user, atomic 3 per hour quota, own-folder storage policies, self-delete database function |
 | `GET /api/eval` | Denied | Denied | Local developer with bearer token | Returns 404 in production, for every non-loopback host, and without `EVAL_TOKEN` |
+| `POST /functions/v1/purge-user-media` | Denied in effect | Denied in effect | Called by the database's delete hook | Gateway `verify_jwt`; then the function refuses any `user_id` whose account still exists, so it can only finish a deletion the policy already requires and can never take a live player's film; `user_id` must be a UUID |
 | App server actions | Denied unless the action is authentication | Mutate own resource | None | Framework origin check, verified user inside every action, bounded inputs, ownership filters, row security |
 
 ## Database matrix
@@ -41,6 +42,7 @@ Anonymous access to every application table is revoked. The signed-in role has o
 | Private quota table | None | Internal function derives `auth.uid()` | No direct role access; security-definer function accepts three fixed scopes only |
 | Private analysis reservations | None | Internal function derives `auth.uid()` | Analysis requests serialize behind an opaque five-minute reservation; the free-plan rule is checked inside the same lock when billing is enabled |
 | Account deletion function | Execute as signed-in user | Function deletes `auth.uid()` only | Anonymous and public execution revoked |
+| Media purge hook | None | Fires on any `auth.users` delete, for that row only | AFTER DELETE trigger calls the `purge-user-media` edge function over pg_net (D-024), because `storage.protect_delete` forbids deleting storage rows in SQL. Covers deletions that skip the app. Missing Vault config no-ops: removing the account must never fail. `scripts/purge-orphaned-media.mjs` is the backstop sweep |
 
 The server currently uses the player's session client instead of a database-wide admin key. That keeps blast radius small. It also means a technical user can call the data API directly to alter their own ratings or XP ledger. They still cannot cross accounts, change their plan, exceed the analysis insert limit, or trigger a paid coaching call without the app's atomic quota. If leaderboard or billing decisions ever trust XP or ratings, move those writes behind a narrowly scoped server credential or a database function that proves the source event.
 
