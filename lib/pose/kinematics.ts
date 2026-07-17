@@ -620,7 +620,16 @@ type OpenTrack = {
   cx: number;
   cy: number;
   h: number;
+  vx: number;
+  vy: number;
 };
+
+// A track carries its own velocity so association compares against where the
+// player should be, not where they were last seen. Two players crossing sit
+// equidistant from both frozen centers, so position alone resolves the meeting
+// point by array order: a coin flip that swaps identities.
+const PREDICT_HORIZON_S = 0.5;
+const VELOCITY_SMOOTHING = 0.5;
 
 // Greedy frame-to-track association on hip-center distance and body-size
 // similarity, with a match window that widens for sparse probe gaps.
@@ -638,7 +647,11 @@ export function buildTracks(personFrames: PersonFrame[], maxTracks = 4): PersonT
       for (const track of open) {
         const dt = frame.t - track.lastT;
         if (dt > 3) continue;
-        const dist = Math.hypot(c.x - track.cx, c.y - track.cy);
+        const lead = Math.min(dt, PREDICT_HORIZON_S);
+        const dist = Math.hypot(
+          c.x - (track.cx + track.vx * lead),
+          c.y - (track.cy + track.vy * lead),
+        );
         const sizeCost = Math.abs(Math.log(h / track.h));
         if (sizeCost > 0.5) continue;
         const cost = dist + sizeCost * 0.5;
@@ -656,6 +669,15 @@ export function buildTracks(personFrames: PersonFrame[], maxTracks = 4): PersonT
       usedTracks.add(a.track.id);
       const pts = frame.persons[a.person];
       const c = personCenter(pts);
+      const step = frame.t - a.track.lastT;
+      if (step > 1e-6) {
+        a.track.vx =
+          a.track.vx * VELOCITY_SMOOTHING +
+          ((c.x - a.track.cx) / step) * (1 - VELOCITY_SMOOTHING);
+        a.track.vy =
+          a.track.vy * VELOCITY_SMOOTHING +
+          ((c.y - a.track.cy) / step) * (1 - VELOCITY_SMOOTHING);
+      }
       a.track.frames.push({ t: frame.t, pts });
       a.track.lastT = frame.t;
       a.track.cx = c.x;
@@ -672,6 +694,8 @@ export function buildTracks(personFrames: PersonFrame[], maxTracks = 4): PersonT
         cx: c.x,
         cy: c.y,
         h: personExtent(pts),
+        vx: 0,
+        vy: 0,
       });
     });
   }

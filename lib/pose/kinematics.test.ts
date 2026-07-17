@@ -31,6 +31,7 @@ import {
   passClip,
   twoPersonClip,
   onePersonClip,
+  crossingPlayersClip,
 } from "./test-fixtures.ts";
 import type { LandmarkFrame } from "./types.ts";
 
@@ -125,6 +126,22 @@ test("buildTracks separates two players and ranks the active one first", () => {
   assert.ok(xs[0] < 0.45 && xs[1] > 0.55, `centers ${xs}`);
   // Both tracks cover most of the clip.
   for (const t of tracks) assert.ok(t.frames.length > 60, `frames ${t.frames.length}`);
+});
+
+test("buildTracks keeps each player's identity through a crossing", () => {
+  const tracks = buildTracks(crossingPlayersClip());
+  assert.equal(tracks.length, 2);
+  // Every player walks through the midline, so a track that ends on the side it
+  // started has been handed the other player.
+  for (const track of tracks) {
+    const first = track.frames[0].pts[23].x;
+    const last = track.frames[track.frames.length - 1].pts[23].x;
+    assert.notEqual(
+      first < 0.5,
+      last < 0.5,
+      `track ${track.id} started at x=${first.toFixed(3)} and ended at x=${last.toFixed(3)}: identity swapped at the crossing`,
+    );
+  }
 });
 
 test("buildTracks handles a single player", () => {
