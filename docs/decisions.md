@@ -600,3 +600,67 @@ The pool records exact install triggers and validation requirements. Moving
 any candidate into `package.json` still requires a feature-scoped Decision Log
 entry, an exact version pin, minimal imports, settled reduced-motion output,
 and the section 10.2 performance floor.
+
+## D-024 — Deleting an account deletes the film, on every path
+Date: 2026-07-17 · By: owner request after orphaned media was found
+
+The Privacy Policy promises a player's film goes when their account goes.
+`/api/account/delete` kept that promise for anyone deleting in-app, but an
+account removed any other way skipped the route entirely. On 2026-07-17 the
+project held 779 files, about 222 MB, across six deleted accounts, the oldest
+from 2026-07-07. All of it belonged to test accounts removed by SQL or the
+dashboard. It was purged via `scripts/purge-orphaned-media.mjs`, which stays
+as the backstop sweep.
+
+The obvious fix does not work. A trigger cannot delete storage:
+`storage.protect_delete` refuses any delete from `storage.objects` with
+"Direct deletion from storage tables is not allowed. Use the Storage API
+instead", because dropping the row leaves the bytes in the object store with
+nothing pointing at them. Worse, it is a one-way trap: the Storage API deletes
+by path via that row, so removing rows first would strand the film
+permanently. The Storage API is the only correct path, and Postgres cannot
+call it. Something outside the database has to.
+
+Shipped: an AFTER DELETE trigger on `auth.users` (migration `015`) calls the
+`purge-user-media` edge function over pg_net, which removes the account's
+folders in `frames` and `clips` through the Storage API. This covers every
+deletion path, including SQL and the dashboard.
+
+Authorization is the account's own absence. The function refuses any `user_id`
+that still has an account, so the worst any caller can do is finish a deletion
+the policy already requires; a live player's film is unreachable through it.
+That was chosen over a shared secret, which would have had to live in the
+database for the hook to present it, putting a purge credential in the same
+blast radius as the data. `verify_jwt` stays on, so a caller still needs a
+valid project key to reach the function at all. Verified: a live account
+returns 403 "account still exists", a publishable key cannot purge anyone, a
+malformed id returns 400.
+
+pg_net queues the request transactionally and its worker sends it after the
+commit. That ordering is load-bearing, not incidental: the absence check only
+passes once the delete is durable, and a rolled-back delete takes the queued
+request with it.
+
+Missing Vault config no-ops instead of blocking: removing the account is the
+promise that must never fail, and the sweep catches whatever the hook misses.
+
+10.5 gate for `pg_net` 0.20.4 (new database extension):
+- Publisher/provenance: Supabase's own extension, on the project's available
+  list, installed into the `extensions` schema.
+- License: Apache-2.0.
+- Pinned: whatever the platform ships; the migration is
+  `create extension if not exists`, so it is idempotent.
+- Scope/security: one outbound POST to this project's own edge function, with
+  a publishable key. No inbound surface, no secret in the database.
+- Necessity: the empirical result above. Postgres physically cannot reach the
+  Storage API, and every alternative either strands the bytes or leaves the
+  promise depending on a human remembering to run a script.
+
+Config (`purge_media_url`, `purge_media_apikey`) lives in Vault rather than
+inline so the migration carries no project identifiers. Neither value is
+secret; the publishable key already ships in the browser bundle.
+
+End-to-end verified, not just probed: a throwaway account with four planted
+files, deleted through the admin API to imitate the exact path that stranded
+the originals, lost every file within two seconds.
+`net._http_response` recorded `200 {"ok":true,"removed":4,"failed":0}`.
