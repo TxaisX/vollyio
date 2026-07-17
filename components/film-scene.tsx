@@ -31,7 +31,7 @@ const sx = (n: number) => PANEL.left + n * PANEL.w;
 const sy = (n: number) => PANEL.top + n * PANEL.h;
 
 // Real RTMPose keypoints (normalized to the clip frame) for the tracked
-// player: the jump-serving athlete. Only the slots the model actually
+// player: the attacking hitter. Only the slots the model actually
 // produces are here; the tool draws no head node and no feet, so neither
 // does the film.
 const K = {
@@ -76,7 +76,7 @@ const TRACKED_BOX = [0.3624, 0.412, 0.6987, 0.7587] as const;
 const OTHER_BOX = [0.6318, 0.5748, 0.825, 0.8341] as const;
 
 // The ball, measured. A crosshair sits on it; a short trail of prior measured
-// positions rises behind it from the toss (the tracked path, not a
+// positions runs into contact (the tracked path, not a
 // projection). Coordinates read off the real frame.
 const BALL: Point = [0.565, 0.367];
 const BALL_TRAIL: ReadonlyArray<Point> = [
@@ -87,9 +87,9 @@ const BALL_TRAIL: ReadonlyArray<Point> = [
 ];
 
 const CHIPS: ReadonlyArray<readonly [string, string]> = [
+  ["Approach tempo", "0.31s between steps"],
   ["Contact height", "1.42 body heights"],
   ["Elbow angle at contact", "158°"],
-  ["Shoulder-hip separation", "38° apart"],
 ];
 
 function boxRect(b: readonly [number, number, number, number]) {
@@ -468,10 +468,10 @@ export function FilmScene({
                 </svg>
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.2em] text-chalk-dim">
-                    Serve analysis
+                    Spike analysis
                   </p>
                   <p className="mt-1 font-display text-lg font-bold tracking-normal text-chalk">
-                    Jump serve, read in full
+                    Approach to contact, read in full
                   </p>
                 </div>
               </div>

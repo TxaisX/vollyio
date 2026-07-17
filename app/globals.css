@@ -652,6 +652,191 @@ body {
         );
   }
 
+  .cinematic-hero {
+    isolation: isolate;
+    background: var(--color-navy);
+  }
+
+  .cinematic-hero .hero-film-shade {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--color-navy) 94%, transparent) 0%,
+        color-mix(in oklab, var(--color-navy) 70%, transparent) 46%,
+        color-mix(in oklab, var(--color-navy) 18%, transparent) 100%
+      ),
+      linear-gradient(
+        to top,
+        var(--color-navy) 0%,
+        color-mix(in oklab, var(--color-navy) 38%, transparent) 28%,
+        transparent 56%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-navy) 86%, transparent) 0%,
+        transparent 26%
+      );
+  }
+
+  .cinematic-hero-aperture {
+    inset: 6.5rem 1.25rem 7.25rem;
+    z-index: 6;
+  }
+
+  .cinematic-hero-aperture::before,
+  .cinematic-hero-aperture::after {
+    content: "";
+    position: absolute;
+    height: 3.25rem;
+    width: 3.25rem;
+    border-color: color-mix(in oklab, var(--color-chalk) 28%, transparent);
+  }
+
+  .cinematic-hero-aperture::before {
+    left: 0;
+    top: 0;
+    border-left-width: 1px;
+    border-top-width: 1px;
+  }
+
+  .cinematic-hero-aperture::after {
+    bottom: 0;
+    right: 0;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+  }
+
+  .hero-live-mark {
+    height: 0.4rem;
+    width: 0.4rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--color-teal);
+    box-shadow: 0 0 0 0.25rem color-mix(in oklab, var(--color-teal) 14%, transparent);
+  }
+
+  .hero-title-focus {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .hero-title-focus::after {
+    content: "";
+    position: absolute;
+    bottom: -0.04em;
+    left: 0.02em;
+    height: 0.06em;
+    width: 98%;
+    transform-origin: left;
+    background: var(--color-gold);
+    animation: hero-metric-grow 0.72s var(--ease-court) 0.55s both;
+  }
+
+  .hero-analysis-rail {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 20;
+    border-top: 1px solid color-mix(in oklab, var(--color-gold) 30%, var(--color-line));
+    background: color-mix(in oklab, var(--color-navy) 86%, transparent);
+  }
+
+  .hero-analysis-rail-inner {
+    display: grid;
+    min-height: 6rem;
+    max-width: 72rem;
+    margin-inline: auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-inline: 2rem;
+  }
+
+  .hero-analysis-cell {
+    position: relative;
+    display: grid;
+    align-content: center;
+    gap: 0.25rem;
+    border-left: 1px solid var(--color-line);
+    padding: 0.75rem 2rem;
+  }
+
+  .hero-analysis-cell:last-child {
+    border-right: 1px solid var(--color-line);
+  }
+
+  .hero-analysis-value {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .cinematic-film-section {
+    position: relative;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-gold) 4%, var(--color-navy)) 0%,
+      var(--color-navy) 34%
+    );
+  }
+
+  .cinematic-film-section::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    height: 3.5rem;
+    width: 1px;
+    background: linear-gradient(var(--color-gold), transparent);
+  }
+
+  @media (max-width: 47.999rem) {
+    .cinematic-hero .hero-film-shade {
+      background:
+        linear-gradient(
+          to right,
+          color-mix(in oklab, var(--color-navy) 88%, transparent) 0%,
+          color-mix(in oklab, var(--color-navy) 54%, transparent) 62%,
+          color-mix(in oklab, var(--color-navy) 24%, transparent) 100%
+        ),
+        linear-gradient(
+          to top,
+          var(--color-navy) 0%,
+          color-mix(in oklab, var(--color-navy) 20%, transparent) 48%,
+          color-mix(in oklab, var(--color-navy) 54%, transparent) 100%
+        );
+    }
+
+    .cinematic-hero-aperture {
+      inset: 5.75rem 0.75rem 9.75rem;
+    }
+
+    .hero-analysis-rail-inner {
+      min-height: 8.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-inline: 1.25rem;
+    }
+
+    .hero-analysis-cell {
+      min-width: 0;
+      padding: 0.65rem 1rem;
+    }
+
+    .hero-analysis-cell:nth-child(3) {
+      border-top: 1px solid var(--color-line);
+    }
+
+    .hero-analysis-cell:nth-child(4) {
+      border-top: 1px solid var(--color-line);
+      border-right: 1px solid var(--color-line);
+    }
+
+    .hero-analysis-value {
+      font-size: 1rem;
+    }
+  }
+
   .hero-court-line {
     height: 1px;
     transform-origin: left;
