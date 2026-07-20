@@ -29,12 +29,15 @@ import {
 import { pickSubject, type SubjectChoice } from "@/lib/pose/subject-select";
 
 const DIMS = [640, 960, 1280, 1600];
-const REGION_HEX: Record<string, string> = {
-  gold: "#e8b53f",
-  teal: "#4fd1c5",
-  chalk: "#f2efe6",
-  coral: "#f0705a",
-};
+// Canvas cannot read CSS variables, so they are resolved at draw time from
+// the document rather than duplicated as literals here.
+function regionColor(name: string): string {
+  if (typeof window === "undefined") return "currentColor";
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--color-${name}`)
+    .trim();
+  return v || "currentColor";
+}
 
 type Run = {
   dim: number;
@@ -161,7 +164,7 @@ export default function PoseTestPage() {
   }, [useImage, focus, cropFrac, minDet]);
 
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui", background: "#0d1b22", color: "#f2efe6", minHeight: "100vh" }}>
+    <main style={{ padding: 24, fontFamily: "var(--font-sans, system-ui)", background: "var(--color-navy)", color: "var(--color-chalk)", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>Pose engine diagnostic</h1>
       <p style={{ opacity: 0.7, fontSize: 13, marginBottom: 16 }}>
         Temporary. Runs the landmarker directly on one frame at several capture
@@ -247,7 +250,7 @@ export default function PoseTestPage() {
           maxWidth: 640,
           width: "100%",
           marginBottom: 12,
-          background: "#000",
+          background: "var(--color-navy)",
         }}
       />
 
@@ -296,8 +299,8 @@ export default function PoseTestPage() {
         disabled={busy}
         style={{
           padding: "8px 16px",
-          background: busy ? "#555" : "#e8b53f",
-          color: "#0d1b22",
+          background: busy ? "var(--color-navy-lighter)" : "var(--color-gold)",
+          color: "var(--color-navy)",
           border: 0,
           borderRadius: 6,
           fontWeight: 600,
@@ -344,7 +347,9 @@ function RunView({
         r.choice.index === null ? [] : [r.persons[r.choice.index]];
       for (const pts of shown) {
         for (const [region, bones] of Object.entries(SKELETON_REGION_BONES)) {
-          ctx.strokeStyle = REGION_HEX[SKELETON_REGION_COLOR[region as keyof typeof SKELETON_REGION_COLOR]] ?? "#fff";
+          ctx.strokeStyle = regionColor(
+            SKELETON_REGION_COLOR[region as keyof typeof SKELETON_REGION_COLOR],
+          );
           ctx.lineWidth = 2;
           for (const [a, b] of bones as number[][]) {
             const pa = pts[a];
@@ -387,12 +392,12 @@ function RunView({
         {r.dim}px capture ({r.sourceW}x{r.sourceH}) - {r.persons.length} person
         {r.persons.length === 1 ? "" : "s"}, {r.ms}ms
       </div>
-      <canvas ref={canvasRef} style={{ width: "100%", border: "1px solid #2a3d47" }} />
+      <canvas ref={canvasRef} style={{ width: "100%", border: "1px solid var(--color-navy-lighter)" }} />
       <div
         style={{
           fontSize: 12,
           margin: "4px 0",
-          color: r.choice.index === null ? "#f0705a" : "#4fd1c5",
+          color: r.choice.index === null ? "var(--color-coral)" : "var(--color-teal)",
         }}
       >
         {r.choice.index === null
@@ -409,7 +414,7 @@ function RunView({
             {named.map(([label, i]) => {
               const v = primary[i]?.v ?? 0;
               return (
-                <div key={label} style={{ color: v >= SKELETON_MIN_V ? "#4fd1c5" : "#f0705a" }}>
+                <div key={label} style={{ color: v >= SKELETON_MIN_V ? "var(--color-teal)" : "var(--color-coral)" }}>
                   {label}: {v.toFixed(2)}
                 </div>
               );
@@ -417,7 +422,7 @@ function RunView({
           </div>
         </div>
       ) : (
-        <div style={{ fontSize: 12, marginTop: 6, color: "#f0705a" }}>No person detected.</div>
+        <div style={{ fontSize: 12, marginTop: 6, color: "var(--color-coral)" }}>No person detected.</div>
       )}
     </div>
   );

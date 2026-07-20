@@ -213,11 +213,11 @@ export default function PoseEvalPage() {
   );
 
   return (
-    <main style={{ padding: 20, fontFamily: "ui-monospace, monospace", background: "#0d1b22", color: "#f2efe6", minHeight: "100vh" }}>
+    <main style={{ padding: 20, fontFamily: "var(--font-mono, ui-monospace)", background: "var(--color-navy)", color: "var(--color-chalk)", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 18 }}>Pose evaluation over the frame corpus</h1>
       <button
         onClick={runAll}
-        style={{ padding: "8px 16px", background: "#e8b53f", color: "#0d1b22", border: 0, borderRadius: 6, fontWeight: 700, marginRight: 8 }}
+        style={{ padding: "8px 16px", background: "var(--color-gold)", color: "var(--color-navy)", border: 0, borderRadius: 6, fontWeight: 700, marginRight: 8 }}
       >
         Run all frames
       </button>
