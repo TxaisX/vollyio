@@ -23,9 +23,17 @@ export type AnalyzeRequest = {
 };
 
 // observed is false when the checkpoint's mechanics were not visible in the
-// footage; such metrics are excluded from the overall. Optional: older rows
-// predate it and count as observed.
-export type Metric = { key: string; score: number; note: string; observed?: boolean };
+// footage; such metrics are excluded from the overall. pointers carries the
+// checklist verdicts the score was derived from (D-039). Both optional: older
+// rows predate them and count as observed.
+export type MetricPointer = { key: string; status: string };
+export type Metric = {
+  key: string;
+  score: number;
+  note: string;
+  observed?: boolean;
+  pointers?: MetricPointer[];
+};
 export type Insight = {
   frame_index: number;
   time_s: number | null;

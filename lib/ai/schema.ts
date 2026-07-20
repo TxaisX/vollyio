@@ -15,13 +15,20 @@ import { drillSlugs } from "@/content/drills";
 export function analysisSchema(skill: Skill) {
   const metricShape: Record<string, z.ZodTypeAny> = {};
   for (const { key } of METRICS[skill]) {
+    // The score is DERIVED in code from the pointer verdicts (D-039); the
+    // model never free-scores a checkpoint. Status is a plain string so a
+    // slightly-off reply degrades (unknown reads as not_visible) instead of
+    // failing the analysis.
     metricShape[key] = z.object({
-      score: z.number().int(),
       note: z.string(),
-      // False when this checkpoint's mechanics are genuinely not visible in
-      // the frames (occluded, cropped, cut away). An unobserved checkpoint is
-      // excluded from the overall instead of dragging it with a default.
-      observed: z.boolean(),
+      pointers: z
+        .array(
+          z.object({
+            key: z.string(),
+            status: z.string(),
+          }),
+        )
+        .max(8),
     });
   }
 
