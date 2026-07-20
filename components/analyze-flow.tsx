@@ -18,7 +18,7 @@ import {
 import { Reveal } from "@/components/motion";
 import {
   SKILL_LABEL,
-  DISCIPLINES,
+  ANALYZE_DISCIPLINES,
   DISCIPLINE_LABEL,
   type Skill,
   type Discipline,
@@ -902,7 +902,7 @@ export function AnalyzeFlow({
         <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
           Discipline
         </span>
-        {DISCIPLINES.map((d) => (
+        {ANALYZE_DISCIPLINES.map((d) => (
           <button
             key={d}
             type="button"

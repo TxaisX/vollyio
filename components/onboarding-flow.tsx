@@ -22,7 +22,7 @@ import {
 } from "@/lib/funnel";
 import {
   DISCIPLINE_LABEL,
-  DISCIPLINES,
+  ANALYZE_DISCIPLINES,
   SKILL_LABEL,
   type Discipline,
   type Level,
@@ -41,8 +41,8 @@ const STEPS = [
 
 const DISCIPLINE_DETAIL: Record<Discipline, string> = {
   indoor: "Six a side, rotations, a roof",
-  beach: "Two a side, sand, wind",
-  grass: "Firm footing outdoors, wind and sun, fours or sixes",
+  beach: "Outdoors on grass or sand, wind and sun",
+  grass: "Outdoors on grass or sand, wind and sun",
 };
 
 /**
@@ -119,11 +119,11 @@ export function OnboardingFlow({
             {name ? `${name}, where` : "Where"} do you play?
           </h1>
           <p className="mt-2 text-sm text-chalk-dim">
-            Indoor and beach are scored on their own standards; your ratings
+            Indoor and outdoor are scored on their own standards; your ratings
             never blend.
           </p>
           <div className="mt-6 space-y-3">
-            {DISCIPLINES.map((d) => (
+            {ANALYZE_DISCIPLINES.map((d) => (
               <button
                 key={d}
                 type="button"

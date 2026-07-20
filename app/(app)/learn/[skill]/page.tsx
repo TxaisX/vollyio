@@ -9,6 +9,7 @@ import { SkillIcon } from "@/components/skill-icons";
 import {
   SKILLS,
   SKILL_LABEL,
+  ANALYZE_DISCIPLINES,
   DISCIPLINES,
   DISCIPLINE_LABEL,
   isSkill,
@@ -104,7 +105,7 @@ export default async function LearnSkill({
         <p className="mt-3 leading-relaxed text-chalk-dim">{t.overview}</p>
 
         <div className="mt-5 flex items-center gap-2">
-          {DISCIPLINES.map((d) => (
+          {ANALYZE_DISCIPLINES.map((d) => (
             <Link
               key={d}
               href={`/learn/${skill}${d === "indoor" ? "" : `?discipline=${d}`}`}
