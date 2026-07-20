@@ -31,6 +31,8 @@ import {
   coverageGaps,
 } from "@/lib/eval-coverage";
 import { coherentOverall, scoreBand } from "@/lib/ratings";
+import { deriveMetric } from "@/lib/ai/pointers";
+import { toProductScale } from "@/lib/score-scale";
 import { hasLocalEvalAccess } from "@/lib/security/request";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
@@ -159,11 +161,20 @@ async function runModel(
   const raw = response.parsed_output;
   if (!raw) return null;
 
-  const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
+  const metricsMap = raw.metrics as Record<
+    string,
+    { note: string; pointers: { key: string; status: string }[] }
+  >;
+  // Mirrors the analyze route (D-039): checkpoint scores derive from pointer
+  // verdicts, on the same product scale.
+  const derivedMetrics = METRICS[c.skill].map((m) => ({
+    key: m.key,
+    score: toProductScale(deriveMetric(c.skill, m.key, metricsMap[m.key]?.pointers).raw),
+  }));
   return {
     score: {
       overall_score: raw.overall_score,
-      metrics: METRICS[c.skill].map((m) => ({ key: m.key, score: metricsMap[m.key].score })),
+      metrics: derivedMetrics,
       frameIndices: [
         ...raw.insights.map((i) => i.frame_index),
         raw.focus.frame_index,

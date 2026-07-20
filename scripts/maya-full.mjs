@@ -12,8 +12,8 @@ import { getRubric } from "../lib/ai/rubrics/index.ts";
 import { outputSpec } from "../lib/ai/output-spec.ts";
 import { analysisSchema } from "../lib/ai/schema.ts";
 import { METRICS } from "../lib/ai/metrics.ts";
-import { coherentOverall } from "../lib/ratings.ts";
 import { toProductScale } from "../lib/score-scale.ts";
+import { deriveMetric, POINTERS } from "../lib/ai/pointers.ts";
 
 const ROOT = process.cwd();
 const USE_BUNDLE = true;
@@ -107,17 +107,20 @@ const res = await client.messages.parse(
   { maxRetries: 3 },
 );
 const raw = res.parsed_output;
-const scaled = (n) => toProductScale(n);
-const obs = METRICS.attack.filter((m) => raw.metrics[m.key].observed !== false);
-const overall = coherentOverall(
-  scaled(raw.overall_score),
-  (obs.length ? obs : METRICS.attack).map((m) => scaled(raw.metrics[m.key].score)),
-);
+const derived = METRICS.attack.map((m) => {
+  const d = deriveMetric("attack", m.key, raw.metrics[m.key]?.pointers);
+  return { key: m.key, label: m.label, ...d, score: toProductScale(d.raw) };
+});
+const obsScores = derived.filter((d) => d.observed).map((d) => d.score);
+const overall = obsScores.length
+  ? Math.round(obsScores.reduce((a, b) => a + b, 0) / obsScores.length)
+  : toProductScale(raw.overall_score);
 console.log(`\nOVERALL: ${overall}`);
 console.log(`subject: ${raw.subject_check?.analyzed} [${raw.subject_check?.marker_match}]`);
 for (const m of METRICS.attack) {
-  const mm = raw.metrics[m.key];
-  console.log(`  ${m.label.padEnd(24)} ${mm.observed === false ? "n/v" : String(scaled(mm.score)).padStart(3)}  ${mm.note.slice(0,110)}`);
+  const d = derived.find((x) => x.key === m.key);
+  const marks = d.statuses.map((st) => st.status === "met" ? "+" : st.status === "partial" ? "~" : st.status === "missed" ? "x" : ".").join("");
+  console.log(`  ${m.label.padEnd(24)} ${d.observed ? String(d.score).padStart(3) : "n/v"}  [${marks}]  ${raw.metrics[m.key].note.slice(0,90)}`);
 }
 console.log(`fix: ${raw.changes[0].title} -- ${raw.changes[0].detail}`);
 console.log(`summary: ${raw.summary}`);

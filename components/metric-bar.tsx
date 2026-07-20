@@ -8,6 +8,7 @@ export function MetricBar({
   note,
   elite,
   observed = true,
+  pointers,
   delay = 0,
 }: {
   label: string;
@@ -18,6 +19,8 @@ export function MetricBar({
   /** False when this checkpoint was not visible in the footage; it renders as
    *  informational only and is excluded from the overall score. */
   observed?: boolean;
+  /** The checklist the score was computed from: cue text plus its verdict. */
+  pointers?: { cue: string; status: string }[];
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -94,6 +97,31 @@ export function MetricBar({
         </div>
       ) : (
         <div aria-hidden className="mt-1 h-1.5 rounded-full border border-dashed border-line" />
+      )}
+      {pointers && pointers.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5">
+          {pointers.map((p, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs">
+              <span
+                aria-hidden
+                className={`mt-1 inline-block h-2 w-2 shrink-0 rounded-full ${
+                  p.status === "met"
+                    ? "bg-gold"
+                    : p.status === "partial"
+                      ? "bg-gold/40"
+                      : p.status === "missed"
+                        ? "bg-coral"
+                        : "border border-line bg-transparent"
+                }`}
+              />
+              <span className={p.status === "not_visible" ? "text-chalk-dim/60" : "text-chalk-dim"}>
+                {p.cue}
+                {p.status === "partial" && <span className="text-chalk-dim/70"> · partial</span>}
+                {p.status === "not_visible" && <span> · not visible</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
       {note && <p className="mt-1 text-xs text-chalk-dim">{note}</p>}
       {elite && (

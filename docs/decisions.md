@@ -1192,3 +1192,39 @@ on their visible merits). The owner's park clip stayed in band (72) with the
 sparse-frame checkpoints now honestly flagged instead of silently defaulted.
 The number went UP by becoming more honest, not by inflating: invisibility
 stopped counting against the athlete.
+
+## D-039 — Scores are computed from a pointer checklist, never free-scored
+
+Owner call: each skill's number must come from a set of concrete mechanical
+pointers, purely mechanics. Implemented as `lib/ai/pointers.ts`: a catalog of
+four observable cues per checkpoint (5 checkpoints x 6 skills = 120 pointers),
+each judged by the model as met | partial | missed | not_visible. The NUMBER
+is derived in code: fraction = (met + 0.5*partial) / visible pointers, mapped
+linearly raw 35 (all missed) to 92 (all met), then through the product curve.
+The model no longer emits checkpoint scores at all; the schema takes note +
+pointer verdicts, and unknown statuses or invented keys degrade to
+not_visible, which can never manufacture a score.
+
+Consequences, all intended:
+- observed is now DERIVED (a checkpoint with zero visible pointers is
+  excluded from the overall, which is the plain mean of observed checkpoint
+  scores; the model's whole-clip read stands in only when nothing at all was
+  visible).
+- The results page shows the checklist under every bar: met (gold), partial
+  (faded gold), missed (coral), not visible (hollow) with the cue text, so a
+  score explains itself line by line.
+- Phase guardrail after validation caught it: frames of an athlete standing
+  or walking are not evidence about a phase they are not performing; a phase
+  the footage never captures is not_visible, not missed. Without this the
+  sparse-frame park rep scored 47 from walking frames; with it, 59.
+- Determinism: the same checklist always produces the same number; run-to-run
+  variance now lives only in the pointer verdicts, which are binary-ish and
+  far more stable than free numbers.
+
+Validated: pro attacker 79 (power/follow-through excluded as not visible,
+observed checkpoints 69-85 with the guide-arm and elbow-load faults named by
+pointer); owner's park rep 59 on sparse offline frames with the missed
+approach pointers matching the independent human read. Calibration note: the
+checklist is stricter than the D-034 free-score anchor (66-70 for that rep);
+the knobs are RAW_FLOOR/RAW_CEILING in one file, and any recalibration should
+wait for labeled eval cases rather than another prompt hunt.

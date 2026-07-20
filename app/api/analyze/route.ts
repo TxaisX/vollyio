@@ -10,8 +10,9 @@ import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
-import { updateRating, coherentOverall } from "@/lib/ratings";
+import { updateRating } from "@/lib/ratings";
 import { toProductScale } from "@/lib/score-scale";
+import { deriveMetric } from "@/lib/ai/pointers";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
@@ -187,39 +188,43 @@ export async function POST(req: NextRequest) {
 
       const metricsMap = raw.metrics as Record<
         string,
-        { score: number; note: string; observed: boolean }
+        { note: string; pointers: { key: string; status: string }[] }
       >;
-      // Purely the visible mechanics (D-038): unobserved checkpoints are
-      // excluded from the overall. If nothing was observed at all, fall back
-      // to every metric rather than an empty mean.
-      const observedScores = METRICS[skill]
-        .filter((m) => metricsMap[m.key].observed !== false)
-        .map((m) => scaledMetric(metricsMap[m.key]));
+      // Purely the visible mechanics (D-038/D-039): every checkpoint score is
+      // DERIVED from its pointer verdicts, and checkpoints with no visible
+      // pointer are excluded from the overall.
+      const derived = METRICS[skill].map((m) => {
+        const d = deriveMetric(skill, m.key, metricsMap[m.key]?.pointers);
+        return { key: m.key, ...d, score: toProductScale(d.raw) };
+      });
+      const observedScores = derived.filter((d) => d.observed).map((d) => d.score);
       const top = raw.changes[0];
       // The product score scale (D-034/D-037): the model's raw judgment is
       // remapped onto the shipped scale for every account. Monotonic, so
       // ordering between reps is exactly the model's; only where the numbers
       // sit changes.
       const scaled = (n: number) => toProductScale(n);
-      const scaledMetric = (m: { score: number }) => scaled(m.score);
+      // The overall IS the mean of the observed checkpoint scores. Only when
+      // nothing at all was observable does the model's whole-clip read stand
+      // in, scaled like everything else.
+      const overallScore =
+        observedScores.length > 0
+          ? Math.round(observedScores.reduce((a, b) => a + b, 0) / observedScores.length)
+          : scaled(raw.overall_score);
       result = {
         skill,
-        overall_score: coherentOverall(
-          scaled(raw.overall_score),
-          observedScores.length > 0
-            ? observedScores
-            : METRICS[skill].map((m) => scaledMetric(metricsMap[m.key])),
-        ),
+        overall_score: overallScore,
         // Who the model says it analyzed, and whether that matches the athlete
         // the player marked. Optional: an older stored row has no such field,
         // and a reply that omits it must not fail the analysis (D-030).
         subject_check: raw.subject_check,
         rep_scores: raw.rep_scores?.map((r) => ({ ...r, overall: scaled(r.overall) })),
-        metrics: METRICS[skill].map((m) => ({
-          key: m.key,
-          score: scaled(metricsMap[m.key].score),
-          note: metricsMap[m.key].note,
-          observed: metricsMap[m.key].observed !== false,
+        metrics: derived.map((d) => ({
+          key: d.key,
+          score: d.score,
+          note: metricsMap[d.key]?.note ?? "",
+          observed: d.observed,
+          pointers: d.statuses,
         })),
         contact_frame_index: raw.contact_frame_index,
         focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { metricLabel } from "@/lib/ai/metrics";
+import { pointerCue } from "@/lib/ai/pointers";
 import { scoreBand } from "@/lib/ratings";
 import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
@@ -305,6 +306,12 @@ export default async function AnalysisDetail({
                   score={m.score}
                   note={m.note}
                   observed={m.observed !== false}
+                  pointers={m.pointers
+                    ?.map((p) => ({
+                      cue: pointerCue(row.skill, m.key, p.key),
+                      status: p.status,
+                    }))
+                    .filter((p): p is { cue: string; status: string } => p.cue != null)}
                   elite={
                     metricKnowledge(
                       row.skill,
