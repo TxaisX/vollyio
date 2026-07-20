@@ -11,6 +11,7 @@ import {
   dedupeBoxes,
   fromCrop,
   intersectionOverUnion,
+  MIN_CROP_ASPECT,
   usableBoxes,
 } from "./two-stage.ts";
 
@@ -22,13 +23,42 @@ const box = (x: number, y: number, w: number, h: number, score = 0.9): Box => ({
   score,
 });
 
-test("a crop is squared and padded around the body", () => {
+test("a crop keeps the body's proportions instead of squaring", () => {
   const c = cropForBox(box(0.4, 0.3, 0.1, 0.3), 0.35);
-  // Taller than wide, so the square takes the height, and padding widens both.
-  assert.ok(Math.abs(c.w - c.h) < 1e-9, "crop should be square");
-  assert.ok(c.w > 0.3, "padding must add context around the body");
+  // Squaring an upright body tripled the horizontal field of view and pulled
+  // neighbours in; that was the main cause of wrong-person poses.
+  assert.ok(c.w < c.h, "an upright body must not produce a square crop");
+  assert.ok(c.w / c.h >= MIN_CROP_ASPECT - 1e-9, "aspect is clamped, not free");
   const cx = c.x + c.w / 2;
   assert.ok(Math.abs(cx - 0.45) < 1e-9, "crop stays centred on the body");
+});
+
+test("a crop is far narrower than the squared version it replaced", () => {
+  const b = box(0.4, 0.3, 0.06, 0.3);
+  const c = cropForBox(b, 0.35);
+  const squaredWidth = Math.max(b.w, b.h) * 1.7;
+  assert.ok(
+    c.w < squaredWidth * 0.62,
+    `crop width ${c.w.toFixed(3)} should be well under the squared ${squaredWidth.toFixed(3)}`,
+  );
+  assert.ok(c.w > b.w, "but still wider than the bare body");
+});
+
+test("padding still adds real context on both axes", () => {
+  const b = box(0.4, 0.3, 0.2, 0.25);
+  const c = cropForBox(b, 0.35);
+  assert.ok(c.w > b.w && c.h > b.h);
+});
+
+test("a tap beyond the bound is rejected rather than snapped to something", () => {
+  const boxes = [box(0.05, 0.05, 0.05, 0.12)];
+  assert.equal(
+    boxNearestPoint(boxes, { x: 0.9, y: 0.9 }),
+    null,
+    "a far tap must abstain, not select the only body in frame",
+  );
+  const near = boxNearestPoint(boxes, { x: 0.075, y: 0.11 });
+  assert.ok(near, "a tap on the body still selects it");
 });
 
 test("a crop at the frame edge is clamped rather than running outside", () => {
@@ -88,10 +118,8 @@ test("a tap picks the box it lands on, scaled by body size", () => {
   assert.equal(pick.index, 1);
 });
 
-test("a tap far from every body still reports its distance for rejection", () => {
-  const pick = boxNearestPoint([box(0.1, 0.1, 0.05, 0.1)], { x: 0.9, y: 0.9 });
-  assert.ok(pick);
-  assert.ok(pick.distance > 5, "distance is body-relative, so this is very far");
+test("a very distant tap yields no pick at all", () => {
+  assert.equal(boxNearestPoint([box(0.1, 0.1, 0.05, 0.1)], { x: 0.9, y: 0.9 }), null);
 });
 
 test("containment answers whether a pose landed in its own crop", () => {

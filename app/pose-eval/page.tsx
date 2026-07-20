@@ -77,9 +77,12 @@ export default function PoseEvalPage() {
           delegate,
         },
         runningMode: "IMAGE",
-        categoryAllowlist: ["person"],
-        scoreThreshold: 0.25,
-        maxResults: 12,
+        // Matched to the shipped worker exactly. Measuring a different
+        // operating point than production makes every number describe a
+        // configuration no user ever reaches.
+        categoryAllowlist: ["person", "sports ball"],
+        scoreThreshold: 0.2,
+        maxResults: 16,
       });
 
     let pose: Awaited<ReturnType<typeof makePose>>;
@@ -122,6 +125,7 @@ export default function PoseEvalPage() {
       // Stage 1: enumerate people.
       const detections = detector.detect(canvas).detections ?? [];
       const boxes: Box[] = detections
+        .filter((d) => d.categories?.[0]?.categoryName === "person")
         .map((d) => {
           const b = d.boundingBox;
           if (!b) return null;
@@ -134,7 +138,7 @@ export default function PoseEvalPage() {
           };
         })
         .filter((b): b is Box => b !== null);
-      const people = usableBoxes(boxes);
+      const people = usableBoxes(boxes, { max: 4 });
 
       // Single stage, for comparison: pose straight at the whole frame.
       const singleStage = (pose.detect(canvas).landmarks ?? []).filter(
