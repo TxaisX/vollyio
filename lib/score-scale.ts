@@ -10,7 +10,7 @@
 //
 // This is a monotonic remap: ordering between reps is preserved exactly; only
 // where the numbers sit changes. Notes stay blunt about faults either way.
-// The pro tier is exempt: that contract promises the professional bar.
+// Applies to every account (D-037): one scale, one meaning per number.
 
 // Piecewise-linear knots, raw -> displayed. Anchored on an owner-labeled rep
 // (raw ~50 on grass, judged mid-to-high 60s by an independent full-frame
