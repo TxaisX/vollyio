@@ -99,7 +99,10 @@ export type AnalysisResult = {
   frame_times?: (number | null)[];
 };
 
-export const MAX_FRAMES = 12;
+// Dense continuous coverage (D-041): the whole trim window at up to 6fps,
+// capped by what one request can carry. The coach watches the clip, it does
+// not get a highlight reel.
+export const MAX_FRAMES = 40;
 // Total frames stored permanently per analysis (send set + extras); only the
 // send set ships to the model. Shared so the API schema accepts exactly what
 // the extraction planner can produce.

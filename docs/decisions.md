@@ -1253,3 +1253,23 @@ The curve was hiding roughly 7-10 points of grade inflation across the
 mid-band; the pointer checklist no longer needs it because scores derive
 from mechanics met, not from rubric-anchor pessimism (the original D-034
 motivation, since made obsolete by D-039).
+
+## D-041 — The coach watches every frame: uniform dense coverage, no motion picking
+
+Owner call, after two clips proved the point: sparse sampling scored a
+standstill jump as an approach jump, and only a continuous watch caught a
+mistimed jump under a high set. The motion-guided sampler (luminance scan,
+peak picking, burst layout) is DELETED. Extraction now covers the whole trim
+window uniformly at up to 6fps, capped at MAX_FRAMES=40 by what one request
+carries; frames render at 1024 (down from 1568) so a full watch fits the
+4MB body, with the existing re-encode fallback. The tap instant still gets
+an exact frame. The separate extras storage pass is gone: the dense send set
+IS the record. Cost: roughly 30k input tokens per full-window analysis,
+about $0.15-0.20 at opus-low, inside the ladder budget.
+
+Validation note, honest: the offline every-frame run could not complete
+because the API account hit its MONTHLY SPEND CAP mid-run ("regain access
+2026-08-01"). The same key serves production, so live analyses are blocked
+until the owner raises the limit in the provider console. The mechanism
+shipped is deterministic (uniform stride + mark injection + byte budget) and
+unit-gated; the model-behavior validation resumes when budget does.
