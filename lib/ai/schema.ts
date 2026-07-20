@@ -53,14 +53,6 @@ export function analysisSchema(skill: Skill) {
       )
       .optional(),
     metrics: z.object(metricShape),
-    ball_track: z.array(
-      z.object({
-        frame_index: z.number().int(),
-        x: z.number(),
-        y: z.number(),
-        visible: z.boolean(),
-      }),
-    ),
     contact_frame_index: z.number().int(),
     focus: z.object({
       frame_index: z.number().int(),

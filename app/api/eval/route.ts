@@ -168,7 +168,6 @@ async function runModel(
         ...raw.insights.map((i) => i.frame_index),
         raw.focus.frame_index,
         raw.contact_frame_index,
-        ...raw.ball_track.map((b) => b.frame_index),
       ],
       frameCount: c.frames.length,
     },

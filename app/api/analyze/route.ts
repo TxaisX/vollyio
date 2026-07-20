@@ -209,7 +209,6 @@ export async function POST(req: NextRequest) {
           score: scaled(metricsMap[m.key].score),
           note: metricsMap[m.key].note,
         })),
-        ball_track: raw.ball_track,
         contact_frame_index: raw.contact_frame_index,
         focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },
         insights: raw.insights.map((i) => ({ ...i, time_s: timeAt(i.frame_index) })),

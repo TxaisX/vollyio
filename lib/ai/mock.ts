@@ -21,11 +21,6 @@ export function mockResult(
     skill,
     overall_score: overall,
     metrics,
-    ball_track: [
-      { frame_index: 0, x: 0.5, y: 0.35, visible: true },
-      { frame_index: 1, x: 0.55, y: 0.28, visible: true },
-      { frame_index: 2, x: 0.6, y: 0.22, visible: false },
-    ],
     contact_frame_index: 1,
     focus: {
       frame_index: 1,
