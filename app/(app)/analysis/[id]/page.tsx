@@ -9,7 +9,6 @@ import { scoreBand } from "@/lib/ratings";
 import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
 import { MetricBar } from "@/components/metric-bar";
-import { MeasuredCard } from "@/components/measured-card";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareCard } from "@/components/share-card";
@@ -26,7 +25,6 @@ type Row = {
   skill: Skill;
   frame_paths: string[];
   clip_path: string | null;
-  keypoints_path: string | null;
   overall_score: number;
   created_at: string;
   result: AnalysisResult;
@@ -83,7 +81,7 @@ export default async function AnalysisDetail({
   const { data } = await supabase
     .from("analyses")
     .select(
-      "id, skill, frame_paths, clip_path, keypoints_path, overall_score, created_at, result",
+      "id, skill, frame_paths, clip_path, overall_score, created_at, result",
     )
     .eq("id", id)
     .eq("user_id", userId!)
@@ -112,19 +110,6 @@ export default async function AnalysisDetail({
       .createSignedUrl(row.clip_path, 3600);
     clipUrl = signedClip?.signedUrl ?? null;
   }
-
-  // Dense motion-tracking file for the clip-player overlay; absence (old rows,
-  // fallback extractions, failed uploads) simply means no trace.
-  let keypointsUrl: string | null = null;
-  if (row.keypoints_path) {
-    const { data: signedKeypoints } = await supabase.storage
-      .from("frames")
-      .createSignedUrl(row.keypoints_path, 3600);
-    keypointsUrl = signedKeypoints?.signedUrl ?? null;
-  }
-
-  const skeletons = new Map<number, number[]>();
-  for (const k of result.frame_keypoints ?? []) skeletons.set(k.frame_index, k.pts);
 
   const timeByFrame = new Map<number, number | null>();
   for (const i of result.insights) timeByFrame.set(i.frame_index, i.time_s);
@@ -250,10 +235,6 @@ export default async function AnalysisDetail({
                 ball={ball}
                 focusIndex={focusIndex}
                 contactIndex={contactIndex}
-                skeletons={skeletons}
-                keypointsUrl={keypointsUrl}
-                ballEstimated={result.ball_track_source !== "tracked"}
-                continuity={result.continuity ?? null}
               />
             )}
             {result.focus && (
@@ -347,15 +328,6 @@ export default async function AnalysisDetail({
               ))}
             </div>
           </Reveal>
-
-          {result.measurements && result.measurements.reps.length > 0 && (
-            <Reveal delay={200}>
-              <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
-                Measured
-              </h2>
-              <MeasuredCard block={result.measurements} />
-            </Reveal>
-          )}
 
           <Reveal delay={220}>
             <h2

@@ -28,9 +28,6 @@ export type ScoreInput = {
   metrics: { key: string; score: number }[];
   frameIndices: number[]; // every cited frame index (insights + priority_fix)
   frameCount: number;
-  // Whether this run actually fed the case's captured measurement block to the
-  // model. null when the case carries no block at all.
-  measurementsReplayed?: boolean | null;
 };
 
 // A check is pass, fail, or skipped. `skipped` exists so a check that never ran
@@ -159,23 +156,6 @@ export function checkCase(input: ScoreInput, expected: EvalExpectation): CaseChe
         : `all ${input.frameIndices.length} valid`,
     ),
   );
-
-  // Exercising the measurement path at all requires a case that captured one.
-  if (input.measurementsReplayed == null) {
-    checks.push(
-      skipped("measurements_replayed", "case carries no captured measurement block"),
-    );
-  } else {
-    checks.push(
-      ran(
-        "measurements_replayed",
-        input.measurementsReplayed,
-        input.measurementsReplayed
-          ? "captured block was fed to the model"
-          : "block present but replay was disabled for this run",
-      ),
-    );
-  }
 
   return checks;
 }

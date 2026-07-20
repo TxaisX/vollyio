@@ -1,6 +1,5 @@
 import type { Level, Skill } from "../skills.ts";
 import { METRICS } from "./metrics.ts";
-import { MEASUREMENT_CATALOG } from "../pose/metrics.ts";
 
 const CONTACT_MOMENT: Record<Skill, string> = {
   serve: "the frame where the hand strikes the ball",
@@ -73,34 +72,24 @@ const COACH_VOICE: Record<Level, string> = {
  */
 export function outputSpec(skill: Skill, level: Level): string {
   const keys = METRICS[skill].map((m) => m.key);
-  const measured = MEASUREMENT_CATALOG[skill]
-    .map((m) => `${m.key} (${m.unit})`)
-    .join(", ");
   return [
     SCORING_STANDARD[level],
     "",
     COACH_VOICE[level],
     "",
-    "MEASURED DATA (when provided)",
-    "The user turn may include a JSON block of measurements computed by on-device motion tracking over the full clip, not just these frames. It observed the continuous motion between frames that you cannot see.",
-    "Each measurement carries a confidence from 0 to 1. Score the checkpoint it covers from the measured value in proportion to that confidence: at high confidence let the number drive that part of the score and cite it in the metric note (e.g. \"measured contact at 1.24 body heights\"); at lower confidence lean on it but cross-check it against the frames. A checkpoint measured with high confidence that also looks sound is allowed into the reward band on that evidence; do not withhold credit for a rep the measurements confirm.",
-    "Checkpoints that may arrive measured for this skill: " + measured + ".",
-    "A checkpoint that is absent from the block (including any name listed under omitted_below_confidence) was not measured; assess it visually as usual and keep the honesty floor for anything you cannot confirm. Never contradict a high-confidence measured value with a visual guess, and never invent measurements that were not provided.",
-    "Units are body-relative (standing body heights, shoulder widths) plus degrees and seconds; treat them as consistent within the clip.",
-    "",
     "SUBJECT CHECK",
     "Before anything else, state who you analyzed. Set subject_check.analyzed to a short physical description of that one person as they appear in the frames: jersey or kit color, number if legible, and where they are on the court (e.g. \"player in the red jersey, number 7, left-side attacker\"). Describe appearance and position only; never guess a name.",
     "Set subject_check.marker_match to exactly one of these words, and nothing else:",
-    "- \"confirmed\" when a skeleton overlay marks the focus athlete and the person you analyzed is that athlete.",
-    "- \"mismatch\" when an overlay is present but you had to analyze someone else, for example because the marked athlete is out of frame, occluded, or never performs the skill. Say which person you analyzed instead in the analyzed field.",
-    "- \"unmarked\" when no skeleton overlay is present, so you chose the subject yourself from the frames.",
-    "If an overlay is present, the marked athlete is the subject: do not switch to a different person because they are more prominent or more skilled.",
+    "- \"confirmed\" when a gold ring marker marks the focus athlete in one frame and the person you analyzed is that athlete.",
+    "- \"mismatch\" when a ring marker is present but you had to analyze someone else, for example because the marked athlete is out of frame, occluded, or never performs the skill. Say which person you analyzed instead in the analyzed field.",
+    "- \"unmarked\" when no ring marker is present, so you chose the subject yourself from the frames.",
+    "If a ring marker is present, the ringed athlete is the subject in EVERY frame, not only the marked one: follow that same individual across the whole sequence by kit, build, and position, and do not switch to a different person because they are more prominent or more skilled. If you cannot confidently identify the ringed athlete in a later frame, say so in the relevant note rather than guessing.",
     "",
     "SCENE READ",
     "Set scene_read to the single opening sentence a human coach would say after watching this clip: the visible setting (indoor court, beach, grass, gym), roughly how many repetitions are visible, and anything about the context that shapes your read (practice vs game, other players, lighting). Describe only what the frames show; never guess.",
     "",
     "PER-REP SCORES",
-    "When the measured data block lists rep windows, or you can clearly distinguish more than one repetition in the frames, return rep_scores: one entry per rep in chronological order (rep_index from 0, an honest overall 0-100 for that rep alone on the same scale as the whole-clip score, and a short note naming what most separates this rep from the player's others). A single visible rep means you omit rep_scores entirely. Rep-to-rep consistency should also shape the whole-clip metric scores as the scoring rules describe.",
+    "When you can clearly distinguish more than one repetition in the frames, return rep_scores: one entry per rep in chronological order (rep_index from 0, an honest overall 0-100 for that rep alone on the same scale as the whole-clip score, and a short note naming what most separates this rep from the player's others). A single visible rep means you omit rep_scores entirely. Rep-to-rep consistency should also shape the whole-clip metric scores as the scoring rules describe.",
     "",
     "BALL TRACKING",
     "For every frame you were given, add one ball_track entry keyed by that frame's index.",

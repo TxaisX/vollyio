@@ -93,25 +93,6 @@ test("a reviewer-confirmed unknown skips with a distinct reason", () => {
   assert.match(c.reason ?? "", /reviewer judged/);
 });
 
-test("measurement replay is skipped when the case captured no block", () => {
-  const input = { overall_score: 61, metrics, frameIndices: [0], frameCount: 8 };
-  assert.equal(find(checkCase(input, {}), "measurements_replayed").status, "skipped");
-  assert.equal(
-    find(
-      checkCase({ ...input, measurementsReplayed: true }, {}),
-      "measurements_replayed",
-    ).status,
-    "pass",
-  );
-  assert.equal(
-    find(
-      checkCase({ ...input, measurementsReplayed: false }, {}),
-      "measurements_replayed",
-    ).status,
-    "fail",
-  );
-});
-
 test("a case with no labels is unverified, not a pass", () => {
   const input = { overall_score: 61, metrics, frameIndices: [0], frameCount: 8 };
   assert.equal(caseVerdict(checkCase(input, {})), "unverified");

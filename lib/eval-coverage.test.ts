@@ -17,7 +17,6 @@ function mk(over: Partial<CoverageCase> = {}): CoverageCase {
     level: "pro",
     excluded: false,
     expected: {},
-    hasMeasurements: false,
     ...over,
   };
 }
@@ -46,18 +45,16 @@ test("separates an unlabeled weakest_metric from a confirmed unknown", () => {
   assert.equal(cov.labels.weakest_metric_missing, 1);
 });
 
-test("gaps name the target population, labels and measurement paths", () => {
+test("gaps name the target population and label coverage", () => {
   const gaps = coverageGaps(summarizeCoverage([mk()]));
   assert.ok(gaps.some((g) => g.includes("intermediate/expert")));
   assert.ok(gaps.some((g) => g.includes("weakest_metric label")));
-  assert.ok(gaps.some((g) => g.includes("measurement block")));
 });
 
 test("a fully covered suite reports no gaps", () => {
   const cov = summarizeCoverage([
     mk({
       level: "intermediate",
-      hasMeasurements: true,
       expected: { overall_min: 50, overall_max: 70, weakest_metric: "toss_quality" },
     }),
   ]);

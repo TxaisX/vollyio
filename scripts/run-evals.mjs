@@ -5,10 +5,7 @@
 //
 // Usage:
 //   node scripts/run-evals.mjs [--base http://localhost:3222] [--runs 2]
-//     [--case <id prefix>] [--force] [--measurements off]
-//
-// --measurements off replays every case vision-only, so a case that captured a
-// measurement block can be A/B'd against its own grounded run.
+//     [--case <id prefix>] [--force]
 
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import {
@@ -26,8 +23,6 @@ for (let i = 0; i < rest.length; i++) {
 }
 const BASE = args.base ?? "http://localhost:3222";
 const RUNS = Math.max(1, Math.min(3, Number(args.runs ?? 2)));
-const MEASUREMENTS = args.measurements === "off" ? "off" : "on";
-const MEASUREMENTS_Q = MEASUREMENTS === "off" ? "&measurements=off" : "";
 const STABILITY_TOLERANCE = 8;
 const RESULTS_PATH = "evals/RESULTS.json";
 const EVAL_TOKEN = process.env.EVAL_TOKEN;
@@ -68,7 +63,7 @@ for (const id of ids) {
   process.stdout.write(`${id}: running x${RUNS} ... `);
   try {
     const res = await fetch(
-      `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=${RUNS}&full=1${MEASUREMENTS_Q}`,
+      `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=${RUNS}&full=1`,
       requestOptions(),
     );
     const body = await res.json();
@@ -83,7 +78,7 @@ for (const id of ids) {
     const spread = (o) => Math.max(...o) - Math.min(...o);
     if (r.overalls.length > 1 && spread(r.overalls) > STABILITY_TOLERANCE) {
       const extra = await fetch(
-        `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=1&full=1${MEASUREMENTS_Q}`,
+        `${BASE}/api/eval?case=${encodeURIComponent(id)}&runs=1&full=1`,
         requestOptions(),
       );
       const eb = await extra.json();
@@ -120,7 +115,6 @@ console.log(
     ` (pass rate over verifiable: ${verifiable ? Math.round((verdicts.pass / verifiable) * 100) : 0}%` +
     `, ${verifiable}/${done.length} judgeable)`,
 );
-console.log(`Measurements: ${MEASUREMENTS}`);
 
 const coverage = summarizeCoverage(loadCoverageCases());
 console.log("");

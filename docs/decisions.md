@@ -1032,8 +1032,22 @@ is a sharper pitch than "we coach your technique," but it is currently false a
 third of the time and was never shippable as written. Cost paid knowingly:
 positioning must be rewritten around coaching quality over measurement.
 
-Not yet done here: the actual deletion of the engine and rewiring of the analyze
-path to the mark-on-frame flow. This decision records the finding and the
-direction; the removal is the next change and is not in these commits. The A/B
-harnesses (`app/pose-export`, `app/pose-track-export`, `scripts/ab-*.mjs`,
-`scripts/kgb-run.mjs`) are diagnostic and marked delete-before-merge.
+Executed the same day, owner-approved. Deleted: `lib/pose/` (22 files),
+`public/pose/` models + wasm, the `@mediapipe/tasks-vision` dependency, the
+five diagnostic pages, `components/measured-card.tsx`,
+`lib/ai/measurements-schema.ts`, and every measurement lane in the request
+schema, the analyze/eval routes, the eval scorer, and the coverage report.
+Kept: real-speed frame extraction (`lib/frames.ts`, luminance-scan planning),
+the trim window, extras storage, mandatory subject pick (D-030), and
+`subject_check`. New flow: the user scrubs and taps their athlete; the tap is a
+raw normalized coordinate; extraction guarantees a send frame at exactly that
+instant (`injectMarkTime`, planned as a peak so the byte trimmer can never drop
+it); a hollow gold ring is burned onto that frame client-side (`burnMark`);
+`marker_frame_index` names it to the model; the prompt binds the ringed athlete
+as the subject in every frame and instructs saying so rather than guessing when
+the subject cannot be followed. Scrubbing more than 250ms away from a placed
+mark clears it, so a stale tap cannot ring empty court. The analyze-without-
+marking path stays one visual level down, never a dead end. Gates after the
+cut: tsc 0, 87 tests (pose tests deleted with the layer), policy lint, prod
+build. The A/B evidence stays in `scripts/ab-*.mjs`, `scripts/kgb-run.mjs`, and
+`ab/` summaries; the browser export pages died with the engine they measured.
