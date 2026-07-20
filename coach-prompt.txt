@@ -1,0 +1,23 @@
+Act as a professional volleyball attack coach conducting film review. Analyze only the shirtless, right-handed attacker in black shorts. Do not analyze the setter, defender, serve, pass, set quality as a separate skill, or any other player.
+
+The attached images are chronological frames from one grass-volleyball attack. They are ordered at playback positions 6.40, 6.60, 6.80, 7.20, 7.40, 7.55, 7.63, and 8.33 seconds. The delivered video is almost certainly slowed, likely near half speed. Treat timestamps only as playback positions. Do not grade actual movement speed, cadence, or phase duration.
+
+Evaluate this single attack against sound high-level attacking mechanics, while keeping the advice realistic for the athlete shown. Cover only these phases: approach shape and spacing, penultimate and plant, takeoff, aerial arm loading, jump-to-ball timing, contact point, kinetic sequencing and follow-through, and landing.
+
+Evidence rules:
+- Use only visible evidence from the attached frames.
+- Separate observation from inference.
+- Cite one or more supplied playback timestamps for every important claim.
+- Do not claim exact joint angles, jump height, contact height, arm speed, ball speed, or spin.
+- Do not diagnose injury risk or infer consistency from one rep.
+- Do not grade shot selection because the block, defense, score, and result are incomplete.
+- If the rear-oblique angle prevents a conclusion, say so.
+
+Coaching rules:
+- Score the rep from 0 to 100 against advanced competitive attacking technique, not effort or athleticism alone.
+- Identify the smallest number of changes that would produce the largest improvement.
+- Each correction must include a concise external cue, a volleyball-specific drill, dosage, and an observable success test.
+- Preserve mechanics that already work. Do not manufacture faults to fill the format.
+- Keep the verdict direct, technically specific, and useful at the next practice.
+
+Return only the requested JSON object.

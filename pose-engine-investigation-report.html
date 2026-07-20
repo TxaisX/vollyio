@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pose engine investigation: what the night's work found</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+:root{
+  --navy:#0f212c; --navy-light:#16303f; --navy-lighter:#1e3d4e;
+  --chalk:#f2efe6; --chalk-dim:#b9c4c9;
+  --gold:#e8b93b; --gold-dim:#c79c2e;
+  --teal:#6fbfae; --coral:#e2604f;
+  --line:rgb(242 239 230 / 0.12);
+  --serif:"Source Serif 4",Georgia,serif;
+  --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--navy); color:var(--chalk);
+  font-family:var(--sans); line-height:1.65; font-size:16px;
+  background-image:radial-gradient(ellipse 900px 600px at 50% -10%, rgb(232 185 59 / 0.10), transparent 70%);
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:64px 28px 96px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.2;margin:0}
+h1{font-size:clamp(32px,5vw,52px);letter-spacing:-0.02em}
+h2{font-size:clamp(24px,3vw,32px);margin:64px 0 8px;padding-top:32px;border-top:1px solid var(--line)}
+h3{font-size:19px;margin:28px 0 6px}
+p{margin:12px 0}
+.lede{font-size:19px;color:var(--chalk-dim);max-width:68ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.sub{color:var(--chalk-dim);font-size:15px}
+.muted{color:var(--chalk-dim)}
+code{font-family:var(--mono);font-size:0.9em;background:var(--navy-light);padding:2px 6px;border-radius:4px;color:var(--gold)}
+
+/* headline stats */
+.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:40px 0}
+.stat{background:var(--navy-light);border:1px solid var(--line);border-radius:12px;padding:22px}
+.stat .n{font-family:var(--serif);font-size:44px;line-height:1;color:var(--gold)}
+.stat .n.good{color:var(--teal)} .stat .n.bad{color:var(--coral)}
+.stat .l{font-size:13px;color:var(--chalk-dim);margin-top:8px}
+
+/* bar comparison */
+.bars{margin:26px 0}
+.bar-row{display:grid;grid-template-columns:190px 1fr 78px;gap:14px;align-items:center;margin:11px 0;font-size:14px}
+.bar-track{background:var(--navy-light);border-radius:5px;height:26px;overflow:hidden;border:1px solid var(--line)}
+.bar-fill{height:100%;border-radius:4px 0 0 4px;display:block}
+.bar-val{font-family:var(--mono);font-size:13px;text-align:right}
+.f-gold{background:linear-gradient(90deg,var(--gold-dim),var(--gold))}
+.f-teal{background:linear-gradient(90deg,#4d9c8c,var(--teal))}
+.f-coral{background:linear-gradient(90deg,#b8483a,var(--coral))}
+.f-dim{background:var(--navy-lighter)}
+
+/* table */
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14.5px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);font-weight:500}
+td.num{font-family:var(--mono);text-align:right}
+tr.total td{border-top:2px solid var(--line);font-weight:600}
+.up{color:var(--teal)} .down{color:var(--coral)}
+
+/* timeline */
+.tl{position:relative;margin:32px 0 8px;padding-left:30px}
+.tl:before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl-item{position:relative;margin:0 0 26px}
+.tl-item:before{content:"";position:absolute;left:-26px;top:7px;width:11px;height:11px;border-radius:50%;background:var(--gold);border:2px solid var(--navy)}
+.tl-item.bad:before{background:var(--coral)}
+.tl-item.good:before{background:var(--teal)}
+.tl-t{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--chalk-dim)}
+.tl-h{font-family:var(--serif);font-size:18px;margin:2px 0 4px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:24px 0}
+.card{background:var(--navy-light);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card.warn{border-left:3px solid var(--coral)}
+.card.ok{border-left:3px solid var(--teal)}
+.card.note{border-left:3px solid var(--gold)}
+.card h3{margin-top:0;font-size:17px}
+.card p{font-size:14.5px;margin:8px 0 0;color:var(--chalk-dim)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:20px;background:var(--navy-lighter);color:var(--chalk-dim);margin-bottom:10px}
+.tag.sev{background:rgb(226 96 79 / 0.16);color:var(--coral)}
+.tag.fixed{background:rgb(111 191 174 / 0.16);color:var(--teal)}
+.tag.open{background:rgb(232 185 59 / 0.16);color:var(--gold)}
+
+.callout{background:var(--navy-light);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:20px 22px;margin:26px 0}
+.callout.warn{border-left-color:var(--coral)}
+.callout h3{margin-top:0}
+
+.funnel{display:flex;flex-direction:column;gap:8px;margin:22px 0}
+.fn{display:grid;grid-template-columns:1fr auto;align-items:center;padding:13px 18px;border-radius:8px;font-size:14.5px}
+.fn .fv{font-family:var(--mono)}
+
+footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:13.5px}
+@media(max-width:640px){
+  .bar-row{grid-template-columns:120px 1fr 62px;font-size:13px}
+  .wrap{padding:40px 18px 64px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="eyebrow">Sideout / engine investigation / 20 July 2026</div>
+<h1>The pose engine was finding<br>one player in twenty.</h1>
+<p class="lede">A licence problem forced an engine swap. The swap quietly removed a step nobody noticed was load bearing, and the app spent that time analysing whoever it happened to find. This is what the night's work uncovered, what got fixed, and what is still unproven.</p>
+
+<div class="hero-stats">
+  <div class="stat"><div class="n bad">5.4%</div><div class="l">of people on court were being found before the fix</div></div>
+  <div class="stat"><div class="n good">66.2%</div><div class="l">found after, with wrong-body poses down 43%</div></div>
+  <div class="stat"><div class="n">24,275</div><div class="l">frames extracted from all 20 clips to measure against</div></div>
+  <div class="stat"><div class="n">7</div><div class="l">real defects found, two of them live in production</div></div>
+</div>
+
+<h2>What actually broke</h2>
+<p>The old engine used a two step process: first find every person in the frame, then work out the body position of each one separately. The replacement engine, MediaPipe, is built around photographing <em>one</em> prominent subject. When the swap happened, the second half was kept and the first half was dropped, on the assumption that the new engine did both.</p>
+<p>It does not. Handed a whole frame of a busy court, it returns roughly one body, and not reliably the one you tapped.</p>
+
+<div class="bars">
+  <div class="bar-row"><span>People actually there</span><span class="bar-track"><span class="bar-fill f-dim" style="width:100%"></span></span><span class="bar-val">1,126</span></div>
+  <div class="bar-row"><span>Found, before fix</span><span class="bar-track"><span class="bar-fill f-coral" style="width:5.4%"></span></span><span class="bar-val">61</span></div>
+  <div class="bar-row"><span>Found, after fix</span><span class="bar-track"><span class="bar-fill f-teal" style="width:66.2%"></span></span><span class="bar-val">820</span></div>
+</div>
+<p class="sub">Measured over 200 frames sampled across all twenty clips. "People actually there" is what a dedicated person detector finds, used as the reference.</p>
+
+<h2>The trade the fix makes</h2>
+<p>Fixing the crop shape made the engine pick the right body far more often, but it also made it find a body slightly less often. Rates alone are misleading here because the detector settings changed at the same time, so these are absolute counts per 200 frames.</p>
+
+<table>
+<thead><tr><th>Per 200 frames</th><th class="num">Before</th><th class="num">After</th><th class="num">Change</th></tr></thead>
+<tbody>
+<tr><td>People detected</td><td class="num">1,126</td><td class="num">1,239</td><td class="num muted">+113</td></tr>
+<tr><td>Poses produced</td><td class="num">931</td><td class="num">820</td><td class="num down">-111</td></tr>
+<tr class="total"><td>Poses on the right body</td><td class="num">767</td><td class="num">726</td><td class="num down">-41</td></tr>
+<tr class="total"><td>Poses on the <strong>wrong</strong> body</td><td class="num">164</td><td class="num">94</td><td class="num up">-70 (-43%)</td></tr>
+<tr><td>Accuracy rate</td><td class="num">82.4%</td><td class="num">88.5%</td><td class="num up">+6.1pt</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<h3>How to read that</h3>
+<p>You give up 41 correct readings to remove 70 wrong ones. A wrong reading is not a blank space, it is the app confidently describing someone else's technique as yours. For a product whose whole promise is not making things up, that is probably the right trade, but it is a trade and it is your call rather than mine.</p>
+</div>
+
+<h2>What the night looked like</h2>
+
+<div class="tl">
+  <div class="tl-item"><div class="tl-t">Start</div><div class="tl-h">Pick a model and effort level</div><p class="sub">Two benchmark reports compared. They turned out not to be comparable to each other, so the decision rested on the one with a checkable fact rather than opinion scores.</p></div>
+
+  <div class="tl-item bad"><div class="tl-h">The engine could not be sold</div><p class="sub">The pose model's weights were trained on a dataset with non commercial terms. Every measurement the product intends to charge for was computed by something it could never charge for.</p></div>
+
+  <div class="tl-item good"><div class="tl-h">Swapped to a licence that works</div><p class="sub">MediaPipe, Apache licensed, recovered from the project's own history. Also removed a 155MB first run download and shrank the repository by 24MB.</p></div>
+
+  <div class="tl-item bad"><div class="tl-h">A near miss, caught before shipping</div><p class="sub">The honesty check that decides whether a measurement is trustworthy had been tuned to the old engine's number scale. On the new scale it would have passed everything and silently stopped protecting anything. No error, no failing test.</p></div>
+
+  <div class="tl-item bad"><div class="tl-h">Two measurements had been dead for months</div><p class="sub">Serve contact height and attack jump height both relied on heel positions the old engine never produced. They were dropped from every single analysis, silently, for the life of that engine.</p></div>
+
+  <div class="tl-item"><div class="tl-h">The skeleton looked wrong on a real clip</div><p class="sub">This is where testing on actual footage paid for itself. Three hypotheses were tried, two were wrong, and the data killed them.</p></div>
+
+  <div class="tl-item good"><div class="tl-h">Root cause found and fixed</div><p class="sub">Person detection had been dropped. Rebuilt using a detector already bundled in the app for tracking the ball.</p></div>
+
+  <div class="tl-item"><div class="tl-h">126 review agents attacked the work</div><p class="sub">Five independent angles, 70 findings. Four were real and are fixed. Two were out of date and were rejected after checking the code rather than accepting them.</p></div>
+
+  <div class="tl-item bad"><div class="tl-h">Hours lost to a stale server</div><p class="sub">An old process held the port, so every rebuild was ignored and every test ran against code from hours earlier. The lesson is written into the notes: verify the browser is running your build before diagnosing anything.</p></div>
+
+  <div class="tl-item good"><div class="tl-h">Measured, end to end</div><p class="sub">Full run across frames from every clip, with the test setup matched to what actually ships.</p></div>
+</div>
+
+<h2>Defects found</h2>
+<div class="cards">
+  <div class="card warn"><span class="tag sev">Was live</span><h3>Two measurements silently disabled</h3><p>Both relied on body points the engine never produced. Averaging over missing points dragged their confidence below the cutoff, so they were dropped from every analysis. Nothing errored, so nobody knew.</p></div>
+
+  <div class="card warn"><span class="tag sev">Was live</span><h3>The evaluation suite was passing itself</h3><p>Saved test cases carried an expected score range of 0 to 100. Every possible score falls in that range, so the check ran, passed, and reported success forever, while the check that mattered was skipped in silence.</p></div>
+
+  <div class="card warn"><span class="tag sev">Would have shipped</span><h3>The billing switch was a trapdoor</h3><p>Turning billing on would have capped every user at one analysis for life, behind an upgrade button pointing nowhere, because no payment system exists. It now takes two switches and the wrong one alone does nothing.</p></div>
+
+  <div class="card warn"><span class="tag sev">Would have shipped</span><h3>The honesty check would have stopped working</h3><p>Tuned to the old engine's scale. On the new one it would have marked every reading as fully trustworthy.</p></div>
+
+  <div class="card note"><span class="tag fixed">Fixed</span><h3>Crops were the wrong shape</h3><p>Each crop was squared off, which tripled its width for an upright person and pulled the neighbouring player fully into frame. The subject ended up filling a fifth of the picture.</p></div>
+
+  <div class="card note"><span class="tag fixed">Fixed</span><h3>The app could never say "I do not know"</h3><p>Subject selection always returned the nearest body, with no distance limit, so a tap anywhere would select someone. It would analyse a player on the next court rather than admit it lost you.</p></div>
+
+  <div class="card note"><span class="tag fixed">Fixed</span><h3>Ball tracking was about to break</h3><p>Sharing one detector between people and the ball meant a player would outscore the ball on every frame. Caught while building the fix, not after.</p></div>
+</div>
+
+<h2>What is still unproven</h2>
+<p>These matter as much as the wins, and none of them are resolved.</p>
+
+<div class="cards">
+  <div class="card"><span class="tag open">Open</span><h3>The accuracy score grades itself</h3><p>"Did the reading land on the right body" is judged against the same box that produced it. That measures internal consistency, not identity. A box drawn on a spectator produces that spectator's reading and counts as correct. The true wrong person rate is unknown and is worse than 11%.</p></div>
+
+  <div class="card"><span class="tag open">Open</span><h3>A third of people are still missed</h3><p>66% found means 34% not found. On wide court footage the engine finds nobody at all without cropping first.</p></div>
+
+  <div class="card"><span class="tag open">Open</span><h3>Nothing is device verified</h3><p>Everything here is measured on extracted frames, not through the real app on a real phone. That check has still never been done, for this engine or the previous one.</p></div>
+
+  <div class="card"><span class="tag open">Open</span><h3>Two changes are tangled together</h3><p>Crop shape and detector sensitivity changed at the same time, so their individual effects cannot be separated from this run alone.</p></div>
+
+  <div class="card"><span class="tag open">Open</span><h3>The deciding experiment has never run</h3><p>The plan says measured biomechanics must beat a plain visual read in blind comparison, or the differentiator is not real. That comparison has never been run, not once. It is the next thing to do.</p></div>
+</div>
+
+<h2>The deciding test, now run</h2>
+<p>Your plan has always contained a condition: measured biomechanics must beat a plain visual read in blind comparison, or the differentiator is not real. That test had never been run. It has now.</p>
+<p>Thirteen clips. Both sides received identical frames, the identical rubric, the identical output specification, the identical model at the identical effort. The only difference was whether the measurement block was attached. Three judges per clip, shown the two answers without knowing which was which, in an order shuffled per clip.</p>
+
+<div class="bars">
+  <div class="bar-row"><span>Overall winner</span><span class="bar-track"><span class="bar-fill f-coral" style="width:100%"></span></span><span class="bar-val">13-0</span></div>
+  <div class="bar-row"><span>Evidence grounding</span><span class="bar-track"><span class="bar-fill f-coral" style="width:100%"></span></span><span class="bar-val">13-0</span></div>
+  <div class="bar-row"><span>Fewer invented claims</span><span class="bar-track"><span class="bar-fill f-coral" style="width:100%"></span></span><span class="bar-val">13-0</span></div>
+  <div class="bar-row"><span>Actionability</span><span class="bar-track"><span class="bar-fill f-dim" style="width:8%"></span></span><span class="bar-val">1-0, 12 tied</span></div>
+</div>
+<p class="sub">Bars show clips won by the vision-only arm. The measured arm won nothing, on any axis, on any clip. It also cost more: 93,600 input tokens against 82,900, and 23,800 output against 18,200.</p>
+
+<h3>Why it lost, checked without the judges</h3>
+<p>Judges could be accused of penalising numbers simply because eight frames cannot obviously justify them. So the measurements were tested separately against basic anatomy, no opinion involved.</p>
+
+<div class="funnel">
+  <div class="fn" style="background:var(--navy-light);border:1px solid var(--line)"><span>Measurements checked against anatomical limits</span><span class="fv">124</span></div>
+  <div class="fn" style="background:rgb(226 96 79 / 0.14);border:1px solid var(--coral)"><span><strong>Physically impossible</strong></span><span class="fv">42 (33.9%)</span></div>
+</div>
+
+<table>
+<thead><tr><th>Reported measurement</th><th>What it means</th><th class="num">Confidence</th></tr></thead>
+<tbody>
+<tr><td>Jump height 2.75 body heights</td><td>A 4.8 metre vertical leap</td><td class="num">0.51</td></tr>
+<tr><td>Jump height 0.04 body heights</td><td>A 7 centimetre jump</td><td class="num">0.74</td></tr>
+<tr><td>Shoulder to hip separation 137 degrees</td><td>Anatomically impossible</td><td class="num">0.62</td></tr>
+<tr><td>Contact height 0.3 body heights</td><td>Striking the ball below the waist</td><td class="num">0.55</td></tr>
+</tbody>
+</table>
+
+<div class="callout warn">
+<h3>The finding that matters most</h3>
+<p>A third of the measurements are impossible, and they carry confidence scores high enough to pass the honesty gate. The layer built to stop the product inventing things is itself the source of invented precision, and the check meant to catch that cannot see it, because the underlying engine reports near total confidence in everything it produces.</p>
+<p>Every judge landed on the same point independently: hedging a fabricated number as "low confidence" does not repair it. The plain visual read wins because it declines to state what it cannot see.</p>
+</div>
+
+<h2>Work produced</h2>
+<div class="hero-stats">
+  <div class="stat"><div class="n">6</div><div class="l">commits, none pushed to production</div></div>
+  <div class="stat"><div class="n">184</div><div class="l">automated tests passing, up from 147</div></div>
+  <div class="stat"><div class="n">126</div><div class="l">review agents run against the work</div></div>
+  <div class="stat"><div class="n">-24MB</div><div class="l">repository size, despite bundling new models</div></div>
+</div>
+
+<div class="callout warn">
+<h3>The honest summary</h3>
+<p>The engine went from finding one player in twenty to finding two in three, and wrong body readings nearly halved. Two long dead measurements work again, one safety check that was about to fail silently now cannot, and a test suite that was flattering you now tells the truth. All of that is real.</p>
+<p>And it does not matter as much as the last result. The measured path lost every clip on every axis to simply showing the frames to the model, while costing more, because a third of what it measures is impossible and it reports those figures confidently. The engineering worked. The premise underneath it did not survive contact with the evidence.</p>
+<p>That is a good outcome for one night. The alternative was finding out after launch, from a coach who noticed the app told an athlete they jumped seven centimetres.</p>
+</div>
+
+<h2>What this suggests</h2>
+<p>Not a decision, a reading of the evidence. Three routes, in order of how much they ask of you.</p>
+
+<div class="cards">
+  <div class="card ok"><span class="tag">Recommended</span><h3>Keep the detector, drop the measurements</h3><p>Person detection is the part that demonstrably works, and it is what makes tapping a player possible. Keep it purely to find and mark the athlete, then let the vision model do the assessment. You lose the fifteen megabyte download, the on-device compute, and the invented numbers, and you keep reliable subject selection.</p></div>
+
+  <div class="card"><span class="tag">Slower</span><h3>Fix the measurements first, then retest</h3><p>The numbers are not wrong by a little. Fixing them means calibrated confidence, validated joint positions, and a real ground truth to check against, which is weeks of work with no guarantee. Only worth it if measured biomechanics is genuinely the business you want to be in.</p></div>
+
+  <div class="card"><span class="tag">Cheapest</span><h3>Ship vision only</h3><p>Fewest moving parts, lowest cost per analysis, no wrong body risk. Costs you the differentiator as currently written, so the positioning would need rewriting around coaching quality and progression instead of measurement.</p></div>
+</div>
+
+<footer>
+Measured against 200 frames sampled across all 20 clips, from a 24,275 frame corpus covering every clip at full frame rate for rally length footage. Source video was never modified. All work sits on a branch; the production branch is untouched and nothing has been deployed.
+</footer>
+
+</div>
+</body>
+</html>
