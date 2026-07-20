@@ -6,7 +6,7 @@ import { SeamArcs } from "@/components/motif";
 const READOUT = [
   { value: "Locked", label: "Hitter acquired", accent: true },
   { value: "Frame 12", label: "Contact point", accent: false },
-  { value: "158°", label: "Elbow at contact", accent: false },
+  { value: "06", label: "Checkpoints scored", accent: false },
   { value: "82", label: "Spike score", accent: false },
 ] as const;
 

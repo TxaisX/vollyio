@@ -439,11 +439,10 @@ export default async function Dashboard({
         </h2>
         <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
           <div className="min-w-0 max-w-md">
-            <p className="font-display font-bold">Improve motion tracking</p>
+            <p className="font-display font-bold">Improve future analysis</p>
             <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
-              Allow your clips and frames to help train future analysis features,
-              like automatic ball tracking. Footage stays private to your account
-              either way.
+              Allow your clips and frames to help train future analysis
+              features. Footage stays private to your account either way.
             </p>
           </div>
           <form action={setTrainingConsent}>

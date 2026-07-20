@@ -12,7 +12,8 @@ test("the landing opens with a product-true spike film read", () => {
   assert.match(hero, /Frame 12/);
   assert.match(hero, /value: "82"/);
   assert.match(hero, /Spike score/);
-  assert.match(hero, /Elbow at contact/);
+  assert.match(hero, /Checkpoints scored/);
+  assert.doesNotMatch(hero, /°/);
   assert.match(hero, /Analyze your first rep/);
   assert.match(hero, /autoPlay=\{false\}/);
   assert.doesNotMatch(hero, /playDelayMs/);
@@ -82,9 +83,13 @@ test("the landing film and analytics stay attack-specific", () => {
   const landing = read("app/page.tsx");
 
   assert.match(filmScene, /Spike analysis/);
-  assert.match(filmScene, /Approach tempo/);
-  assert.match(filmScene, /Elbow angle at contact/);
+  assert.match(filmScene, /film-ring/, "the mark is a ring, not a skeleton");
+  assert.match(filmScene, /Follow-through/);
   assert.doesNotMatch(filmScene, /Serve analysis/);
+  // D-033: the film may not depict capabilities the product no longer has.
+  assert.doesNotMatch(filmScene, /film-bone/);
+  assert.doesNotMatch(filmScene, /body heights/);
+  assert.doesNotMatch(filmScene, /°/);
 
   assert.match(analytics, /example attack session/i);
   assert.match(analytics, /Spike score/);

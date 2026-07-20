@@ -151,10 +151,11 @@ export default function Landing() {
                 Watch a rep get read.
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
-                This is the read itself: every player on the court found, the
-                one you tap tracked joint by joint, the ball measured,
-                checkpoints in real units, and the one fix that buys the most.
-                The whole read, in a ten-second loop.
+                This is the read itself: you tap your player, a gold ring
+                marks exactly who to analyze, the coach follows them and the
+                ball through the rep, scores every checkpoint, and hands back
+                the one fix that buys the most. The whole read, in a
+                ten-second loop.
               </p>
             </Reveal>
             <Reveal delay={120}>
@@ -166,8 +167,8 @@ export default function Landing() {
                     src="/sideout-court-vision.mp4"
                     srcWebm="/sideout-court-vision.webm"
                     poster="/sideout-court-vision-poster.webp"
-                    label="Ten-second loop: a two-player rep is scanned, every player is boxed, the tapped hitter is tracked joint by joint, the ball is measured, spike checkpoints appear in real units, and the spike scores 82 with one priority fix."
-                    posterAlt="A two-player volleyball spike: the tracked hitter boxed in gold and traced with a skeleton, the other player boxed, measured attack checkpoints, and a spike score of 82."
+                    label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, the ball is followed, spike checkpoints are scored, and the spike scores 82 with one priority fix."
+                    posterAlt="A two-player volleyball spike: the tapped hitter ringed in gold, scored attack checkpoints, and a spike score of 82."
                     className="absolute inset-0"
                     controlCorner="bottom-4 right-4"
                     sizes="(min-width: 1200px) 1104px, calc(100vw - 2.5rem)"
@@ -178,8 +179,8 @@ export default function Landing() {
             <Reveal delay={200}>
               <div className="mt-6 flex flex-wrap gap-2">
                 {[
-                  "Tap a player, track the whole rep",
-                  "Checkpoints in real units",
+                  "Tap a player, mark the whole rep",
+                  "Every checkpoint scored",
                   "One priority fix",
                 ].map((chip) => (
                   <span key={chip} className="tag">
