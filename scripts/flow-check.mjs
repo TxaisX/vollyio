@@ -12,7 +12,6 @@ import { getRubric } from "../lib/ai/rubrics/index.ts";
 import { outputSpec } from "../lib/ai/output-spec.ts";
 import { analysisSchema } from "../lib/ai/schema.ts";
 import { METRICS } from "../lib/ai/metrics.ts";
-import { toProductScale } from "../lib/score-scale.ts";
 import { deriveMetric, POINTERS } from "../lib/ai/pointers.ts";
 
 const ROOT = process.cwd();
@@ -104,12 +103,12 @@ const res = await client.messages.parse(
 const raw = res.parsed_output;
 const derived = METRICS.attack.map((m) => {
   const d = deriveMetric("attack", m.key, raw.metrics[m.key]?.pointers);
-  return { key: m.key, label: m.label, ...d, score: toProductScale(d.raw) };
+  return { key: m.key, label: m.label, ...d, score: d.raw };
 });
 const obsScores = derived.filter((d) => d.observed).map((d) => d.score);
 const overall = obsScores.length
   ? Math.round(obsScores.reduce((a, b) => a + b, 0) / obsScores.length)
-  : toProductScale(raw.overall_score);
+  : raw.overall_score;
 console.log(`\nPICKED: #1 ${pick.label}`);
 console.log(`OVERALL: ${overall}`);
 console.log(`subject: ${raw.subject_check?.analyzed} [${raw.subject_check?.marker_match}]`);

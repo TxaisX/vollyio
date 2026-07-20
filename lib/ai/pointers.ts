@@ -219,11 +219,12 @@ export function parsePointerStatus(value: unknown): PointerStatus {
   return "not_visible";
 }
 
-// Raw-scale mapping for a checkpoint from its visible pointers: all missed sits
-// at a broken-fundamentals 35, all met at an elite 92, linear between. The
-// product curve (lib/score-scale) is applied by the caller, same as every score.
-const RAW_FLOOR = 35;
-const RAW_CEILING = 92;
+// Scale mapping for a checkpoint from its visible pointers: all missed sits at
+// a broken-fundamentals 30, all met at an elite 95, linear between. This IS
+// the product scale (D-040): no display curve sits on top of it. 40 developing,
+// 70 solid, 90 advanced, earned pointer by pointer.
+const RAW_FLOOR = 30;
+const RAW_CEILING = 95;
 
 export type DerivedMetric = {
   observed: boolean;

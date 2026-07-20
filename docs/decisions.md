@@ -1228,3 +1228,28 @@ approach pointers matching the independent human read. Calibration note: the
 checklist is stricter than the D-034 free-score anchor (66-70 for that rep);
 the knobs are RAW_FLOOR/RAW_CEILING in one file, and any recalibration should
 wait for labeled eval cases rather than another prompt hunt.
+
+## D-040 — Every scoring hedge removed: the pointer derivation IS the scale
+
+Owner call, asking for the bluntness of the model-effort reports. Audit found
+five places the pipeline softened numbers; all are gone:
+1. The D-034 display curve (raw 50 -> shown 66) is DELETED (lib/score-scale
+   removed). Checkpoint scores are now the raw pointer derivation, uncurved,
+   in the analyze route, the eval route, and the diagnostic scripts alike.
+2. The derivation band widens 35..92 -> 30..95: all pointers missed reads a
+   broken 30, all met an elite 95, so the scale uses its full range.
+3. The overall's no-observation fallback no longer gets curved either.
+4. rep_scores pass through raw.
+5. The shared standard gains a blunt-verdict rule: a missed mechanic is
+   missed, not "developing" or "almost there"; never soften, pad, or console.
+Model and effort unchanged: opus-4-8 at low, the ladder's accuracy cell.
+
+Validated against a full continuous watch of the owner's rep (all frames at
+6fps, no selection): the human read said 65 — a genuinely athletic standstill
+jump wrapped in a missing approach. Unhedged pipeline: 68 (curved it showed
+75). The pro clip reads 70 on broadcast-cut footage with the invisible
+bow-draw scored bluntly at 52 and follow-through excluded as not visible.
+The curve was hiding roughly 7-10 points of grade inflation across the
+mid-band; the pointer checklist no longer needs it because scores derive
+from mechanics met, not from rubric-anchor pessimism (the original D-034
+motivation, since made obsolete by D-039).

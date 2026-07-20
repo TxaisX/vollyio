@@ -11,7 +11,6 @@ import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
 import { updateRating } from "@/lib/ratings";
-import { toProductScale } from "@/lib/score-scale";
 import { deriveMetric } from "@/lib/ai/pointers";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import {
@@ -190,12 +189,12 @@ export async function POST(req: NextRequest) {
         string,
         { note: string; pointers: { key: string; status: string }[] }
       >;
-      // Purely the visible mechanics (D-038/D-039): every checkpoint score is
-      // DERIVED from its pointer verdicts, and checkpoints with no visible
-      // pointer are excluded from the overall.
+      // Purely the visible mechanics (D-038/D-039/D-040): every checkpoint
+      // score IS its pointer derivation, uncurved, and checkpoints with no
+      // visible pointer are excluded from the overall.
       const derived = METRICS[skill].map((m) => {
         const d = deriveMetric(skill, m.key, metricsMap[m.key]?.pointers);
-        return { key: m.key, ...d, score: toProductScale(d.raw) };
+        return { key: m.key, ...d, score: d.raw };
       });
       const observedScores = derived.filter((d) => d.observed).map((d) => d.score);
       const top = raw.changes[0];
@@ -203,14 +202,12 @@ export async function POST(req: NextRequest) {
       // remapped onto the shipped scale for every account. Monotonic, so
       // ordering between reps is exactly the model's; only where the numbers
       // sit changes.
-      const scaled = (n: number) => toProductScale(n);
       // The overall IS the mean of the observed checkpoint scores. Only when
-      // nothing at all was observable does the model's whole-clip read stand
-      // in, scaled like everything else.
+      // nothing at all was observable does the model's whole-clip read stand in.
       const overallScore =
         observedScores.length > 0
           ? Math.round(observedScores.reduce((a, b) => a + b, 0) / observedScores.length)
-          : scaled(raw.overall_score);
+          : raw.overall_score;
       result = {
         skill,
         overall_score: overallScore,
@@ -218,7 +215,7 @@ export async function POST(req: NextRequest) {
         // the player marked. Optional: an older stored row has no such field,
         // and a reply that omits it must not fail the analysis (D-030).
         subject_check: raw.subject_check,
-        rep_scores: raw.rep_scores?.map((r) => ({ ...r, overall: scaled(r.overall) })),
+        rep_scores: raw.rep_scores,
         metrics: derived.map((d) => ({
           key: d.key,
           score: d.score,

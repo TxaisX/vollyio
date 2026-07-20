@@ -28,14 +28,14 @@ test("every skill's every metric carries a concrete pointer checklist", () => {
 test("scores derive from the checklist: all met is elite, all missed is broken", () => {
   const all = (status: string) =>
     POINTERS.attack.arm_swing.map((p) => ({ key: p.key, status }));
-  assert.equal(deriveMetric("attack", "arm_swing", all("met")).raw, 92);
-  assert.equal(deriveMetric("attack", "arm_swing", all("missed")).raw, 35);
+  assert.equal(deriveMetric("attack", "arm_swing", all("met")).raw, 95);
+  assert.equal(deriveMetric("attack", "arm_swing", all("missed")).raw, 30);
   const half = POINTERS.attack.arm_swing.map((p, i) => ({
     key: p.key,
     status: i % 2 === 0 ? "met" : "missed",
   }));
   const mid = deriveMetric("attack", "arm_swing", half).raw;
-  assert.ok(mid > 35 && mid < 92);
+  assert.ok(mid > 30 && mid < 95);
 });
 
 test("invisibility is excluded from the math, never counted against the athlete", () => {
@@ -46,7 +46,7 @@ test("invisibility is excluded from the math, never counted against the athlete"
   }));
   const d = deriveMetric("attack", "approach_footwork", oneVisible);
   assert.equal(d.observed, true);
-  assert.equal(d.raw, 92, "one visible met pointer scores as met, not diluted");
+  assert.equal(d.raw, 95, "one visible met pointer scores as met, not diluted");
   const noneVisible = ps.map((p) => ({ key: p.key, status: "not_visible" }));
   assert.equal(deriveMetric("attack", "approach_footwork", noneVisible).observed, false);
   assert.equal(deriveMetric("attack", "approach_footwork", undefined).observed, false);
