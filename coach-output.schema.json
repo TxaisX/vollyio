@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject_check", "attack_score", "confidence", "verdict", "phases", "strengths", "priority_changes", "preserve", "limitations", "coach_bottom_line"],
+  "properties": {
+    "subject_check": { "type": "string" },
+    "attack_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "verdict": { "type": "string" },
+    "phases": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["phase", "score", "observation", "evidence_timestamps", "performance_impact"],
+        "properties": {
+          "phase": { "type": "string", "enum": ["approach_shape_spacing", "penultimate_plant", "takeoff", "aerial_arm_loading", "jump_ball_timing", "contact_point", "sequencing_followthrough", "landing"] },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "observation": { "type": "string" },
+          "evidence_timestamps": { "type": "array", "minItems": 1, "items": { "type": "number", "enum": [6.4, 6.6, 6.8, 7.2, 7.4, 7.55, 7.63, 8.33] } },
+          "performance_impact": { "type": "string" }
+        }
+      }
+    },
+    "strengths": {
+      "type": "array", "minItems": 1, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["finding", "evidence_timestamps", "why_it_matters"],
+        "properties": {
+          "finding": { "type": "string" },
+          "evidence_timestamps": { "type": "array", "minItems": 1, "items": { "type": "number", "enum": [6.4, 6.6, 6.8, 7.2, 7.4, 7.55, 7.63, 8.33] } },
+          "why_it_matters": { "type": "string" }
+        }
+      }
+    },
+    "priority_changes": {
+      "type": "array", "minItems": 1, "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["rank", "change", "evidence_timestamps", "why", "cue", "drill", "dosage", "success_test"],
+        "properties": {
+          "rank": { "type": "integer", "minimum": 1, "maximum": 3 },
+          "change": { "type": "string" },
+          "evidence_timestamps": { "type": "array", "minItems": 1, "items": { "type": "number", "enum": [6.4, 6.6, 6.8, 7.2, 7.4, 7.55, 7.63, 8.33] } },
+          "why": { "type": "string" },
+          "cue": { "type": "string" },
+          "drill": { "type": "string" },
+          "dosage": { "type": "string" },
+          "success_test": { "type": "string" }
+        }
+      }
+    },
+    "preserve": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string" } },
+    "limitations": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "coach_bottom_line": { "type": "string" }
+  }
+}

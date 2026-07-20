@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluations"],
+  "properties": {
+    "evaluations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidate_id", "evidence_grounding", "biomechanical_accuracy", "prioritization", "actionability", "realism", "uncertainty_discipline", "clarity", "factual_issues", "best_qualities", "verdict"],
+        "properties": {
+          "candidate_id": { "type": "string" },
+          "evidence_grounding": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "biomechanical_accuracy": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "prioritization": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "actionability": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "realism": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "uncertainty_discipline": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "clarity": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "factual_issues": { "type": "array", "items": { "type": "string" } },
+          "best_qualities": { "type": "array", "items": { "type": "string" } },
+          "verdict": { "type": "string" }
+        }
+      }
+    }
+  }
+}
