@@ -25,8 +25,23 @@ export type Box = {
 // detector's bounds clips shoulders and feet, and a spiking arm leaves frame
 // entirely. Padding is proportional so it scales with the subject.
 export const CROP_PADDING = 0.35;
-// Pose input is square-ish; a very wide or tall crop wastes the model's
-// resolution on background, so crops are squared up before padding.
+
+// Crops keep the subject's own proportions rather than being squared up.
+//
+// Squaring was the original behaviour and it was the single biggest cause of
+// wrong-person poses. An upright player's box is roughly 0.3 as wide as it is
+// tall, so squaring to the longer side multiplied the horizontal field of view
+// by about three BEFORE padding multiplied it again: the athlete ended up
+// occupying a fifth of the crop's width, with a team-mate standing fully
+// visible beside them. A single-subject pose model handed that image has no
+// reason to prefer the middle one.
+//
+// The aspect is still clamped, because a very thin crop is letterboxed to the
+// model's square input and wastes most of it. These bounds keep enough width
+// for arms and a landing stance without reaching the next player over.
+export const MIN_CROP_ASPECT = 0.55;
+export const MAX_CROP_ASPECT = 1.8;
+
 export const MIN_BOX_SCORE = 0.3;
 // A body smaller than this fraction of the frame's long edge has too few pixels
 // for the landmark model to say anything trustworthy about joint positions.
@@ -43,12 +58,20 @@ export function clamp01(v: number): number {
 export function cropForBox(box: Box, padding = CROP_PADDING): Box {
   const cx = box.x + box.w / 2;
   const cy = box.y + box.h / 2;
-  const side = Math.max(box.w, box.h) * (1 + padding * 2);
-  const half = side / 2;
-  const left = clamp01(cx - half);
-  const top = clamp01(cy - half);
-  const right = clamp01(cx + half);
-  const bottom = clamp01(cy + half);
+
+  // Pad each side in proportion to that side, so the subject keeps its shape.
+  let w = box.w * (1 + padding * 2);
+  let h = box.h * (1 + padding * 2);
+
+  // Then widen or heighten only as far as the aspect bounds require.
+  const aspect = w / h;
+  if (aspect < MIN_CROP_ASPECT) w = h * MIN_CROP_ASPECT;
+  else if (aspect > MAX_CROP_ASPECT) h = w / MAX_CROP_ASPECT;
+
+  const left = clamp01(cx - w / 2);
+  const top = clamp01(cy - h / 2);
+  const right = clamp01(cx + w / 2);
+  const bottom = clamp01(cy + h / 2);
   return {
     x: left,
     y: top,
@@ -103,12 +126,24 @@ export function fromCrop(
   return { x: crop.x + point.x * crop.w, y: crop.y + point.y * crop.h };
 }
 
+// How far a tap may sit from a body's centre, in multiples of that body's own
+// size, before it stops counting as a tap ON that body. Roughly one body-length
+// away: past that the user was pointing at something else, or at a player the
+// detector missed.
+export const MAX_TAP_DISTANCE = 1.2;
+
 // Picks the box nearest a tap. Distance is measured to the box centre and
 // normalized by the box's own size, so a tap anywhere on a large player counts
 // as close while the same absolute distance from a small one does not.
+//
+// Returns null when nothing is near enough. Without that bound this function
+// always returned SOMETHING, which made every abstain path downstream
+// unreachable: with a tap and any box anywhere in frame, the pipeline could not
+// decline, and would happily analyse a player on the next court.
 export function boxNearestPoint(
   boxes: Box[],
   point: { x: number; y: number },
+  maxDistance = MAX_TAP_DISTANCE,
 ): { index: number; distance: number } | null {
   if (boxes.length === 0) return null;
   let best = -1;
@@ -123,7 +158,8 @@ export function boxNearestPoint(
       best = i;
     }
   });
-  return best >= 0 ? { index: best, distance: bestDistance } : null;
+  if (best < 0 || bestDistance > maxDistance) return null;
+  return { index: best, distance: bestDistance };
 }
 
 // Does a point land inside a box? Used by the evaluation to check that a pose
