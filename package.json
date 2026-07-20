@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "node scripts/lint.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "eval:coverage": "node scripts/eval-coverage.mjs",
+    "eval:label": "node scripts/label-case.mjs",
+    "eval:run": "node scripts/run-evals.mjs",
+    "eval:baseline": "node scripts/make-baseline.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -18,7 +22,6 @@
     "@supabase/supabase-js": "^2.110.0",
     "@vercel/analytics": "^2.0.1",
     "next": "16.2.10",
-    "onnxruntime-web": "1.27.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"

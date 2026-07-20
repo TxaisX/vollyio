@@ -4,21 +4,25 @@ Measure coaching-analysis quality instead of eyeballing it. Each **case** is a
 real frame set plus an expert **expectation**; the dev-only runner replays cases
 through the exact scoring path as `/api/analyze` and reports agreement.
 
+**A check that never ran is never reported as a check that passed.** Unlabeled
+cases come back `unverified`, not `pass`, and are excluded from the pass-rate
+denominator. Run `node scripts/eval-coverage.mjs` before trusting any number.
+
 ## The loop
 
 1. **Capture** — run the app in dev, open `/analyze?debug`, pick a skill +
    discipline, and record/upload a rep. The debug panel appears (no API call is
    spent). Click **Download eval case** to save the extracted frames as JSON.
-2. **Label** — open the JSON and fill in `expected`:
-   - `overall_min` / `overall_max` — the score band a coach would give this rep.
-   - `weakest_metric` — the metric key that should score lowest (the real fault).
-     Optional: `strongest_metric`.
-   - Metric keys per skill are in `lib/ai/metrics.ts`.
-3. **Add** — drop the file into `evals/cases/` (it's git-ignored by nothing; commit
-   the ones you want tracked).
-4. **Run**: with the coaching key and a long random `EVAL_TOKEN` set, use
-   `node scripts/run-evals.mjs`. The script sends the required bearer token to
-   the loopback-only endpoint. You get a `passRate` and per-case `checks`.
+   Keep pose tracking on so the export carries its `measurements` block.
+2. **Label** — `node scripts/label-case.mjs [case-id]` walks the decisions.
+   It never guesses; every value is typed by a person.
+3. **Add** — drop the file into `evals/cases/`.
+4. **Check coverage** — `node scripts/eval-coverage.mjs` (offline, free).
+5. **Run** — with the coaching key and a long random `EVAL_TOKEN` set,
+   `node scripts/run-evals.mjs`. Add `--measurements off` to replay every case
+   vision-only for an A/B against its grounded run.
+6. **Freeze** — `node scripts/make-baseline.mjs --label "<what changed>"` writes
+   `evals/BASELINE.json` and `evals/BASELINE.md` from the recorded run.
 
 ## Case format (`evals/cases/*.json`)
 
@@ -27,29 +31,90 @@ through the exact scoring path as `/api/analyze` and reports agreement.
   "id": "serve-indoor-toss-drift",
   "skill": "serve",
   "discipline": "indoor",
-  "frames": [{ "time_s": 1.2, "data": "<base64 jpeg, no prefix>" }, "…"],
+  "level": "intermediate",
+  "frames": [{ "time_s": 1.2, "data": "<base64 jpeg, no prefix>" }],
+  "measurements": null,
   "expected": {
     "overall_min": 45,
     "overall_max": 65,
     "weakest_metric": "toss_quality",
+    "acceptable_weakest_metrics": ["body_alignment"],
+    "strongest_metric": "arm_swing",
+    "labeled_by": "tx",
+    "labeled_at": "2026-07-20",
     "notes": "toss drifts behind the shoulder every rep"
   }
 }
 ```
 
+### `measurements`
+
+The on-device motion-tracking block captured alongside the frames, in the shape
+`lib/ai/measurements-schema.ts` validates (`version`, `capture`, `units`,
+`reps`, `session`, `omitted_below_confidence`). The runner feeds it to the model
+exactly as `/api/analyze` does, so grounded scoring is measured rather than
+assumed. `null` means the case never captured one, and the
+`measurements_replayed` check reports `skipped` rather than passing. A block
+that fails validation is dropped **and logged**; it is never silently treated as
+absent.
+
+### What counts as a label
+
+- `overall_min` / `overall_max` — a real band. `0`-`100` is a placeholder that
+  admits every score; the harness treats it as unlabeled, not as a pass.
+- `weakest_metric` — the metric key whose fault most limits the rep. An empty
+  string is unlabeled, not an abstention.
+- `weakest_metric_unknown: true` — a reviewer looked and judged that the footage
+  does not resolve one fault. This is a real answer and is reported separately
+  from "nobody has looked yet".
+- `acceptable_weakest_metrics` — up to two alternatives a reviewer would also
+  accept (roadmap: primary constraint plus alternatives).
+- `strongest_metric` — optional.
+- Metric keys per skill are in `lib/ai/metrics.ts`.
+
 ## What the runner checks (`lib/eval-score.ts`, unit-tested)
 
-- **overall_in_range** — the model's overall score falls in the expected band.
-- **weakest_metric / strongest_metric** — the model's lowest/highest-scoring
-  metric matches the labeled one (does it find the real fault?).
-- **citations_valid** — every cited `frame_index` (insights + priority fix) is in
-  range.
-- **stability** (with `?runs>1`) — the overall score doesn't swing more than the
-  tolerance across repeated runs.
+| Check | Fires when | Skipped when |
+|---|---|---|
+| `overall_in_range` | a real band is labeled | no band, or a 0-100 placeholder |
+| `weakest_metric` | a key or acceptable alternative is labeled | unlabeled, or reviewer-confirmed unknown |
+| `strongest_metric` | a key is labeled | unlabeled |
+| `citations_valid` | always | never |
+| `measurements_replayed` | the case carries a block | no block captured |
+
+`stability` (with `runs > 1`) reports the overall-score spread across repeats.
+
+### Verdicts
+
+- `pass` — every check that ran passed, and at least one label-driven check ran.
+- `fail` — some check that ran failed.
+- `unverified` — nothing failed, but no label-driven check ran. The case proved
+  nothing. `passRate` is computed over `pass + fail` only.
+
+## Coverage
+
+`node scripts/eval-coverage.mjs [--json] [--strict]` runs offline and reports
+case counts by level, skill and discipline; how many active cases carry each
+label type; and blocking gaps. `--strict` exits non-zero when a gap exists, so
+it can gate CI.
+
+Coverage is also embedded in every `/api/eval` response (`coverage`,
+`coverage_gaps`, `coverage_report`, `summary`) and printed by
+`scripts/run-evals.mjs`, so a pass rate cannot be read without it.
+
+## Baseline
+
+`evals/BASELINE.json` + `evals/BASELINE.md`, produced by
+`scripts/make-baseline.mjs`. It records coverage next to results per the
+roadmap's "coverage cannot be hidden" rule, and marks itself **provisional**
+whenever a blocking gap exists. The script refuses to write from an empty
+`RESULTS.json` unless `--force` is passed (which produces a coverage-only,
+explicitly provisional artifact).
 
 ## Notes
 
 - The route is **dev-only** (404 in production) and requires a real API key —
   `AI_MOCK` output is hard-coded and won't reflect quality.
-- This is a starting harness; add cases across skills and both disciplines so a
-  frame-sampling or prompt change can be judged by the change in `passRate`.
+- Per `docs/analysis-validation-roadmap.md`, professional footage is a
+  regression set. Intermediate and expert cases are the product eval and must
+  come from real footage of that population.

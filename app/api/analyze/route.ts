@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, ANALYZE_MODEL } from "@/lib/ai/client";
+import { coach, ANALYZE_MODEL, ANALYZE_EFFORT } from "@/lib/ai/client";
+import { shouldEnforceFreeTier } from "@/lib/billing";
 import { analysisSchema } from "@/lib/ai/schema";
 import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
@@ -72,10 +73,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const entitlement = await reserveAnalysisEntitlement(
-    supabase,
-    process.env.BILLING_ENABLED === "true",
-  );
+  // Not `BILLING_ENABLED` directly: enforcing the free cap without a payment
+  // path would lock every player out permanently. See lib/billing.ts (D-029).
+  const entitlement = await reserveAnalysisEntitlement(supabase, shouldEnforceFreeTier());
   if (!entitlement.ok) {
     return NextResponse.json(
       { error: "The coaching service is unavailable. Try again." },
@@ -158,6 +158,9 @@ export async function POST(req: NextRequest) {
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
         max_tokens: 4096,
+        // Opus 4.8 runs with no reasoning at all when `thinking` is absent, so this
+        // is required for ANALYZE_EFFORT to control anything (D-027).
+        thinking: { type: "adaptive" },
         system: [
           {
             type: "text",
@@ -185,7 +188,10 @@ export async function POST(req: NextRequest) {
             ],
           },
         ],
-        output_config: { format: zodOutputFormat(analysisSchema(skill)) },
+        output_config: {
+          effort: ANALYZE_EFFORT,
+          format: zodOutputFormat(analysisSchema(skill)),
+        },
       },
       // Exponential backoff on 429/5xx from the coaching service (CS-7);
       // the SDK honors Retry-After and jitters between attempts.
@@ -209,6 +215,10 @@ export async function POST(req: NextRequest) {
           METRICS[skill].map((m) => metricsMap[m.key].score),
         ),
         scene_read: raw.scene_read,
+        // Who the model says it analyzed, and whether that matches the athlete
+        // the player marked. Optional: an older stored row has no such field,
+        // and a reply that omits it must not fail the analysis (D-030).
+        subject_check: raw.subject_check,
         rep_scores: raw.rep_scores,
         metrics: METRICS[skill].map((m) => ({
           key: m.key,

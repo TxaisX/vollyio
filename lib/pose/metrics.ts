@@ -7,12 +7,11 @@
 //
 // Confidence = confidenceScore(landmark visibility, detector fit, reliability):
 // an affine remap of visibility x (0.8 + 0.2 x fit) x a per-metric reliability
-// factor. The remap is calibrated to the on-device pose engine, whose peak
-// scores are NOT MediaPipe visibilities: a cleanly-seen body joint reads ~0.70
-// (not ~0.95) and legs/ankles ~0.55. Anchors: a clean body-joint mean (~0.70)
-// maps to ~0.90 confidence at full fit and reliability; genuine occlusion
-// (~0.40) falls below NOISE_FLOOR at any reliability, so it is omitted.
-// Reliability attenuates the transmitted confidence; it is no longer a gate.
+// factor. The remap is calibrated to the on-device pose engine's own visibility
+// scale, which differs between engines and is the single most dangerous thing
+// to get wrong here — a mis-anchored remap does not error, it just stops
+// abstaining. See the calibration block below for the anchors and the guard.
+// Reliability attenuates the transmitted confidence; it is not a gate.
 
 import type { Skill } from "../skills.ts";
 import {
@@ -660,11 +659,48 @@ export function keyJointsForSkill(skill: Skill): number[] {
 // ---------------------------------------------------------------------------
 // Block assembly
 
-// Affine remap constants for the RTM visibility scale: 1.8*0.70 - 0.36 = 0.90
-// (clean body joint -> high confidence) and 1.8*0.40 - 0.36 = 0.36 (occluded ->
-// below NOISE_FLOOR for every reliability, since reliability and fit are <= 1).
-const RTM_VIS_GAIN = 1.8;
-const RTM_VIS_BIAS = -0.36;
+// --- Visibility calibration (D-028) ------------------------------------------
+//
+// Landmark "visibility" is NOT a common scale across pose engines, and the gate
+// below is only meaningful relative to the engine that produced the number.
+// This bit the project once already: D-026 re-anchored the remap from
+// MediaPipe's scale to RTMPose's, and swapping the engine back in D-028 would
+// have silently inverted it — 1.8*0.95 - 0.36 = 1.35, clamped to 1.0, so every
+// metric would have passed and the abstain lane would have stopped abstaining
+// with nothing erroring.
+//
+// So the calibration is expressed as its two named anchors and the line is
+// derived from them, rather than as opaque gain/bias constants that can drift
+// away from the meaning they were chosen for. `CALIBRATED_ENGINES` records
+// which engines these anchors describe; `isCalibratedFor` is asserted in the
+// tests so renaming the engine without re-deriving the anchors fails loudly.
+
+// MediaPipe reports a cleanly-seen joint near 0.95 and drops sharply when a
+// landmark is occluded or inferred off-frame.
+const CLEAN_JOINT_VIS = 0.95;
+const CLEAN_JOINT_CONFIDENCE = 0.9;
+const OCCLUDED_VIS = 0.45;
+// Deliberately below NOISE_FLOOR, so occlusion is omitted at every reliability
+// (reliability and fit are both <= 1 and can only attenuate further).
+const OCCLUDED_CONFIDENCE = 0.3;
+
+const VIS_GAIN =
+  (CLEAN_JOINT_CONFIDENCE - OCCLUDED_CONFIDENCE) / (CLEAN_JOINT_VIS - OCCLUDED_VIS);
+const VIS_BIAS = CLEAN_JOINT_CONFIDENCE - VIS_GAIN * CLEAN_JOINT_VIS;
+
+// Engine-name prefixes these anchors were measured against (see model-manifest).
+export const CALIBRATED_ENGINES = ["mp-pose-full", "mp-pose-lite"] as const;
+
+export function isCalibratedFor(engineName: string): boolean {
+  return CALIBRATED_ENGINES.some((prefix) => engineName.startsWith(prefix));
+}
+
+export const VISIBILITY_ANCHORS = {
+  cleanVis: CLEAN_JOINT_VIS,
+  cleanConfidence: CLEAN_JOINT_CONFIDENCE,
+  occludedVis: OCCLUDED_VIS,
+  occludedConfidence: OCCLUDED_CONFIDENCE,
+} as const;
 
 function clamp01(x: number): number {
   return Math.min(1, Math.max(0, x));
@@ -674,7 +710,7 @@ function clamp01(x: number): number {
 // anchors. Visibility is remapped to the engine's real scale, attenuated by
 // detector fit and the checkpoint's reliability.
 export function confidenceScore(vis: number, fit: number, reliability: number): number {
-  const visAdj = clamp01(RTM_VIS_GAIN * Math.max(0, vis) + RTM_VIS_BIAS);
+  const visAdj = clamp01(VIS_GAIN * Math.max(0, vis) + VIS_BIAS);
   return clamp01(visAdj * (0.8 + 0.2 * fit) * reliability);
 }
 

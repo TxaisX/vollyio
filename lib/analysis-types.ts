@@ -102,10 +102,21 @@ export type RepScore = {
   note: string;
 };
 
+// The model's own account of who it graded. marker_match is a free-form string
+// ("confirmed" | "mismatch" | "unmarked" by prompt guidance, not by schema), so
+// readers must treat an unrecognized value as "no signal" rather than an error.
+export type SubjectCheck = {
+  analyzed: string;
+  marker_match: string;
+};
+
 export type AnalysisResult = {
   skill: Skill;
   discipline?: Discipline;
   overall_score: number;
+  // Who the model says it analyzed. Optional: rows predating this field, and
+  // replies that omitted it, simply have none.
+  subject_check?: SubjectCheck;
   // Coach-style opening line: setting, rep count, context. Optional: rows
   // predating this field simply omit it.
   scene_read?: string;

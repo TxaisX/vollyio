@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, COACH_MODEL } from "@/lib/ai/client";
+import { coach, COACH_MODEL, COACH_EFFORT } from "@/lib/ai/client";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
 import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
@@ -247,6 +247,9 @@ export async function POST(req: NextRequest) {
             {
               model: COACH_MODEL,
               max_tokens: 1024,
+              // Sonnet 5 defaults to high effort, where it fabricated detail the
+              // frames contradict. Medium was the last correct setting (D-027).
+              output_config: { effort: COACH_EFFORT },
               system,
               messages: chatMessages,
             },

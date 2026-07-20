@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "label": "harness-capability-build",
+  "created_at": "2026-07-20T09:52:52.934Z",
+  "git_rev": "2728cb9",
+  "provisional": true,
+  "blocking_gaps": [
+    "0 active cases at intermediate/expert. The suite cannot measure the stated target population.",
+    "0 of 18 active cases carry a weakest_metric label, so the constraint-diagnosis check never fires. Needs human labeling.",
+    "0 of 18 active cases carry a captured measurement block, so the on-device measurement path is untested. Needs re-capture with pose tracking on.",
+    "18 active cases have neither a weakest_metric nor a reviewer-confirmed weakest_metric_unknown flag; they are unlabeled, not abstentions."
+  ],
+  "coverage": {
+    "total": 23,
+    "active": 18,
+    "excluded": 5,
+    "byLevel": {
+      "pro": 18
+    },
+    "bySkill": {
+      "serve": 5,
+      "dig": 2,
+      "pass": 1,
+      "block": 2,
+      "attack": 6,
+      "set": 2
+    },
+    "byDiscipline": {
+      "beach": 8,
+      "grass": 4,
+      "indoor": 6
+    },
+    "targetPopulation": 0,
+    "labels": {
+      "overall_band": 18,
+      "weakest_metric": 0,
+      "weakest_metric_unknown": 0,
+      "weakest_metric_missing": 18,
+      "strongest_metric": 17,
+      "measurements": 0
+    },
+    "unverifiable": 0
+  },
+  "scored_cases": 0,
+  "failed_runs": 0,
+  "verdicts": {
+    "pass": 0,
+    "fail": 0,
+    "unverified": 0
+  },
+  "pass_rate_over_verifiable": null,
+  "checks": {},
+  "checks_never_ran": [],
+  "stability": {
+    "median_run_spread": null,
+    "max_run_spread": null
+  },
+  "bands": {
+    "Elite": 0,
+    "Advanced": 0,
+    "Solid": 0,
+    "Developing": 0
+  },
+  "cases": []
+}

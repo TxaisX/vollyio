@@ -6,6 +6,7 @@ import {
   detectRepsForSkill,
   keyJointsForSkill,
   NOISE_FLOOR,
+  VISIBILITY_ANCHORS,
 } from "./metrics.ts";
 import { LM } from "./types.ts";
 import { attackClip, serveClip, blockClip, passClip, standingFrame } from "./test-fixtures.ts";
@@ -113,13 +114,16 @@ test("new load metrics stay in physical ranges or are omitted", () => {
   }
 });
 
-test("clean RTM attack footage keeps leg and hip checkpoints instead of omitting them", () => {
-  const block = buildMeasurementsBlock("attack", attackClip(0.7), 30);
-  assert.ok(block, "expected an attack measurements block on clean RTM footage");
+test("clean attack footage keeps leg and hip checkpoints instead of omitting them", () => {
+  // Visibility is read at the engine's own scale — see VISIBILITY_ANCHORS.
+  // Hard-coding a level here is what made this test engine-specific in the
+  // first place, so it now derives from the same anchors the gate does.
+  const block = buildMeasurementsBlock("attack", attackClip(VISIBILITY_ANCHORS.cleanVis), 30);
+  assert.ok(block, "expected an attack measurements block on clean footage");
   const rep = block.reps[0];
 
   for (const key of ["knee_flexion_at_plant", "shoulder_hip_separation", "jump_height"]) {
-    assert.ok(rep.metrics[key], `${key} should survive gating at RTM-clean visibility`);
+    assert.ok(rep.metrics[key], `${key} should survive gating at clean visibility`);
     assert.ok(!block.omitted_below_confidence.includes(key), `${key} wrongly omitted`);
     assert.ok(rep.metrics[key].confidence >= NOISE_FLOOR, `${key} conf=${rep.metrics[key].confidence}`);
   }
@@ -149,17 +153,15 @@ test("occluded attack footage still fails closed below the noise floor", () => {
   }
 });
 
-test("confidenceScore is anchored to the RTM engine scale", () => {
-  // Clean RTM body-joint mean (~0.70) maps to ~0.90 at full fit and reliability.
-  const clean = confidenceScore(0.7, 1, 1);
-  assert.ok(clean >= 0.86 && clean <= 0.94, `clean=${clean}`);
-  // Genuine occlusion (~0.40) falls below the noise floor at any reliability.
-  assert.ok(confidenceScore(0.4, 1, 1) < NOISE_FLOOR);
-  // A clean leg checkpoint (vis ~0.55, reliability 0.70) survives the floor.
-  assert.ok(confidenceScore(0.55, 1, 0.7) > NOISE_FLOOR);
-  // High visibility clamps rather than overflowing.
-  assert.ok(confidenceScore(0.95, 1, 0.95) >= 0.9);
+// The calibration of confidenceScore itself is pinned in
+// confidence-calibration.test.ts, which owns the anchors, the monotonicity and
+// attenuation properties, and the engine-coverage guard. Duplicating those
+// assertions here would let the two copies drift apart, which is the failure
+// mode that file exists to prevent — so this file only checks that the gate is
+// wired into block assembly, above and below.
+test("high visibility clamps rather than overflowing", () => {
   assert.ok(confidenceScore(1, 1, 1) <= 1);
+  assert.ok(confidenceScore(2, 1, 1) <= 1);
 });
 
 test("keyJointsForSkill derives the landmark set from the skill's metric defs", () => {

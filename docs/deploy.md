@@ -25,7 +25,7 @@ Set in `.env.local` for dev and mirrored to Vercel (`vercel env add <NAME> produ
 | `BILLING_ENABLED` | server | left empty until a paid tier ships |
 | `EVAL_TOKEN` | server | long random bearer token for the local-only eval route; leave unset in hosted environments |
 
-Model routing (D-004) is env-driven server-side: `COACH_MODEL` (fast conversational tier for coach chat) and `ANALYZE_MODEL` (top reasoning tier for frame analysis); `AI_MOCK=true` bypasses both.
+Model routing (D-004) is a set of checked-in server-side constants in `lib/ai/client.ts`, NOT environment variables: `COACH_MODEL` (fast conversational tier for coach chat) and `ANALYZE_MODEL` (top reasoning tier for frame analysis); `AI_MOCK=true` bypasses both. Reasoning effort is pinned per tier alongside them (D-027): `ANALYZE_EFFORT` low, `COACH_EFFORT` medium. Changing any of these is a code change and goes through review.
 
 ## The gates
 
