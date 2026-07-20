@@ -29,6 +29,16 @@ export function analysisSchema(skill: Skill) {
 
   return z.object({
     overall_score: z.number().int(),
+    // Who the model actually analyzed, and whether that is the marked athlete.
+    // Free-form strings, not enums: a mis-worded verdict must degrade to a
+    // weaker signal, never throw and take the whole analysis down with it.
+    // Optional so older stored results stay valid.
+    subject_check: z
+      .object({
+        analyzed: z.string(),
+        marker_match: z.string(),
+      })
+      .optional(),
     // One sentence a human coach would open with. Optional so older stored
     // results stay valid.
     scene_read: z.string().optional(),

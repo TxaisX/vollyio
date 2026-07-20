@@ -7,6 +7,14 @@ import Anthropic from "@anthropic-ai/sdk";
 export const COACH_MODEL = "claude-sonnet-5";
 export const ANALYZE_MODEL = "claude-opus-4-8";
 
+// Effort tuning from the 2026-07-20 model/effort benchmark (see decisions.md D-027).
+// Opus: correct on the checkable timing fact at every effort level, and its cost
+// ladder is flat-to-inverted, so low buys the same accuracy at ~half the wall clock.
+// Sonnet: correct at medium, wrong at high/xhigh/max (it fabricated a movement the
+// frames refute). Sonnet 5 defaults to high when unset, so this cap is load-bearing.
+export const ANALYZE_EFFORT = "low";
+export const COACH_EFFORT = "medium";
+
 let cached: Anthropic | null = null;
 
 export function coach(): Anthropic {

@@ -738,3 +738,249 @@ No new dependency. Open follow-up: `PERSON_CONFIDENCE_MIN = 0.9` is likely
 miscalibrated against the same ~0.75-max scale (the framing card's confident set
 is almost always empty and falls back to raw detections); revisit separately.
 Scoring quality is only verifiable post-deploy on a real device.
+
+## D-027 — Reasoning effort pinned per model tier: Opus low for analyze, Sonnet medium for coach
+
+D-004 chose the model per call site but never set reasoning effort, so both paths
+ran on API defaults. On Opus 4.8 the absence of a `thinking` parameter means the
+model runs with no reasoning at all — the analyze route had been doing this since
+D-004, a configuration neither of the 2026-07-20 benchmarks tested.
+
+Two studies informed the fix, and they are not comparable to each other. The
+GPT-family study (`sideout-attacker-model-effort-report.html`, 33 model/effort
+cells) scored candidates with blinded LLM judges on a 7-dimension rubric. The
+Anthropic-family study (`model-effort-cost-ladder.html`, 20 cells) scored one
+checkable fact: whether the model placed ball contact after the jump peak
+(ground truth ~0.15s past peak). The two disagree on ground truth for the same
+clip — the GPT evidence note calls contact "near the apex", which the ladder
+treats as the wrong answer — so no cross-study winner is defensible. Both are
+n=1 per cell and say so.
+
+The ladder's checkable-fact axis is the one that maps to our release gates
+(`analysis-validation-roadmap.md`: <=5% unsupported-claim rate, >=95% correct
+abstention), because judge scores reward plausible-sounding coaching while a
+frame-arithmetic check catches fabrication. On that axis: Opus 5/5 correct at
+every effort and the only consistently harsh grader (52-64, under-claiming);
+Sonnet correct at medium but wrong at high, xhigh, and max, with its max cell
+burning 52,427 output tokens inventing a "stutter-hop" the frames refute; Haiku
+3.5/5 and caught inventing joint angles off a 720p rear view, violating
+`coach-prompt.txt`'s no-exact-angles rule.
+
+Effort choice follows from the ladder shapes. Opus is flat-to-inverted (low
+$1.546 vs max $1.487) but low runs 148.5s against max's 337.7s — 2.3x the wall
+clock for zero accuracy gain, so `ANALYZE_EFFORT = "low"`. Sonnet's ladder is the
+only clean monotonic one in the grid and it buys negative accuracy, so
+`COACH_EFFORT = "medium"` is a cap, not a default restatement — Sonnet 5 defaults
+to high, which is the first wrong cell.
+
+Rejected switching analyze to gpt-5.6-terra despite its 94.8 judge score: scored
+by GPT judges on a rubric with no fabrication ground truth, at n=1, in a
+benchmark whose effort averages are non-monotonic (terra alone swings 94.8 at
+ultra to 61.2 at high). Checked and cleared one methodological concern — judge-b
+(terra) runs ~10 points more generous than judge-a (sol), but identically for
+terra's own outputs (+9.9) and everyone else's (+10.0), so it is uniform leniency
+that cancels in ranking, not self-preference.
+
+`app/api/eval/route.ts` was deliberately left inheriting no effort setting. It
+uses ANALYZE_MODEL per D-004 because it grades analysis output, but judging is
+arguably where more reasoning helps rather than less; giving it its own constant
+is an open decision, not an oversight.
+
+Two open risks, both unmeasured. `maxDuration = 120` in `app/api/analyze/route.ts`
+sits below the ladder's 148.5s Opus-low figure — that number is derived rather
+than measured (only Haiku's durations were measured) and all five cells ran in
+parallel contending for resources, so it needs a real single-shot timing check
+against the production call shape before it is treated as a ceiling breach.
+Thinking tokens are now billed on every analyze call where previously none were;
+the ladder's $1.55/analysis is NOT this cost (it priced a multi-turn agentic run
+at list on a subscription where nothing was billed) but the real figure is
+unmeasured and feeds the commercialization plan's assumed $0.10-0.20/analysis.
+
+Neither study tested stability, which the release gates require (median 3-run
+range <=5 points, 95th percentile <=8). This decision is evidence-backed but not
+verified to our own standard until that runs.
+
+## D-028 — Pose engine swapped to MediaPipe: a licence the product can ship on, and the confidence gate re-anchored with it
+
+The live engine string was `rtm-body7-m/*`: RTMPose-m trained on the body7
+dataset mix, whose terms are non-commercial. Every measured biomechanic the
+product sells was computed by weights it could never charge for. That made the
+engine a hard blocker on monetisation, not a tuning choice.
+
+Considered removing on-device pose entirely and letting the vision model read
+the frames unaided. Rejected: the measured-checkpoint block IS the
+differentiator (`sideout-commercialization.html` positions it against "everyone
+ships VLM vibes"), and kill gate A tests measured checkpoints against VLM
+narrative in blind comparison — deleting them does not fail that gate, it
+deletes the thing being gated. The per-metric scores in `lib/ai/schema.ts` come
+from the model, not from pose, so removal would not have broken the dashboard;
+it would have removed the evidence underneath the scores while leaving the
+scores looking identical. That is the worst possible shape for an
+anti-fabrication product.
+
+So the swap keeps measurement and changes only the weights: MediaPipe Pose
+Landmarker, Apache-2.0, vendored same-origin under `public/pose/`. This is a
+return to the pre-D-021 engine, and most of the implementation was recoverable
+from history rather than rewritten.
+
+What the swap buys beyond the licence:
+- The 33-landmark layout in `types.ts` is MediaPipe's NATIVE output, so the
+  17-to-33 adapter (`rtm/coco33.ts`) and the entire two-stage detect-then-crop
+  pipeline are deleted rather than ported.
+- Heels are emitted again, which silently fixes a live bug: `serve.contact_height`
+  and `attack.jump_height` both declared `LM.leftHeel/rightHeel`, which the
+  17-keypoint model never populated. `visibilityMean` divides by the number of
+  declared landmarks while dead slots contribute zero, so a clean 0.95 mean
+  arrived as 0.475, mapped below `NOISE_FLOOR`, and BOTH METRICS WERE OMITTED
+  FROM EVERY ANALYSIS for the life of that engine, with nothing erroring.
+- First analyze on a device no longer downloads ~155 MB of chunked ONNX weights
+  from Supabase storage with sha256 reassembly; it fetches 15 MB of static
+  same-origin assets. `onnxruntime-web` and `public/pose/ort/` (39 MB) are gone,
+  so the repo gets smaller by about 24 MB despite vendoring the models.
+
+THE DANGEROUS PART, and the reason this entry is long. D-026 re-anchored the
+visibility remap FROM MediaPipe's scale TO RTMPose's (`1.8*vis - 0.36`, because
+a clean RTM joint reads ~0.70). Swapping back without touching it would have
+computed `1.8*0.95 - 0.36 = 1.35`, clamped to 1.0 — every metric passing, the
+abstain lane silently stopped abstaining, no error, no failing test, and the
+coaching service handed unreliable measurements labelled confident. The exact
+failure the honesty floor exists to prevent, introduced by fixing a licence.
+
+Three mechanisms now make that class of bug loud instead of silent:
+1. The remap is derived FROM its two named anchors (`VISIBILITY_ANCHORS`) rather
+   than expressed as opaque gain/bias constants, so the numbers cannot drift
+   away from the meaning they were chosen for.
+2. `CALIBRATED_ENGINES` + `isCalibratedFor`, asserted in
+   `lib/pose/confidence-calibration.test.ts` against the models actually
+   shipped, so renaming or swapping the engine without re-deriving the anchors
+   fails the suite.
+3. `EMITTED_LANDMARKS` + `lib/pose/metric-topology.test.ts`, asserting every
+   metric's declared landmarks are a subset of what the engine emits — the
+   general form of the heel bug, which was undetectable before.
+
+Verified: the occlusion assertion genuinely fails under the old constants
+(MediaPipe occlusion at 0.45 maps to 0.45 under RTM's remap, above the 0.4
+floor), so the guard is load-bearing rather than decorative.
+
+Test count moved 147 -> 147 (134 after deleting 22 RTMPose decode tests, plus 13
+new calibration, topology, and sizing tests). The deleted tests pinned decode
+math that no longer exists; they were not replaced because there is nothing left
+to replace them with. Accuracy against real footage is UNVERIFIED — MediaPipe
+was the engine D-021 moved away from on tracking-quality grounds, and this
+returns to it for licence reasons. Device verification on a real clip is
+required before this ships, and a measured comparison against the archived
+RTMPose reference (`D:\posecmp\`) is the honest way to quantify what was traded.
+
+## D-029 — Free tier now, paid tier documented as future; BILLING_ENABLED made inert without a payment path
+
+Decision: run a free community beta to gather feedback, and do not build
+commerce yet. The paid tier stays a documented future idea
+(`sideout-commercialization.html`: Pro $14.99/mo, free tier 3 analyses/mo).
+
+The audit that preceded this found the seam is not what the plan assumed.
+`canAnalyze` — cited in the commercialization plan as an existing billing seam —
+DOES NOT EXIST anywhere in the codebase. The free-plan check lives entirely
+inside the Postgres function `reserve_analysis_entitlement`.
+
+More importantly, `BILLING_ENABLED=true` was a trapdoor, not a feature flag.
+The enforcement half is real and atomic; the commerce half is entirely absent —
+no Stripe dependency, no checkout, no webhook, and nothing that can write
+`profiles.plan` (the column is revoked from `authenticated` and has no
+server-side writer). Flipping the flag would have capped every account at one
+lifetime analysis, permanently, behind a 402 reading "Upgrade to keep training"
+that points at nothing.
+
+`lib/billing.ts` makes enabling billing a two-key operation: the free cap is
+enforced only when `BILLING_ENABLED` is set AND an upgrade destination is
+configured. The wrong single key is now inert instead of destructive, and the
+flag-without-a-path combination is reported as a misconfiguration rather than
+silently locking users out. `lib/billing.test.ts` pins the truth table.
+
+Not done, deliberately: no Stripe, no pricing page, no plan writer. When the
+paid tier ships it needs all three plus a real upgrade URL, and the existing
+D-012 reservation machinery is ready to enforce against it.
+
+## D-030 — Choosing the athlete is mandatory, and the model states who it analyzed
+
+Framing was previously optional in two ways at once: the most confident
+detection was pre-selected, and a "Skip and analyze the whole frame" button sat
+next to it unconditionally. So the common path was that nobody ever chose, the
+analysis silently followed whichever box scored highest, and a rep on a busy
+court could be scored against the wrong person with no signal anywhere that it
+had happened.
+
+Now the primary action stays disabled until the player taps someone, with the
+reason stated rather than implied. Detection state is distinguished from
+detection result, so "still looking" no longer reads the same as "found nobody"
+— previously both surfaced as an empty candidate list.
+
+Zero detections is deliberately NOT a dead end. The pose engine is allowed to
+return nothing (`loadPoseEngine` is null on any failure by design, and the whole
+pipeline degrades rather than blocks), so a hard requirement to tap would let an
+engine failure make the product unusable. That path becomes an explicit
+"Analyze anyway, no player marked" — the user opts into an unmarked analysis
+instead of being handed one by default.
+
+The other half is making the model accountable for the choice. `subject_check`
+carries who it analyzed, described physically (kit colour, number, court
+position — never a name, since it cannot know one), plus `confirmed` /
+`mismatch` / `unmarked`. A mismatch surfaces on the analysis page as a visible
+warning rather than being buried.
+
+`marker_match` is typed as a plain string, not an enum, following the existing
+rule at the top of `lib/ai/schema.ts`: value constraints stay OUT of the schema
+because `messages.parse()` validates client-side, so an enum would turn a
+slightly-off word into a 502 presented to the user as a coaching-service outage.
+A weak signal is worth more than a failed analysis. The field is optional for
+the same reason and because stored rows predate it.
+
+Open: an unmarked analysis and a confirmed one are still scored identically.
+Whether an unmarked result should carry lower confidence, or be excluded from
+the rating EWMA, is a real question this does not settle.
+
+## D-031 — The eval harness reported agreement it had never earned; checks now declare when they did not run
+
+The audit found the suite could not measure the product: all 23 cases are
+`level: "pro"`, zero carry a `weakest_metric` label, and zero carry a
+measurement block. Investigating that turned up something worse than a coverage
+gap — an active false signal.
+
+Exported cases were written with `overall_min: 0, overall_max: 100` and
+`weakest_metric: ""`. The band is not a placeholder to the runner: it is a valid
+range, so `overall_in_range` FIRED and PASSED on every case regardless of what
+the model returned. The empty string, meanwhile, caused `weakest_metric` to be
+skipped silently. So the harness reported passes built on a check that could not
+fail and omitted the check that could — a green suite that proved nothing, which
+is a worse position than an obviously empty one because it reads as evidence.
+
+Fixes, in order of importance:
+1. A check now carries `status: pass | fail | skipped` with a reason, and
+   `caseVerdict()` returns `unverified` when no label-driven check actually ran.
+   A check that never ran can no longer be counted as one that passed.
+2. `isVacuousBand()` treats 0-100 as a placeholder rather than a label, which
+   closes the false pass directly.
+3. Coverage is reported alongside every result — per-label counts, which checks
+   fired versus were skipped, and blocking gaps — and `--strict` exits non-zero
+   so it can gate CI. `passRate` is computed over pass + fail only, with
+   `unverified` reported separately rather than folded into either.
+4. Both exporters and the in-app export now emit an EMPTY `expected` pointing at
+   the labeling command, so an unlabeled case reads as unlabeled.
+5. `scripts/label-case.mjs` captures labels with reviewer provenance and accepts
+   `unknown` as a real answer, distinguishing a reviewer-confirmed abstention
+   ("no single fault isolated") from a case nobody has looked at. The 18 existing
+   cases carry `weakest_metric: ""` with notes like "no fault isolated", which
+   reads like the former but is indistinguishable from the latter — so they are
+   all counted as unlabeled and NOTHING was inferred on their behalf.
+6. `evals/BASELINE.json`/`.md` self-marks provisional while gaps exist and
+   refuses to write from empty results without `--force`.
+
+Honest state after this work: 18 active cases, 100% pro-level, 0% weakest_metric
+labeled, 0% carrying measurements, 4 blocking gaps, baseline provisional and
+coverage-only with zero scored cases. No labels were invented. The harness is
+now CAPABLE of measuring the product and correctly reports that it currently
+does not — which is the whole point.
+
+Still requires a human: real intermediate/expert footage (the target population
+is 0% represented), a weakest-metric decision on all 18 active cases by someone
+who watched the reps, re-capture with tracking on so cases carry measurements,
+and one real scored run before the baseline stops being provisional.

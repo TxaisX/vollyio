@@ -588,10 +588,14 @@ export function AnalyzeFlow({
 
   // Every detected person renders as a tappable box. Candidates start from
   // the opening probe and re-detect live as the user scrubs, so selection
-  // always reflects the moment on screen. The most confident candidate is
-  // pre-selected; a tap pins that player explicitly.
+  // always reflects the moment on screen. Nothing is ever pre-selected: an
+  // auto-picked player let people analyze a stranger without noticing, so the
+  // tap is now the only way to choose and the analyze action waits for it.
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  // A re-detection is in flight after a scrub. Distinguishes "still looking"
+  // from "looked and found nobody", which unlock different actions.
+  const [detecting, setDetecting] = useState(false);
   // Capture-quality reasons for the selected player, settled so a momentary bad
   // frame does not nag. A warning only, never a block.
   const [captureWarn, setCaptureWarn] = useState<CaptureQualityReason[]>([]);
@@ -633,8 +637,8 @@ export function AnalyzeFlow({
       if (bestIdx == null) userPickedRef.current = false;
       return;
     }
-    setSelectedIdx(next.length > 0 ? 0 : null);
-    selectedBoxRef.current = next[0]?.box ?? null;
+    setSelectedIdx(null);
+    selectedBoxRef.current = null;
   }
 
   // Seed candidates from the opening probe. The trim window starts at the
@@ -665,22 +669,33 @@ export function AnalyzeFlow({
   // Live auto-detection while scrubbing: after the scrubber settles, detect
   // the people at the current moment and refresh the tappable boxes.
   useEffect(() => {
-    if (!openingPick || !framingUrl || frameVideoFailed) return;
+    if (!openingPick || !framingUrl || frameVideoFailed) {
+      setDetecting(false);
+      return;
+    }
     let cancelled = false;
+    setDetecting(true);
     const timer = setTimeout(async () => {
       const video = frameVideoRef.current;
       const engine = poseRef.current;
-      if (!video || !engine) return;
+      if (!video || !engine) {
+        // No engine means no boxes will ever arrive; stop claiming to look.
+        setDetecting(false);
+        return;
+      }
       try {
         const found = await engine.detectPersonsFromVideo(video, scrubT);
-        if (cancelled || !found) return;
-        const next = offerPersons(dedupePersons(found.persons))
-          .map((pts) => ({ box: personBox(pts), pts }))
-          .filter((c): c is Candidate => c.box != null);
-        if (next.length === 0) return;
-        applyCandidates(next);
+        if (cancelled) return;
+        const next = found
+          ? offerPersons(dedupePersons(found.persons))
+              .map((pts) => ({ box: personBox(pts), pts }))
+              .filter((c): c is Candidate => c.box != null)
+          : [];
+        if (next.length > 0) applyCandidates(next);
       } catch {
         // Stale candidates are still tappable.
+      } finally {
+        if (!cancelled) setDetecting(false);
       }
     }, 350);
     return () => {
@@ -1146,14 +1161,13 @@ export function AnalyzeFlow({
   }
 
   // The pick is confirmed: the selected candidate's own landmarks anchor
-  // tracking (no fresh detection needed). With nothing selected, the
-  // automated identifier follows the most involved player across the trimmed
-  // window, so trimming alone stays a complete flow.
+  // tracking (no fresh detection needed). A pick is mandatory here; the
+  // no-marker path is skipFraming, reachable only when detection found nobody.
   function confirmFraming() {
     const opening = openingPick;
-    if (!opening) return;
-    const win = trim ?? undefined;
     const picked = selectedIdx != null ? (candidates[selectedIdx] ?? null) : null;
+    if (!opening || !picked) return;
+    const win = trim ?? undefined;
     const video = frameVideoRef.current;
     const rawT =
       video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
@@ -1164,10 +1178,6 @@ export function AnalyzeFlow({
       : rawT;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    if (!picked) {
-      void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
-      return;
-    }
     const anchor = focusPoint(picked.pts) ?? {
       x: picked.box.left + picked.box.width / 2,
       y: picked.box.top + picked.box.height / 2,
@@ -1180,6 +1190,8 @@ export function AnalyzeFlow({
     );
   }
 
+  // The degrade path when the pose engine found nobody to tap. Analysis still
+  // runs, unmarked: a failed detector must not dead-end the clip.
   function skipFraming() {
     const opening = openingPick;
     if (!opening) return;
@@ -1255,17 +1267,21 @@ export function AnalyzeFlow({
 
   function downloadEvalCase() {
     if (!skill || frames.length === 0) return;
+    const caseId = `${skill}-${discipline}-${Date.now()}`;
     const payload = {
-      id: `${skill}-${discipline}-${Date.now()}`,
+      id: caseId,
       skill,
       discipline,
       frames: frames.map((f) => ({ time_s: f.time_s, data: f.dataUrl.split(",")[1] })),
       measurements: captureRef.current?.measurements ?? undefined,
+      // Deliberately empty rather than placeholder-filled. The old export wrote
+      // a 0-100 band and an empty weakest_metric, which is worse than no label:
+      // the band made overall_in_range fire and pass on every case, so the suite
+      // reported agreement it had never earned, while the empty string silently
+      // skipped the weakest_metric check. An unlabeled case must read as
+      // unlabeled. See decisions.md D-031.
       expected: {
-        overall_min: 0,
-        overall_max: 100,
-        weakest_metric: "",
-        notes: "TODO: label this rep: expected score band + weakest metric.",
+        notes: `Unlabeled. Run: npm run eval:label ${caseId}`,
       },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1429,8 +1445,13 @@ export function AnalyzeFlow({
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Tap the boxed player you want analyzed. Scrub to any moment
-                  and trim the window; every frame inside it gets tracked.
+                  {candidates.length === 0
+                    ? detecting
+                      ? "Looking for players in this frame."
+                      : "No players spotted here. Scrub to a clearer moment, or analyze anyway without marking anyone."
+                    : candidates.length === 1
+                      ? "One player spotted. Tap the box to confirm that is who you want analyzed."
+                      : "Tap the player you want analyzed. Scrub to any moment and trim the window; every frame inside it gets tracked."}
                 </p>
                 <div className="relative mx-auto mt-3 w-fit max-w-full select-none overflow-hidden rounded-lg bg-navy">
                   {framingUrl && !frameVideoFailed ? (
@@ -1457,18 +1478,22 @@ export function AnalyzeFlow({
                       draggable={false}
                     />
                   )}
-                  {/* Every detected person is a tappable box; gold = watching. */}
+                  {/* Every detected person is a tappable box; gold = watching.
+                      Until one is tapped the boxes are drawn as live targets,
+                      because the tap is what unlocks the analyze action. */}
                   {candidates.map((c, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => selectCandidate(i, true)}
                       aria-pressed={i === selectedIdx}
-                      aria-label={`Player ${i + 1}${i === selectedIdx ? ", selected" : ""}`}
+                      aria-label={`Player ${i + 1}${i === selectedIdx ? ", selected" : ", tap to analyze this player"}`}
                       className={`absolute rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                         i === selectedIdx
                           ? "border-2 border-gold"
-                          : "border border-chalk-dim/60"
+                          : selectedIdx == null
+                            ? "border-2 border-dashed border-gold/70"
+                            : "border border-chalk-dim/60"
                       }`}
                       style={{
                         left: `${c.box.left * 100}%`,
@@ -1481,20 +1506,30 @@ export function AnalyzeFlow({
                             : undefined,
                       }}
                     >
-                      {i === selectedIdx && (
+                      {i === selectedIdx ? (
                         <span
                           aria-hidden
                           className="absolute -top-5 left-0 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-navy"
                         >
                           watching
                         </span>
+                      ) : (
+                        candidates.length === 1 && (
+                          <span
+                            aria-hidden
+                            className="absolute -top-5 left-0 rounded bg-gold/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-gold"
+                          >
+                            tap to select
+                          </span>
+                        )
                       )}
                     </button>
                   ))}
                   {candidates.length === 0 && (
                     <p className="absolute inset-x-0 bottom-2 mx-auto w-fit rounded bg-navy/80 px-2 py-1 text-center text-[11px] text-chalk-dim">
-                      No players spotted at this moment. Scrub to a clearer
-                      point in the clip.
+                      {detecting
+                        ? "Looking for players…"
+                        : "No players spotted at this moment. Scrub to a clearer point in the clip."}
                     </p>
                   )}
                 </div>
@@ -1557,22 +1592,47 @@ export function AnalyzeFlow({
                     </div>
                   </Reveal>
                 )}
-                <button
-                  type="button"
-                  onClick={confirmFraming}
-                  className="btn-primary mt-4 min-h-11 w-full"
-                >
-                  {selectedIdx != null
-                    ? "Analyze this player"
-                    : "Find my player and analyze"}
-                </button>
-                <button
-                  type="button"
-                  onClick={skipFraming}
-                  className="btn-ghost mt-2 min-h-11 w-full"
-                >
-                  Skip and analyze the whole frame
-                </button>
+                {/* Three states, one primary button. A pick analyzes that
+                    player. No pick with players on screen stays disabled with
+                    the reason spelled out. No players found at all still ships,
+                    unmarked, so a pose-engine miss degrades instead of blocking. */}
+                {selectedIdx != null ? (
+                  <button
+                    type="button"
+                    onClick={confirmFraming}
+                    className="btn-primary mt-4 min-h-11 w-full"
+                  >
+                    Analyze this player
+                  </button>
+                ) : candidates.length === 0 && !detecting ? (
+                  <button
+                    type="button"
+                    onClick={skipFraming}
+                    className="btn-primary mt-4 min-h-11 w-full"
+                  >
+                    Analyze anyway, no player marked
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled
+                      aria-describedby="framing-pick-reason"
+                      className="btn-primary mt-4 min-h-11 w-full disabled:opacity-40"
+                    >
+                      Analyze this player
+                    </button>
+                    <p
+                      id="framing-pick-reason"
+                      aria-live="polite"
+                      className="mt-2 text-center text-xs text-chalk-dim"
+                    >
+                      {detecting
+                        ? "Still looking for players in this frame."
+                        : "Tap the player you want analyzed to continue."}
+                    </p>
+                  </>
+                )}
               </div>
             )}
 

@@ -118,12 +118,16 @@ try {
         discipline,
         source: path.basename(input),
         frames,
+        // Deliberately empty. Writing placeholder values here (a 0-100 band, an
+        // empty weakest_metric) produced cases that looked labeled and either
+        // always passed or silently skipped. An empty `expected` is honest: the
+        // coverage report counts it as unlabeled and names it.
         expected: {
-          overall_min: 0,
-          overall_max: 100,
-          weakest_metric: "",
-          notes: "TODO: label this rep: expected score band + weakest metric.",
+          notes: "Unlabeled. Run: node scripts/label-case.mjs " + id,
         },
+        // Attach the on-device measurement block here to make this case
+        // exercise the grounded scoring path (see evals/README.md).
+        measurements: null,
       },
       null,
       2,

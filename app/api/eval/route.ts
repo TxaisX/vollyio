@@ -18,9 +18,18 @@ import {
 import {
   checkCase,
   checkStability,
+  caseVerdict,
+  type CaseCheck,
   type EvalExpectation,
   type ScoreInput,
 } from "@/lib/eval-score";
+import {
+  summarizeCoverage,
+  tallyChecks,
+  coverageReport,
+  coverageSummaryLine,
+  coverageGaps,
+} from "@/lib/eval-coverage";
 import { coherentOverall, scoreBand } from "@/lib/ratings";
 import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
 import type { MeasurementsBlock } from "@/lib/pose/types";
@@ -83,6 +92,15 @@ async function loadCases(): Promise<EvalCase[]> {
         Array.isArray(c.frames) &&
         c.frames.length >= 2
       ) {
+        const measurements = sanitizeMeasurements(c.measurements);
+        // A block that fails validation is dropped by sanitize. Silently
+        // dropping it would look identical to a case that never captured one,
+        // so say so out loud.
+        if (c.measurements != null && measurements == null) {
+          console.warn(
+            `[eval] case ${f}: measurements block failed validation and was dropped`,
+          );
+        }
         cases.push({
           id: typeof c.id === "string" ? c.id : f,
           skill: c.skill,
@@ -90,7 +108,7 @@ async function loadCases(): Promise<EvalCase[]> {
           level: toLevel(c.level),
           frames: c.frames,
           expected: (c.expected ?? {}) as EvalExpectation,
-          measurements: sanitizeMeasurements(c.measurements),
+          measurements,
           excluded: c.excluded === true,
         });
       }
@@ -182,6 +200,9 @@ async function runModel(
         ...raw.ball_track.map((b) => b.frame_index),
       ],
       frameCount: c.frames.length,
+      // null when the case never captured a block; false when it has one but
+      // this run replayed vision-only (?measurements=off).
+      measurementsReplayed: c.measurements == null ? null : useMeasurements,
     },
     raw,
   };
@@ -204,7 +225,22 @@ export async function GET(req: NextRequest) {
   const full = url.searchParams.get("full") === "1";
   const includeExcluded = url.searchParams.get("all") === "1";
 
-  let cases = await loadCases();
+  const allCases = await loadCases();
+  // Coverage is computed over the whole suite, not the filtered run, so a
+  // single-case run still reports the state of the suite it belongs to.
+  const coverage = summarizeCoverage(
+    allCases.map((c) => ({
+      id: c.id,
+      skill: c.skill,
+      discipline: c.discipline,
+      level: c.level,
+      excluded: c.excluded,
+      expected: c.expected,
+      hasMeasurements: c.measurements != null,
+    })),
+  );
+
+  let cases = allCases;
   if (caseFilter) cases = cases.filter((c) => c.id.startsWith(caseFilter));
   if (!includeExcluded) cases = cases.filter((c) => !c.excluded);
   if (cases.length === 0) {
@@ -216,6 +252,7 @@ export async function GET(req: NextRequest) {
   }
 
   const results: unknown[] = [];
+  const ranChecks: CaseCheck[][] = [];
   for (const c of cases) {
     try {
       const overalls: number[] = [];
@@ -231,6 +268,8 @@ export async function GET(req: NextRequest) {
         continue;
       }
       const checks = checkCase(last.score, c.expected);
+      ranChecks.push(checks);
+      const verdict = caseVerdict(checks);
       const coherent = coherentOverall(
         last.score.overall_score,
         last.score.metrics.map((m) => m.score),
@@ -244,7 +283,12 @@ export async function GET(req: NextRequest) {
         coherent_overall: coherent,
         band: scoreBand(coherent),
         checks,
-        pass: checks.every((x) => x.ok),
+        // verdict is the honest field: "unverified" means no labeled check ran.
+        // `pass` is kept for existing consumers and is true only for a real pass.
+        verdict,
+        pass: verdict === "pass",
+        checks_fired: checks.filter((x) => x.status !== "skipped").length,
+        checks_skipped: checks.filter((x) => x.status === "skipped").map((x) => x.name),
         stability: runs > 1 ? checkStability(overalls) : undefined,
         grounded: useMeasurements && c.measurements != null,
         analysis: full ? last.raw : undefined,
@@ -258,17 +302,45 @@ export async function GET(req: NextRequest) {
   }
 
   const scored = results.filter(
-    (r): r is { pass: boolean } => typeof r === "object" && r !== null && "pass" in r,
+    (r): r is { verdict: string } =>
+      typeof r === "object" && r !== null && "verdict" in r,
   );
-  const passRate = scored.length
-    ? Math.round((scored.filter((r) => r.pass).length / scored.length) * 100) / 100
-    : 0;
+  const passed = scored.filter((r) => r.verdict === "pass").length;
+  const failed = scored.filter((r) => r.verdict === "fail").length;
+  const unverified = scored.filter((r) => r.verdict === "unverified").length;
+  const verifiable = passed + failed;
+  // passRate is over VERIFIABLE cases only. Unverified cases are excluded from
+  // the denominator and reported separately, so an unlabeled suite can never
+  // manufacture a 100% pass rate.
+  const rate = (n: number, d: number) => (d ? Math.round((n / d) * 100) / 100 : 0);
+  const checkTally = tallyChecks(ranChecks);
+  const neverRan = Object.entries(checkTally)
+    .filter(([, row]) => row.fired === 0)
+    .map(([name]) => name);
 
   return NextResponse.json({
     cases: cases.length,
     runs,
     measurements: useMeasurements ? "on" : "off",
-    passRate,
+    passRate: rate(passed, verifiable),
+    passed,
+    failed,
+    unverified,
+    verifiable,
+    // Fraction of the run that produced any verdict at all beyond "unverified".
+    verifiedRate: rate(verifiable, scored.length),
+    checks: checkTally,
+    checks_never_ran: neverRan,
+    coverage,
+    coverage_gaps: coverageGaps(coverage),
+    summary: [
+      `${passed} passed, ${failed} failed, ${unverified} UNVERIFIED of ${scored.length} scored`,
+      coverageSummaryLine(coverage),
+      neverRan.length ? `checks that never ran: ${neverRan.join(", ")}` : null,
+    ]
+      .filter(Boolean)
+      .join(" || "),
+    coverage_report: coverageReport(coverage, checkTally),
     results,
   });
 }

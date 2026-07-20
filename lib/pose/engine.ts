@@ -6,6 +6,10 @@
 // transfer); browsers without worker support get a null engine. Detection is
 // multi-person (up to 4): callers receive every athlete in the frame and
 // choose who to follow via the track builder in kinematics.
+//
+// D-028: the engine is MediaPipe Pose Landmarker (Apache-2.0), vendored
+// same-origin. One inference returns every person, so there is no detector
+// cadence to tune and no per-person crop budget to ration.
 
 import {
   POSE_LANDMARK_COUNT,
@@ -13,18 +17,12 @@ import {
   type PersonFrame,
 } from "./types.ts";
 import { mapRegionPersons, type FocusRegion } from "./kinematics.ts";
-import {
-  DETECTOR_MODEL,
-  POSE_MODEL,
-  ENGINE_NAME_BASE,
-  modelChunkUrls,
-} from "./rtm/model-manifest.ts";
+import { POSE_MODELS, isGpuTier } from "./model-manifest.ts";
 
 // Runtime assets for the inference sessions, vendored same-origin.
-const ORT_WASM_BASE = "/pose/ort/";
+const WASM_BASE = "/pose/wasm";
 // Sports-ball object detector (D-019). Additive: any load or inference
 // failure leaves the pose pipeline untouched.
-const BALL_WASM_BASE = "/pose/wasm";
 const BALL_MODEL = "/pose/efficientdet_lite0_f16.tflite";
 
 // Worker boot (script + wasm runtime) must show a first sign of life within
@@ -36,22 +34,22 @@ const INIT_MAX_MS = 300_000;
 // First inferences compile shaders on the GPU tier and the fallback tier is
 // simply slow; both get generous per-detect bounds.
 const DETECT_TIMEOUT_GPU_MS = 10_000;
-const DETECT_TIMEOUT_WASM_MS = 30_000;
-// Long edge for detection input; normalized outputs are size-invariant.
-// Sized so a distant player still spans enough pixels for the pose crop
-// (this replaces the old region-zoom machinery). The detector input is a fixed
-// 640, so a larger capture only costs the bitmap resize plus pose-crop
-// sampling, not detection: the webgpu tier can afford a sharper crop while the
-// single-thread wasm fallback stays at the lower dim.
-const CAPTURE_DIM = 1280;
-const CAPTURE_DIM_WEBGPU = 1600;
+const DETECT_TIMEOUT_CPU_MS = 30_000;
+// Long edge for detection input; normalized outputs are size-invariant. The
+// landmarker resizes to its own small input internally, so a huge capture buys
+// nothing on the full-frame path — it matters for the region crop, where a
+// distant player is upsampled to fill the model's input. The GPU tier can
+// afford the sharper crop; the CPU fallback stays lower to keep transfer cost
+// down.
+const CAPTURE_DIM_CPU = 640;
+const CAPTURE_DIM_GPU = 960;
 
 export type PoseEngine = {
   // Which engine tier actually loaded (reported in measurements).
   modelName: string;
   // With a region, detection runs on that crop of the frame and landmarks
-  // come back in full-frame coords. The hint is a normalized focus point:
-  // low-power tiers prioritize the person nearest it between detector runs.
+  // come back in full-frame coords. The hint is a normalized focus point,
+  // currently unused by this engine (see pose-worker) but kept in the seam.
   detectPersonsFromVideo(
     video: HTMLVideoElement,
     timeS: number,
@@ -101,7 +99,7 @@ function unpack(pts: Float32Array, count: number, timeS: number): PersonFrame {
 
 function detectSize(
   video: HTMLVideoElement,
-  captureDim = CAPTURE_DIM,
+  captureDim: number,
 ): { resizeWidth: number; resizeHeight: number } {
   const w = video.videoWidth || 640;
   const h = video.videoHeight || 360;
@@ -163,7 +161,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     let nextId = 1;
     const pending = new Map<number, (result: WorkerResult) => void>();
     let settledInit = false;
-    let detectTimeoutMs = DETECT_TIMEOUT_WASM_MS;
+    let detectTimeoutMs = DETECT_TIMEOUT_CPU_MS;
 
     const failInit = () => {
       if (!settledInit) {
@@ -199,9 +197,9 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
         if (typeof msg.model === "string" && msg.model) {
           engine.modelName = msg.model;
         }
-        detectTimeoutMs = engine.modelName.endsWith("/webgpu")
+        detectTimeoutMs = isGpuTier(engine.modelName)
           ? DETECT_TIMEOUT_GPU_MS
-          : DETECT_TIMEOUT_WASM_MS;
+          : DETECT_TIMEOUT_CPU_MS;
         resolve(engine);
         return;
       }
@@ -226,12 +224,11 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
     };
 
     const engine: PoseEngine = {
-      modelName: `${ENGINE_NAME_BASE}/wasm`,
+      // Conservative until the worker reports what actually loaded.
+      modelName: `${POSE_MODELS[POSE_MODELS.length - 1].name}/cpu`,
       async detectPersonsFromVideo(video, timeS, region, hint) {
-        // The GPU tier can afford a sharper capture; wasm stays at the base dim.
-        const captureDim = engine.modelName.endsWith("/webgpu")
-          ? CAPTURE_DIM_WEBGPU
-          : CAPTURE_DIM;
+        // The GPU tier can afford a sharper capture; CPU stays at the base dim.
+        const captureDim = isGpuTier(engine.modelName) ? CAPTURE_DIM_GPU : CAPTURE_DIM_CPU;
         let bitmap: ImageBitmap;
         let ballBitmap: ImageBitmap | undefined;
         try {
@@ -287,12 +284,8 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
 
     worker.postMessage({
       type: "init",
-      detectorUrls: modelChunkUrls(DETECTOR_MODEL),
-      poseUrls: modelChunkUrls(POSE_MODEL),
-      detectorSpec: DETECTOR_MODEL,
-      poseSpec: POSE_MODEL,
-      ortWasmBase: ORT_WASM_BASE,
-      ballWasmBase: BALL_WASM_BASE,
+      wasmBase: WASM_BASE,
+      models: POSE_MODELS,
       ballModel: BALL_MODEL,
     });
   });

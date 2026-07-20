@@ -271,6 +271,22 @@ export default async function AnalysisDetail({
 
         {/* Breakdown: left column on desktop */}
         <div className="mt-8 min-w-0 lg:order-1 lg:mt-0">
+          {result.subject_check && (
+            <Reveal delay={100}>
+              <p
+                className={`mb-3 text-xs ${
+                  result.subject_check.marker_match.toLowerCase() === "mismatch"
+                    ? "text-coral"
+                    : "text-chalk-dim"
+                }`}
+              >
+                {result.subject_check.marker_match.toLowerCase() === "mismatch"
+                  ? "Heads up: this is not the player you marked. Analyzed "
+                  : "Analyzed "}
+                {result.subject_check.analyzed}
+              </p>
+            </Reveal>
+          )}
           {result.scene_read && (
             <Reveal delay={120}>
               <p className="mb-3 border-l-2 border-gold/50 pl-3 font-display text-sm font-bold">

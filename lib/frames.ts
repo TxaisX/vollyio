@@ -31,13 +31,16 @@ import {
 } from "./pose/kinematics";
 import { trackContinuity, type TrackContinuity } from "./pose/track-state";
 import type { Skill } from "./skills";
+import { MAX_FRAME_DIM, VIDEO_FRAME_DIM, scaledSize } from "./frame-scale";
 
-export const MAX_FRAME_DIM = 768;
+// Re-exported: callers have imported MAX_FRAME_DIM from this module since
+// before the sizing rules were split out into their own pure file.
+export { MAX_FRAME_DIM };
+
 export const MAX_CLIP_SECONDS = 45;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Content-aware sampler tuning (video only; the photo path is unchanged).
-const VIDEO_FRAME_DIM = 1568; // final video frames render larger than photos
 const VIDEO_JPEG_QUALITY = 0.7;
 const SCAN_DIM = 144; // tiny throwaway canvas for the motion scan
 const PROBE_COUNT = 24;
@@ -195,11 +198,6 @@ function sampleFractions(duration: number): number[] {
   return Array.from({ length: count }, (_, i) => inset + (span * i) / (count - 1));
 }
 
-function scaledSize(w: number, h: number, maxDim = MAX_FRAME_DIM): [number, number] {
-  if (w > h && w > maxDim) return [maxDim, Math.round((h * maxDim) / w)];
-  if (h > maxDim) return [Math.round((w * maxDim) / h), maxDim];
-  return [w, h];
-}
 
 export function videoErrorMessage(video: HTMLVideoElement): string {
   const code = video.error?.code;
@@ -448,17 +446,26 @@ async function renderPlanned(
   planned: PlannedFrame[],
   dim: number,
   quality: number,
+  upscale = false,
 ): Promise<Rendered[]> {
   const vw = video.videoWidth || 640;
   const vh = video.videoHeight || 360;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
+  // Interpolation quality matters when the source is being enlarged; the
+  // default nearest-ish resampling produces blocky limbs the model then has to
+  // read through.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const out: Rendered[] = [];
   for (const pf of planned) {
     await seekTo(video, pf.timeS);
-    const [w, h] = scaledSize(vw, vh, dim);
+    const [w, h] = scaledSize(vw, vh, dim, { upscale });
     canvas.width = w;
     canvas.height = h;
+    // Canvas resets context state when the backing size changes.
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(video, 0, 0, w, h);
     out.push({
       // Read the ACTUAL post-seek frame time so time_s matches the image the
@@ -477,7 +484,10 @@ async function finalizePlanned(
   planned: PlannedFrame[],
 ): Promise<{ frames: Frame[]; chosen: { t: number; kind: FrameKind }[]; totalBytes: number }> {
   const budget = MAX_BODY_BYTES * 0.9;
-  let rendered = await renderPlanned(video, planned, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY);
+  // Upscale on the primary pass only: a sub-target clip is worth interpolating
+  // up to the budget. The fallback pass below exists because we are already
+  // over budget, so enlarging there would be self-defeating.
+  let rendered = await renderPlanned(video, planned, VIDEO_FRAME_DIM, VIDEO_JPEG_QUALITY, true);
   let total = rendered.reduce((a, r) => a + b64Bytes(r.dataUrl), 0);
 
   // Over budget → re-encode everything smaller and cheaper (one extra pass).

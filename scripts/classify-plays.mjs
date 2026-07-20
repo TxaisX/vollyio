@@ -144,12 +144,13 @@ for (const f of files) {
         agreement: Math.round(c.agreement * 100) / 100,
         uncertain: c.uncertain,
       },
+      // Left unlabeled on purpose: a placeholder 0-100 band always passes and
+      // an empty weakest_metric silently skips, so both read as agreement the
+      // harness never earned. Label with scripts/label-case.mjs.
       expected: {
-        overall_min: 0,
-        overall_max: 100,
-        weakest_metric: "",
-        notes: "Calibration rep from pro footage; band expectation unlabeled.",
+        notes: `Calibration rep from pro footage; unlabeled. Run: node scripts/label-case.mjs ${caseId}`,
       },
+      measurements: null,
     }),
   );
   (groups[play.video_slug] ??= []).push(caseId);
