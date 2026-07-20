@@ -37,6 +37,26 @@ import {
 const CAPTURE_DIM = 1280;
 const CROP_RENDER = 512;
 
+// See pose-eval: decode() can hang forever in a throttled tab even on a fully
+// loaded image, which stalls a batch run at its first frame.
+async function loadImage(src: string, timeoutMs = 15000): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    const done = (v: HTMLImageElement | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(v);
+    };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    img.onload = () => done(img.naturalWidth > 0 ? img : null);
+    img.onerror = () => done(null);
+    img.src = src;
+  });
+}
+
+
 type StrategyName =
   | "tight"
   | "baseline"
@@ -225,13 +245,8 @@ export default function PoseAblationPage() {
     for (let i = 0; i < sample.length; i++) {
       if (abortRef.current) break;
       setStatus(`${i + 1}/${sample.length}`);
-      const img = new Image();
-      img.src = sample[i].src;
-      try {
-        await img.decode();
-      } catch {
-        continue;
-      }
+      const img = await loadImage(sample[i].src);
+      if (!img) continue;
       const scale = Math.min(1, CAPTURE_DIM / Math.max(img.naturalWidth, img.naturalHeight));
       const W = Math.round(img.naturalWidth * scale);
       const H = Math.round(img.naturalHeight * scale);
@@ -280,6 +295,12 @@ export default function PoseAblationPage() {
           tally.ms += performance.now() - t0;
           if (r.pose) tally.poses++;
           if (r.faithful) tally.faithful++;
+          // Yield between inferences. Every strategy runs the model
+          // synchronously, so a frame with four people is around thirty
+          // uninterrupted inferences: without this the main thread never
+          // repaints, progress appears frozen, and the tab stops responding to
+          // anything at all.
+          await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
       setFrames(i + 1);

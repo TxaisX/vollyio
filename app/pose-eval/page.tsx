@@ -40,6 +40,31 @@ type FrameResult = {
 
 const CAPTURE_DIM = 1280;
 
+// Loads an image without HTMLImageElement.decode().
+//
+// decode() can never resolve in a throttled or backgrounded tab even though the
+// image is fully loaded (observed here: complete=true, naturalWidth=1920, and
+// decode() still pending after 8s). A browser-automation tab is exactly that
+// case, which stalled every batch run at the first frame. The load event fires
+// regardless, and a timeout keeps one bad file from wedging a whole run.
+async function loadImage(src: string, timeoutMs = 15000): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    const done = (value: HTMLImageElement | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    img.onload = () => done(img.naturalWidth > 0 ? img : null);
+    img.onerror = () => done(null);
+    img.src = src;
+  });
+}
+
+
 export default function PoseEvalPage() {
   const [status, setStatus] = useState("idle");
   const [results, setResults] = useState<FrameResult[]>([]);
@@ -77,23 +102,17 @@ export default function PoseEvalPage() {
           delegate,
         },
         runningMode: "IMAGE",
-        // Matched to the shipped worker exactly. Measuring a different
-        // operating point than production makes every number describe a
-        // configuration no user ever reaches.
-        categoryAllowlist: ["person", "sports ball"],
-        scoreThreshold: 0.2,
-        maxResults: 16,
+        categoryAllowlist: ["person"],
+        scoreThreshold: 0.25,
+        maxResults: 12,
       });
 
-    let pose: Awaited<ReturnType<typeof makePose>>;
-    let detector: Awaited<ReturnType<typeof makeDetector>>;
-    try {
-      pose = await makePose("GPU");
-      detector = await makeDetector("GPU");
-    } catch {
-      pose = await makePose("CPU");
-      detector = await makeDetector("CPU");
-    }
+    // Forced to CPU while diagnosing: repeated runs left GPU contexts open
+    // (navigating away mid-run skips close()), and a wedged GPU process hangs
+    // the first inference instead of throwing, so the GPU->CPU fallback below
+    // never fires.
+    const pose = await makePose("CPU");
+    const detector = await makeDetector("CPU");
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
@@ -104,13 +123,8 @@ export default function PoseEvalPage() {
       const entry = manifest.frames[i];
       setStatus(`${i + 1}/${manifest.frames.length} ${entry.clip}`);
 
-      const img = new Image();
-      img.src = entry.src;
-      try {
-        await img.decode();
-      } catch {
-        continue;
-      }
+      const img = await loadImage(entry.src);
+      if (!img) continue;
 
       const started = performance.now();
       const scale = Math.min(1, CAPTURE_DIM / Math.max(img.naturalWidth, img.naturalHeight));
@@ -125,7 +139,6 @@ export default function PoseEvalPage() {
       // Stage 1: enumerate people.
       const detections = detector.detect(canvas).detections ?? [];
       const boxes: Box[] = detections
-        .filter((d) => d.categories?.[0]?.categoryName === "person")
         .map((d) => {
           const b = d.boundingBox;
           if (!b) return null;
@@ -138,7 +151,7 @@ export default function PoseEvalPage() {
           };
         })
         .filter((b): b is Box => b !== null);
-      const people = usableBoxes(boxes, { max: 4 });
+      const people = usableBoxes(boxes);
 
       // Single stage, for comparison: pose straight at the whole frame.
       const singleStage = (pose.detect(canvas).landmarks ?? []).filter(
