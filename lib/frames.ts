@@ -109,10 +109,10 @@ function sampleFractions(duration: number): number[] {
 export function videoErrorMessage(video: HTMLVideoElement): string {
   const code = video.error?.code;
   if (code === 4)
-    return "This browser can't decode that file. iPhone clips are often HEVC, which desktop Chrome can't play. Record in-app instead, or use the photo option below.";
+    return "This browser can't decode that file. iPhone clips are often HEVC, which desktop Chrome can't play. Re-export the clip as MP4, or use the photo option below.";
   if (code === 3)
     return "That video looks corrupted or only partly loaded. Re-export the clip, or use the photo option below.";
-  return "Couldn't read that video in this browser. Try recording in-app, or use the photo option below.";
+  return "Couldn't read that video in this browser. Try a different export of the clip, or use the photo option below.";
 }
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
@@ -149,7 +149,7 @@ export function loadVideo(src: string): Promise<HTMLVideoElement> {
       () =>
         reject(
           new Error(
-            "This video is taking too long to load, which usually means the format isn't supported. Record in-app or use the photo option below.",
+            "This video is taking too long to load, which usually means the format isn't supported. Re-export the clip as MP4 or use the photo option below.",
           ),
         ),
       8000,
