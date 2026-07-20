@@ -198,7 +198,6 @@ export async function POST(req: NextRequest) {
           scaled(raw.overall_score),
           METRICS[skill].map((m) => scaled(metricsMap[m.key].score)),
         ),
-        scene_read: raw.scene_read,
         // Who the model says it analyzed, and whether that matches the athlete
         // the player marked. Optional: an older stored row has no such field,
         // and a reply that omits it must not fail the analysis (D-030).

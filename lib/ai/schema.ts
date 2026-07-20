@@ -41,7 +41,6 @@ export function analysisSchema(skill: Skill) {
       .optional(),
     // One sentence a human coach would open with. Optional so older stored
     // results stay valid.
-    scene_read: z.string().optional(),
     // Per-rep mini-scores when more than one repetition is distinguishable.
     rep_scores: z
       .array(

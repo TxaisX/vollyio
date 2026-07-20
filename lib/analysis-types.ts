@@ -73,9 +73,6 @@ export type AnalysisResult = {
   // Who the model says it analyzed. Optional: rows predating this field, and
   // replies that omitted it, simply have none.
   subject_check?: SubjectCheck;
-  // Coach-style opening line: setting, rep count, context. Optional: rows
-  // predating this field simply omit it.
-  scene_read?: string;
   // Per-rep mini-scores when more than one repetition was distinguishable.
   rep_scores?: RepScore[];
   metrics: Metric[];
