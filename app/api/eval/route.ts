@@ -32,7 +32,6 @@ import {
 } from "@/lib/eval-coverage";
 import { coherentOverall, scoreBand } from "@/lib/ratings";
 import { deriveMetric } from "@/lib/ai/pointers";
-import { toProductScale } from "@/lib/score-scale";
 import { hasLocalEvalAccess } from "@/lib/security/request";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
@@ -169,7 +168,7 @@ async function runModel(
   // verdicts, on the same product scale.
   const derivedMetrics = METRICS[c.skill].map((m) => ({
     key: m.key,
-    score: toProductScale(deriveMetric(c.skill, m.key, metricsMap[m.key]?.pointers).raw),
+    score: deriveMetric(c.skill, m.key, metricsMap[m.key]?.pointers).raw,
   }));
   return {
     score: {

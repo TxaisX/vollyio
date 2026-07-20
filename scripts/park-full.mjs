@@ -15,17 +15,20 @@ import { METRICS } from "../lib/ai/metrics.ts";
 import { deriveMetric, POINTERS } from "../lib/ai/pointers.ts";
 
 const ROOT = process.cwd();
-const USE_BUNDLE = true;
+const DIR = "C:/Users/XiongT/.claude/jobs/2d345c50/tmp/park";
+const TIMES = [0.6, 1.2, 1.8, 2.1, 2.3, 2.5, 2.7, 3.2];
 
 const env = await readFile(path.join(ROOT, ".env.local"), "utf8");
 const client = new Anthropic({ apiKey: env.match(/ANTHROPIC_API_KEY=(.+)/)[1].trim() });
 
-const bundle = JSON.parse(await readFile(path.join(ROOT, "ab", "trackbundle.json"), "utf8"));
-const c = bundle.cases.find((x) => x.clip.includes("Ogbogu"));
-const frames = c.frames.map((f) => ({ ...f }));
+const files = (await readdir(DIR)).filter((f) => f.endsWith(".jpg")).sort();
+const frames = [];
+for (let i = 0; i < files.length; i++) {
+  frames.push({ time_s: TIMES[i], data: (await readFile(path.join(DIR, files[i]))).toString("base64") });
+}
 
 // Spot on the frame where the hitter is loading (index 4, ~4.5s).
-const SPOT_AT = 7;
+const SPOT_AT = 3;
 const spotSchema = z.object({
   players: z.array(z.object({ label: z.string().max(80), x: z.number().min(0).max(1), y: z.number().min(0).max(1) })).max(6),
 });
@@ -61,7 +64,9 @@ players.forEach((p, i) => console.log(`  ${i + 1}. (${p.x.toFixed(2)}, ${p.y.toF
 // Pick the attacker: the candidate described at the net in the dark jersey on
 // the far side. Fall back to #1.
 const pick =
-  players.find((p) => /dark|black|navy/i.test(p.label)) ?? players[0];
+  players.find((p) => /maroon|red short|pink/i.test(p.label)) ??
+  players.find((p) => /dark|black/i.test(p.label)) ??
+  players[0];
 console.log(`\nPICKED: ${pick.label}`);
 
 const buf = Buffer.from(frames[SPOT_AT].data, "base64");
@@ -75,7 +80,7 @@ const svg = Buffer.from(
     `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e8b93b" stroke-width="${Math.round(r * 0.2)}"/></svg>`,
 );
 const ringedBuf = await sharp(buf).composite([{ input: svg }]).jpeg({ quality: 80 }).toBuffer();
-await writeFile(path.join(ROOT, "ab", "maya-ringed.jpg"), ringedBuf);
+await writeFile(path.join(ROOT, "ab", "park-ringed.jpg"), ringedBuf);
 frames[SPOT_AT] = { ...frames[SPOT_AT], data: ringedBuf.toString("base64") };
 
 const content = frames.flatMap((f, i) => [
@@ -89,7 +94,7 @@ content.push({
     "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. " +
     "Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
 });
-content.push({ type: "text", text: "Discipline: indoor. Player level: beginner. Analyze this spike rep sequence across the whole clip." });
+content.push({ type: "text", text: "Discipline: grass. Player level: beginner. Analyze this spike rep sequence across the whole clip." });
 
 const res = await client.messages.parse(
   {
@@ -97,7 +102,7 @@ const res = await client.messages.parse(
     max_tokens: 4096,
     thinking: { type: "adaptive" },
     system: [
-      { type: "text", text: getRubric("attack", "indoor"), cache_control: { type: "ephemeral" } },
+      { type: "text", text: getRubric("attack", "grass"), cache_control: { type: "ephemeral" } },
       { type: "text", text: outputSpec("attack", "beginner"), cache_control: { type: "ephemeral" } },
     ],
     messages: [{ role: "user", content }],
