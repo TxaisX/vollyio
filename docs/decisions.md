@@ -1051,3 +1051,49 @@ marking path stays one visual level down, never a dead end. Gates after the
 cut: tsc 0, 87 tests (pose tests deleted with the layer), policy lint, prod
 build. The A/B evidence stays in `scripts/ab-*.mjs`, `scripts/kgb-run.mjs`, and
 `ab/` summaries; the browser export pages died with the engine they measured.
+
+## D-034 — The product score scale is set by a calibration curve in code, not by prompt persuasion
+
+The owner ran the newly deployed tap-and-ring flow on his own rep (the first
+live device-verification, and the ring worked: subject_check named the exact
+tapped player, marker confirmed). Production scored it 42. An independent
+full-frame read of the same rep judged it 68: real approach and elevation, one
+clear fault (contact behind the hitting shoulder). The owner asked for the
+gentler calibration across all six skills.
+
+What validation showed before anything shipped (scripts/calib-check.mjs, the
+same clip, ring-marked frame 0, grass rubric, 2 runs per cell at low and high
+effort):
+1. The model's raw judgment is STABLE: 42-50 across efforts and runs on the
+   shipped prompt. Low and high effort agree, echoing the D-027 ladder.
+2. Prompt wording is an UNSTABLE lever: three successive rewordings of the
+   scoring-standard block moved the same clip 42 -> 56 -> 50, including a
+   regression from adding a plausible-sounding "spread your scores" clause.
+   Chasing a target number through prose is noise-chasing.
+
+Decision, two parts:
+- The standard block keeps ONE semantic fix that survived validation: the
+  rubric's numeric anchors are declared to be a professional scale that does
+  not set the number, and checkpoints are scored independently so one fault
+  does not bleed into every metric. This moved raw scores from ~45 to ~53
+  and is defensible on meaning, not just effect.
+- The scale itself is set in `lib/score-scale.ts`: a monotonic
+  piecewise-linear curve (0->0, 30->40, 50->66, 70->80, 90->92, 100->100)
+  applied in the analyze route to metrics, overall, and rep scores for every
+  tier EXCEPT pro, whose contract remains the professional bar untouched.
+  Anchored on the owner-labeled rep (raw ~50 -> shown 66-70, matching the
+  independent 68) with the elite end pinned so a great rep cannot inflate.
+  Ordering between reps is exactly the model's; only where numbers sit
+  changes, and notes stay blunt about faults.
+
+Validated end to end: the anchor clip now shows 66-70 at low effort, 70-74 at
+high, against 42 in production before the change. Unit tests pin monotonicity,
+the anchors, and input clamping.
+
+Why a curve and not rubric rewrites: the six rubric prose blocks are the
+product's judgment definition and are frozen (D-004); rewriting them to move
+numbers would change WHAT is judged to fix WHERE the numbers sit, with no
+labeled eval floor to catch drift (D-031: 0 scored cases). A deterministic
+curve moves the numbers, is provable, reversible in one file, and leaves the
+judgment alone. Known rough edge, accepted: expected_gain still arrives on the
+model's raw scale, so mid-band gains slightly understate displayed gains.

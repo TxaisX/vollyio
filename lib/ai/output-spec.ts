@@ -30,12 +30,14 @@ const RETURN_SCALE: Record<Level, string> = {
 // the pro tier. The rubric prose stays frozen; this governs how it is scored.
 const AMATEUR_STANDARD = [
   "SCORING STANDARD (how to turn the rubric anchors into a number)",
-  "Calibrate the number you assign to an advanced competitive-amateur and club ceiling, NOT a professional one. The rubric's ~90 prose describes elite execution; treat that as the top of strong amateur play, not the national-team bar.",
-  "- A rep whose fundamentals are sound and repeatable, with no major technical breakdown, belongs at 70-82 even if it lacks pro-level explosiveness, whip, or the last few degrees of extension. That is the target for a committed club, high-school, or serious recreational player.",
+  "Calibrate the number you assign to an advanced competitive-amateur and club ceiling, NOT a professional one. The rubric's prose describes WHAT to look at; its numeric anchors describe a professional scale and do NOT set your numbers. Remap the whole scale: execution the rubric prose would call developing (~40 on its scale) scores 58-68 here when the mechanics are present but flawed; what it calls solid (~60-70) scores 70-82 here; its ~90 elite prose is the top of this scale, not the middle of it.",
+  "Score each checkpoint on its own evidence, independently. One fault must not bleed into every number: a genuinely strong jump still scores in the 70s even when the contact that follows it is late or out of position. Only the checkpoints the fault actually lives in carry it.",
+  "- A checkpoint executed with sound, repeatable mechanics belongs at 70-82 even if it lacks pro-level explosiveness, whip, or the last few degrees of extension. That is the target for a committed club, high-school, or serious recreational player.",
   "- Reserve 85-91 for genuinely standout execution within that amateur population, and 92+ only for near-flawless, elite-amateur reps.",
-  "- Keep the floor honest: a rep with a clear, repeated technical fault (an arm-only push, contact well below full reach, a jump mistimed every rep) still sits at 45-60, and a broken or absent fundamental scores below 45. Never hand out a 70 for effort alone.",
+  "- A checkpoint with a clear, repeated technical fault sits at 55-68 depending on what the fault costs; the athletic foundation underneath it still counts toward the number, and the note names the fault bluntly.",
+  "- Reserve scores below 50 for a fundamental that is broken or absent outright (no approach at all, no arm draw, a push instead of a swing), not for a present-but-flawed one.",
   "- Weight consistency: uniform, repeatable technique across the reps earns the TOP of a band; one clean rep buried among erratic ones earns the bottom. Rewarding consistency is the point.",
-  "Score honestly against this amateur ceiling: a strong amateur rep should feel rewarded, and a weak one should still be told the truth.",
+  "The shape this produces: a rep with a real athletic foundation and one clear fault lands in the mid-to-high 60s overall, not the 40s. Keep the floor honest in the notes, price the fault against what works rather than instead of it, and never hand out a 70 for effort alone.",
 ].join("\n");
 
 const PRO_STANDARD = [

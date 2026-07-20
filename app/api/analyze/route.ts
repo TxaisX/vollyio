@@ -11,6 +11,7 @@ import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
 import { updateRating, coherentOverall } from "@/lib/ratings";
+import { toProductScale } from "@/lib/score-scale";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
@@ -186,21 +187,26 @@ export async function POST(req: NextRequest) {
 
       const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
       const top = raw.changes[0];
+      // The product score scale (D-034): the model's raw judgment is remapped
+      // onto the shipped scale for every tier except pro, whose contract is
+      // the professional bar untouched. Monotonic, so ordering between reps
+      // is exactly the model's; only where the numbers sit changes.
+      const scaled = (n: number) => (level === "pro" ? n : toProductScale(n));
       result = {
         skill,
         overall_score: coherentOverall(
-          raw.overall_score,
-          METRICS[skill].map((m) => metricsMap[m.key].score),
+          scaled(raw.overall_score),
+          METRICS[skill].map((m) => scaled(metricsMap[m.key].score)),
         ),
         scene_read: raw.scene_read,
         // Who the model says it analyzed, and whether that matches the athlete
         // the player marked. Optional: an older stored row has no such field,
         // and a reply that omits it must not fail the analysis (D-030).
         subject_check: raw.subject_check,
-        rep_scores: raw.rep_scores,
+        rep_scores: raw.rep_scores?.map((r) => ({ ...r, overall: scaled(r.overall) })),
         metrics: METRICS[skill].map((m) => ({
           key: m.key,
-          score: metricsMap[m.key].score,
+          score: scaled(metricsMap[m.key].score),
           note: metricsMap[m.key].note,
         })),
         ball_track: raw.ball_track,
