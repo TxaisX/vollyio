@@ -8,8 +8,14 @@
 // choose who to follow via the track builder in kinematics.
 //
 // D-028: the engine is MediaPipe Pose Landmarker (Apache-2.0), vendored
-// same-origin. One inference returns every person, so there is no detector
-// cadence to tune and no per-person crop budget to ration.
+// same-origin.
+//
+// D-032: detection is two-stage again. A whole-frame pose pass finds 5.4% of the
+// people a detector finds; per-person crops find 82.7% (measured, 200 frames of
+// real court footage). The worker returns every person plus the detector box it
+// came from, and this file decides which one the user meant — geometrically,
+// because engine confidence reports ~0.95 for a bystander and the subject
+// alike.
 
 import {
   POSE_LANDMARK_COUNT,
@@ -18,6 +24,8 @@ import {
 } from "./types.ts";
 import { mapRegionPersons, type FocusRegion } from "./kinematics.ts";
 import { POSE_MODELS, isGpuTier } from "./model-manifest.ts";
+import { hintToLocal, pickSubject, torsoCenter as torsoCenterOf } from "./subject-select.ts";
+import { type Box, boxNearestPoint, containsPoint } from "./two-stage.ts";
 
 // Runtime assets for the inference sessions, vendored same-origin.
 const WASM_BASE = "/pose/wasm";
@@ -35,14 +43,17 @@ const INIT_MAX_MS = 300_000;
 // simply slow; both get generous per-detect bounds.
 const DETECT_TIMEOUT_GPU_MS = 10_000;
 const DETECT_TIMEOUT_CPU_MS = 30_000;
-// Long edge for detection input; normalized outputs are size-invariant. The
-// landmarker resizes to its own small input internally, so a huge capture buys
-// nothing on the full-frame path — it matters for the region crop, where a
-// distant player is upsampled to fill the model's input. The GPU tier can
-// afford the sharper crop; the CPU fallback stays lower to keep transfer cost
-// down.
-const CAPTURE_DIM_CPU = 640;
-const CAPTURE_DIM_GPU = 960;
+// Long edge for detection input; normalized outputs are size-invariant.
+//
+// Do NOT lower these on the theory that the landmarker downscales internally.
+// It runs its DETECTOR on a small resized image to locate a person, then runs
+// the LANDMARK model on a crop of the source at its original resolution. So the
+// capture dim sets how many real pixels a body actually gets. On a wide outdoor
+// court a player can be 15% of frame height: at 640 that is a ~96px body fed to
+// a 256px input, which produces smeared limbs and a torso that collapses toward
+// a box. Sized to match what the previous engine captured, for that reason.
+const CAPTURE_DIM_CPU = 1280;
+const CAPTURE_DIM_GPU = 1600;
 
 export type PoseEngine = {
   // Which engine tier actually loaded (reported in measurements).
@@ -137,6 +148,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 type WorkerResult = {
   count: number;
   pts: Float32Array | null;
+  // Detector box each pose came from, so a pose can be checked against the body
+  // its crop was built around (D-032).
+  boxes: Float32Array | null;
   ball?: { x: number; y: number; score: number } | null;
 };
 
@@ -214,6 +228,7 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
           settle({
             count: typeof msg.count === "number" ? msg.count : 0,
             pts: msg.pts instanceof Float32Array ? msg.pts : null,
+            boxes: msg.boxes instanceof Float32Array ? msg.boxes : null,
             ball:
               msg.ball && typeof msg.ball.x === "number"
                 ? { x: msg.ball.x, y: msg.ball.y, score: msg.ball.score }
@@ -263,14 +278,76 @@ function createWorkerEngine(): Promise<PoseEngine | null> {
             );
           }),
           detectTimeoutMs,
-          { count: 0, pts: null },
+          { count: 0, pts: null, boxes: null },
         );
         pending.delete(id);
         const ball = result.ball
           ? { ...result.ball, t: Math.round(timeS * 1000) / 1000 }
           : null;
         if (result.pts && result.count > 0) {
-          const frame = remapped(unpack(result.pts, result.count, timeS), region);
+          const local = unpack(result.pts, result.count, timeS);
+
+          // Confidence cannot choose between the tapped athlete and a bystander:
+          // the engine reports the same ~0.95 for both. Selection is geometric,
+          // and now has real detector boxes to work with (D-032). Detections are
+          // in crop space, so the hint moves into it too.
+          const localHint = hint
+            ? region
+              ? hintToLocal(hint, region)
+              : hint
+            : null;
+
+          const boxes: Box[] = [];
+          if (result.boxes) {
+            for (let n = 0; n < result.count; n++) {
+              boxes.push({
+                x: result.boxes[n * 4],
+                y: result.boxes[n * 4 + 1],
+                w: result.boxes[n * 4 + 2],
+                h: result.boxes[n * 4 + 3],
+                score: 1,
+              });
+            }
+          }
+
+          // Drop any pose whose torso did not land inside the body its own crop
+          // was built around. Measured at 17.6% of poses on real footage, and
+          // undetectable by any confidence signal the engine provides.
+          const faithful: number[] = [];
+          for (let n = 0; n < local.persons.length; n++) {
+            const box = boxes[n];
+            if (!box) {
+              faithful.push(n);
+              continue;
+            }
+            const centre = torsoCenterOf(local.persons[n]);
+            if (!centre || containsPoint(box, centre)) faithful.push(n);
+          }
+
+          // With boxes available the tap picks a BODY, which is more reliable
+          // than picking among poses: a box is what the user actually aimed at.
+          let chosenIndex: number | null = null;
+          if (localHint && boxes.length > 0) {
+            const near = boxNearestPoint(
+              faithful.map((n) => boxes[n]),
+              localHint,
+            );
+            if (near) chosenIndex = faithful[near.index];
+          }
+          if (chosenIndex === null) {
+            const choice = pickSubject(
+              faithful.map((n) => local.persons[n]),
+              localHint,
+            );
+            chosenIndex = choice.index === null ? null : faithful[choice.index];
+          }
+
+          // An implausible detection is dropped rather than passed on: the
+          // pipeline already degrades safely without measurements, and drawing a
+          // skeleton on the wrong athlete is a confident false claim.
+          const chosen =
+            chosenIndex === null ? [] : [local.persons[chosenIndex]];
+          const frame = remapped({ t: local.t, persons: chosen }, region);
           return { ...frame, ball };
         }
         // No athlete this instant, but the ball may still be in flight.
