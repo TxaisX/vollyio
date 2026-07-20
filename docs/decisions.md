@@ -984,3 +984,56 @@ Still requires a human: real intermediate/expert footage (the target population
 is 0% represented), a weakest-metric decision on all 18 active cases by someone
 who watched the reps, re-capture with tracking on so cases carry measurements,
 and one real scored run before the baseline stops being provisional.
+
+## D-033 — Two blind tests killed the on-device engine; the model does the whole read and the user marks the target
+
+D-028 restored the pose engine on the argument that measured checkpoints were
+the product's differentiator and had to be tested, not assumed. They were
+tested. Both halves failed, on the owner's own footage, under blind judging.
+
+Kill gate A (measurement vs vision). Thirteen clips, both arms given identical
+frames, rubric, output spec, model, and effort; the only variable was whether
+the on-device measurement block was attached. Three blind judges per clip, order
+randomised. The measured arm won nothing: 13-0 against on overall quality,
+evidence grounding, and fewer unsupported claims, and it cost more (93.6k/23.8k
+tokens against 82.9k/18.2k). Checked separately against anatomy with no judge
+involved, 42 of 124 measured values (33.9%) are physically impossible — jump
+heights of 2.75 and 0.04 body heights, a 137-degree shoulder-hip separation —
+every one carrying confidence above the honesty floor. The layer built to stop
+fabrication was the source of it, and the confidence gate could not see it
+because the MediaPipe engine reports near-total confidence in everything
+(the D-028 saturation finding).
+
+Kill gate B (tracking). With measurements gone, the engine's last job was
+holding the tapped player across the clip. Fourteen clips, both arms handed the
+identical first-frame mark, then asked where that player is at later moments.
+The tracker used the shipped nearest-body association from `fullPass`; the model
+followed by looking. Neither graded itself — each arm's claim was drawn as a
+ring and three blind judges said which ring sat on the marked player, order
+randomised per frame. When it committed, the model was right 38/39 (97.4%); the
+tracker was right 28/49 (57.1%), i.e. on the WRONG player 43% of the time. The
+model abstained 17 times, the tracker 7 — but the tracker's silence is not
+honesty: nearest-body matching always snaps to some nearby person and reports
+success, so it cannot tell when it is lost. A silent wrong answer is the exact
+failure an anti-fabrication product cannot ship.
+
+Decision. Remove the on-device pose engine entirely — the two `.task` models,
+the wasm runtime, the tracking worker, the crop geometry, the subject-select and
+metrics layers, ~1500 lines, and the whole wrong-body bug class. The model does
+the full read: assessment and cross-frame subject tracking. Target selection
+stays mandatory (D-030) but becomes a raw tap coordinate burned onto the first
+frame before upload, so nothing on-device can select the wrong person or produce
+a number. `subject_check` (D-030) already surfaces a wrong or lost subject as a
+warning, which is the honest handling for the model's abstentions.
+
+This reverses D-028's "keep pose, it's the differentiator" position. The
+reversal is the evidence's, not a change of taste: "we measure your jump height"
+is a sharper pitch than "we coach your technique," but it is currently false a
+third of the time and was never shippable as written. Cost paid knowingly:
+positioning must be rewritten around coaching quality over measurement.
+
+Not yet done here: the actual deletion of the engine and rewiring of the analyze
+path to the mark-on-frame flow. This decision records the finding and the
+direction; the removal is the next change and is not in these commits. The A/B
+harnesses (`app/pose-export`, `app/pose-track-export`, `scripts/ab-*.mjs`,
+`scripts/kgb-run.mjs`) are diagnostic and marked delete-before-merge.

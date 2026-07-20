@@ -235,9 +235,26 @@ footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:v
 <p>Every judge landed on the same point independently: hedging a fabricated number as "low confidence" does not repair it. The plain visual read wins because it declines to state what it cannot see.</p>
 </div>
 
+<h2>The second deciding test: who holds the player</h2>
+<p>Dropping the measurements still left one job for the on-device engine: once you tap your athlete on the first frame, something has to keep hold of that same person through the rest of the clip. So the same experiment was run again on that one job. Fourteen clips, both arms handed the identical mark on the first frame, then asked where that player is later. The on-device tracker followed by matching nearest bodies frame to frame, exactly as it ships. The model followed by looking. Neither graded itself: each arm's answer was drawn as a plain ring on the frame, and three blind judges said which ring, if either, sat on the marked player.</p>
+
+<div class="bars">
+  <div class="bar-row"><span>Model, right player</span><span class="bar-track"><span class="bar-fill f-teal" style="width:97.4%"></span></span><span class="bar-val">38</span></div>
+  <div class="bar-row"><span>Model, wrong player</span><span class="bar-track"><span class="bar-fill f-teal" style="width:2.6%"></span></span><span class="bar-val">1</span></div>
+  <div class="bar-row"><span>Tracker, right player</span><span class="bar-track"><span class="bar-fill f-coral" style="width:57.1%"></span></span><span class="bar-val">28</span></div>
+  <div class="bar-row"><span>Tracker, wrong player</span><span class="bar-track"><span class="bar-fill f-coral" style="width:42.9%"></span></span><span class="bar-val">21</span></div>
+</div>
+<p class="sub">Across 53 judged moments, 3 judges each. Bars show accuracy when the arm committed to an answer. Abstentions, where an arm declined rather than guessed, are counted separately: the model abstained 17 times, the tracker 7.</p>
+
+<div class="callout warn">
+<h3>Why the honest number is the wrong-player rate, not the right-player rate</h3>
+<p>When the tracker committed to a player, it was on the wrong person 43% of the time: a confident ring on someone who is not your athlete. That is the precise failure that ends with the app telling an athlete they did something a different player did. The model was wrong once in thirty-nine answers, and when it was unsure it said so rather than guess.</p>
+<p>The tracker abstained less only because it cannot tell when it is lost. Nearest-body matching always snaps to some nearby person and reports success, so its silence is not honesty, it is a failure it cannot detect. For a product whose whole claim is that it does not assert what it cannot support, a silent wrong answer is the worst possible behaviour, and it is the tracker's default.</p>
+</div>
+
 <h2>Work produced</h2>
 <div class="hero-stats">
-  <div class="stat"><div class="n">6</div><div class="l">commits, none pushed to production</div></div>
+  <div class="stat"><div class="n">7</div><div class="l">commits, none pushed to production</div></div>
   <div class="stat"><div class="n">184</div><div class="l">automated tests passing, up from 147</div></div>
   <div class="stat"><div class="n">126</div><div class="l">review agents run against the work</div></div>
   <div class="stat"><div class="n">-24MB</div><div class="l">repository size, despite bundling new models</div></div>
@@ -246,19 +263,19 @@ footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);color:v
 <div class="callout warn">
 <h3>The honest summary</h3>
 <p>The engine went from finding one player in twenty to finding two in three, and wrong body readings nearly halved. Two long dead measurements work again, one safety check that was about to fail silently now cannot, and a test suite that was flattering you now tells the truth. All of that is real.</p>
-<p>And it does not matter as much as the last result. The measured path lost every clip on every axis to simply showing the frames to the model, while costing more, because a third of what it measures is impossible and it reports those figures confidently. The engineering worked. The premise underneath it did not survive contact with the evidence.</p>
-<p>That is a good outcome for one night. The alternative was finding out after launch, from a coach who noticed the app told an athlete they jumped seven centimetres.</p>
+<p>And it does not matter, because both things it was built to do lost their test. The measurements lost 13-0 and a third of them are impossible. The tracker rings the wrong player two times in five. On the same clips, the model assessing and the model tracking beat both, cost less, and stays quiet when it is unsure. The engineering worked. The premise underneath it did not survive contact with the evidence.</p>
+<p>That is a good outcome for one night. The alternative was finding out after launch, from a coach who noticed the app told an athlete they jumped seven centimetres, about a player who was not even theirs.</p>
 </div>
 
-<h2>What this suggests</h2>
-<p>Not a decision, a reading of the evidence. Three routes, in order of how much they ask of you.</p>
+<h2>The decision</h2>
+<p>Two blind tests, run on your own footage, both pointing the same way. The measurement layer and the on-device tracker each lost to simply letting the model look. So the product does exactly that.</p>
 
 <div class="cards">
-  <div class="card ok"><span class="tag">Recommended</span><h3>Keep the detector, drop the measurements</h3><p>Person detection is the part that demonstrably works, and it is what makes tapping a player possible. Keep it purely to find and mark the athlete, then let the vision model do the assessment. You lose the fifteen megabyte download, the on-device compute, and the invented numbers, and you keep reliable subject selection.</p></div>
+  <div class="card ok"><span class="tag fixed">Chosen</span><h3>The model does the whole read; you pick the target</h3><p>You tap your athlete on the first frame. That tap is a coordinate, marked on the frame before it is sent, so nothing on the device can pick the wrong person. The model assesses the technique and follows that same athlete through the clip, and states who it analysed so a wrong subject surfaces as a warning rather than a silent error.</p></div>
 
-  <div class="card"><span class="tag">Slower</span><h3>Fix the measurements first, then retest</h3><p>The numbers are not wrong by a little. Fixing them means calibrated confidence, validated joint positions, and a real ground truth to check against, which is weeks of work with no guarantee. Only worth it if measured biomechanics is genuinely the business you want to be in.</p></div>
+  <div class="card"><span class="tag sev">Removed</span><h3>The pose engine, entirely</h3><p>Fifteen megabytes of models, the wasm runtime, the tracking worker, the crop geometry, and roughly fifteen hundred lines go with it, and so does the whole class of wrong-body bugs. Nothing on the device produces a number or a skeleton any more, so nothing on the device can fabricate one.</p></div>
 
-  <div class="card"><span class="tag">Cheapest</span><h3>Ship vision only</h3><p>Fewest moving parts, lowest cost per analysis, no wrong body risk. Costs you the differentiator as currently written, so the positioning would need rewriting around coaching quality and progression instead of measurement.</p></div>
+  <div class="card note"><span class="tag open">The one cost</span><h3>Positioning, and a graceful "not sure"</h3><p>"We measure your jump height" is a sharper line than "we coach your technique," but that line is currently false a third of the time, so it was never shippable as written. And when the model cannot follow your player through a busy patch it will say so; the app has to handle that honestly, which the subject-check field already allows.</p></div>
 </div>
 
 <footer>

@@ -16,7 +16,8 @@ createServer(async (req, res) => {
   const chunks = [];
   for await (const c of req) chunks.push(c);
   const body = Buffer.concat(chunks);
-  const file = path.join(OUT, "bundle.json");
+  const name = req.url === "/trackbundle" ? "trackbundle.json" : "bundle.json";
+  const file = path.join(OUT, name);
   await writeFile(file, body);
   console.log(`wrote ${file} (${(body.length / 1048576).toFixed(1)} MB)`);
   res.writeHead(200, { "content-type": "application/json" });
