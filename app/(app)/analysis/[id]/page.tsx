@@ -263,13 +263,6 @@ export default async function AnalysisDetail({
               </p>
             </Reveal>
           )}
-          {result.scene_read && (
-            <Reveal delay={120}>
-              <p className="mb-3 border-l-2 border-gold/50 pl-3 font-display text-sm font-bold">
-                {result.scene_read}
-              </p>
-            </Reveal>
-          )}
           <Reveal delay={140}>
             <p className="text-sm leading-relaxed text-chalk-dim">
               {result.summary}

@@ -87,9 +87,6 @@ export function outputSpec(skill: Skill, level: Level): string {
     "- \"unmarked\" when no ring marker is present, so you chose the subject yourself from the frames.",
     "If a ring marker is present, the ringed athlete is the subject in EVERY frame, not only the marked one: follow that same individual across the whole sequence by kit, build, and position, and do not switch to a different person because they are more prominent or more skilled. If you cannot confidently identify the ringed athlete in a later frame, say so in the relevant note rather than guessing.",
     "",
-    "SCENE READ",
-    "Set scene_read to the single opening sentence a human coach would say after watching this clip: the visible setting (indoor court, beach, grass, gym), roughly how many repetitions are visible, and anything about the context that shapes your read (practice vs game, other players, lighting). Describe only what the frames show; never guess.",
-    "",
     "PER-REP SCORES",
     "When you can clearly distinguish more than one repetition in the frames, return rep_scores: one entry per rep in chronological order (rep_index from 0, an honest overall 0-100 for that rep alone on the same scale as the whole-clip score, and a short note naming what most separates this rep from the player's others). A single visible rep means you omit rep_scores entirely. Rep-to-rep consistency should also shape the whole-clip metric scores as the scoring rules describe.",
     "",
@@ -106,6 +103,7 @@ export function outputSpec(skill: Skill, level: Level): string {
     "difficulty is one of: quick, moderate, long-term. timeframe is a short human phrase (e.g. \"1-2 practices\", \"2-3 weeks\").",
     RETURN_SCALE[level],
     "",
+    "Judge the marked athlete's MECHANICS only. Never characterize the setting, occasion, or seriousness of the play (practice, pickup, recreational, casual, competitive) in any field: the same swing earns the same words and the same number on a championship court or a backyard one.",
     "Base every field on the visible frames alone. Do not reference any tool, model, or provider.",
   ].join("\n");
 }

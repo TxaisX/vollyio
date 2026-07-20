@@ -1128,3 +1128,27 @@ under the unified coach voice, so the calibration survives the persona swap.
 Known reductions, accepted: rep-history rows recorded under `beach` display
 as "Grass & sand"; goals still query indoor-only (pre-existing quirk, out of
 scope here).
+
+## D-036 — Mechanics only, and coach-spotted player selection
+
+Owner feedback from a live run (a setting rep at night, scored 75): the app
+described his session as a "casual pickup game", and the subject check
+reported analyzing a different player than the one he marked (honestly
+surfaced, but still the wrong player).
+
+Two changes:
+1. The setting judgment is gone. `scene_read` is removed from the schema, the
+   output spec, the result type, and the results page, and the spec gains a
+   hard rule: never characterize the setting, occasion, or seriousness of
+   play in any field; the same swing earns the same words and number on a
+   championship court or a backyard one. Scoring was already
+   setting-independent; now the words are too.
+2. The framing card gains coach-spotted candidates (`app/api/players`): one
+   frame goes to the model, which returns up to six clearly visible players
+   as short kit-and-position descriptions with torso points. The user picks
+   from the list (numbered dots on the frame) or still taps directly; the
+   pick becomes the same plain coordinate as ever. Spotting shares the coach
+   quota bucket, fails open to an empty list, and goes stale with the same
+   250ms scrub rule as the mark. Validated against the owner's anchor frame:
+   the first candidate returned was the correct athlete with a usable torso
+   point.

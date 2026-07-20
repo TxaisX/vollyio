@@ -380,6 +380,13 @@ export function AnalyzeFlow({
   const markedRef = useRef(false);
   const markerIndexRef = useRef<number | null>(null);
   const [markerShown, setMarkerShown] = useState(false);
+  // Coach-spotted candidates for the current moment: short descriptions with a
+  // torso point each, so the athlete can be picked from a list instead of a
+  // blind tap. An assist only; tapping anywhere still works, and an empty list
+  // is a valid answer, never a block.
+  const [spotted, setSpotted] = useState<{ label: string; x: number; y: number }[]>([]);
+  const [spotting, setSpotting] = useState(false);
+  const spotTRef = useRef<number | null>(null);
   // The trimmed analysis window (absolute clip seconds). Dragging a handle
   // past the longest analyzable span slides the other handle along, so the
   // window is always valid and long clips become usable by trimming.
@@ -447,6 +454,52 @@ export function AnalyzeFlow({
     }
     setTrim({ startS: snap(startS), endS: snap(endS) });
   }
+
+  async function spotPlayers(frameB64: string, atT: number) {
+    setSpotting(true);
+    try {
+      const res = await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ frame: frameB64 }),
+      });
+      if (res.ok) {
+        const { players } = await res.json();
+        if (Array.isArray(players)) {
+          setSpotted(players.slice(0, 6));
+          spotTRef.current = atT;
+        }
+      }
+    } catch {
+      // Spotting is an assist; the tap path is unaffected.
+    } finally {
+      setSpotting(false);
+    }
+  }
+
+  // Render the framing video's current moment as a JPEG for spotting.
+  function currentFrameB64(): string | null {
+    const v = frameVideoRef.current;
+    if (!v || !v.videoWidth) return null;
+    const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(v.videoWidth * scale);
+    canvas.height = Math.round(v.videoHeight * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.72).split(",")[1];
+  }
+
+  // Spot on the opening frame as soon as the card is up.
+  useEffect(() => {
+    setSpotted([]);
+    spotTRef.current = null;
+    if (!openingPick) return;
+    const b64 = openingPick.dataUrl.split(",")[1];
+    if (b64) void spotPlayers(b64, openingPick.timeS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openingPick]);
 
   // A tap on the framing media marks the athlete at the scrubbed moment. The
   // coordinate is normalized against the media box; the framing element sizes
@@ -1008,7 +1061,9 @@ export function AnalyzeFlow({
                 <p className="mt-1 text-xs text-chalk-dim">
                   {mark
                     ? "Marked. Scrub to double-check the ring is on your player, then analyze."
-                    : "Scrub to a moment where your player is easy to see, then tap them. The gold ring tells the coach exactly who to analyze."}
+                    : spotted.length > 0
+                      ? "Pick your player from the list, or tap them directly. The gold ring tells the coach exactly who to analyze."
+                      : "Scrub to a moment where your player is easy to see, then tap them. The gold ring tells the coach exactly who to analyze."}
                 </p>
                 <div
                   ref={frameBoxRef}
@@ -1054,7 +1109,59 @@ export function AnalyzeFlow({
                       </span>
                     </span>
                   )}
+                  {!mark &&
+                    spotted.map((p, i) => (
+                      <span
+                        key={i}
+                        aria-hidden
+                        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+                      >
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gold/80 bg-navy/70 font-mono text-[10px] text-gold">
+                          {i + 1}
+                        </span>
+                      </span>
+                    ))}
                 </div>
+                {/* The coach-spotted candidates: picking one places the mark on
+                    that player at the current moment. */}
+                {!mark && (spotted.length > 0 || spotting) && (
+                  <div className="mt-3 space-y-1.5">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+                      {spotting ? "Looking for players…" : "Players spotted"}
+                    </p>
+                    {spotted.map((p, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          const video = frameVideoRef.current;
+                          const t =
+                            video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
+                              ? video.currentTime
+                              : (spotTRef.current ?? scrubT);
+                          setMark({ x: p.x, y: p.y, t });
+                        }}
+                        className="chip block min-h-11 w-full text-left text-xs"
+                      >
+                        <span className="mr-2 font-mono text-gold">{i + 1}</span>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!mark && !spotting && spotted.length === 0 && framingUrl && !frameVideoFailed && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const b64 = currentFrameB64();
+                      if (b64) void spotPlayers(b64, scrubT);
+                    }}
+                    className="chip mt-3 min-h-11 text-xs"
+                  >
+                    Find players at this moment
+                  </button>
+                )}
                 {framingUrl && !frameVideoFailed && (
                   <input
                     type="range"
@@ -1071,8 +1178,16 @@ export function AnalyzeFlow({
                       setScrubT(t);
                       // The moment moved out from under the mark; re-tap to
                       // mark at the new moment. Keeping a stale mark would
-                      // ring whatever is at that spot now.
+                      // ring whatever is at that spot now. Spotted candidates
+                      // go stale the same way.
                       if (mark && Math.abs(t - mark.t) > 0.25) setMark(null);
+                      if (
+                        spotTRef.current != null &&
+                        Math.abs(t - spotTRef.current) > 0.25
+                      ) {
+                        setSpotted([]);
+                        spotTRef.current = null;
+                      }
                       const v = frameVideoRef.current;
                       if (v) v.currentTime = t;
                     }}
