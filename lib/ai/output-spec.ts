@@ -21,14 +21,12 @@ const RETURN_SCALE: Record<Level, string> = {
     "This player trains at the professional tier. Only marginal refinements remain; keep expected gains small and timeframes realistic for high-level habit change.",
 };
 
-// Where the 0-100 scale is anchored. The per-skill RUBRIC anchors describe
-// technique from developing (~40) to advanced (~90), but its ~90 prose is written
-// to an elite/pro ceiling. Left unqualified the model measures every rep against
-// that professional bar, so a fundamentally sound club rep lands in the 50s. This
-// block re-anchors the NUMBER to an advanced competitive-amateur ceiling for the
-// default tiers, and only restores the professional ceiling for players who chose
-// the pro tier. The rubric prose stays frozen; this governs how it is scored.
-const AMATEUR_STANDARD = [
+// Where the 0-100 scale is anchored. ONE standard for every account (D-037):
+// the advanced-amateur ceiling, with the rubric's ~90 elite prose as the top of
+// the scale. Per-tier scoring standards are gone; a 75 means the same thing on
+// every profile. The player's level still shapes the coaching VOICE and the
+// realism of expected gains, never where the bar sits.
+const STANDARD = [
   "SCORING STANDARD (how to turn the rubric anchors into a number)",
   "Calibrate the number you assign to an advanced competitive-amateur and club ceiling, NOT a professional one. The rubric's prose describes WHAT to look at; its numeric anchors describe a professional scale and do NOT set your numbers. Remap the whole scale: execution the rubric prose would call developing (~40 on its scale) scores 58-68 here when the mechanics are present but flawed; what it calls solid (~60-70) scores 70-82 here; its ~90 elite prose is the top of this scale, not the middle of it.",
   "Score each checkpoint on its own evidence, independently. One fault must not bleed into every number: a genuinely strong jump still scores in the 70s even when the contact that follows it is late or out of position. Only the checkpoints the fault actually lives in carry it.",
@@ -40,21 +38,8 @@ const AMATEUR_STANDARD = [
   "The shape this produces: a rep with a real athletic foundation and one clear fault lands in the mid-to-high 60s overall, not the 40s. Keep the floor honest in the notes, price the fault against what works rather than instead of it, and never hand out a 70 for effort alone.",
 ].join("\n");
 
-const PRO_STANDARD = [
-  "SCORING STANDARD (how to turn the rubric anchors into a number)",
-  "This player chose the professional tier: measure the number against the professional ceiling the rubric anchors describe. Reserve 90+ for professional-grade execution and do not inflate a merely sound amateur rep.",
-].join("\n");
-
-const SCORING_STANDARD: Record<Level, string> = {
-  beginner: AMATEUR_STANDARD,
-  intermediate: AMATEUR_STANDARD,
-  expert: AMATEUR_STANDARD,
-  pro: PRO_STANDARD,
-};
-
-// How the coach talks to this player. The scoring STANDARD above sets where the
-// scale sits; this sets the voice, and how much a verdict gets softened. Pro is
-// the contract the funnel promises: judged like a professional, told bluntly.
+// How the coach talks to this player. The single STANDARD above sets where
+// the scale sits for everyone; this sets only the voice.
 const COACH_VOICE: Record<Level, string> = {
   beginner:
     "COACHING VOICE: This player is new. Coach like a patient teacher: lead with the one thing that works, then the biggest fix in plain language. Explain any term a first-year player would not know.",
@@ -63,7 +48,7 @@ const COACH_VOICE: Record<Level, string> = {
   expert:
     "COACHING VOICE: Coach like a high-performance coach. Hold a high bar: skip praise padding, be exacting about each technical deficiency, and name the standard it misses.",
   pro:
-    "COACHING VOICE: This player asked to be judged as a professional. Coach like a pro-level coach reviewing film with a pro: harsh and unsparing. Measure every rep against the professional standard, call out every deficiency bluntly and by name, and never soften a verdict. Praise nothing that is merely adequate. Scores and notes reflect the pro bar, not effort or improvement.",
+    "COACHING VOICE: This player wants film reviewed like a professional would hear it: blunt and unsparing. Call out every deficiency by name and never soften a verdict, while scoring on the same scale as everyone else.",
 };
 
 /**
@@ -75,7 +60,7 @@ const COACH_VOICE: Record<Level, string> = {
 export function outputSpec(skill: Skill, level: Level): string {
   const keys = METRICS[skill].map((m) => m.key);
   return [
-    SCORING_STANDARD[level],
+    STANDARD,
     "",
     COACH_VOICE[level],
     "",

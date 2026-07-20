@@ -187,11 +187,11 @@ export async function POST(req: NextRequest) {
 
       const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
       const top = raw.changes[0];
-      // The product score scale (D-034): the model's raw judgment is remapped
-      // onto the shipped scale for every tier except pro, whose contract is
-      // the professional bar untouched. Monotonic, so ordering between reps
-      // is exactly the model's; only where the numbers sit changes.
-      const scaled = (n: number) => (level === "pro" ? n : toProductScale(n));
+      // The product score scale (D-034/D-037): the model's raw judgment is
+      // remapped onto the shipped scale for every account. Monotonic, so
+      // ordering between reps is exactly the model's; only where the numbers
+      // sit changes.
+      const scaled = (n: number) => toProductScale(n);
       result = {
         skill,
         overall_score: coherentOverall(

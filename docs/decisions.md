@@ -1152,3 +1152,19 @@ Two changes:
    250ms scrub rule as the mark. Validated against the owner's anchor frame:
    the first candidate returned was the correct athlete with a usable torso
    point.
+
+## D-037 — One scoring standard for every account: the advanced-amateur ceiling
+
+Owner call, after comparing his own rep and pro tournament footage through the
+pipeline. The per-tier scoring standards are gone: AMATEUR vs PRO standard
+selection, and the pro-tier exemption from the D-034 score curve, are all
+removed. Every account is scored against the single validated standard (the
+rubric's ~90 elite prose as the top of the scale, checkpoints scored
+independently) and mapped through the same curve, so a 75 means the same thing
+on every profile and any two clips can be compared number to number.
+
+The player's level still personalizes the coaching VOICE and the realism of
+expected gains (RETURN_SCALE); the pro voice keeps its bluntness but now says
+so on the shared scale. What is lost, knowingly: the funnel's "judged like a
+professional" scoring contract; a pro-tier user now gets pro-blunt words over
+the standard scale rather than a separate harsher number.
