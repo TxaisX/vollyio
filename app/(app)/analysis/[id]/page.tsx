@@ -127,10 +127,6 @@ export default async function AnalysisDetail({
     highlighted: highlight.has(i),
   }));
 
-  const ball = new Map<number, { x: number; y: number; visible: boolean }>();
-  for (const b of result.ball_track ?? [])
-    ball.set(b.frame_index, { x: b.x, y: b.y, visible: b.visible });
-
   const focusIndex = result.focus?.frame_index ?? null;
   const contactIndex =
     typeof result.contact_frame_index === "number" ? result.contact_frame_index : null;
@@ -232,7 +228,6 @@ export default async function AnalysisDetail({
               <ClipViewer
                 clipUrl={clipUrl}
                 frames={playerFrames}
-                ball={ball}
                 focusIndex={focusIndex}
                 contactIndex={contactIndex}
               />

@@ -153,8 +153,8 @@ export default function Landing() {
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
                 This is the read itself: you tap your player, a gold ring
-                marks exactly who to analyze, the coach follows them and the
-                ball through the rep, scores every checkpoint, and hands back
+                marks exactly who to analyze, the coach follows them through the
+                rep, scores every checkpoint, and hands back
                 the one fix that buys the most. The whole read, in a
                 ten-second loop.
               </p>
@@ -168,7 +168,7 @@ export default function Landing() {
                     src="/sideout-court-vision.mp4"
                     srcWebm="/sideout-court-vision.webm"
                     poster="/sideout-court-vision-poster.webp"
-                    label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, the ball is followed, spike checkpoints are scored, and the spike scores 82 with one priority fix."
+                    label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, spike checkpoints are scored, and the spike scores 82 with one priority fix."
                     posterAlt="A two-player volleyball spike: the tapped hitter ringed in gold, scored attack checkpoints, and a spike score of 82."
                     className="absolute inset-0"
                     controlCorner="bottom-4 right-4"

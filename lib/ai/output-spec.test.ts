@@ -23,7 +23,8 @@ test("no measurement language survives the engine removal (D-033)", () => {
   assert.ok(!spec.includes("omitted_below_confidence"));
 });
 
-test("ball positions stay visual estimates with an honest abstain lane", () => {
+test("no ball-tracking output survives its removal", () => {
   const spec = outputSpec("serve", "beginner");
-  assert.ok(spec.includes("Never invent a confident position you cannot see"));
+  assert.ok(!spec.includes("BALL TRACKING"));
+  assert.ok(!spec.includes("ball_track"));
 });

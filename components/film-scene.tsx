@@ -10,8 +10,7 @@ import { useReducedMotion } from "@/components/motion";
 //
 // This mirrors the REAL analysis flow (D-033): the player taps their athlete,
 // a gold ring marks exactly who to analyze, the coach follows that athlete
-// across the clip, estimates the ball, scores the checkpoints, and returns one
-// priority fix. Nothing here depicts a capability the product no longer has:
+// across the clip, scores the checkpoints, and returns one priority fix. Nothing here depicts a capability the product no longer has:
 // no skeleton, no detector boxes, no measured units.
 
 export const FILM_SECONDS = 10;
@@ -34,17 +33,6 @@ const sy = (n: number) => PANEL.top + n * PANEL.h;
 // image comes from.
 const MARK: Point = [0.5373, 0.5341];
 const MARK_R = 34;
-
-// The ball as the coach estimates it per frame. A crosshair sits on it; a
-// short trail of prior estimates runs into contact. Coordinates read off the
-// real frame.
-const BALL: Point = [0.565, 0.367];
-const BALL_TRAIL: ReadonlyArray<Point> = [
-  [0.599, 0.454],
-  [0.589, 0.423],
-  [0.579, 0.398],
-  [0.571, 0.381],
-];
 
 // Checkpoint chips exactly as the product returns them: each metric scored
 // 0-100 with a frame-pinned note, no invented units.
@@ -191,33 +179,6 @@ const FILM_CSS = `
   opacity: 0;
   animation: film-ring-in ${FILM_SECONDS}s linear infinite;
 }
-.film-ball-halo {
-  fill: none;
-  stroke: color-mix(in oklab, var(--color-navy) 55%, transparent);
-  stroke-width: 5.5;
-  opacity: 0;
-  animation: film-ball-in ${FILM_SECONDS}s linear infinite;
-}
-.film-ball-ring {
-  fill: none;
-  stroke: var(--color-teal);
-  stroke-width: 2.5;
-  opacity: 0;
-  animation: film-ball-in ${FILM_SECONDS}s linear infinite;
-}
-.film-ball-dot {
-  fill: var(--color-teal);
-  opacity: 0;
-  animation: film-ball-in ${FILM_SECONDS}s linear infinite;
-}
-@keyframes film-ball-in {
-  0%, 30% { opacity: 0; }
-  34%, 100% { opacity: 1; }
-}
-.film-trail {
-  fill: var(--color-teal);
-  opacity: 0;
-}
 .film-hud {
   position: absolute;
 }
@@ -253,10 +214,6 @@ const FILM_CSS = `
 }
 ${popCss([
   ["film-caption-in", 4],
-  ["film-trail-a", 24],
-  ["film-trail-b", 26],
-  ["film-trail-c", 28],
-  ["film-trail-d", 30],
   ["film-chip-a", 40],
   ["film-chip-b", 46],
   ["film-chip-c", 52],
@@ -267,17 +224,11 @@ ${popCss([
 .film-debug .film-ring,
 .film-debug .film-ring-halo,
 .film-debug .film-watch,
-.film-debug .film-ball-halo,
-.film-debug .film-ball-ring,
-.film-debug .film-ball-dot,
-.film-debug .film-trail,
 .film-debug .film-hud-pop { opacity: 1; transform: none; }
 .film-debug .film-tap { opacity: 0; }
 .film-debug .film-score-arc { stroke-dashoffset: 0; }
 .film-debug .film-scan { opacity: 0; }
 `;
-
-const TRAIL_ANIM = ["film-trail-a", "film-trail-b", "film-trail-c", "film-trail-d"];
 
 export function FilmScene({
   variant = "film",
@@ -288,11 +239,10 @@ export function FilmScene({
 }) {
   const reducedMotion = useReducedMotion();
   const showStory = variant === "film";
-  const ball = { x: sx(BALL[0]), y: sy(BALL[1]) };
 
   return (
     <main
-      aria-label="Sideout court vision. A real two-player rep is read by the coaching service: the player taps their athlete, a gold ring marks who to analyze, the ball is followed, and the checkpoints, score, and one priority fix appear."
+      aria-label="Sideout court vision. A real two-player rep is read by the coaching service: the player taps their athlete, a gold ring marks who to analyze, and the checkpoints, score, and one priority fix appear."
       className="grid min-h-svh place-items-center bg-navy"
     >
       <style dangerouslySetInnerHTML={{ __html: FILM_CSS }} />
@@ -315,23 +265,6 @@ export function FilmScene({
                 <circle cx={mark.x} cy={mark.y} r={MARK_R} className="film-ring-halo" />
                 <circle cx={mark.x} cy={mark.y} r={MARK_R} className="film-ring" />
 
-                {/* The ball as the coach reads it: trailing estimates arc into
-                    the crosshair. */}
-                {BALL_TRAIL.map((p, i) => (
-                  <circle
-                    key={i}
-                    cx={sx(p[0])}
-                    cy={sy(p[1])}
-                    r={2.4}
-                    className="film-trail"
-                    style={{
-                      animation: `${TRAIL_ANIM[i % TRAIL_ANIM.length]} ${FILM_SECONDS}s linear infinite`,
-                    }}
-                  />
-                ))}
-                <circle cx={ball.x} cy={ball.y} r={12} className="film-ball-halo" />
-                <circle cx={ball.x} cy={ball.y} r={12} className="film-ball-ring" />
-                <circle cx={ball.x} cy={ball.y} r={3} className="film-ball-dot" />
               </svg>
 
               <span className="film-watch font-mono">watching</span>

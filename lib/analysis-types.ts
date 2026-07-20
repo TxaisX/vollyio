@@ -36,13 +36,6 @@ export type PriorityFix = {
   time_s: number | null;
 };
 
-export type BallMark = {
-  frame_index: number;
-  x: number; // normalized 0-1, origin top-left
-  y: number; // normalized 0-1, origin top-left
-  visible: boolean;
-};
-
 export type Focus = {
   frame_index: number;
   label: string;
@@ -86,7 +79,6 @@ export type AnalysisResult = {
   // Per-rep mini-scores when more than one repetition was distinguishable.
   rep_scores?: RepScore[];
   metrics: Metric[];
-  ball_track: BallMark[];
   contact_frame_index: number;
   focus: Focus;
   insights: Insight[];
