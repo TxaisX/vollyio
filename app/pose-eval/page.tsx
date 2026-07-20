@@ -118,12 +118,21 @@ export default function PoseEvalPage() {
     const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
     const out: FrameResult[] = [];
 
+    // Stage markers. Each one paints before the next blocking call, so a stall
+    // names the exact step it stopped on instead of leaving the run silent.
+    const stage = async (label: string) => {
+      setStatus(label);
+      await new Promise((r) => setTimeout(r, 0));
+    };
+
     for (let i = 0; i < manifest.frames.length; i++) {
       if (abortRef.current) break;
       const entry = manifest.frames[i];
       setStatus(`${i + 1}/${manifest.frames.length} ${entry.clip}`);
 
+      await stage(`${i + 1}: loading image`);
       const img = await loadImage(entry.src);
+      await stage(`${i + 1}: image ${img ? `${img.naturalWidth}x${img.naturalHeight}` : "FAILED"}`);
       if (!img) continue;
 
       const started = performance.now();
@@ -137,7 +146,9 @@ export default function PoseEvalPage() {
       ctx.drawImage(img, 0, 0, W, H);
 
       // Stage 1: enumerate people.
+      await stage(`${i + 1}: detector.detect`);
       const detections = detector.detect(canvas).detections ?? [];
+      await stage(`${i + 1}: detector done (${detections.length})`);
       const boxes: Box[] = detections
         .map((d) => {
           const b = d.boundingBox;
@@ -154,6 +165,7 @@ export default function PoseEvalPage() {
       const people = usableBoxes(boxes);
 
       // Single stage, for comparison: pose straight at the whole frame.
+      await stage(`${i + 1}: single-stage pose`);
       const singleStage = (pose.detect(canvas).landmarks ?? []).filter(
         (p) => p.length === POSE_LANDMARK_COUNT,
       );
@@ -182,6 +194,7 @@ export default function PoseEvalPage() {
           cropCanvas.width,
           cropCanvas.height,
         );
+        await stage(`${i + 1}: crop pose ${cropCanvas.width}x${cropCanvas.height}`);
         const found = (pose.detect(cropCanvas).landmarks ?? []).filter(
           (p) => p.length === POSE_LANDMARK_COUNT,
         );
@@ -197,6 +210,7 @@ export default function PoseEvalPage() {
         if (center && containsPoint(box, fromCrop(center, crop))) twoStageFaithful++;
       }
 
+      await stage(`${i + 1}: frame complete`);
       out.push({
         src: entry.src,
         clip: entry.clip,
