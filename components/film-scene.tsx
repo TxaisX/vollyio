@@ -8,12 +8,11 @@ import { useReducedMotion } from "@/components/motion";
 // so the scene state at t equals the state at t + FILM_SECONDS and any
 // whole-cycle capture window loops without a seam.
 //
-// This mirrors the REAL analysis tool (D-021): a vertical clip is read
-// full-frame, EVERY player is detected and boxed, the one you tap is tracked
-// with a live skeleton, and the ball is measured. The skeleton topology,
-// player boxes, and joint positions below are the actual RTMPose output for
-// a real two-player rep (frame 0225 of the calibration clip), so the film
-// shows what the product literally draws — not a stylized approximation.
+// This mirrors the REAL analysis flow (D-033): the player taps their athlete,
+// a gold ring marks exactly who to analyze, the coach follows that athlete
+// across the clip, estimates the ball, scores the checkpoints, and returns one
+// priority fix. Nothing here depicts a capability the product no longer has:
+// no skeleton, no detector boxes, no measured units.
 
 export const FILM_SECONDS = 10;
 
@@ -24,60 +23,21 @@ type Point = readonly [number, number];
 // (w/h) matches the source frame's 720x1280 portrait, so the plate fills it
 // with no distortion. Overlay coordinates are normalized 0..1 within the
 // clip and mapped into this rect (exactly how the results player letterboxes
-// keypoints onto the video content box).
+// overlays onto the video content box).
 const PANEL = { left: 806, top: 30, w: 371, h: 660 };
 
 const sx = (n: number) => PANEL.left + n * PANEL.w;
 const sy = (n: number) => PANEL.top + n * PANEL.h;
 
-// Real RTMPose keypoints (normalized to the clip frame) for the tracked
-// player: the attacking hitter. Only the slots the model actually
-// produces are here; the tool draws no head node and no feet, so neither
-// does the film.
-const K = {
-  lSho: [0.5682, 0.4965] as Point,
-  rSho: [0.4854, 0.516] as Point,
-  lElb: [0.5968, 0.4787] as Point,
-  rElb: [0.4523, 0.5405] as Point,
-  lWri: [0.6058, 0.466] as Point,
-  rWri: [0.4553, 0.5354] as Point,
-  lHip: [0.5892, 0.5684] as Point,
-  rHip: [0.5381, 0.5718] as Point,
-  lKne: [0.6254, 0.6294] as Point,
-  rKne: [0.4974, 0.6268] as Point,
-  lAnk: [0.6359, 0.6429] as Point,
-  rAnk: [0.4568, 0.692] as Point,
-};
+// The tapped athlete's torso centre on the real frame: where the user's tap
+// lands and the ring draws. Read off the same calibration frame the plate
+// image comes from.
+const MARK: Point = [0.5373, 0.5341];
+const MARK_R = 34;
 
-// Bone graph = the exact set the results player renders (torso, both arms,
-// both legs to the ankles, plus the hip line). No feet: RTMPose emits no
-// heels, so those bones never draw in the product either.
-const BONES: ReadonlyArray<readonly [keyof typeof K, keyof typeof K]> = [
-  ["lSho", "rSho"],
-  ["lSho", "lElb"],
-  ["lElb", "lWri"],
-  ["rSho", "rElb"],
-  ["rElb", "rWri"],
-  ["lSho", "lHip"],
-  ["rSho", "rHip"],
-  ["lHip", "rHip"],
-  ["lHip", "lKne"],
-  ["lKne", "lAnk"],
-  ["rHip", "rKne"],
-  ["rKne", "rAnk"],
-];
-
-const JOINTS = Object.keys(K) as (keyof typeof K)[];
-
-// Detected player boxes (normalized xyxy), real detector output. Person 0 is
-// the tracked athlete (gold, "watching"); person 1 is the other player on
-// the court (thin chalk box), the multi-player detection the tool now does.
-const TRACKED_BOX = [0.3624, 0.412, 0.6987, 0.7587] as const;
-const OTHER_BOX = [0.6318, 0.5748, 0.825, 0.8341] as const;
-
-// The ball, measured. A crosshair sits on it; a short trail of prior measured
-// positions runs into contact (the tracked path, not a
-// projection). Coordinates read off the real frame.
+// The ball as the coach estimates it per frame. A crosshair sits on it; a
+// short trail of prior estimates runs into contact. Coordinates read off the
+// real frame.
 const BALL: Point = [0.565, 0.367];
 const BALL_TRAIL: ReadonlyArray<Point> = [
   [0.599, 0.454],
@@ -86,20 +46,13 @@ const BALL_TRAIL: ReadonlyArray<Point> = [
   [0.571, 0.381],
 ];
 
+// Checkpoint chips exactly as the product returns them: each metric scored
+// 0-100 with a frame-pinned note, no invented units.
 const CHIPS: ReadonlyArray<readonly [string, string]> = [
-  ["Approach tempo", "0.31s between steps"],
-  ["Contact height", "1.42 body heights"],
-  ["Elbow angle at contact", "158°"],
+  ["Approach", "76 · strong tempo"],
+  ["Contact", "68 · below full reach"],
+  ["Follow-through", "84 · clean snap"],
 ];
-
-function boxRect(b: readonly [number, number, number, number]) {
-  return {
-    x: sx(b[0]),
-    y: sy(b[1]),
-    w: (b[2] - b[0]) * PANEL.w,
-    h: (b[3] - b[1]) * PANEL.h,
-  };
-}
 
 // Generates a pop-in keyframe block pinned to the master loop timeline:
 // hidden until `at`%, settled by `at + 3`%, held, then released to the group
@@ -115,8 +68,7 @@ function popCss(names: ReadonlyArray<readonly [string, number]>) {
   return names.map(([name, at]) => pop(name, at)).join("\n");
 }
 
-const trackedRect = boxRect(TRACKED_BOX);
-const otherRect = boxRect(OTHER_BOX);
+const mark = { x: sx(MARK[0]), y: sy(MARK[1]) };
 
 const FILM_CSS = `
 .film-stage {
@@ -188,33 +140,46 @@ const FILM_CSS = `
   0%, 95% { opacity: 1; }
   99%, 100% { opacity: 0; }
 }
-.film-box {
+/* The tap: a fingertip pulse where the user chooses their athlete, then the
+   ring settles around them. */
+.film-tap {
   fill: none;
-  animation: film-box-in ${FILM_SECONDS}s linear infinite;
+  stroke: var(--color-chalk);
+  stroke-width: 2;
   opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: film-tap ${FILM_SECONDS}s linear infinite;
 }
-.film-box-other {
-  stroke: color-mix(in oklab, var(--color-chalk-dim) 60%, transparent);
-  stroke-width: 1.5;
+@keyframes film-tap {
+  0%, 14% { opacity: 0; transform: scale(0.4); }
+  16% { opacity: 0.9; transform: scale(0.7); }
+  20% { opacity: 0; transform: scale(1.35); }
+  21%, 100% { opacity: 0; }
 }
-.film-box-tracked {
+.film-ring-halo {
+  fill: none;
+  stroke: color-mix(in oklab, var(--color-navy) 60%, transparent);
+  stroke-width: 9;
+  opacity: 0;
+  animation: film-ring-in ${FILM_SECONDS}s linear infinite;
+}
+.film-ring {
+  fill: none;
   stroke: var(--color-gold);
-  stroke-width: 2.5;
-  filter: drop-shadow(0 0 7px color-mix(in oklab, var(--color-gold) 45%, transparent));
-  animation: film-pick-in ${FILM_SECONDS}s linear infinite;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--color-gold) 45%, transparent));
+  opacity: 0;
+  animation: film-ring-in ${FILM_SECONDS}s linear infinite;
 }
-@keyframes film-box-in {
-  0%, 11% { opacity: 0; }
-  15%, 100% { opacity: 0.9; }
-}
-@keyframes film-pick-in {
+@keyframes film-ring-in {
   0%, 18% { opacity: 0; }
   22%, 100% { opacity: 1; }
 }
 .film-watch {
   position: absolute;
-  left: ${trackedRect.x}px;
-  top: ${trackedRect.y - 22}px;
+  left: ${mark.x - 33}px;
+  top: ${mark.y - MARK_R - 30}px;
   padding: 2px 7px;
   border-radius: 5px;
   background: var(--color-gold);
@@ -224,28 +189,7 @@ const FILM_CSS = `
   letter-spacing: 0.14em;
   text-transform: uppercase;
   opacity: 0;
-  animation: film-pick-in ${FILM_SECONDS}s linear infinite;
-}
-.film-bone {
-  stroke: var(--color-teal);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  fill: none;
-  opacity: 0;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: film-bone ${FILM_SECONDS}s linear infinite;
-}
-@keyframes film-bone {
-  0%, 15% { stroke-dashoffset: 1; opacity: 0; }
-  17% { opacity: 0.9; }
-  30%, 100% { stroke-dashoffset: 0; opacity: 0.9; }
-}
-.film-joint {
-  fill: var(--color-chalk);
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
+  animation: film-ring-in ${FILM_SECONDS}s linear infinite;
 }
 .film-ball-halo {
   fill: none;
@@ -256,13 +200,13 @@ const FILM_CSS = `
 }
 .film-ball-ring {
   fill: none;
-  stroke: var(--color-gold);
+  stroke: var(--color-teal);
   stroke-width: 2.5;
   opacity: 0;
   animation: film-ball-in ${FILM_SECONDS}s linear infinite;
 }
 .film-ball-dot {
-  fill: var(--color-gold);
+  fill: var(--color-teal);
   opacity: 0;
   animation: film-ball-in ${FILM_SECONDS}s linear infinite;
 }
@@ -271,7 +215,7 @@ const FILM_CSS = `
   34%, 100% { opacity: 1; }
 }
 .film-trail {
-  fill: var(--color-gold);
+  fill: var(--color-teal);
   opacity: 0;
 }
 .film-hud {
@@ -313,10 +257,6 @@ ${popCss([
   ["film-trail-b", 26],
   ["film-trail-c", 28],
   ["film-trail-d", 30],
-  ["film-joint-a", 20],
-  ["film-joint-b", 22],
-  ["film-joint-c", 24],
-  ["film-joint-d", 26],
   ["film-chip-a", 40],
   ["film-chip-b", 46],
   ["film-chip-c", 52],
@@ -324,22 +264,20 @@ ${popCss([
   ["film-fix-in", 64],
 ])}
 .film-debug * { animation: none !important; }
-.film-debug .film-box,
-.film-debug .film-box-tracked,
+.film-debug .film-ring,
+.film-debug .film-ring-halo,
 .film-debug .film-watch,
 .film-debug .film-ball-halo,
 .film-debug .film-ball-ring,
 .film-debug .film-ball-dot,
 .film-debug .film-trail,
-.film-debug .film-joint,
 .film-debug .film-hud-pop { opacity: 1; transform: none; }
-.film-debug .film-bone { stroke-dashoffset: 0; opacity: 0.9; }
+.film-debug .film-tap { opacity: 0; }
 .film-debug .film-score-arc { stroke-dashoffset: 0; }
 .film-debug .film-scan { opacity: 0; }
 `;
 
 const TRAIL_ANIM = ["film-trail-a", "film-trail-b", "film-trail-c", "film-trail-d"];
-const JOINT_ANIM = ["film-joint-a", "film-joint-b", "film-joint-c", "film-joint-d"];
 
 export function FilmScene({
   variant = "film",
@@ -354,7 +292,7 @@ export function FilmScene({
 
   return (
     <main
-      aria-label="Sideout court vision. A real two-player rep is read by the coaching service: every player is detected and boxed, the tapped athlete is tracked with a live skeleton, the ball is measured, and the checkpoints and score appear."
+      aria-label="Sideout court vision. A real two-player rep is read by the coaching service: the player taps their athlete, a gold ring marks who to analyze, the ball is followed, and the checkpoints, score, and one priority fix appear."
       className="grid min-h-svh place-items-center bg-navy"
     >
       <style dangerouslySetInnerHTML={{ __html: FILM_CSS }} />
@@ -372,49 +310,13 @@ export function FilmScene({
           {!reducedMotion && (
             <div className="film-overlays">
               <svg viewBox="0 0 1280 720" width="1280" height="720" className="absolute inset-0">
-                {/* Other detected player: thin chalk box, no skeleton. */}
-                <rect
-                  x={otherRect.x}
-                  y={otherRect.y}
-                  width={otherRect.w}
-                  height={otherRect.h}
-                  rx={7}
-                  className="film-box film-box-other"
-                />
-                {/* Tracked player: gold selection box. */}
-                <rect
-                  x={trackedRect.x}
-                  y={trackedRect.y}
-                  width={trackedRect.w}
-                  height={trackedRect.h}
-                  rx={7}
-                  className="film-box film-box-tracked"
-                />
+                {/* The tap pulse, then the ring that marks the chosen athlete. */}
+                <circle cx={mark.x} cy={mark.y} r={MARK_R * 0.7} className="film-tap" />
+                <circle cx={mark.x} cy={mark.y} r={MARK_R} className="film-ring-halo" />
+                <circle cx={mark.x} cy={mark.y} r={MARK_R} className="film-ring" />
 
-                {/* Skeleton on the tracked player. */}
-                {BONES.map(([a, b], i) => (
-                  <line
-                    key={i}
-                    x1={sx(K[a][0])}
-                    y1={sy(K[a][1])}
-                    x2={sx(K[b][0])}
-                    y2={sy(K[b][1])}
-                    pathLength={1}
-                    className="film-bone"
-                  />
-                ))}
-                {JOINTS.map((key, i) => (
-                  <circle
-                    key={key}
-                    cx={sx(K[key][0])}
-                    cy={sy(K[key][1])}
-                    r={3.2}
-                    className="film-joint"
-                    style={{ animation: `${JOINT_ANIM[i % JOINT_ANIM.length]} ${FILM_SECONDS}s linear infinite` }}
-                  />
-                ))}
-
-                {/* Measured ball: trailing samples arc into the crosshair. */}
+                {/* The ball as the coach reads it: trailing estimates arc into
+                    the crosshair. */}
                 {BALL_TRAIL.map((p, i) => (
                   <circle
                     key={i}

@@ -1,6 +1,11 @@
 # Analysis Validation and Coaching Calibration Roadmap
 
-Status: proposed operating plan, 2026-07-16
+Status: partially superseded, 2026-07-20. D-033 removed the on-device
+measurement layer after it lost both blind tests (see docs/decisions.md), so
+every measurement-validity workstream below is void. The coaching-calibration
+and eval-labeling workstreams still stand.
+
+Original status: proposed operating plan, 2026-07-16
 
 ## Objective
 
