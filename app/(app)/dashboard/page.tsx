@@ -16,6 +16,9 @@ import {
   SKILLS,
   SKILL_LABEL,
   DISCIPLINES,
+  ANALYZE_DISCIPLINES,
+  GROUP_DISCIPLINES,
+  disciplineGroup,
   DISCIPLINE_LABEL,
   isDiscipline,
   type Skill,
@@ -80,12 +83,12 @@ export default async function Dashboard({
       .from("skill_ratings")
       .select("skill, rating")
       .eq("user_id", userId!)
-      .eq("discipline", discipline),
+      .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]]),
     supabase
       .from("analyses")
       .select("id, skill, overall_score, created_at")
       .eq("user_id", userId!)
-      .eq("discipline", discipline)
+      .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]])
       .order("created_at", { ascending: false })
       .limit(40),
     supabase
@@ -140,7 +143,7 @@ export default async function Dashboard({
               {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
             </h1>
             <div className="mt-3 flex items-center gap-2">
-              {DISCIPLINES.map((d) => (
+              {ANALYZE_DISCIPLINES.map((d) => (
                 <Link
                   key={d}
                   href={d === "indoor" ? "/dashboard" : `/dashboard?discipline=${d}`}

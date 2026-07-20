@@ -1097,3 +1097,34 @@ labeled eval floor to catch drift (D-031: 0 scored cases). A deterministic
 curve moves the numbers, is provable, reversible in one file, and leaves the
 judgment alone. Known rough edge, accepted: expected_gain still arrives on the
 model's raw scale, so mid-band gains slightly understate displayed gains.
+
+## D-035 — One coach, two surfaces: grass and sand judged together, indoor alone
+
+Owner call. The eighteen per-discipline coach personas ("elite BEACH serving
+coach", "elite GRASSS attacking coach", ...) are replaced by ONE shared coach
+voice fronting every rubric, and the three disciplines resolve to two coaching
+groups: `indoor`, and `outdoor` covering grass and sand together.
+
+The outdoor anchors are the grass set (firm footing matches most recreational
+outdoor footage, and it is the set the D-034 calibration was validated
+against), fronted by a surface-adaptation note: read the footing from the
+frames, hold grass near the indoor bar, credit sand's cost to approach and
+jump, count wind control in the player's favor. The beach anchor set is
+deleted; beach-specific strictness (hand-set rules) is left to the note and
+the frames.
+
+Wire and database untouched: all three stored values stay valid
+(indoor|beach|grass; live constraints verified), `beach` becomes a legacy
+value new captures no longer produce, and the capture/onboarding/dashboard/
+learn UIs offer two choices ("Indoor", "Grass & sand") with `grass` as the
+stored value for the combined group. Dashboard queries went group-aware
+(`.in` over GROUP_DISCIPLINES) so historical beach rows stay visible under
+the combined chip. The five-metric taxonomy per skill is unchanged
+everywhere, so ratings and stored results remain comparable.
+
+Validated: getRubric returns the identical outdoor rubric for beach and
+grass; the D-034 anchor clip still scores 66-70 at low effort (70 at high)
+under the unified coach voice, so the calibration survives the persona swap.
+Known reductions, accepted: rep-history rows recorded under `beach` display
+as "Grass & sand"; goals still query indoor-only (pre-existing quirk, out of
+scope here).

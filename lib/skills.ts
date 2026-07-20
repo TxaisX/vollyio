@@ -30,9 +30,29 @@ export type Discipline = (typeof DISCIPLINES)[number];
 
 export const DISCIPLINE_LABEL: Record<Discipline, string> = {
   indoor: "Indoor",
-  beach: "Beach",
-  grass: "Grass",
+  beach: "Grass & sand",
+  grass: "Grass & sand",
 };
+
+// One coach, two surfaces (D-035). Coaching resolves by GROUP: indoor stands
+// alone; grass and sand are judged together as outdoor. All three wire values
+// stay valid so stored rows and the database constraints are untouched;
+// `beach` is a legacy capture value that new analyses no longer produce.
+export type DisciplineGroup = "indoor" | "outdoor";
+
+export function disciplineGroup(d: Discipline): DisciplineGroup {
+  return d === "indoor" ? "indoor" : "outdoor";
+}
+
+// The stored wire values a group covers, for queries over historical rows.
+export const GROUP_DISCIPLINES: Record<DisciplineGroup, readonly Discipline[]> = {
+  indoor: ["indoor"],
+  outdoor: ["beach", "grass"],
+};
+
+// What the capture and onboarding flows offer: one chip per group. `grass` is
+// the stored value for the combined outdoor group.
+export const ANALYZE_DISCIPLINES = ["indoor", "grass"] as const;
 
 export function isDiscipline(value: string): value is Discipline {
   return (DISCIPLINES as readonly string[]).includes(value);
