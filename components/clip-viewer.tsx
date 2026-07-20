@@ -1,106 +1,44 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  POSE_LANDMARK_COUNT,
-  SKELETON_JOINTS,
-  SKELETON_MIN_V,
-  SKELETON_REGION_BONES,
-  SKELETON_REGION_COLOR,
-  headGeometry,
-  type BallPoint,
-  type KeypointsFile,
-  type TimedBox,
-} from "@/lib/pose/types";
-
-const SKELETON_REGIONS = ["arms", "torso", "legs"] as const;
-import { boxAtTime } from "@/lib/pose/kinematics";
-import { ballAtTime } from "@/lib/pose/ball-track";
-import { activeAbsence, absenceLabel } from "@/lib/pose/track-state";
-import type { ContinuityAbsenceWire, ContinuityWire } from "@/lib/analysis-types";
 
 export type PlayerFrame = { url: string; time_s: number | null; highlighted: boolean };
 export type BallPos = { x: number; y: number; visible: boolean };
-// Flat [x, y, z, v, ...] landmark array per sent-frame index.
-export type FrameSkeletons = Map<number, number[]>;
 
 const FRAME_MS = 700;
 
-/** Tracked body lines over the frame, color-coded by region, in normalized
- *  image coordinates. Matches the skeleton baked into analysis frames. */
-function SkeletonOverlay({ pts }: { pts: number[] }) {
-  const at = (i: number) => ({ x: pts[i * 4], y: pts[i * 4 + 1], v: pts[i * 4 + 3] });
-  const head = headGeometry(
-    Array.from({ length: POSE_LANDMARK_COUNT }, (_, i) => ({
-      x: pts[i * 4],
-      y: pts[i * 4 + 1],
-      z: pts[i * 4 + 2],
-      v: pts[i * 4 + 3],
-    })),
-  );
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 1 1"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-    >
-      {SKELETON_REGIONS.flatMap((region) =>
-        SKELETON_REGION_BONES[region].map(([a, b], i) => {
-          const pa = at(a);
-          const pb = at(b);
-          if (pa.v < SKELETON_MIN_V || pb.v < SKELETON_MIN_V) return null;
-          return (
-            <line
-              key={`${region}-${i}`}
-              x1={pa.x}
-              y1={pa.y}
-              x2={pb.x}
-              y2={pb.y}
-              strokeWidth={0.006}
-              strokeLinecap="round"
-              style={{ stroke: `var(--color-${SKELETON_REGION_COLOR[region]})`, opacity: 0.85 }}
-            />
-          );
-        }),
-      )}
-      {head && (
-        <g
-          fill="none"
-          strokeLinecap="round"
-          style={{ stroke: `var(--color-${SKELETON_REGION_COLOR.head})`, opacity: 0.9 }}
-        >
-          <line
-            x1={head.neckX}
-            y1={head.neckY}
-            x2={head.cx}
-            y2={head.cy}
-            strokeWidth={0.006}
-          />
-          <circle cx={head.cx} cy={head.cy} r={head.r} strokeWidth={0.006} />
-        </g>
-      )}
-      {SKELETON_JOINTS.map((i) => {
-        const p = at(i);
-        if (p.v < SKELETON_MIN_V) return null;
-        return (
-          <circle
-            key={`j${i}`}
-            cx={p.x}
-            cy={p.y}
-            r={0.007}
-            style={{ fill: "var(--color-chalk)", opacity: 0.9 }}
-          />
-        );
-      })}
-    </svg>
-  );
+// A timed ball position on the clip timeline, built from the model's sparse
+// per-frame estimates via each frame's stored clip time.
+type BallPoint = { t: number; x: number; y: number };
+
+// Linear interpolation between neighbouring marks, abstaining across gaps too
+// wide to bridge honestly: a marker gliding through a two-second hole would be
+// an invented path, not a followed one.
+function ballAtTime(
+  path: BallPoint[],
+  t: number,
+  maxGapS: number,
+): { x: number; y: number } | null {
+  if (path.length === 0) return null;
+  let before: BallPoint | null = null;
+  let after: BallPoint | null = null;
+  for (const p of path) {
+    if (p.t <= t && (!before || p.t > before.t)) before = p;
+    if (p.t >= t && (!after || p.t < after.t)) after = p;
+  }
+  if (before && after && before !== after) {
+    if (after.t - before.t > maxGapS) return null;
+    const f = (t - before.t) / Math.max(1e-6, after.t - before.t);
+    return { x: before.x + (after.x - before.x) * f, y: before.y + (after.y - before.y) * f };
+  }
+  const nearest = before ?? after;
+  if (!nearest || Math.abs(nearest.t - t) > maxGapS / 2) return null;
+  return { x: nearest.x, y: nearest.y };
 }
 
-// Normalized landmark and ball coordinates are relative to the video/image
-// content, which letterboxes inside its container when aspects differ
-// (portrait phone clips especially). This inner-box style pins overlays to
-// the actual content.
+// Normalized ball coordinates are relative to the video/image content, which
+// letterboxes inside its container when aspects differ (portrait phone clips
+// especially). This inner-box style pins overlays to the actual content.
 function contentBoxStyle(
   containerAspect: number | null,
   mediaAspect: number | null,
@@ -142,23 +80,9 @@ type ViewerProps = {
   ball?: Map<number, BallPos>;
   focusIndex?: number | null;
   contactIndex?: number | null;
-  skeletons?: FrameSkeletons;
-  keypointsUrl?: string | null;
-  ballEstimated?: boolean;
-  continuity?: ContinuityWire | null;
 };
 
-export function ClipViewer({
-  clipUrl,
-  frames,
-  ball,
-  focusIndex,
-  contactIndex,
-  skeletons,
-  keypointsUrl,
-  ballEstimated,
-  continuity,
-}: ViewerProps) {
+export function ClipViewer({ clipUrl, frames, ball, focusIndex, contactIndex }: ViewerProps) {
   if (clipUrl) {
     return (
       <ClipPlayer
@@ -166,11 +90,7 @@ export function ClipViewer({
         frames={frames}
         focusIndex={focusIndex}
         contactIndex={contactIndex}
-        keypointsUrl={keypointsUrl ?? null}
-        fallbackSkeletons={skeletons}
         fallbackBall={ball}
-        ballEstimated={ballEstimated}
-        continuity={continuity}
       />
     );
   }
@@ -180,9 +100,6 @@ export function ClipViewer({
       ball={ball}
       focusIndex={focusIndex}
       contactIndex={contactIndex}
-      skeletons={skeletons}
-      ballEstimated={ballEstimated}
-      continuity={continuity}
     />
   );
 }
@@ -198,33 +115,6 @@ function BallMarker({ pos }: { pos: BallPos }) {
     >
       <span className="block h-6 w-6 rounded-full border-2 border-gold ring-2 ring-navy/55" />
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold" />
-    </span>
-  );
-}
-
-const ABSENCE_ARROW: Record<string, string> = {
-  left: "←",
-  right: "→",
-  top: "↑",
-  bottom: "↓",
-};
-const ABSENCE_POS: Record<string, string> = {
-  left: "left-2 top-1/2 -translate-y-1/2",
-  right: "right-2 top-1/2 -translate-y-1/2",
-  top: "top-2 left-1/2 -translate-x-1/2",
-  bottom: "bottom-2 left-1/2 -translate-x-1/2",
-};
-
-/** Edge chip shown while the playhead sits inside a tracked absence. */
-function AbsenceBadge({ absence }: { absence: ContinuityAbsenceWire }) {
-  const offFrame = absence.kind === "off_frame";
-  const pos = offFrame ? ABSENCE_POS[absence.edge ?? "left"] : "bottom-2 left-1/2 -translate-x-1/2";
-  return (
-    <span
-      className={`pointer-events-none absolute z-10 ${pos} flex items-center gap-1.5 rounded border border-dashed border-gold/80 bg-navy/85 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-gold`}
-    >
-      {offFrame && <span aria-hidden>{ABSENCE_ARROW[absence.edge ?? "left"]}</span>}
-      {absenceLabel(absence)}
     </span>
   );
 }
@@ -250,116 +140,51 @@ function ClipPlayer({
   frames,
   focusIndex,
   contactIndex,
-  keypointsUrl,
-  fallbackSkeletons,
   fallbackBall,
-  ballEstimated,
-  continuity,
 }: {
   clipUrl: string;
   frames: PlayerFrame[];
   focusIndex?: number | null;
   contactIndex?: number | null;
-  keypointsUrl: string | null;
-  fallbackSkeletons?: FrameSkeletons;
   fallbackBall?: Map<number, BallPos>;
-  ballEstimated?: boolean;
-  continuity?: ContinuityWire | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
-  const [nowS, setNowS] = useState(0);
   const [active, setActive] = useState<number | null>(null);
-  const [track, setTrack] = useState<KeypointsFile | null>(null);
   const [traceOn, setTraceOn] = useState(true);
-  const [playheadPts, setPlayheadPts] = useState<number[] | null>(null);
   const [playheadBall, setPlayheadBall] = useState<{ x: number; y: number } | null>(null);
-  const [playheadOthers, setPlayheadOthers] = useState<TimedBox[]>([]);
   const [mediaAspect, setMediaAspect] = useState<number | null>(null);
   const [boxAspect, setBoxAspect] = useState<number | null>(null);
 
-  // Dense keypoints are optional and load lazily; absence means no trace.
-  // Version 2 adds the timed ball path; version 3 covers the whole trimmed
-  // window (full-clip capture); version-1 files still draw skeletons.
-  useEffect(() => {
-    if (!keypointsUrl) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(keypointsUrl);
-        if (!res.ok) return;
-        const file = (await res.json()) as KeypointsFile;
-        if (
-          !cancelled &&
-          (file?.version === 1 || file?.version === 2 || file?.version === 3) &&
-          Array.isArray(file.frames)
-        ) {
-          setTrack(file);
-        }
-      } catch {
-        // No trace; the video plays exactly as before.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [keypointsUrl]);
-
-  // The path the ball marker follows: the dense on-device track when the
-  // sidecar carries one, otherwise the sparse per-frame marks placed on the
-  // timeline via each frame's stored clip time.
+  // The path the ball marker follows: the sparse per-frame estimates placed on
+  // the timeline via each frame's stored clip time.
   const ballPath = useMemo<BallPoint[]>(() => {
-    if (track?.ball && track.ball.length > 1) return track.ball;
     if (!fallbackBall) return [];
     const pts: BallPoint[] = [];
     frames.forEach((f, i) => {
       const b = fallbackBall.get(i);
       if (b?.visible && f.time_s != null) {
-        pts.push({ t: f.time_s, x: b.x, y: b.y, score: 1 });
+        pts.push({ t: f.time_s, x: b.x, y: b.y });
       }
     });
     return pts.sort((a, b) => a.t - b.t);
-  }, [track, fallbackBall, frames]);
-  // Sparse marks sit up to ~1s apart; the dense track interpolates tightly.
-  const ballGapS = track?.ball && track.ball.length > 1 ? 0.6 : 1.2;
+  }, [fallbackBall, frames]);
+  // Sparse marks sit up to ~1s apart.
+  const ballGapS = 1.2;
 
-  // Follow the playhead: nearest tracked instant within 150ms of currentTime.
+  // Follow the playhead.
   useEffect(() => {
-    const wantSkeleton = !!track && traceOn;
     const wantBall = traceOn && ballPath.length > 0;
-    if (!wantSkeleton && !wantBall) {
-      setPlayheadPts(null);
+    if (!wantBall) {
       setPlayheadBall(null);
-      setPlayheadOthers([]);
       return;
     }
     let raf = 0;
     const tick = () => {
       const v = videoRef.current;
       if (v) {
-        const t = v.currentTime;
-        let best: number[] | null = null;
-        if (wantSkeleton && track) {
-          let bestD = 0.15;
-          for (const lf of track.frames) {
-            const d = Math.abs(lf.t - t);
-            if (d < bestD) {
-              bestD = d;
-              best = lf.pts.flatMap((p) => [p.x, p.y, p.z, p.v]);
-            }
-          }
-        }
-        setPlayheadPts(best);
-        setPlayheadBall(wantBall ? ballAtTime(ballPath, t, ballGapS) : null);
-        const otherSeries = wantSkeleton ? track?.others : undefined;
-        setPlayheadOthers(
-          otherSeries?.length
-            ? otherSeries
-                .map((s) => boxAtTime(s, t))
-                .filter((b): b is TimedBox => b != null)
-            : [],
-        );
+        setPlayheadBall(ballAtTime(ballPath, v.currentTime, ballGapS));
         const box = boxRef.current;
         if (v.videoWidth && v.videoHeight) setMediaAspect(v.videoWidth / v.videoHeight);
         if (box && box.clientHeight > 0) setBoxAspect(box.clientWidth / box.clientHeight);
@@ -368,7 +193,7 @@ function ClipPlayer({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [track, traceOn, ballPath, ballGapS]);
+  }, [traceOn, ballPath, ballGapS]);
 
   if (failed) {
     return (
@@ -377,8 +202,6 @@ function ClipPlayer({
         ball={fallbackBall}
         focusIndex={focusIndex}
         contactIndex={contactIndex}
-        skeletons={fallbackSkeletons}
-        ballEstimated={ballEstimated}
       />
     );
   }
@@ -409,36 +232,16 @@ function ClipPlayer({
           playsInline
           preload="metadata"
           onError={() => setFailed(true)}
-          onTimeUpdate={(e) => setNowS((e.target as HTMLVideoElement).currentTime)}
           className="block max-h-[70vh] w-full"
         />
-        {(() => {
-          const absence = activeAbsence(continuity, nowS);
-          return absence ? <AbsenceBadge absence={absence} /> : null;
-        })()}
-        {(playheadPts || playheadBall || playheadOthers.length > 0) && (
+        {playheadBall && (
           <div style={contentBoxStyle(boxAspect, mediaAspect)} aria-hidden>
-            {playheadOthers.map((b, i) => (
-              <span
-                key={i}
-                className="absolute rounded border border-chalk-dim/50"
-                style={{
-                  left: `${b.left * 100}%`,
-                  top: `${b.top * 100}%`,
-                  width: `${b.width * 100}%`,
-                  height: `${b.height * 100}%`,
-                }}
-              />
-            ))}
-            {playheadPts && <SkeletonOverlay pts={playheadPts} />}
-            {playheadBall && (
-              <BallMarker pos={{ x: playheadBall.x, y: playheadBall.y, visible: true }} />
-            )}
+            <BallMarker pos={{ x: playheadBall.x, y: playheadBall.y, visible: true }} />
           </div>
         )}
       </div>
 
-      {(track || ballPath.length > 0) && (
+      {ballPath.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
@@ -446,15 +249,10 @@ function ClipPlayer({
             aria-pressed={traceOn}
             className={`chip min-h-11 ${traceOn ? "chip-active" : ""}`}
           >
-            Motion trace
+            Ball marker
           </button>
           <span className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-            {(ballPath.length === 0
-              ? "Tracked body lines over your rep"
-              : track
-                ? `Body lines and ${ballEstimated ? "estimated" : "measured"} ball over your rep`
-                : `${ballEstimated ? "Estimated" : "Measured"} ball over your rep`) +
-              (track?.others?.length ? " · other players boxed" : "")}
+            Estimated ball position over your rep
           </span>
         </div>
       )}
@@ -516,17 +314,11 @@ function FramePlayer({
   ball,
   focusIndex,
   contactIndex,
-  skeletons,
-  ballEstimated,
-  continuity,
 }: {
   frames: PlayerFrame[];
   ball?: Map<number, BallPos>;
   focusIndex?: number | null;
   contactIndex?: number | null;
-  skeletons?: FrameSkeletons;
-  ballEstimated?: boolean;
-  continuity?: ContinuityWire | null;
 }) {
   const [active, setActive] = useState(
     focusIndex != null && focusIndex >= 0 && focusIndex < frames.length ? focusIndex : 0,
@@ -571,7 +363,6 @@ function FramePlayer({
 
   const current = frames[active];
   const currentBall = ball?.get(active);
-  const currentSkeleton = skeletons?.get(active);
   const announcement = current
     ? `Frame ${active + 1} of ${frames.length}${
         current.time_s != null ? `, ${current.time_s} seconds` : ""
@@ -605,14 +396,8 @@ function FramePlayer({
           <div className="aspect-video w-full" />
         )}
         <div style={contentBoxStyle(16 / 9, imgAspect)} aria-hidden>
-          {currentSkeleton && <SkeletonOverlay pts={currentSkeleton} />}
           {currentBall && <BallMarker pos={currentBall} />}
         </div>
-        {(() => {
-          const absence =
-            current?.time_s != null ? activeAbsence(continuity, current.time_s) : null;
-          return absence ? <AbsenceBadge absence={absence} /> : null;
-        })()}
         <span
           aria-hidden
           className="absolute left-2 top-2 rounded bg-navy/85 px-2 py-1 font-mono text-xs text-chalk"
@@ -658,7 +443,7 @@ function FramePlayer({
         </button>
       </div>
 
-      {ball && ball.size > 0 && ballEstimated !== false && (
+      {ball && ball.size > 0 && (
         <p className="mt-2 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
           Ball marker: estimated position
         </p>

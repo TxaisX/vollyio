@@ -18,7 +18,6 @@ import {
 } from "@/lib/entitlements";
 import { SKILL_LABEL, type Level } from "@/lib/skills";
 import { MAX_BODY_BYTES, type AnalysisResult } from "@/lib/analysis-types";
-import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
 import { analyzeRequestSchema } from "@/lib/analyze-request";
 import {
   hasTrustedMutationOrigin,
@@ -100,10 +99,6 @@ export async function POST(req: NextRequest) {
     const timeAt = (index: number) =>
     frames.find((f) => f.index === index)?.time_s ?? null;
 
-  // Invalid measurement blocks are telemetry failures, not request failures:
-  // drop them and analyze vision-only.
-  const measurements = sanitizeMeasurements(parsedBody.data.measurements);
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("level")
@@ -128,29 +123,14 @@ export async function POST(req: NextRequest) {
         },
       ]);
 
-      const measuredBlock = measurements
-        ? [
-            {
-              type: "text" as const,
-              text: `Measured data from on-device motion tracking over the full clip (not just these frames). Each measurement carries a confidence from 0 to 1: treat high-confidence values as reliable evidence and let them drive the matching checkpoint's score; weigh lower-confidence values proportionally and cross-check them against what the frames show. Never invent a measurement that is not here, and never override a high-confidence value with a visual guess:\n${JSON.stringify(measurements)}`,
-            },
-          ]
-        : [];
-
+      const markerAt = parsedBody.data.marker_frame_index;
       const focusBlock = parsedBody.data.focus_marker
         ? [
             {
               type: "text" as const,
-              text: "A thin, color-coded skeleton overlay is drawn on the focus athlete in each frame to mark exactly who to analyze: gold head ring and neck, teal arms, chalk-white torso, coral legs, with light joint dots. Analyze ONLY that athlete: every score, metric note, insight, and change refers to them. Ignore every other person in the frames, and ignore the overlay lines themselves when judging form (they are a tracking overlay, not part of the athlete or the scene).",
-            },
-          ]
-        : [];
-
-      const trackedBallBlock = parsedBody.data.ball_track?.length
-        ? [
-            {
-              type: "text" as const,
-              text: `Ball positions measured by on-device tracking for the sent frames (trusted ground truth; normalized to each frame, origin top-left). Entries with visible=false were not measured at that instant; never invent a position for them:\n${JSON.stringify(parsedBody.data.ball_track)}\nUse these measured positions when judging toss, contact point, and timing.`,
+              text:
+                `The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete${markerAt != null ? ` in frame ${markerAt}` : " in one frame"}. ` +
+                "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
             },
           ]
         : [];
@@ -179,8 +159,6 @@ export async function POST(req: NextRequest) {
             content: [
               ...content,
               ...focusBlock,
-              ...measuredBlock,
-              ...trackedBallBlock,
               {
                 type: "text",
                 text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
@@ -260,35 +238,12 @@ export async function POST(req: NextRequest) {
   }
 
   result.discipline = discipline;
-  // The model's ball_track is a visual estimate. When the client measured the
-  // ball on-device (D-019), the measured marks replace it and the source flag
-  // flips so the UI can drop the "estimated" label.
-  const trackedBall = parsedBody.data.ball_track?.filter(
-    (b) => b.frame_index < frames.length,
-  );
-  if (trackedBall?.some((b) => b.visible)) {
-    result.ball_track = trackedBall;
-    result.ball_track_source = "tracked";
-  } else {
-    result.ball_track_source = "model_estimate";
-  }
   // Clip time per sent frame, keyed by frame index, so viewers can place
   // per-frame data on the clip timeline (client data, not model output; the
   // response schema stays frozen).
   const frameTimes: (number | null)[] = [];
   for (const f of frames) frameTimes[f.index] = f.time_s;
   result.frame_times = Array.from(frameTimes, (t) => t ?? null);
-  if (measurements) result.measurements = measurements;
-  if (parsedBody.data.player_selection) {
-    result.player_selection = parsedBody.data.player_selection;
-  }
-  if (parsedBody.data.continuity) {
-    result.continuity = parsedBody.data.continuity;
-  }
-  const frameKeypoints = (parsedBody.data.frame_keypoints ?? []).filter(
-    (k) => k.frame_index >= 0 && k.frame_index < frames.length,
-  );
-  if (frameKeypoints.length > 0) result.frame_keypoints = frameKeypoints;
 
   const analysisId = crypto.randomUUID();
 
@@ -298,12 +253,8 @@ export async function POST(req: NextRequest) {
     : null;
 
   // Predetermine storage paths for the client's post-response uploads (same
-  // non-fatal pattern as the clip): dense keypoints plus the extra stored
-  // frames beyond the send set.
-  const keypointsPath =
-    parsedBody.data.has_keypoints === true
-      ? `${user.id}/${analysisId}/keypoints.json`
-      : null;
+  // non-fatal pattern as the clip): the extra stored frames beyond the send
+  // set.
   const extraFrameCount = parsedBody.data.extra_frame_count ?? 0;
   const storedFramePaths = Array.from(
     { length: extraFrameCount },
@@ -326,7 +277,7 @@ export async function POST(req: NextRequest) {
     frame_paths: framePaths,
     thumb_path: framePaths[0] ?? null,
     clip_path: clipPath,
-    keypoints_path: keypointsPath,
+    keypoints_path: null,
     stored_frame_paths: storedFramePaths,
     overall_score: result.overall_score,
     result,
@@ -403,7 +354,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     analysisId,
     clipPath,
-    keypointsPath,
     storedFramePaths,
     xpAwarded: awarded ? XP_AWARDS.analysis : 0,
   });

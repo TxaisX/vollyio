@@ -31,8 +31,6 @@ import {
   coverageGaps,
 } from "@/lib/eval-coverage";
 import { coherentOverall, scoreBand } from "@/lib/ratings";
-import { sanitizeMeasurements } from "@/lib/ai/measurements-schema";
-import type { MeasurementsBlock } from "@/lib/pose/types";
 import { hasLocalEvalAccess } from "@/lib/security/request";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
@@ -65,10 +63,6 @@ type EvalCase = {
   level: Level;
   frames: { time_s: number | null; data: string }[];
   expected: EvalExpectation;
-  // Optional motion-tracking block captured with the case; lets the harness
-  // compare grounded vs vision-only scoring on identical frames
-  // (?measurements=off replays all cases without their blocks).
-  measurements: MeasurementsBlock | null;
   // Folder-ingested cases can be flagged excluded (no scoreable action);
   // they are skipped unless ?all=1.
   excluded: boolean;
@@ -92,15 +86,6 @@ async function loadCases(): Promise<EvalCase[]> {
         Array.isArray(c.frames) &&
         c.frames.length >= 2
       ) {
-        const measurements = sanitizeMeasurements(c.measurements);
-        // A block that fails validation is dropped by sanitize. Silently
-        // dropping it would look identical to a case that never captured one,
-        // so say so out loud.
-        if (c.measurements != null && measurements == null) {
-          console.warn(
-            `[eval] case ${f}: measurements block failed validation and was dropped`,
-          );
-        }
         cases.push({
           id: typeof c.id === "string" ? c.id : f,
           skill: c.skill,
@@ -108,7 +93,6 @@ async function loadCases(): Promise<EvalCase[]> {
           level: toLevel(c.level),
           frames: c.frames,
           expected: (c.expected ?? {}) as EvalExpectation,
-          measurements,
           excluded: c.excluded === true,
         });
       }
@@ -121,7 +105,6 @@ async function loadCases(): Promise<EvalCase[]> {
 
 async function runModel(
   c: EvalCase,
-  useMeasurements: boolean,
 ): Promise<{ score: ScoreInput; raw: unknown } | null> {
   const content = c.frames.flatMap((f, i) => [
     {
@@ -133,17 +116,6 @@ async function runModel(
       source: { type: "base64" as const, media_type: "image/jpeg" as const, data: f.data },
     },
   ]);
-
-  // Mirrors /api/analyze exactly so the harness measures the shipped prompt.
-  const measuredBlock =
-    useMeasurements && c.measurements
-      ? [
-          {
-            type: "text" as const,
-            text: `Measured data from on-device motion tracking (trusted ground truth; observed the full clip, not just these frames):\n${JSON.stringify(c.measurements)}`,
-          },
-        ]
-      : [];
 
   // Identical system array + level threading to /api/analyze, so the harness
   // measures the shipped prompt rather than a variant of it.
@@ -168,7 +140,6 @@ async function runModel(
           role: "user",
           content: [
             ...content,
-            ...measuredBlock,
             {
               type: "text",
               text: `Discipline: ${c.discipline}. Player level: ${c.level}. Analyze this ${SKILL_LABEL[
@@ -200,9 +171,6 @@ async function runModel(
         ...raw.ball_track.map((b) => b.frame_index),
       ],
       frameCount: c.frames.length,
-      // null when the case never captured a block; false when it has one but
-      // this run replayed vision-only (?measurements=off).
-      measurementsReplayed: c.measurements == null ? null : useMeasurements,
     },
     raw,
   };
@@ -217,8 +185,6 @@ export async function GET(req: NextRequest) {
   }
   const url = new URL(req.url);
   const runs = Math.max(1, Math.min(3, Number(url.searchParams.get("runs")) || 1));
-  // ?measurements=off replays every case vision-only for A/B comparison.
-  const useMeasurements = url.searchParams.get("measurements") !== "off";
   // ?case=<id prefix> narrows the run; ?full=1 includes the parsed analysis
   // (and its band) per case; ?all=1 also runs excluded cases.
   const caseFilter = url.searchParams.get("case");
@@ -236,7 +202,6 @@ export async function GET(req: NextRequest) {
       level: c.level,
       excluded: c.excluded,
       expected: c.expected,
-      hasMeasurements: c.measurements != null,
     })),
   );
 
@@ -258,7 +223,7 @@ export async function GET(req: NextRequest) {
       const overalls: number[] = [];
       let last: { score: ScoreInput; raw: unknown } | null = null;
       for (let r = 0; r < runs; r++) {
-        const out = await runModel(c, useMeasurements);
+        const out = await runModel(c);
         if (!out) break;
         overalls.push(out.score.overall_score);
         last = out;
@@ -290,7 +255,6 @@ export async function GET(req: NextRequest) {
         checks_fired: checks.filter((x) => x.status !== "skipped").length,
         checks_skipped: checks.filter((x) => x.status === "skipped").map((x) => x.name),
         stability: runs > 1 ? checkStability(overalls) : undefined,
-        grounded: useMeasurements && c.measurements != null,
         analysis: full ? last.raw : undefined,
       });
     } catch (e) {
@@ -321,7 +285,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     cases: cases.length,
     runs,
-    measurements: useMeasurements ? "on" : "off",
     passRate: rate(passed, verifiable),
     passed,
     failed,

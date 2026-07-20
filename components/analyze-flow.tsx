@@ -7,44 +7,14 @@ import { Recorder } from "@/components/recorder";
 import { Filmstrip } from "@/components/filmstrip";
 import { createClient } from "@/lib/supabase/client";
 import {
-  detectOpeningPlayers,
   extractFrames,
   extractFramesFromPhotos,
+  openingFrame,
   MAX_CLIP_SECONDS,
   type Frame,
   type FrameDebug,
-  type OpeningPlayers,
+  type OpeningFrame,
 } from "@/lib/frames";
-import {
-  continuityNote,
-  continuityToWire,
-  type TrackContinuity,
-} from "@/lib/pose/track-state";
-import { loadPoseEngine, type PoseEngine } from "@/lib/pose/engine";
-import {
-  dedupePersons,
-  focusPoint,
-  offerPersons,
-  otherTrackBoxes,
-  personBox,
-} from "@/lib/pose/kinematics";
-import {
-  SKELETON_REGION_BONES,
-  SKELETON_REGION_COLOR,
-  SKELETON_MIN_V,
-  headGeometry,
-  type BallPoint,
-  type Landmark,
-  type LandmarkFrame,
-  type MeasurementsBlock,
-  type KeypointsFile,
-  type PersonTrack,
-} from "@/lib/pose/types";
-import { ballMarksForFrames, MIN_TRACK_POINTS } from "@/lib/pose/ball-track";
-import {
-  captureQuality,
-  type CaptureQualityReason,
-} from "@/lib/pose/capture-quality";
 import { Reveal } from "@/components/motion";
 import {
   SKILL_LABEL,
@@ -55,52 +25,19 @@ import {
 } from "@/lib/skills";
 import {
   clampTrimWindow,
+  clockStamp,
   MIN_TRIM_SPAN_S,
   type TrimWindow,
 } from "@/lib/frame-select";
-import { clockStamp } from "@/lib/pose/measurement-format";
-import type { AnalyzeRequest, FrameKeypointsWire } from "@/lib/analysis-types";
+import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status =
   | { kind: "idle" | "reading" | "sending" }
-  | { kind: "tracking"; pct: number }
   | { kind: "error"; message: string };
 
-type Capture = {
-  landmarks: LandmarkFrame[];
-  measurements: MeasurementsBlock | null;
-  extras: Frame[];
-  tracks: PersonTrack[];
-  selectedTrackId: number | null;
-  denseFps: number | null;
-  continuity: TrackContinuity | null;
-  ball: BallPoint[];
-  skill: Skill;
-};
-
-type Box = { left: number; top: number; width: number; height: number };
-
-// A detected person on the framing card: their box plus the landmarks it
-// came from, so confirming a tap needs no fresh detection.
-type Candidate = { box: Box; pts: Landmark[] };
-
-// Human copy for each capture-quality reason code. Kept here (not in the pure
-// module) so wording, tone, and the no-vendor/no-em-dash rules live in the
-// lint-checked component.
-const CAPTURE_TIP_COPY: Record<CaptureQualityReason, string> = {
-  too_small: "This player is small in the frame. Move closer or zoom in for a sharper read.",
-  low_visibility: "The joints that matter for this skill are hard to make out. Face the player more side-on.",
-  edge_cut: "Part of the body is cut off at the frame edge. Fit the whole player in.",
-};
-
-// Overlap over the smaller box, for re-attaching the selection to the same
-// human after a scrub re-detection.
-function boxOverlap(a: Box, b: Box): number {
-  const ix =
-    Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left)) *
-    Math.max(0, Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top));
-  return ix / Math.max(1e-6, Math.min(a.width * a.height, b.width * b.height));
-}
+// The tap that marks the athlete: a normalized point in the frame at a clip
+// time. Just a coordinate; nothing on the device interprets it (D-033).
+type Mark = { x: number; y: number; t: number };
 
 // Two-handle trim bar over the clip timeline: the gold span is the analyzed
 // window. Drag a handle (or use arrow keys on it; Shift steps bigger) to
@@ -119,84 +56,64 @@ function TrimBar({
 
   function timeAt(e: React.PointerEvent): number | null {
     const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect || rect.width < 1) return null;
-    const frac = (e.clientX - rect.left) / rect.width;
-    return Math.min(Math.max(0, frac), 1) * duration;
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    const t = timeAt(e);
-    if (t == null) return;
-    dragRef.current = Math.abs(t - trim.startS) <= Math.abs(t - trim.endS) ? "start" : "end";
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    onMove(dragRef.current, t);
+    if (!rect || rect.width === 0) return null;
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    return frac * duration;
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!dragRef.current) return;
+    const which = dragRef.current;
+    if (!which) return;
     const t = timeAt(e);
-    if (t != null) onMove(dragRef.current, t);
-  }
-
-  function handleKey(which: "start" | "end") {
-    return (e: React.KeyboardEvent) => {
-      const step = e.shiftKey ? 2 : 0.5;
-      const at = which === "start" ? trim.startS : trim.endS;
-      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        e.preventDefault();
-        onMove(which, at - step);
-      } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        e.preventDefault();
-        onMove(which, at + step);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        onMove(which, which === "start" ? 0 : trim.startS);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        onMove(which, which === "start" ? trim.endS : duration);
-      }
-    };
+    if (t != null) onMove(which, t);
   }
 
   const pct = (s: number) => `${(s / Math.max(0.1, duration)) * 100}%`;
-  const handleClass =
-    "absolute top-1/2 h-6 w-3.5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize " +
-    "rounded-[4px] bg-gold shadow-lift focus-visible:outline-2 " +
-    "focus-visible:outline-offset-2 focus-visible:outline-gold";
+
   const slider = (which: "start" | "end") => ({
     role: "slider" as const,
     tabIndex: 0,
     "aria-label": which === "start" ? "Analysis window start" : "Analysis window end",
-    "aria-valuemin": which === "start" ? 0 : Math.round(trim.startS * 10) / 10,
-    "aria-valuemax":
-      which === "start" ? Math.round(trim.endS * 10) / 10 : Math.round(duration * 10) / 10,
-    "aria-valuenow":
-      Math.round((which === "start" ? trim.startS : trim.endS) * 10) / 10,
+    "aria-valuemin": 0,
+    "aria-valuemax": Math.round(duration * 10) / 10,
+    "aria-valuenow": Math.round((which === "start" ? trim.startS : trim.endS) * 10) / 10,
     "aria-valuetext": clockStamp(which === "start" ? trim.startS : trim.endS),
-    onKeyDown: handleKey(which),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      const step = e.shiftKey ? 1 : 0.2;
+      const cur = which === "start" ? trim.startS : trim.endS;
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        e.preventDefault();
+        onMove(which, cur - step);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        e.preventDefault();
+        onMove(which, cur + step);
+      }
+    },
+    onPointerDown: (e: React.PointerEvent) => {
+      dragRef.current = which;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    onPointerMove,
+    onPointerUp: () => {
+      dragRef.current = null;
+    },
   });
 
+  const handleClass =
+    "absolute top-1/2 h-6 w-3 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize rounded-sm bg-gold shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
+
   return (
-    <div>
+    <div className="mt-3">
       <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
+        <span>Analysis window</span>
         <span>
           Analyze {clockStamp(trim.startS)} to {clockStamp(trim.endS)}
         </span>
-        <span>{Math.round((trim.endS - trim.startS) * 10) / 10}s window</span>
       </div>
       <div
         ref={trackRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={() => (dragRef.current = null)}
-        onPointerCancel={() => (dragRef.current = null)}
-        className="relative mt-1 h-9 select-none"
-        style={{ touchAction: "none" }}
+        className="relative mt-1.5 h-8 touch-none rounded bg-navy-light"
       >
-        <span
-          aria-hidden
-          className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-navy-lighter"
-        />
         <span
           aria-hidden
           className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gold/45"
@@ -209,201 +126,82 @@ function TrimBar({
   );
 }
 
-// Bake a thin skeleton onto the focus athlete in each frame, so the player
-// sees the tracked body and the coaching service is told exactly which athlete
-// to analyze. Uses the shared bone graph so it matches the live viewer overlay.
-// Returns new frames; originals untouched.
-async function markFocusFrames(
+// Burn a hollow gold ring around the marked athlete onto the frame nearest the
+// tap instant. Hollow so the body underneath stays fully visible: the mark
+// must identify the athlete without hiding the thing being judged. Returns the
+// frames (originals untouched) plus which index carries the ring, or null when
+// no frame decoded.
+async function burnMark(
   rawFrames: Frame[],
-  landmarks: LandmarkFrame[],
-): Promise<{ frames: Frame[]; marked: number }> {
-  if (landmarks.length === 0) return { frames: rawFrames, marked: 0 };
-  let marked = 0;
-  const out = await Promise.all(
-    rawFrames.map(async (f) => {
-      if (f.time_s == null) return f;
-      let best: LandmarkFrame | null = null;
-      let bestD = 0.3;
-      for (const lf of landmarks) {
-        const d = Math.abs(lf.t - f.time_s);
-        if (d < bestD) {
-          bestD = d;
-          best = lf;
-        }
-      }
-      if (!best) return f;
-      const pts = best.pts;
-      const vis = (i: number) => {
-        const p = pts[i];
-        return !!p && p.v >= SKELETON_MIN_V;
-      };
-      // Skip frames the tracker barely saw, so we never bake a noisy stick.
-      if (pts.filter((p) => p.v >= SKELETON_MIN_V).length < 6) return f;
-      const stamped = await new Promise<string | null>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return resolve(null);
-            ctx.drawImage(img, 0, 0);
-            const style = getComputedStyle(document.documentElement);
-            const color = (name: string) =>
-              style.getPropertyValue(`--color-${name}`).trim();
-            const chalk = color("chalk");
-            const navy = color("navy");
-            const W = canvas.width;
-            const H = canvas.height;
-            const S = (W + H) / 2;
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            const allBones = Object.values(SKELETON_REGION_BONES).flat();
-            const head = headGeometry(pts);
-            const line = (ax: number, ay: number, bx: number, by: number) => {
-              ctx.beginPath();
-              ctx.moveTo(ax, ay);
-              ctx.lineTo(bx, by);
-              ctx.stroke();
-            };
-            const strokeBones = (bones: [number, number][]) => {
-              for (const [a, b] of bones) {
-                if (!vis(a) || !vis(b)) continue;
-                line(pts[a].x * W, pts[a].y * H, pts[b].x * W, pts[b].y * H);
-              }
-            };
-            const strokeHead = () => {
-              if (!head) return;
-              line(head.neckX * W, head.neckY * H, head.cx * W, head.cy * H);
-              ctx.beginPath();
-              ctx.arc(head.cx * W, head.cy * H, head.r * W, 0, Math.PI * 2);
-              ctx.stroke();
-            };
-            // Dark halo first so the lines read on any background.
-            ctx.strokeStyle = navy;
-            ctx.globalAlpha = 0.5;
-            ctx.lineWidth = Math.max(3, S * 0.012);
-            strokeBones(allBones);
-            strokeHead();
-            // Color-coded body regions on top, matching the live viewer overlay.
-            ctx.globalAlpha = 0.92;
-            ctx.lineWidth = Math.max(1.5, S * 0.006);
-            for (const region of ["arms", "torso", "legs"] as const) {
-              ctx.strokeStyle = color(SKELETON_REGION_COLOR[region]);
-              strokeBones(SKELETON_REGION_BONES[region]);
-            }
-            ctx.strokeStyle = color(SKELETON_REGION_COLOR.head);
-            strokeHead();
-            // Chalk joint pins at each visible bone endpoint.
-            ctx.fillStyle = chalk;
-            ctx.globalAlpha = 0.95;
-            const jr = Math.max(1.5, S * 0.007);
-            const seen = new Set<number>();
-            for (const [a, b] of allBones) {
-              for (const i of [a, b]) {
-                if (seen.has(i)) continue;
-                seen.add(i);
-                if (!vis(i)) continue;
-                ctx.beginPath();
-                ctx.arc(pts[i].x * W, pts[i].y * H, jr, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-            ctx.globalAlpha = 1;
-            resolve(canvas.toDataURL("image/jpeg", 0.7));
-          } catch {
-            resolve(null);
-          }
-        };
-        img.onerror = () => resolve(null);
-        img.src = f.dataUrl;
-      });
-      if (!stamped) return f;
-      marked++;
-      return { ...f, dataUrl: stamped };
-    }),
-  );
-  return { frames: out, marked };
-}
-
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
-// Landmarks for each sent frame (nearest tracked instant within 200ms), as
-// flat rounded arrays for the results-page skeleton overlay.
-function keypointsForFrames(landmarks: LandmarkFrame[], sent: Frame[]): FrameKeypointsWire[] {
-  const out: FrameKeypointsWire[] = [];
-  for (const f of sent) {
-    if (f.time_s == null) continue;
-    let best: LandmarkFrame | null = null;
-    let bestD = 0.2;
-    for (const lf of landmarks) {
-      const d = Math.abs(lf.t - f.time_s);
-      if (d < bestD) {
-        bestD = d;
-        best = lf;
-      }
+  mark: Mark,
+): Promise<{ frames: Frame[]; markerIndex: number } | null> {
+  let nearest = -1;
+  let nearestD = Infinity;
+  rawFrames.forEach((f, i) => {
+    if (f.time_s == null) return;
+    const d = Math.abs(f.time_s - mark.t);
+    if (d < nearestD) {
+      nearestD = d;
+      nearest = i;
     }
-    if (!best) continue;
-    out.push({
-      frame_index: f.index,
-      pts: best.pts.flatMap((p) => [r3(p.x), r3(p.y), r3(p.z), r3(p.v)]),
-    });
-  }
-  return out;
+  });
+  if (nearest < 0) return null;
+  const f = rawFrames[nearest];
+  const stamped = await new Promise<string | null>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0);
+        const style = getComputedStyle(document.documentElement);
+        const gold = style.getPropertyValue("--color-gold").trim();
+        const navy = style.getPropertyValue("--color-navy").trim();
+        const W = canvas.width;
+        const H = canvas.height;
+        const cx = mark.x * W;
+        const cy = mark.y * H;
+        const r = Math.max(18, Math.min(W, H) * 0.055);
+        // Dark halo first so the ring reads on any background.
+        ctx.lineCap = "round";
+        ctx.strokeStyle = navy;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = Math.max(6, r * 0.34);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = gold;
+        ctx.globalAlpha = 0.95;
+        ctx.lineWidth = Math.max(3.5, r * 0.2);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = f.dataUrl;
+  });
+  if (!stamped) return null;
+  const frames = rawFrames.slice();
+  frames[nearest] = { ...f, dataUrl: stamped };
+  return { frames, markerIndex: nearest };
 }
 
-// Fire-and-forget persistence of the tracking sidecar after the analysis is
-// saved: dense keypoints plus the extra stored frames. Failures are silent;
-// the results page handles absence.
-function uploadCaptureArtifacts(
-  capture: Capture,
-  durationS: number | null,
-  keypointsPath: string | null,
-  storedFramePaths: string[],
-) {
+// Fire-and-forget persistence of the extra stored frames after the analysis is
+// saved. Failures are silent; the results page handles absence.
+function uploadExtraFrames(extras: Frame[], storedFramePaths: string[]) {
   const supabase = createClient();
-  if (keypointsPath && (capture.landmarks.length >= 8 || capture.ball.length >= 8)) {
-    const others = otherTrackBoxes(capture.tracks, capture.selectedTrackId).map((series) =>
-      series.map((b) => ({
-        t: r3(b.t),
-        left: r3(b.left),
-        top: r3(b.top),
-        width: r3(b.width),
-        height: r3(b.height),
-      })),
-    );
-    const file: KeypointsFile = {
-      version: 3,
-      clip_duration_s: durationS,
-      frames: capture.landmarks.map((lf) => ({
-        t: r3(lf.t),
-        pts: lf.pts.map((p) => ({ x: r3(p.x), y: r3(p.y), z: r3(p.z), v: r3(p.v) })),
-      })),
-      // The timed on-device ball path; the clip player follows it live.
-      ball: capture.ball.length
-        ? capture.ball.map((b) => ({
-            t: r3(b.t),
-            x: r3(b.x),
-            y: r3(b.y),
-            score: Math.round(b.score * 100) / 100,
-          }))
-        : undefined,
-      // The other players' timed boxes; the clip player shows the court.
-      others: others.length ? others : undefined,
-    };
-    void supabase.storage
-      .from("frames")
-      .upload(keypointsPath, new Blob([JSON.stringify(file)], { type: "application/json" }), {
-        contentType: "application/json",
-        upsert: false,
-      })
-      .catch(() => {});
-  }
-  const count = Math.min(storedFramePaths.length, capture.extras.length);
+  const count = Math.min(storedFramePaths.length, extras.length);
   for (let i = 0; i < count; i++) {
     try {
-      const b64 = capture.extras[i].dataUrl.split(",")[1];
+      const b64 = extras[i].dataUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       void supabase.storage
         .from("frames")
@@ -430,8 +228,7 @@ function clipExt(b: Blob): string {
 // looping — a loop would read as fake progress.
 const SCORING_STAGES = [
   "Reading your frames…",
-  "Tracing the motion…",
-  "Checking the measured angles…",
+  "Following your player…",
   "Scoring against the rubric…",
   "Writing your one fix…",
 ];
@@ -561,165 +358,50 @@ export function AnalyzeFlow({
   const photoInput = useRef<HTMLInputElement>(null);
   const debugRef = useRef(false);
   const clipRef = useRef<Blob | null>(null);
+  const extrasRef = useRef<Frame[]>([]);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
   const prevSkillRef = useRef<Skill | null>(skill);
-  const poseRef = useRef<PoseEngine | null>(null);
-  const captureRef = useRef<Capture | null>(null);
   // Pre-analysis pause: the opening frame is up, waiting for the player to
-  // frame who to follow.
+  // mark who to analyze.
   const [openingPick, setOpeningPick] = useState<
-    (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
+    (OpeningFrame & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // Kept after analysis so the player can reframe and re-run tracking.
+  // Kept after analysis so the player can re-mark and re-run.
   const [lastOpening, setLastOpening] = useState<
-    (OpeningPlayers & { blob: Blob; isRecorded: boolean }) | null
+    (OpeningFrame & { blob: Blob; isRecorded: boolean }) | null
   >(null);
-  // Scrubbable clip inside the framing card: pick the moment, then the player.
+  // Scrubbable clip inside the framing card: pick the moment, then tap the player.
   const frameVideoRef = useRef<HTMLVideoElement>(null);
+  const frameBoxRef = useRef<HTMLDivElement>(null);
   const [framingUrl, setFramingUrl] = useState<string | null>(null);
   const [frameVideoFailed, setFrameVideoFailed] = useState(false);
   const [scrubT, setScrubT] = useState(0);
-  // The picked player was never found in the clip; nobody else was analyzed.
-  const [poiMissed, setPoiMissed] = useState(false);
-  // One human line about how the follow went (exits, occlusions, coverage).
-  const [trackNote, setTrackNote] = useState<string | null>(null);
+  // The tap that marks the athlete. Scrubbing clears it: a mark belongs to the
+  // moment it was made at, and a stale one would ring empty court.
+  const [mark, setMark] = useState<Mark | null>(null);
   const markedRef = useRef(false);
+  const markerIndexRef = useRef<number | null>(null);
   const [markerShown, setMarkerShown] = useState(false);
-
-  // Every detected person renders as a tappable box. Candidates start from
-  // the opening probe and re-detect live as the user scrubs, so selection
-  // always reflects the moment on screen. Nothing is ever pre-selected: an
-  // auto-picked player let people analyze a stranger without noticing, so the
-  // tap is now the only way to choose and the analyze action waits for it.
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  // A re-detection is in flight after a scrub. Distinguishes "still looking"
-  // from "looked and found nobody", which unlock different actions.
-  const [detecting, setDetecting] = useState(false);
-  // Capture-quality reasons for the selected player, settled so a momentary bad
-  // frame does not nag. A warning only, never a block.
-  const [captureWarn, setCaptureWarn] = useState<CaptureQualityReason[]>([]);
-  // Whether the selection was the user's own tap (kept glued to the same
-  // human across re-detections, dropped when they vanish) or the automatic
-  // pre-select (free to follow the strongest detection).
-  const userPickedRef = useRef(false);
-  const selectedBoxRef = useRef<Box | null>(null);
   // The trimmed analysis window (absolute clip seconds). Dragging a handle
   // past the longest analyzable span slides the other handle along, so the
   // window is always valid and long clips become usable by trimming.
   const [trim, setTrim] = useState<TrimWindow | null>(null);
 
-  function selectCandidate(idx: number | null, byUser: boolean) {
-    setSelectedIdx(idx);
-    userPickedRef.current = byUser ? idx != null : userPickedRef.current && idx != null;
-    selectedBoxRef.current = idx != null ? (candidatesRef.current[idx]?.box ?? null) : null;
-  }
-  const candidatesRef = useRef<Candidate[]>([]);
-
-  function applyCandidates(next: Candidate[]) {
-    candidatesRef.current = next;
-    setCandidates(next);
-    const prevBox = selectedBoxRef.current;
-    if (userPickedRef.current && prevBox) {
-      // Re-attach the pick to the same human; a vanished pick stays lost
-      // rather than silently switching players.
-      let bestIdx: number | null = null;
-      let bestOv = 0.3;
-      next.forEach((c, i) => {
-        const ov = boxOverlap(prevBox, c.box);
-        if (ov > bestOv) {
-          bestOv = ov;
-          bestIdx = i;
-        }
-      });
-      setSelectedIdx(bestIdx);
-      selectedBoxRef.current = bestIdx != null ? next[bestIdx].box : prevBox;
-      if (bestIdx == null) userPickedRef.current = false;
-      return;
-    }
-    setSelectedIdx(null);
-    selectedBoxRef.current = null;
-  }
-
-  // Seed candidates from the opening probe. The trim window starts at the
-  // clip's head, capped at the longest analyzable span so long clips begin
-  // valid.
+  // Seed the trim window at the clip's head, capped at the longest analyzable
+  // span so long clips begin valid.
   useEffect(() => {
-    userPickedRef.current = false;
-    selectedBoxRef.current = null;
+    setMark(null);
     if (!openingPick) {
-      applyCandidates([]);
       setTrim(null);
       return;
     }
-    applyCandidates(
-      openingPick.persons
-        .map((pts) => ({ box: personBox(pts), pts }))
-        .filter((c): c is Candidate => c.box != null),
-    );
     setTrim(
       clampTrimWindow(openingPick.duration_s, {
         startS: 0,
         endS: Math.min(openingPick.duration_s, MAX_CLIP_SECONDS),
       }),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openingPick]);
-
-  // Live auto-detection while scrubbing: after the scrubber settles, detect
-  // the people at the current moment and refresh the tappable boxes.
-  useEffect(() => {
-    if (!openingPick || !framingUrl || frameVideoFailed) {
-      setDetecting(false);
-      return;
-    }
-    let cancelled = false;
-    setDetecting(true);
-    const timer = setTimeout(async () => {
-      const video = frameVideoRef.current;
-      const engine = poseRef.current;
-      if (!video || !engine) {
-        // No engine means no boxes will ever arrive; stop claiming to look.
-        setDetecting(false);
-        return;
-      }
-      try {
-        const found = await engine.detectPersonsFromVideo(video, scrubT);
-        if (cancelled) return;
-        const next = found
-          ? offerPersons(dedupePersons(found.persons))
-              .map((pts) => ({ box: personBox(pts), pts }))
-              .filter((c): c is Candidate => c.box != null)
-          : [];
-        if (next.length > 0) applyCandidates(next);
-      } catch {
-        // Stale candidates are still tappable.
-      } finally {
-        if (!cancelled) setDetecting(false);
-      }
-    }, 350);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrubT, openingPick, framingUrl, frameVideoFailed]);
-
-  // Capture-quality check on the selected player, settled ~350ms so a fleeting
-  // bad frame does not flash a warning. Nothing selected (or no skill yet) shows
-  // nothing; the check reads the same key joints and visibility scale the
-  // scoring gate uses, so the tip never contradicts the eventual result.
-  useEffect(() => {
-    const picked = selectedIdx != null ? candidates[selectedIdx] : null;
-    if (!skill || !picked) {
-      setCaptureWarn([]);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCaptureWarn(captureQuality(picked.pts, skill).reasons);
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [selectedIdx, candidates, skill]);
 
   // Blob URL for the scrubbable framing clip, revoked when the card closes.
   useEffect(() => {
@@ -768,6 +450,24 @@ export function AnalyzeFlow({
     setTrim({ startS: snap(startS), endS: snap(endS) });
   }
 
+  // A tap on the framing media marks the athlete at the scrubbed moment. The
+  // coordinate is normalized against the media box; the framing element sizes
+  // itself to the content (w-auto), so there is no letterbox to correct for.
+  function placeMark(e: React.PointerEvent) {
+    const box = frameBoxRef.current;
+    if (!box) return;
+    const rect = box.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    const video = frameVideoRef.current;
+    const t =
+      video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
+        ? video.currentTime
+        : (openingPick?.timeS ?? scrubT);
+    setMark({ x, y, t });
+  }
+
   // Gate state lives in a ref, not render state: the queued submit closure
   // runs synchronously after an answer, before any re-render, and a stale
   // state read here is how an answered question used to reopen itself.
@@ -775,29 +475,6 @@ export function AnalyzeFlow({
   const [consentOpen, setConsentOpen] = useState(false);
   const pendingSubmitRef = useRef<(() => void) | null>(null);
   const consentAllowRef = useRef<HTMLButtonElement>(null);
-
-  // Warm the motion-tracking engine once a skill is picked; a null engine
-  // simply means extraction runs without measurements. The first-ever load
-  // downloads the tracking models, so surface its progress.
-  const [modelPct, setModelPct] = useState<number | null>(null);
-  useEffect(() => {
-    if (!skill) return;
-    let cancelled = false;
-    loadPoseEngine({
-      onProgress: (p) => {
-        if (cancelled) return;
-        setModelPct(Math.min(100, Math.round((p.loadedBytes / p.totalBytes) * 100)));
-      },
-    }).then((engine) => {
-      if (!cancelled) {
-        poseRef.current = engine;
-        setModelPct(null);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [skill]);
 
   // Settles the has-the-question-been-answered read and releases any submit
   // that arrived while it was in flight: straight through when answered,
@@ -852,6 +529,7 @@ export function AnalyzeFlow({
       }
     })();
     return () => clearTimeout(failOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -901,8 +579,7 @@ export function AnalyzeFlow({
     }
   }, []);
 
-  const busy =
-    status.kind === "reading" || status.kind === "sending" || status.kind === "tracking";
+  const busy = status.kind === "reading" || status.kind === "sending";
   const canSubmit = frames.length > 0 && (source === "photos" || useUpload);
 
   // Release the preview object URL when it is replaced or on unmount.
@@ -941,21 +618,6 @@ export function AnalyzeFlow({
     setRetrying(isRetry);
     setStatus({ kind: "sending" });
     const clip = src === "video" ? clipRef.current : null;
-    const capture = src === "video" ? captureRef.current : null;
-    const landmarks = capture?.landmarks ?? [];
-    const hasKeypoints = landmarks.length >= 8;
-    // Tracked ball marks replace the model's eyeballed ones only when the
-    // detector demonstrably followed the ball: a real path, landing on at
-    // least a few of the frames actually being sent.
-    const ballPath = capture?.ball ?? [];
-    const trackedMarks =
-      ballPath.length >= MIN_TRACK_POINTS
-        ? ballMarksForFrames(ballPath, payloadFrames)
-        : null;
-    const trackedBall =
-      trackedMarks && trackedMarks.filter((m) => m.visible).length >= 3
-        ? trackedMarks
-        : undefined;
     const body: AnalyzeRequest = {
       skill,
       discipline,
@@ -968,29 +630,12 @@ export function AnalyzeFlow({
         time_s: f.time_s,
         data: f.dataUrl.split(",")[1],
       })),
-      measurements: capture?.measurements ?? undefined,
-      player_selection:
-        capture && capture.tracks.length > 0 && capture.selectedTrackId != null
-          ? {
-              candidates: capture.tracks.length,
-              selected_rank:
-                Math.max(
-                  0,
-                  capture.tracks.findIndex((t) => t.id === capture.selectedTrackId),
-                ) + 1,
-              auto: capture.selectedTrackId === capture.tracks[0]?.id,
-            }
-          : undefined,
-      frame_keypoints: hasKeypoints
-        ? keypointsForFrames(landmarks, payloadFrames)
-        : undefined,
-      // The sidecar file is worth storing when either the skeleton or the
-      // ball path has substance; the server issues its path off this flag.
-      has_keypoints: hasKeypoints || ballPath.length >= MIN_TRACK_POINTS,
       focus_marker: src === "video" && markedRef.current ? true : undefined,
-      extra_frame_count: capture?.extras.length ?? 0,
-      continuity: capture?.continuity ? continuityToWire(capture.continuity) : undefined,
-      ball_track: trackedBall,
+      marker_frame_index:
+        src === "video" && markedRef.current && markerIndexRef.current != null
+          ? markerIndexRef.current
+          : undefined,
+      extra_frame_count: src === "video" ? extrasRef.current.length : 0,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -1002,8 +647,7 @@ export function AnalyzeFlow({
         const { error } = await res.json().catch(() => ({ error: null }));
         throw new Error(error ?? "The coaching service is unavailable. Try again.");
       }
-      const { analysisId, clipPath, keypointsPath, storedFramePaths, xpAwarded } =
-        await res.json();
+      const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
       if (clip && clipPath) {
         try {
           await createClient()
@@ -1016,14 +660,9 @@ export function AnalyzeFlow({
           // Non-fatal: the results page falls back to the frame player.
         }
       }
-      if (capture) {
+      if (extrasRef.current.length > 0 && Array.isArray(storedFramePaths)) {
         // Background persistence; navigation does not wait on it.
-        uploadCaptureArtifacts(
-          capture,
-          dur,
-          typeof keypointsPath === "string" ? keypointsPath : null,
-          Array.isArray(storedFramePaths) ? storedFramePaths : [],
-        );
+        uploadExtraFrames(extrasRef.current, storedFramePaths);
       }
       // Purge the client router cache so dashboard/history show this rep
       // immediately instead of a cached copy for up to 30s.
@@ -1040,58 +679,31 @@ export function AnalyzeFlow({
     }
   }
 
-  // Extraction over a chosen (or auto) focus player, then submit or preview.
+  // Extraction over the trimmed window, marking the tapped athlete when there
+  // is a tap, then submit or preview.
   async function runVideoExtraction(
     blob: Blob,
     isRecorded: boolean,
-    target?: { x: number; y: number; t: number; box?: Box },
+    target?: Mark,
     window?: TrimWindow,
   ) {
     try {
-      const engine = poseRef.current ?? (await loadPoseEngine());
-      poseRef.current = engine;
-      const pose = engine && skill ? { engine, skill, target } : undefined;
-      const { frames: f, extras, pose: poseCapture, duration_s, debug } = await extractFrames(
-        blob,
-        {
-          debug: debugRef.current,
-          pose,
-          window,
-          onProgress: (pct) =>
-            setStatus({ kind: "tracking", pct: Math.round(pct * 100) }),
-        },
-      );
+      const { frames: f, extras, duration_s, debug } = await extractFrames(blob, {
+        debug: debugRef.current,
+        window,
+        markT: target?.t,
+      });
       setStatus({ kind: "reading" });
-      captureRef.current =
-        poseCapture && skill
-          ? {
-              landmarks: poseCapture.landmarks,
-              measurements: poseCapture.measurements,
-              extras,
-              tracks: poseCapture.tracks,
-              selectedTrackId: poseCapture.selectedTrackId,
-              denseFps: poseCapture.denseFps,
-              continuity: poseCapture.continuity,
-              ball: poseCapture.ball,
-              skill,
-            }
-          : null;
-      // The user pinned a player but tracking never found them: analyze
-      // nobody rather than somebody else, and say so.
-      setPoiMissed(!!target && !!poseCapture && poseCapture.selectedTrackId == null);
-      setTrackNote(
-        poseCapture?.continuity ? continuityNote(poseCapture.continuity) : null,
-      );
+      extrasRef.current = extras;
       let shown = f;
       markedRef.current = false;
-      if (captureRef.current && captureRef.current.landmarks.length >= 8) {
-        const { frames: stamped, marked } = await markFocusFrames(
-          f,
-          captureRef.current.landmarks,
-        );
-        if (marked > 0) {
-          shown = stamped;
+      markerIndexRef.current = null;
+      if (target) {
+        const burned = await burnMark(f, target);
+        if (burned) {
+          shown = burned.frames;
           markedRef.current = true;
+          markerIndexRef.current = burned.markerIndex;
         }
       }
       setMarkerShown(markedRef.current);
@@ -1118,29 +730,23 @@ export function AnalyzeFlow({
   }
 
   // Shared entry for recorded and uploaded clips: pause on the opening frame
-  // so the player can frame who to follow before any analysis runs.
+  // so the player can mark who to analyze before any analysis runs.
   async function handleVideo(blob: Blob, isRecorded: boolean) {
     setStatus({ kind: "reading" });
     setFrameDebug(null);
     setOpeningPick(null);
     setLastOpening(null);
-    setPoiMissed(false);
-    setTrackNote(null);
     clipRef.current = blob;
     setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
     try {
-      const engine = poseRef.current ?? (await loadPoseEngine());
-      poseRef.current = engine;
-      // Choosing the moment and the player is always the user's: the framing
-      // card opens even when the pose engine failed or found nobody. The
-      // drawn frame then anchors tracking on its own.
       if (skill) {
-        const opening = await detectOpeningPlayers(blob, engine);
+        const opening = await openingFrame(blob);
         // Long clips get the card too: the trim window makes them analyzable.
         if (opening) {
-          captureRef.current = null;
+          extrasRef.current = [];
           setFrames([]);
           markedRef.current = false;
+          markerIndexRef.current = null;
           setMarkerShown(false);
           setSource("video");
           setDuration(opening.duration_s);
@@ -1160,38 +766,31 @@ export function AnalyzeFlow({
     }
   }
 
-  // The pick is confirmed: the selected candidate's own landmarks anchor
-  // tracking (no fresh detection needed). A pick is mandatory here; the
-  // no-marker path is skipFraming, reachable only when detection found nobody.
+  // The mark is confirmed. A mark is mandatory here; the no-marker path is
+  // skipFraming, always available but visually secondary.
   function confirmFraming() {
     const opening = openingPick;
-    const picked = selectedIdx != null ? (candidates[selectedIdx] ?? null) : null;
+    const picked = mark;
     if (!opening || !picked) return;
     const win = trim ?? undefined;
-    const video = frameVideoRef.current;
-    const rawT =
-      video && Number.isFinite(video.currentTime) && video.currentTime > 0.01
-        ? video.currentTime
-        : opening.timeS;
     const t = win
-      ? Math.min(Math.max(rawT, win.startS + 0.02), Math.max(win.startS + 0.02, win.endS - 0.05))
-      : rawT;
+      ? Math.min(
+          Math.max(picked.t, win.startS + 0.02),
+          Math.max(win.startS + 0.02, win.endS - 0.05),
+        )
+      : picked.t;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    const anchor = focusPoint(picked.pts) ?? {
-      x: picked.box.left + picked.box.width / 2,
-      y: picked.box.top + picked.box.height / 2,
-    };
     void runVideoExtraction(
       opening.blob,
       opening.isRecorded,
-      { x: anchor.x, y: anchor.y, t, box: picked.box },
+      { x: picked.x, y: picked.y, t },
       win,
     );
   }
 
-  // The degrade path when the pose engine found nobody to tap. Analysis still
-  // runs, unmarked: a failed detector must not dead-end the clip.
+  // Analysis without a mark. Never a dead end: the model chooses the subject
+  // and says so via subject_check ("unmarked"), which the results page shows.
   function skipFraming() {
     const opening = openingPick;
     if (!opening) return;
@@ -1218,14 +817,13 @@ export function AnalyzeFlow({
         setFrames(f);
         setLastOpening(null);
         markedRef.current = false;
+        markerIndexRef.current = null;
         setMarkerShown(false);
-        setPoiMissed(false);
-    setTrackNote(null);
         setSource("photos");
         setDuration(null);
         setVideoUrl(null);
         clipRef.current = null;
-        captureRef.current = null;
+        extrasRef.current = [];
         setStatus({ kind: "idle" });
       } else {
         await handleVideo(file, false);
@@ -1248,14 +846,13 @@ export function AnalyzeFlow({
       setFrames(f);
       setLastOpening(null);
       markedRef.current = false;
+      markerIndexRef.current = null;
       setMarkerShown(false);
-      setPoiMissed(false);
-    setTrackNote(null);
       setSource("photos");
       setDuration(null);
       setVideoUrl(null);
       clipRef.current = null;
-      captureRef.current = null;
+      extrasRef.current = [];
       setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
@@ -1273,7 +870,6 @@ export function AnalyzeFlow({
       skill,
       discipline,
       frames: frames.map((f) => ({ time_s: f.time_s, data: f.dataUrl.split(",")[1] })),
-      measurements: captureRef.current?.measurements ?? undefined,
       // Deliberately empty rather than placeholder-filled. The old export wrote
       // a 0-100 band and an empty weakest_metric, which is worse than no label:
       // the band made overall_in_range fire and pass on every case, so the suite
@@ -1445,15 +1041,18 @@ export function AnalyzeFlow({
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  {candidates.length === 0
-                    ? detecting
-                      ? "Looking for players in this frame."
-                      : "No players spotted here. Scrub to a clearer moment, or analyze anyway without marking anyone."
-                    : candidates.length === 1
-                      ? "One player spotted. Tap the box to confirm that is who you want analyzed."
-                      : "Tap the player you want analyzed. Scrub to any moment and trim the window; every frame inside it gets tracked."}
+                  {mark
+                    ? "Marked. Scrub to double-check the ring is on your player, then analyze."
+                    : "Scrub to a moment where your player is easy to see, then tap them. The gold ring tells the coach exactly who to analyze."}
                 </p>
-                <div className="relative mx-auto mt-3 w-fit max-w-full select-none overflow-hidden rounded-lg bg-navy">
+                <div
+                  ref={frameBoxRef}
+                  onPointerDown={placeMark}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Tap the player you want analyzed"
+                  className="relative mx-auto mt-3 w-fit max-w-full cursor-crosshair select-none overflow-hidden rounded-lg bg-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                >
                   {framingUrl && !frameVideoFailed ? (
                     <video
                       ref={frameVideoRef}
@@ -1467,70 +1066,28 @@ export function AnalyzeFlow({
                         if (v) v.currentTime = openingPick.timeS;
                       }}
                       onError={() => setFrameVideoFailed(true)}
-                      className="block max-h-[45vh] w-auto max-w-full"
+                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full"
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={openingPick.dataUrl}
                       alt="Opening frame. Tap the player to analyze."
-                      className="block max-h-[45vh] w-auto max-w-full"
+                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full"
                       draggable={false}
                     />
                   )}
-                  {/* Every detected person is a tappable box; gold = watching.
-                      Until one is tapped the boxes are drawn as live targets,
-                      because the tap is what unlocks the analyze action. */}
-                  {candidates.map((c, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => selectCandidate(i, true)}
-                      aria-pressed={i === selectedIdx}
-                      aria-label={`Player ${i + 1}${i === selectedIdx ? ", selected" : ", tap to analyze this player"}`}
-                      className={`absolute rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
-                        i === selectedIdx
-                          ? "border-2 border-gold"
-                          : selectedIdx == null
-                            ? "border-2 border-dashed border-gold/70"
-                            : "border border-chalk-dim/60"
-                      }`}
-                      style={{
-                        left: `${c.box.left * 100}%`,
-                        top: `${c.box.top * 100}%`,
-                        width: `${c.box.width * 100}%`,
-                        height: `${c.box.height * 100}%`,
-                        boxShadow:
-                          i === selectedIdx
-                            ? "0 0 14px color-mix(in srgb, var(--color-gold) 45%, transparent)"
-                            : undefined,
-                      }}
+                  {mark && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                      style={{ left: `${mark.x * 100}%`, top: `${mark.y * 100}%` }}
                     >
-                      {i === selectedIdx ? (
-                        <span
-                          aria-hidden
-                          className="absolute -top-5 left-0 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-navy"
-                        >
-                          watching
-                        </span>
-                      ) : (
-                        candidates.length === 1 && (
-                          <span
-                            aria-hidden
-                            className="absolute -top-5 left-0 rounded bg-gold/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-gold"
-                          >
-                            tap to select
-                          </span>
-                        )
-                      )}
-                    </button>
-                  ))}
-                  {candidates.length === 0 && (
-                    <p className="absolute inset-x-0 bottom-2 mx-auto w-fit rounded bg-navy/80 px-2 py-1 text-center text-[11px] text-chalk-dim">
-                      {detecting
-                        ? "Looking for players…"
-                        : "No players spotted at this moment. Scrub to a clearer point in the clip."}
-                    </p>
+                      <span className="block h-14 w-14 rounded-full border-4 border-gold shadow-[0_0_0_3px_var(--color-navy)]" />
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-navy">
+                        watching
+                      </span>
+                    </span>
                   )}
                 </div>
                 {framingUrl && !frameVideoFailed && (
@@ -1547,6 +1104,10 @@ export function AnalyzeFlow({
                     onChange={(e) => {
                       const t = Number(e.target.value);
                       setScrubT(t);
+                      // The moment moved out from under the mark; re-tap to
+                      // mark at the new moment. Keeping a stale mark would
+                      // ring whatever is at that spot now.
+                      if (mark && Math.abs(t - mark.t) > 0.25) setMark(null);
                       const v = frameVideoRef.current;
                       if (v) v.currentTime = t;
                     }}
@@ -1569,48 +1130,17 @@ export function AnalyzeFlow({
                     )}
                   </>
                 )}
-                {captureWarn.length > 0 && (
-                  <Reveal className="mt-3">
-                    <div className="flex items-start gap-2 text-xs text-coral">
-                      <span
-                        aria-hidden
-                        className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-coral"
-                      />
-                      <div>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.12em]">
-                          Capture tip
-                        </p>
-                        <ul className="mt-1 space-y-0.5">
-                          {captureWarn.map((r) => (
-                            <li key={r}>{CAPTURE_TIP_COPY[r]}</li>
-                          ))}
-                        </ul>
-                        <p className="mt-1 text-chalk-dim">
-                          You can still analyze now; this only helps accuracy.
-                        </p>
-                      </div>
-                    </div>
-                  </Reveal>
-                )}
-                {/* Three states, one primary button. A pick analyzes that
-                    player. No pick with players on screen stays disabled with
-                    the reason spelled out. No players found at all still ships,
-                    unmarked, so a pose-engine miss degrades instead of blocking. */}
-                {selectedIdx != null ? (
+                {/* One primary button. A mark analyzes that player; without a
+                    mark it stays disabled with the reason spelled out, and the
+                    unmarked path remains available underneath so nothing ever
+                    dead-ends. */}
+                {mark ? (
                   <button
                     type="button"
                     onClick={confirmFraming}
                     className="btn-primary mt-4 min-h-11 w-full"
                   >
                     Analyze this player
-                  </button>
-                ) : candidates.length === 0 && !detecting ? (
-                  <button
-                    type="button"
-                    onClick={skipFraming}
-                    className="btn-primary mt-4 min-h-11 w-full"
-                  >
-                    Analyze anyway, no player marked
                   </button>
                 ) : (
                   <>
@@ -1627,26 +1157,22 @@ export function AnalyzeFlow({
                       aria-live="polite"
                       className="mt-2 text-center text-xs text-chalk-dim"
                     >
-                      {detecting
-                        ? "Still looking for players in this frame."
-                        : "Tap the player you want analyzed to continue."}
+                      Tap the player you want analyzed to continue.
                     </p>
                   </>
                 )}
+                <button
+                  type="button"
+                  onClick={skipFraming}
+                  className="btn-ghost mt-2 min-h-11 w-full text-xs"
+                >
+                  Analyze without marking a player
+                </button>
               </div>
             )}
 
             {frames.length > 0 ? (
               <div className="reward-earned">
-                {poiMissed && (
-                  <p className="mb-2 text-xs text-coral">
-                    Couldn't find your picked player in the clip, so nobody
-                    else was measured in their place. Pick again to retry.
-                  </p>
-                )}
-                {trackNote && !poiMissed && (
-                  <p className="mb-2 text-xs text-chalk-dim">{trackNote}</p>
-                )}
                 {(markerShown || (lastOpening && source === "video")) && (
                   <div className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
                     {markerShown && (
@@ -1656,7 +1182,7 @@ export function AnalyzeFlow({
                           className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-teal"
                         />
                         <span>
-                          The skeleton traces the tracked player in every frame.
+                          The gold ring marks your player for the coach.
                         </span>
                       </>
                     )}
@@ -1667,7 +1193,7 @@ export function AnalyzeFlow({
                         disabled={busy}
                         className="chip ml-auto shrink-0"
                       >
-                        Reframe player
+                        Re-mark player
                       </button>
                     )}
                   </div>
@@ -1726,15 +1252,7 @@ export function AnalyzeFlow({
             <div className="mt-4 min-h-6 font-mono text-sm" aria-live="polite">
               {status.kind === "reading" && (
                 <span className="flex items-center gap-2.5 text-teal">
-                  <WorkingDots />{" "}
-                  {modelPct != null && modelPct < 100
-                    ? `Preparing motion tracking… ${modelPct}%`
-                    : "Reading your clip…"}
-                </span>
-              )}
-              {status.kind === "tracking" && (
-                <span className="flex items-center gap-2.5 text-teal">
-                  <WorkingDots /> Tracking the play… {status.pct}%
+                  <WorkingDots /> Reading your clip…
                 </span>
               )}
               {status.kind === "sending" && !retrying && (
@@ -1779,13 +1297,12 @@ export function AnalyzeFlow({
               One-time question
             </p>
             <h2 id="training-consent-title" className="mt-2 font-display text-xl font-bold">
-              Help improve motion tracking?
+              Help improve future analysis?
             </h2>
             <p className="mt-3 text-sm text-chalk-dim">
               Allow your uploaded clips and extracted frames to help train future
-              analysis features, like automatic ball tracking. Your footage stays
-              private to your account either way, and you can change this any time
-              from your dashboard.
+              analysis features. Your footage stays private to your account
+              either way, and you can change this any time from your dashboard.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button

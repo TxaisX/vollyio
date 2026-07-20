@@ -22,7 +22,6 @@ export type CoverageCase = {
   level: string;
   excluded: boolean;
   expected: EvalExpectation;
-  hasMeasurements: boolean;
 };
 
 export type Coverage = {
@@ -39,7 +38,6 @@ export type Coverage = {
     weakest_metric_unknown: number; // reviewer-confirmed abstention
     weakest_metric_missing: number; // neither labeled nor confirmed unknown
     strongest_metric: number;
-    measurements: number;
   };
   // Active cases with no label-driven check available at all: they can never
   // pass or fail, only sit unverified.
@@ -81,7 +79,6 @@ export function summarizeCoverage(cases: CoverageCase[]): Coverage {
         (c) => !hasWeakest(c.expected) && c.expected.weakest_metric_unknown !== true,
       ).length,
       strongest_metric: active.filter((c) => Boolean(c.expected.strongest_metric)).length,
-      measurements: active.filter((c) => c.hasMeasurements).length,
     },
     unverifiable: active.filter(
       (c) =>
@@ -144,9 +141,6 @@ export function coverageReport(cov: Coverage, checks?: CheckTally): string[] {
     `  strongest_metric   ${l.strongest_metric}/${cov.active} (${pct(l.strongest_metric)})`,
   );
   lines.push(
-    `  measurement block  ${l.measurements}/${cov.active} (${pct(l.measurements)})`,
-  );
-  lines.push(
     `Target population (intermediate/expert): ${cov.targetPopulation}/${cov.active} (${pct(cov.targetPopulation)})`,
   );
 
@@ -178,11 +172,6 @@ export function coverageGaps(cov: Coverage): string[] {
       `0 of ${cov.active} active cases carry a weakest_metric label, so the constraint-diagnosis check never fires. Needs human labeling.`,
     );
   }
-  if (cov.labels.measurements === 0) {
-    gaps.push(
-      `0 of ${cov.active} active cases carry a captured measurement block, so the on-device measurement path is untested. Needs re-capture with pose tracking on.`,
-    );
-  }
   if (cov.labels.weakest_metric_missing > 0) {
     gaps.push(
       `${cov.labels.weakest_metric_missing} active cases have neither a weakest_metric nor a reviewer-confirmed weakest_metric_unknown flag; they are unlabeled, not abstentions.`,
@@ -199,7 +188,7 @@ export function coverageGaps(cov: Coverage): string[] {
 /** One-line summary suitable for CI logs and the API response. */
 export function coverageSummaryLine(cov: Coverage): string {
   const l = cov.labels;
-  return `${cov.active} active cases | band ${l.overall_band} | weakest ${l.weakest_metric} | strongest ${l.strongest_metric} | measurements ${l.measurements} | target-level ${cov.targetPopulation} | ${coverageGaps(cov).length} blocking gaps`;
+  return `${cov.active} active cases | band ${l.overall_band} | weakest ${l.weakest_metric} | strongest ${l.strongest_metric} | target-level ${cov.targetPopulation} | ${coverageGaps(cov).length} blocking gaps`;
 }
 
 export const CHECK_NAMES_REQUIRING_LABELS = LABEL_CHECKS;

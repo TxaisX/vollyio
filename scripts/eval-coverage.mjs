@@ -32,7 +32,6 @@ export function loadCoverageCases(dir = CASES_DIR) {
         level: c.level ?? "unknown",
         excluded: c.excluded === true,
         expected: c.expected ?? {},
-        hasMeasurements: c.measurements != null,
       };
     });
 }

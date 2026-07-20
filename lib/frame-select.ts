@@ -184,32 +184,6 @@ export function planExtraStoreTimes(
   return out.sort((a, b) => a.timeS - b.timeS);
 }
 
-/**
- * Plan the send set from measured motion instead of the luminance scan: rep
- * contacts (all equally trusted) are the anchors, wrist-speed peaks fill any
- * remaining anchor slots, and the burst/context layout is shared with the
- * luminance path via planFrameTimes. Anchor scores only shape how burst
- * frames distribute; contacts always outrank speed peaks.
- */
-export function planFromPose(
-  duration: number,
-  repContacts: number[],
-  speedPeaks: { timeS: number; score: number }[],
-  coarseInterval: number,
-  maxFrames: number,
-  startS = 0,
-): PlannedFrame[] {
-  const anchors: Peak[] = [];
-  const take = (timeS: number, score: number) => {
-    if (anchors.length >= MAX_PEAKS) return;
-    if (anchors.some((a) => Math.abs(a.timeS - timeS) < MIN_PEAK_SEPARATION_S)) return;
-    anchors.push({ timeS, score });
-  };
-  for (const c of repContacts) take(c, 2);
-  for (const p of [...speedPeaks].sort((a, b) => b.score - a.score)) take(p.timeS, 1);
-  return planFrameTimes(duration, anchors, coarseInterval, maxFrames, startS);
-}
-
 export function planFrameTimes(
   duration: number,
   peaks: Peak[],
@@ -287,4 +261,13 @@ export function planFrameTimes(
     }
   }
   return out.length >= 2 ? out : [];
+}
+
+// "0:02.5" style clock stamp for trim handles and rep boundaries.
+export function clockStamp(seconds: number | null): string {
+  if (seconds == null) return "–";
+  const s = Math.max(0, seconds);
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}.${String(
+    Math.floor((s % 1) * 10),
+  )}`;
 }
