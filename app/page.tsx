@@ -16,8 +16,8 @@ import { SUPPORT_EMAIL } from "@/lib/site";
 const STEPS = [
   {
     n: "01",
-    title: "Record a rep",
-    body: "Film up to 45 seconds of any skill, or upload a clip you already have. Photos work too.",
+    title: "Upload a rep",
+    body: "Film with your camera app and upload up to 45 seconds of any skill. Photos work too.",
   },
   {
     n: "02",
@@ -36,8 +36,9 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "What do I need to get started?",
     a: (
       <p>
-        A phone and a browser. Record up to 45 seconds of one skill right in
-        Sideout, or upload a clip you already have. Photos work too. No
+        A phone and a browser. Film up to 45 seconds of one skill with your
+        camera app and upload it, or use a clip you already have. Photos work
+        too. No
         wearables, no rig, no second person required. Sideout runs on the web
         on iOS, Android, and desktop, and you can install it like an app.
       </p>
@@ -111,7 +112,7 @@ export default function Landing() {
     applicationCategory: "SportsApplication",
     operatingSystem: "Web, iOS, Android",
     description:
-      "Record a rep, get frame-by-frame form analysis for every volleyball skill.",
+      "Upload a rep, get frame-by-frame form analysis for every volleyball skill.",
     featureList: [
       "Frame-by-frame breakdown",
       "Six skills scored 0-100",

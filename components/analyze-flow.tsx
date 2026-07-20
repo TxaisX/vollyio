@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkillPicker } from "@/components/skill-picker";
-import { Recorder } from "@/components/recorder";
 import { Filmstrip } from "@/components/filmstrip";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -348,7 +347,6 @@ export function AnalyzeFlow({
   const [duration, setDuration] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [useUpload, setUseUpload] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [discipline, setDiscipline] = useState<Discipline>(
     initialDiscipline ?? "indoor",
@@ -364,11 +362,11 @@ export function AnalyzeFlow({
   // Pre-analysis pause: the opening frame is up, waiting for the player to
   // mark who to analyze.
   const [openingPick, setOpeningPick] = useState<
-    (OpeningFrame & { blob: Blob; isRecorded: boolean }) | null
+    (OpeningFrame & { blob: Blob }) | null
   >(null);
   // Kept after analysis so the player can re-mark and re-run.
   const [lastOpening, setLastOpening] = useState<
-    (OpeningFrame & { blob: Blob; isRecorded: boolean }) | null
+    (OpeningFrame & { blob: Blob }) | null
   >(null);
   // Scrubbable clip inside the framing card: pick the moment, then tap the player.
   const frameVideoRef = useRef<HTMLVideoElement>(null);
@@ -580,7 +578,7 @@ export function AnalyzeFlow({
   }, []);
 
   const busy = status.kind === "reading" || status.kind === "sending";
-  const canSubmit = frames.length > 0 && (source === "photos" || useUpload);
+  const canSubmit = frames.length > 0;
 
   // Release the preview object URL when it is replaced or on unmount.
   useEffect(() => {
@@ -683,7 +681,6 @@ export function AnalyzeFlow({
   // is a tap, then submit or preview.
   async function runVideoExtraction(
     blob: Blob,
-    isRecorded: boolean,
     target?: Mark,
     window?: TrimWindow,
   ) {
@@ -716,11 +713,7 @@ export function AnalyzeFlow({
         setStatus({ kind: "idle" });
         return;
       }
-      if (isRecorded) {
-        await submit(shown, "video", duration_s);
-      } else {
-        setStatus({ kind: "idle" });
-      }
+      setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
         kind: "error",
@@ -729,15 +722,15 @@ export function AnalyzeFlow({
     }
   }
 
-  // Shared entry for recorded and uploaded clips: pause on the opening frame
-  // so the player can mark who to analyze before any analysis runs.
-  async function handleVideo(blob: Blob, isRecorded: boolean) {
+  // Entry for uploaded clips: pause on the opening frame so the player can
+  // mark who to analyze before any analysis runs.
+  async function handleVideo(blob: Blob) {
     setStatus({ kind: "reading" });
     setFrameDebug(null);
     setOpeningPick(null);
     setLastOpening(null);
     clipRef.current = blob;
-    setVideoUrl(isRecorded ? null : URL.createObjectURL(blob));
+    setVideoUrl(URL.createObjectURL(blob));
     try {
       if (skill) {
         const opening = await openingFrame(blob);
@@ -750,14 +743,14 @@ export function AnalyzeFlow({
           setMarkerShown(false);
           setSource("video");
           setDuration(opening.duration_s);
-          const pick = { ...opening, blob, isRecorded };
+          const pick = { ...opening, blob };
           setLastOpening(pick);
           setOpeningPick(pick);
           setStatus({ kind: "idle" });
           return;
         }
       }
-      await runVideoExtraction(blob, isRecorded);
+      await runVideoExtraction(blob);
     } catch (err) {
       setStatus({
         kind: "error",
@@ -781,12 +774,7 @@ export function AnalyzeFlow({
       : picked.t;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    void runVideoExtraction(
-      opening.blob,
-      opening.isRecorded,
-      { x: picked.x, y: picked.y, t },
-      win,
-    );
+    void runVideoExtraction(opening.blob, { x: picked.x, y: picked.y, t }, win);
   }
 
   // Analysis without a mark. Never a dead end: the model chooses the subject
@@ -797,11 +785,7 @@ export function AnalyzeFlow({
     const win = trim ?? undefined;
     setOpeningPick(null);
     setStatus({ kind: "reading" });
-    void runVideoExtraction(opening.blob, opening.isRecorded, undefined, win);
-  }
-
-  async function onRecorded(blob: Blob) {
-    await handleVideo(blob, true);
+    void runVideoExtraction(opening.blob, undefined, win);
   }
 
   async function onVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -826,7 +810,7 @@ export function AnalyzeFlow({
         extrasRef.current = [];
         setStatus({ kind: "idle" });
       } else {
-        await handleVideo(file, false);
+        await handleVideo(file);
       }
     } catch (err) {
       setStatus({
@@ -945,23 +929,20 @@ export function AnalyzeFlow({
                 {SKILL_LABEL[skill].toLowerCase()} rep
               </h2>
 
-              {!useUpload ? (
-                <Recorder onClip={onRecorded} onUnavailable={() => setUseUpload(true)} />
-              ) : (
-                <div className="card border-dashed border-gold/40 p-8 text-center">
-                  <button
-                    type="button"
-                    onClick={() => videoInput.current?.click()}
-                    disabled={busy}
-                    className="btn-ghost mx-auto text-sm"
-                  >
-                    Upload a clip
-                  </button>
-                  <p className="mt-3 text-xs text-chalk-dim">
-                    A few seconds, up to 45. Any angle you can get.
-                  </p>
-                </div>
-              )}
+              <div className="card border-dashed border-gold/40 p-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => videoInput.current?.click()}
+                  disabled={busy}
+                  className="btn-primary mx-auto min-h-11 text-sm"
+                >
+                  Upload a clip
+                </button>
+                <p className="mt-3 text-xs text-chalk-dim">
+                  A few seconds, up to 45. Any angle you can get. Film with
+                  your camera app, then pick the clip here.
+                </p>
+              </div>
 
               <input
                 ref={videoInput}
@@ -985,22 +966,6 @@ export function AnalyzeFlow({
               />
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (useUpload) {
-                      setUseUpload(false);
-                    } else {
-                      // Skip the recorder — open the file picker straight away.
-                      setUseUpload(true);
-                      videoInput.current?.click();
-                    }
-                  }}
-                  disabled={busy}
-                  className="chip min-h-11"
-                >
-                  {useUpload ? "Record in-app instead" : "Upload a clip instead"}
-                </button>
                 <button
                   type="button"
                   onClick={() => photoInput.current?.click()}
