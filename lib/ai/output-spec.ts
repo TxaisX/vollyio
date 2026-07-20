@@ -88,6 +88,10 @@ export function outputSpec(skill: Skill, level: Level): string {
     "difficulty is one of: quick, moderate, long-term. timeframe is a short human phrase (e.g. \"1-2 practices\", \"2-3 weeks\").",
     RETURN_SCALE[level],
     "",
+    "OBSERVED CHECKPOINTS",
+    "Score each checkpoint ONLY on visible mechanical evidence. When a checkpoint's mechanics genuinely cannot be seen (occluded by other players, cropped by the frame, hidden by a camera cut, or too motion-blurred to read), set observed=false for that checkpoint, say in the note exactly what was not visible, and give your best-guess score anyway; an unobserved checkpoint is EXCLUDED from the overall score, so never fold invisibility into a lower number and never score a checkpoint conservatively because footage hid it. A checkpoint you could genuinely assess, even briefly, is observed=true and scored on its mechanics.",
+    "The overall score is the read of the OBSERVED mechanics only: it must be consistent with the observed checkpoint scores, purely the athlete's visible mechanics, nothing else.",
+    "",
     "Judge the marked athlete's MECHANICS only. Never characterize the setting, occasion, or seriousness of the play (practice, pickup, recreational, casual, competitive) in any field: the same swing earns the same words and the same number on a championship court or a backyard one.",
     "Base every field on the visible frames alone. Do not reference any tool, model, or provider.",
   ].join("\n");

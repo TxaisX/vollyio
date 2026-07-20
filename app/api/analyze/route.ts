@@ -185,18 +185,30 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const metricsMap = raw.metrics as Record<string, { score: number; note: string }>;
+      const metricsMap = raw.metrics as Record<
+        string,
+        { score: number; note: string; observed: boolean }
+      >;
+      // Purely the visible mechanics (D-038): unobserved checkpoints are
+      // excluded from the overall. If nothing was observed at all, fall back
+      // to every metric rather than an empty mean.
+      const observedScores = METRICS[skill]
+        .filter((m) => metricsMap[m.key].observed !== false)
+        .map((m) => scaledMetric(metricsMap[m.key]));
       const top = raw.changes[0];
       // The product score scale (D-034/D-037): the model's raw judgment is
       // remapped onto the shipped scale for every account. Monotonic, so
       // ordering between reps is exactly the model's; only where the numbers
       // sit changes.
       const scaled = (n: number) => toProductScale(n);
+      const scaledMetric = (m: { score: number }) => scaled(m.score);
       result = {
         skill,
         overall_score: coherentOverall(
           scaled(raw.overall_score),
-          METRICS[skill].map((m) => scaled(metricsMap[m.key].score)),
+          observedScores.length > 0
+            ? observedScores
+            : METRICS[skill].map((m) => scaledMetric(metricsMap[m.key])),
         ),
         // Who the model says it analyzed, and whether that matches the athlete
         // the player marked. Optional: an older stored row has no such field,
@@ -207,6 +219,7 @@ export async function POST(req: NextRequest) {
           key: m.key,
           score: scaled(metricsMap[m.key].score),
           note: metricsMap[m.key].note,
+          observed: metricsMap[m.key].observed !== false,
         })),
         contact_frame_index: raw.contact_frame_index,
         focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },
