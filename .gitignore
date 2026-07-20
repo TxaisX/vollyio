@@ -98,3 +98,11 @@ evals/GROUPS.json
 # caveat: /codex-attack-model-effort-eval/ above is ignored wholesale and
 # contains its own copies of those scripts and schemas; the root-level copies
 # are the ones meant to be tracked.
+
+# pose-engine evaluation corpus: frames cut from personal source footage,
+# regenerable with scripts/extract-eval-frames.mjs. never committed.
+/public/evalframes/
+/public/pose-test-*.jpg
+/public/pose-test-*.png
+/eval-results/
+/public/evalframes-full/
