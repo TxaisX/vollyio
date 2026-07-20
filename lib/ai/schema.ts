@@ -18,6 +18,10 @@ export function analysisSchema(skill: Skill) {
     metricShape[key] = z.object({
       score: z.number().int(),
       note: z.string(),
+      // False when this checkpoint's mechanics are genuinely not visible in
+      // the frames (occluded, cropped, cut away). An unobserved checkpoint is
+      // excluded from the overall instead of dragging it with a default.
+      observed: z.boolean(),
     });
   }
 

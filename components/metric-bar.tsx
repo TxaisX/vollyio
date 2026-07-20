@@ -7,6 +7,7 @@ export function MetricBar({
   score,
   note,
   elite,
+  observed = true,
   delay = 0,
 }: {
   label: string;
@@ -14,6 +15,9 @@ export function MetricBar({
   note?: string;
   /** What a ~90 looks like for this metric; renders as a collapsed reference line. */
   elite?: string;
+  /** False when this checkpoint was not visible in the footage; it renders as
+   *  informational only and is excluded from the overall score. */
+  observed?: boolean;
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -62,25 +66,35 @@ export function MetricBar({
     <div ref={ref}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-sm">{label}</span>
-        <span className="shrink-0 font-mono text-xs text-gold">{shown}</span>
+        {observed ? (
+          <span className="shrink-0 font-mono text-xs text-gold">{shown}</span>
+        ) : (
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+            Not visible
+          </span>
+        )}
       </div>
-      <div
-        role="progressbar"
-        aria-label={label}
-        aria-valuenow={valueNow}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuetext={`${valueNow} out of 100`}
-        className="mt-1 h-1.5 overflow-hidden rounded-full bg-line"
-      >
+      {observed ? (
         <div
-          className="h-full rounded-full bg-gold"
-          style={{
-            width: drawn ? `${clamped}%` : "0%",
-            transition: "width 0.8s var(--ease-court)",
-          }}
-        />
-      </div>
+          role="progressbar"
+          aria-label={label}
+          aria-valuenow={valueNow}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuetext={`${valueNow} out of 100`}
+          className="mt-1 h-1.5 overflow-hidden rounded-full bg-line"
+        >
+          <div
+            className="h-full rounded-full bg-gold"
+            style={{
+              width: drawn ? `${clamped}%` : "0%",
+              transition: "width 0.8s var(--ease-court)",
+            }}
+          />
+        </div>
+      ) : (
+        <div aria-hidden className="mt-1 h-1.5 rounded-full border border-dashed border-line" />
+      )}
       {note && <p className="mt-1 text-xs text-chalk-dim">{note}</p>}
       {elite && (
         <details className="mt-1">

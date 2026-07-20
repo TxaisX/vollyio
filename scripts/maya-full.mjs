@@ -1,7 +1,7 @@
-// End-to-end check of the D-036 flow on the owner's clip: the coach spots the
-// players, the first candidate (the athlete on the right) is picked, the ring
-// is burned at the SPOTTED point, and the analysis must confirm that subject.
-import { readFile, writeFile } from "node:fs/promises";
+// The owner's question: what does the shipped pipeline score the FIRST HIT in
+// the Maya Ogbogu clip? Frames from disk, spot -> pick the attacker -> ring ->
+// indoor attack analysis, exactly as the product runs it.
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import sharp from "sharp";
@@ -16,12 +16,17 @@ import { coherentOverall } from "../lib/ratings.ts";
 import { toProductScale } from "../lib/score-scale.ts";
 
 const ROOT = process.cwd();
+const USE_BUNDLE = true;
+
 const env = await readFile(path.join(ROOT, ".env.local"), "utf8");
 const client = new Anthropic({ apiKey: env.match(/ANTHROPIC_API_KEY=(.+)/)[1].trim() });
-const bundle = JSON.parse(await readFile(path.join(ROOT, "ab", "trackbundle.json"), "utf8"));
-const c = bundle.cases.find((x) => x.clip === "20260719_093134.mp4");
 
-// Stage 1: spotting, exactly as /api/players prompts it.
+const bundle = JSON.parse(await readFile(path.join(ROOT, "ab", "trackbundle.json"), "utf8"));
+const c = bundle.cases.find((x) => x.clip.includes("Ogbogu"));
+const frames = c.frames.map((f) => ({ ...f }));
+
+// Spot on the frame where the hitter is loading (index 4, ~4.5s).
+const SPOT_AT = 7;
 const spotSchema = z.object({
   players: z.array(z.object({ label: z.string().max(80), x: z.number().min(0).max(1), y: z.number().min(0).max(1) })).max(6),
 });
@@ -34,7 +39,7 @@ const spot = await client.messages.parse(
       {
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: c.frames[0].data } },
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: frames[SPOT_AT].data } },
           {
             type: "text",
             text:
@@ -51,12 +56,16 @@ const spot = await client.messages.parse(
   { maxRetries: 2 },
 );
 const players = spot.parsed_output.players;
-console.log("SPOTTED:");
+console.log(`SPOTTED (frame at t=${frames[SPOT_AT].time_s}s):`);
 players.forEach((p, i) => console.log(`  ${i + 1}. (${p.x.toFixed(2)}, ${p.y.toFixed(2)}) ${p.label}`));
 
-// Stage 2: the user picks #1 (the girl on the right). Ring at the spotted point.
-const pick = players[0];
-const buf = Buffer.from(c.frames[0].data, "base64");
+// Pick the attacker: the candidate described at the net in the dark jersey on
+// the far side. Fall back to #1.
+const pick =
+  players.find((p) => /dark|black|navy/i.test(p.label)) ?? players[0];
+console.log(`\nPICKED: ${pick.label}`);
+
+const buf = Buffer.from(frames[SPOT_AT].data, "base64");
 const meta = await sharp(buf).metadata();
 const r = Math.round(Math.min(meta.width, meta.height) * 0.055);
 const cx = Math.round(pick.x * meta.width);
@@ -67,13 +76,9 @@ const svg = Buffer.from(
     `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e8b93b" stroke-width="${Math.round(r * 0.2)}"/></svg>`,
 );
 const ringedBuf = await sharp(buf).composite([{ input: svg }]).jpeg({ quality: 80 }).toBuffer();
-await writeFile(path.join(ROOT, "..", "..", "..", "..", "..", "Users") // no-op guard
-  .catch?.(() => {}) ?? path.join(ROOT, "ab", "flow-ringed.jpg"), ringedBuf).catch(() => {});
-await writeFile(path.join(ROOT, "ab", "flow-ringed.jpg"), ringedBuf);
-const ringed = ringedBuf.toString("base64");
+await writeFile(path.join(ROOT, "ab", "maya-ringed.jpg"), ringedBuf);
+frames[SPOT_AT] = { ...frames[SPOT_AT], data: ringedBuf.toString("base64") };
 
-// Stage 3: the shipped analysis, ring-marked frame 0.
-const frames = c.frames.map((f, i) => ({ ...f, data: i === 0 ? ringed : f.data }));
 const content = frames.flatMap((f, i) => [
   { type: "text", text: `Frame ${i}, t=${f.time_s}s` },
   { type: "image", source: { type: "base64", media_type: "image/jpeg", data: f.data } },
@@ -81,11 +86,11 @@ const content = frames.flatMap((f, i) => [
 content.push({
   type: "text",
   text:
-    "The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete in frame 0. " +
+    `The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete in frame ${SPOT_AT}. ` +
     "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. " +
     "Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
 });
-content.push({ type: "text", text: "Discipline: grass. Player level: beginner. Analyze this spike rep sequence across the whole clip." });
+content.push({ type: "text", text: "Discipline: indoor. Player level: beginner. Analyze this spike rep sequence across the whole clip." });
 
 const res = await client.messages.parse(
   {
@@ -93,7 +98,7 @@ const res = await client.messages.parse(
     max_tokens: 4096,
     thinking: { type: "adaptive" },
     system: [
-      { type: "text", text: getRubric("attack", "grass"), cache_control: { type: "ephemeral" } },
+      { type: "text", text: getRubric("attack", "indoor"), cache_control: { type: "ephemeral" } },
       { type: "text", text: outputSpec("attack", "beginner"), cache_control: { type: "ephemeral" } },
     ],
     messages: [{ role: "user", content }],
@@ -108,11 +113,11 @@ const overall = coherentOverall(
   scaled(raw.overall_score),
   (obs.length ? obs : METRICS.attack).map((m) => scaled(raw.metrics[m.key].score)),
 );
-console.log(`\nPICKED: #1 ${pick.label}`);
-console.log(`OVERALL: ${overall}`);
+console.log(`\nOVERALL: ${overall}`);
 console.log(`subject: ${raw.subject_check?.analyzed} [${raw.subject_check?.marker_match}]`);
 for (const m of METRICS.attack) {
   const mm = raw.metrics[m.key];
-  console.log(`  ${m.label.padEnd(24)} ${mm.observed === false ? "n/v" : String(scaled(mm.score)).padStart(3)}`);
+  console.log(`  ${m.label.padEnd(24)} ${mm.observed === false ? "n/v" : String(scaled(mm.score)).padStart(3)}  ${mm.note.slice(0,110)}`);
 }
-console.log(`fix: ${raw.changes[0].title}`);
+console.log(`fix: ${raw.changes[0].title} -- ${raw.changes[0].detail}`);
+console.log(`summary: ${raw.summary}`);

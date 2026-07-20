@@ -1168,3 +1168,27 @@ expected gains (RETURN_SCALE); the pro voice keeps its bluntness but now says
 so on the shared scale. What is lost, knowingly: the funnel's "judged like a
 professional" scoring contract; a pro-tier user now gets pro-blunt words over
 the standard scale rather than a separate harsher number.
+
+## D-038 — Unobserved checkpoints are excluded from the score, not defaulted
+
+Owner call: the number is purely the mechanics of the analyzed athlete,
+nothing else. The old behavior "scored conservatively" any checkpoint the
+footage hid, which silently folded CAMERA quality into a MECHANICS number: a
+pro hitter on broadcast-cut footage scored a hedged 72-75 built mostly of
+abstention-defaults.
+
+Now each metric carries observed: boolean. A checkpoint whose mechanics
+genuinely cannot be seen (occlusion, crop, camera cut, motion blur) is marked
+observed=false, keeps a best-guess score and a note naming exactly what was
+not visible, and is EXCLUDED from the overall, which becomes the read of the
+observed mechanics only (fallback to all metrics when nothing was observed,
+rather than an empty mean). The results page renders unobserved checkpoints
+as "Not visible" with a dashed track instead of a bar. Older stored rows have
+no flag and count as observed.
+
+Validated: the pro tournament clip went 75 (five conservative defaults) to 81
+(approach excluded as not visible; jump 82, arm swing 80, contact 82 scored
+on their visible merits). The owner's park clip stayed in band (72) with the
+sparse-frame checkpoints now honestly flagged instead of silently defaulted.
+The number went UP by becoming more honest, not by inflating: invisibility
+stopped counting against the athlete.

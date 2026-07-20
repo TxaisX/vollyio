@@ -22,7 +22,10 @@ export type AnalyzeRequest = {
   marker_frame_index?: number;
 };
 
-export type Metric = { key: string; score: number; note: string };
+// observed is false when the checkpoint's mechanics were not visible in the
+// footage; such metrics are excluded from the overall. Optional: older rows
+// predate it and count as observed.
+export type Metric = { key: string; score: number; note: string; observed?: boolean };
 export type Insight = {
   frame_index: number;
   time_s: number | null;

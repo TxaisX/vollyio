@@ -304,6 +304,7 @@ export default async function AnalysisDetail({
                   label={metricLabel(row.skill, m.key)}
                   score={m.score}
                   note={m.note}
+                  observed={m.observed !== false}
                   elite={
                     metricKnowledge(
                       row.skill,
