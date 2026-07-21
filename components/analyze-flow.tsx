@@ -32,7 +32,8 @@ import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status =
   | { kind: "idle" | "reading" | "sending" }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  | { kind: "unavailable"; message: string };
 
 // The tap that marks the athlete: a normalized point in the frame at a clip
 // time. Just a coordinate; nothing on the device interprets it (D-033).
@@ -696,6 +697,20 @@ export function AnalyzeFlow({
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: null }));
+        if (res.status === 503) {
+          // Degraded service (D-043): the coaching service is temporarily out of
+          // capacity, or a fail-closed control tripped. The clip was not counted
+          // against any limit, so this is surfaced distinctly from a failed read
+          // (calm, not the coral error state) with a path forward, not a dead end.
+          setRetrying(false);
+          setStatus({
+            kind: "unavailable",
+            message:
+              error ??
+              "The coaching service is temporarily unavailable. Your clip wasn't counted against your limit. Try again later.",
+          });
+          return;
+        }
         throw new Error(error ?? "The coaching service is unavailable. Try again.");
       }
       const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
@@ -1343,7 +1358,13 @@ export function AnalyzeFlow({
               {status.kind === "error" && (
                 <p className="animate-fade-up text-coral">{status.message}</p>
               )}
-              {frames.length > 0 && (status.kind === "error" || retrying) && (
+              {status.kind === "unavailable" && (
+                <p className="animate-fade-up text-chalk">{status.message}</p>
+              )}
+              {frames.length > 0 &&
+                (status.kind === "error" ||
+                  status.kind === "unavailable" ||
+                  retrying) && (
                 <button
                   type="button"
                   aria-busy={retrying}

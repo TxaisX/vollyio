@@ -1366,9 +1366,18 @@ post-insert update path (needs an update grant plus an RLS update policy, which
 would break analyses immutability); moving quota consumption after the coaching
 call (breaks the atomic-before-paid-work rule in security.md).
 
+Client surface. The analyze flow (`components/analyze-flow.tsx`) now reads a 503
+distinctly: a new `unavailable` status renders the server's honest message in the
+neutral chalk tone, not the coral error state, so "the service is temporarily out
+of capacity and your clip wasn't counted" never reads as "your clip failed." The
+spinner clears (503 is not a busy state) and a retry stays offered, so it is a
+calm status, not a dead end. All 503s map here (capacity, plus the fail-closed
+quota and entitlement paths), which is correct: none of them is the clip's fault.
+
 Honesty. The pure classifier and the refund helper are unit-tested (TDD, red
 first). Migration 016 is additive and was applied to production and verified
-(column, function, grants). NOT verified live: the full-route degraded behavior
-and the real telemetry values, because the spend cap blocks every live call
-until the owner raises the limit. The exact production error body should be
-confirmed against `classifyCoachingError` when the cap next lifts.
+(column, function, grants). NOT verified live: the full-route degraded behavior,
+the real telemetry values, and the client `unavailable` state in a browser,
+because the spend cap blocks every live call until the owner raises the limit.
+The exact production error body should be confirmed against
+`classifyCoachingError` when the cap next lifts.
