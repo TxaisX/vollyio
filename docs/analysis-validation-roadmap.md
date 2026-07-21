@@ -382,6 +382,51 @@ Decision rule after that table:
 This experiment produces the first honest baseline and tells Sideout what to
 fix next without guessing.
 
+## Go-to-market validation
+
+Folded from the retired `validation-plan.md` (resolved 2026-07-12 with the
+owner). This is the business-validation half of the roadmap: prove the product
+earns unprompted return before charging.
+
+Strategy in one line: validate with real players from the owner's own circle,
+measure their unprompted return, and only then charge.
+
+- **First users.** Roughly 10 to 25 players from the owner's Sacramento pickup
+  and league circle, recruited in person and helped through their first upload
+  courtside. No community posting or coach pilots yet.
+- **Charge trigger: unprompted return.** Billing flips when roughly 40% or more
+  of the cohort films a second session within two weeks of their first, without
+  being asked. Volume and praise do not count.
+- **Build focus during validation: freeze plus quality.** No new surfaces. The
+  product is frozen at five core surfaces (Analyze, Drills, Coach, Scoreboard,
+  and the progress family of Dashboard/Goals/History/Learn). Allowed work: fixes
+  the cohort's usage exposes, eval-measured coaching-quality work, and the ops
+  items below. Post-validation surface candidates, in order of fit:
+  Community/Challenges first, Nutrition second.
+- **Measurement: SQL over the database.** The `analyses` table answers the
+  return-rate question directly; check it weekly. No analytics dependency beyond
+  what is already installed.
+- **Ops before recruiting.** Buy the domain and point the deployment at it; move
+  the support address off the personal inbox; set custom SMTP (verified sender
+  on the product domain) and raise the auth email rate limit; run the
+  calibration filming sprint (owner plus one or two teammates across
+  serve/pass/attack, scored by the owner, ingested to a first `evals/BASELINE`).
+
+Reconciliations against later decisions (the old plan predated them):
+
+- **Pricing and billing** are now governed by D-029, not the old plan's
+  "$8 to $12 at flip." D-029 keeps a free community beta now and documents the
+  paid tier as a future (`docs/sideout-commercialization.html`: Pro $14.99/mo,
+  free tier three analyses/month). The old plan's `canAnalyze` billing seam
+  **does not exist**; free-plan enforcement lives entirely in the Postgres
+  function `reserve_analysis_entitlement`, and shipping billing needs Stripe,
+  a plan writer, and a real upgrade URL first.
+- **Discipline mapping** is now D-035, not "grass maps to beach." Grass and sand
+  are judged together as one `outdoor` coaching group with `grass` as the stored
+  value; `beach` is a legacy stored value new captures no longer produce.
+- **Counsel review of `/privacy` and `/terms`** stays a hard item on the
+  billing-flip checklist, before charging, not before friends use the free app.
+
 ## References
 
 - COCO keypoint evaluation uses scale-normalized keypoint similarity rather than

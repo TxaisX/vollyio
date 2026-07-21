@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sideout
 
-## Getting Started
+Sideout is a volleyball skill-analysis and coaching web app: a player uploads a
+short clip, taps the athlete to analyze, and gets a mechanics breakdown of their
+serve, pass, set, attack, block, or dig. The read is done entirely by the
+coaching service (a vision model) watching the frames; there is no on-device ML.
+Every score is derived from a concrete pointer checklist and marks what it could
+not see, so the product never claims more than the footage supports.
 
-First, run the development server:
+Live: https://sideout-jet.vercel.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js 16 (App Router, React 19). Middleware is `proxy.ts`, not `middleware.ts`.
+- Supabase (auth + Postgres 17, row-level security on every table).
+- The coaching service (a vision model) runs server-side only; the browser never
+  sees its key. It is never vendor-named in the UI or docs; the only vendor string
+  in the repo is the `ANTHROPIC_API_KEY` env var.
+- Tailwind v4 design tokens, hand-rolled motion, no chart/state/animation libraries.
+- Deployed on Vercel; a push to `master` auto-deploys production.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How scoring works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Scores are computed from a checklist, never free-scored by the model (D-039). Each
+skill has four observable cues at each of five checkpoints (120 pointers total),
+and the model judges every cue as met, partial, missed, or not-visible. The number
+is then derived in code: the fraction of cues met over the cues that were visible,
+mapped onto the score band. A checkpoint the footage never shows is excluded from
+the overall rather than counted against the athlete (D-038), and the results page
+renders the full checklist under each bar so a score explains itself line by line.
+No display curve softens the number (D-040), and the coaching service watches the
+whole trim window at uniform dense coverage rather than a few picked frames (D-041).
 
-## Learn More
+## Quickstart
 
-To learn more about Next.js, take a look at the following resources:
+See `SETUP.md` for environment variables, the Supabase project, and running the
+app. In short: `npm install`, provide `.env.local`, then `npm run dev` (:3000).
+Gates before any commit: `npm run lint`, `npm run typecheck`, `npm test`,
+`npm run build`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/README.md` - index of the living documentation set.
+- `docs/decisions.md` - the decision log; **D-027 onward is the accurate account
+  of the current system.**
+- `docs/security.md` - the access-control authority (endpoint, database, storage).
+- `HANDOFF.md` - current project state and the exact next step.
+- `archive/` - historical material and evidence for retired systems (do not treat
+  as current).

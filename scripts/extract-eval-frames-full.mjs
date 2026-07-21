@@ -19,7 +19,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 
 const SOURCE = process.env.EVAL_VIDEO_DIR ?? "D:/Videos/Volleyball";
-const OUT = path.join(process.cwd(), "public", "evalframes-full");
+const OUT = path.join(process.cwd(), "evals", "footage", "evalframes-full");
 const LONG_EDGE = 1280;
 // A clip at or under this length is treated as rep-length and taken whole.
 const SHORT_CLIP_S = 40;
@@ -91,7 +91,7 @@ async function main() {
     const produced = (await readdir(dir)).filter((f) => f.endsWith(".jpg")).sort();
     for (let i = 0; i < produced.length; i++) {
       manifest.push({
-        src: `/evalframes-full/${slug}/${produced[i]}`,
+        src: `evals/footage/evalframes-full/${slug}/${produced[i]}`,
         clip: name,
         t: Number((i / sampleFps).toFixed(3)),
         mode: short ? "native" : "sampled",
