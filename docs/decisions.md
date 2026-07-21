@@ -1381,3 +1381,38 @@ the real telemetry values, and the client `unavailable` state in a browser,
 because the spend cap blocks every live call until the owner raises the limit.
 The exact production error body should be confirmed against
 `classifyCoachingError` when the cap next lifts.
+
+## D-044 — The priority-fix loop: a breakdown remembers last time
+
+The cheapest retention feature the product can ship, built entirely from data
+already stored on analyses, so it costs no API call and changes nothing about the
+model output.
+
+Two surfaces:
+- The breakdown of a rep opens with a "Last time" strip when the player has
+  analyzed this same skill and discipline before: the previous priority fix
+  (`priority_fix.title`) and whether the checkpoint behind it moved. The
+  checkpoint is `changes[0].target_metric` (the metric the top change targets),
+  and its score on the two reps gives an honest then-to-now reading.
+- Each dashboard skill card gains a one-line "Focus:" history: the latest
+  priority fix for that skill.
+
+The comparison lives in a pure, unit-tested helper (`lib/priority-loop.ts`
+`lastTimeFix`). It never fabricates movement: a checkpoint not observed this rep
+reads as "not visible", not as a delta, and a checkpoint with no prior observed
+score reads as a baseline, not an improvement. Only a genuine numeric change
+between two observed scores becomes up/down/same.
+
+Data path and security. The breakdown adds one read for the previous rep, scoped
+by the explicit owner filter plus RLS, within the existing `select` grant, so no
+security surface changes. The dashboard lifts the fix title straight from the
+stored `result` JSON with a PostgREST JSON-path select
+(`fix:result->priority_fix->>title`) rather than pulling every full result blob;
+the select syntax was verified against the live REST API by a differential test
+(a valid path is permission-denied under anon RLS, a malformed one is a parse
+error) so the core dashboard query cannot 500.
+
+Known limits, accepted: the then-to-now number carries the same run-to-run
+pointer noise as any single score (D-039 calibration note), so the strip states
+the two numbers plainly rather than asserting the player improved; and the
+previous rep is the immediately prior one of that skill, not a best or a median.
