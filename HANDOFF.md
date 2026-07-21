@@ -46,15 +46,30 @@ production. Live at https://sideout-jet.vercel.app.
 - **Model config** (D-027, D-004). The coaching read runs at opus-low effort; coach
   chat at sonnet-medium. Roughly 30k input tokens and ~$0.15-0.20 per full-window
   analysis - **derived, not yet measured live** (Phase 2 telemetry will measure it).
-- **PRODUCTION IS DOWN.** The account API key hit its **monthly spend cap** on
+- **PRODUCTION AI IS DOWN.** The account API key hit its **monthly spend cap** on
   2026-07-20 ("regain access 2026-08-01 00:00 UTC"). The same key serves local
-  validation and production, so live analyze/coach calls 502 until the owner raises
+  validation and production, so live analyze calls 502 until the owner raises
   the monthly usage limit in the provider billing console (owner-only). This blocks
-  every live-run validation this session, including telemetry and the eval baseline.
+  every live-run validation, including telemetry and the eval baseline.
+- **UI restructure shipped 2026-07-21** (D-047 -> D-052): configuration moved off
+  the dashboard to `/settings` (D-050) and the dashboard gained an xl right rail;
+  scoreboard sides are Home (court blue) vs Guest (coral) (D-051); coach chat is
+  dark behind `NEXT_PUBLIC_COACH_ENABLED` with hardened quotas ready (D-047);
+  outdoor Learn content now derives from the authored outdoor base (D-048);
+  analyze runs environment -> skill -> film as explicit steps with a wider video
+  stage and a metric-checkpoint legend (D-052); analyses are shareable as
+  revocable token links carrying the full breakdown plus the clip, never frames
+  (D-049). Repo standard: `docs/ui.md`.
+- **Migration state**: 017 (frame cap 40) APPLIED to prod and verified via
+  pg_proc. 018 (coach quotas) and 019 (share links) are COMMITTED, NOT APPLIED —
+  coach is dark so 018 is inert, but share links 404 in prod until 019 is
+  applied with the owner's go.
 - **Security** is live and is authored by `docs/security.md`: atomic per-endpoint
   quotas, entitlement reservations, least-privilege grants, bounded uploads;
   migrations 011-013 applied. Read/update its matrices with any surface change.
-- **Git**: branch `feat/pinpoint-motion`. Push to `master` auto-deploys.
+  The one anon data surface is `analysis_by_share_token` + the live-link clips
+  policy (D-049, migration 019).
+- **Git**: work merges fast-forward to `master`. Push to `master` auto-deploys.
 - **Repo hygiene (2026-07-21, this session)**: benchmark artifacts and retired docs
   moved to `archive/`, eval footage out of `public/`, docs pruned to a living set,
   `README.md` and this file rewritten to current reality (D-042).
@@ -84,6 +99,10 @@ consequence get numbered entries in `docs/decisions.md`.
 5. **Counsel skim of `/privacy` and `/terms`** before any marketing push.
 6. **Eval labeling** (see `evals/LABELING.md`): label all 18 active cases, source
    intermediate/expert footage, then run a scored baseline and stability check.
+7. **Apply migration 019 (share links)** so share links work in prod, and
+   **migration 018 (coach quotas) before or with any coach re-enable**
+   (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to stay
+   dark).
 
 ## Device-verification checklist (current flow)
 Nothing in the post-D-033 flow has been eyeballed in a browser. Once the API cap is
@@ -105,12 +124,24 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-Ship this session's Phase 1 foundation commit (repo truth), then the Phase 2
-degraded-service + telemetry commit. The single highest-leverage owner action is
-**raising the API spend cap** so production works and the eval baseline and live
-telemetry can run.
+Owner actions: apply migration 019 (share links live) and raise the API spend
+cap. Then the AI_MOCK visual pass items below and the eval baseline. Coach
+returns whenever the owner flips `NEXT_PUBLIC_COACH_ENABLED` (018 applied
+first).
 
 ## Session log
+- **2026-07-21 (Session 2, UI restructure D-047 -> D-052)** - Eight work
+  packages planned with the owner and merged FF to master: migration-file
+  hygiene (missing 014s reconstructed; prod already allowed grass) + `docs/ui.md`
+  + onboarding error surfacing; `/settings` page + dashboard xl rail (D-050);
+  scoreboard Home/Guest with court-blue token (D-051); coach dark + hardened
+  quotas, migration 018 committed-not-applied (D-047); outdoor Learn content
+  from the beach-authored base with combined surface notes (D-048); analyze
+  flow environment-first with required skill step, wider video stage, metric
+  legend (D-052); public share links with full breakdown + clip via one anon
+  RPC + live-link clips policy, migration 019 committed-not-applied (D-049).
+  109 tests green; every branch passed lint/typecheck/test/build. Parallel
+  session applied migration 017 to prod (verified: cap 40 live).
 - **2026-07-21 (Session 1 foundation)** - Repo made to tell the truth. Located the
   live repo (`G:\OneDrive\Documents\Projects\sideout`; two stale copies exist on
   disk). Moved ~90 MB of benchmark artifacts and retired docs into `archive/`
