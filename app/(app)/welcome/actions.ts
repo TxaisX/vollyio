@@ -30,7 +30,7 @@ async function applyAnswers(userId: string, answers: OnboardingAnswers) {
   const { discipline, level, position, play_frequency, skill, target_rating, timeframe_days } =
     answers;
 
-  await supabase
+  const { error } = await supabase
     .from("profiles")
     .update({
       level,
@@ -39,6 +39,9 @@ async function applyAnswers(userId: string, answers: OnboardingAnswers) {
       play_frequency: play_frequency ?? null,
     })
     .eq("id", userId);
+  // A constraint rejection here used to vanish silently and strand the player
+  // with a half-applied profile; fail loudly instead.
+  if (error) throw new Error(`profile update failed: ${error.message}`);
 
   if (target_rating) {
     const deadline = new Date(Date.now() + timeframe_days * 86_400_000)
