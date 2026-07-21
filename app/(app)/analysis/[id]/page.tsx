@@ -16,14 +16,16 @@ import { ShareCard } from "@/components/share-card";
 import { XpToast } from "@/components/xp-toast";
 import { ClipViewer } from "@/components/clip-viewer";
 import { LinkPending } from "@/components/link-pending";
-import { SKILL_LABEL, type Skill } from "@/lib/skills";
+import { SKILL_LABEL, type Skill, type Discipline } from "@/lib/skills";
 import type { AnalysisResult } from "@/lib/analysis-types";
+import { lastTimeFix } from "@/lib/priority-loop";
 
 export const dynamic = "force-dynamic";
 
 type Row = {
   id: string;
   skill: Skill;
+  discipline: Discipline;
   frame_paths: string[];
   clip_path: string | null;
   overall_score: number;
@@ -82,7 +84,7 @@ export default async function AnalysisDetail({
   const { data } = await supabase
     .from("analyses")
     .select(
-      "id, skill, frame_paths, clip_path, overall_score, created_at, result",
+      "id, skill, discipline, frame_paths, clip_path, overall_score, created_at, result",
     )
     .eq("id", id)
     .eq("user_id", userId!)
@@ -91,6 +93,39 @@ export default async function AnalysisDetail({
   if (!data) notFound();
   const row = data as Row;
   const result = row.result;
+
+  // Priority-fix loop (D-044): the previous rep of this same skill and
+  // discipline, if any, so the breakdown opens with what the player was told to
+  // work on and whether the checkpoint behind it moved. RLS plus the explicit
+  // owner filter scope this to the player; it is a read within the existing
+  // select grant, so no security surface changes.
+  const { data: prevRow } = await supabase
+    .from("analyses")
+    .select("result")
+    .eq("user_id", userId!)
+    .eq("skill", row.skill)
+    .eq("discipline", row.discipline)
+    .lt("created_at", row.created_at)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const lastTime = lastTimeFix(
+    (prevRow?.result as AnalysisResult | undefined) ?? null,
+    result,
+  );
+  const lastTimeLabel = lastTime ? metricLabel(row.skill, lastTime.metricKey) : null;
+  const lastTimeCopy =
+    lastTime && lastTimeLabel
+      ? lastTime.movement === "up"
+        ? `${lastTimeLabel}: ${lastTime.then} up to ${lastTime.now}.`
+        : lastTime.movement === "down"
+          ? `${lastTimeLabel}: ${lastTime.then} down to ${lastTime.now}.`
+          : lastTime.movement === "same"
+            ? `${lastTimeLabel}: held at ${lastTime.now}.`
+            : lastTime.movement === "baseline"
+              ? `${lastTimeLabel}: ${lastTime.now} this rep.`
+              : `${lastTimeLabel}: not visible in this rep.`
+      : null;
 
   const { data: signed } = await supabase.storage
     .from("frames")
@@ -213,6 +248,31 @@ export default async function AnalysisDetail({
           Scored like a coach · 40 developing · 70 solid · 90 advanced
         </p>
       </Reveal>
+
+      {lastTime && lastTimeCopy && (
+        <Reveal delay={90}>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
+              Last time
+            </span>
+            <span className="min-w-0 text-sm text-chalk">
+              You worked on{" "}
+              <span className="font-semibold">{lastTime.fixTitle}</span>.
+            </span>
+            <span
+              className={`font-mono text-xs ${
+                lastTime.movement === "up"
+                  ? "text-teal"
+                  : lastTime.movement === "down"
+                    ? "text-coral"
+                    : "text-chalk-dim"
+              }`}
+            >
+              {lastTimeCopy}
+            </span>
+          </div>
+        </Reveal>
+      )}
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-8">
         {/* Player: right column on desktop, first thing on mobile */}

@@ -43,7 +43,13 @@ export const metadata: Metadata = {
 };
 
 type RatingRow = { skill: Skill; rating: number };
-type AnalysisRow = { id: string; skill: Skill; overall_score: number; created_at: string };
+type AnalysisRow = {
+  id: string;
+  skill: Skill;
+  overall_score: number;
+  created_at: string;
+  fix: string | null;
+};
 type GoalRow = {
   id: string;
   title: string;
@@ -86,7 +92,10 @@ export default async function Dashboard({
       .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]]),
     supabase
       .from("analyses")
-      .select("id, skill, overall_score, created_at")
+      // fix: the priority-fix title lifted straight from the stored result JSON
+      // (D-044), so the skill card can show a one-line fix history without
+      // pulling every full result blob.
+      .select("id, skill, overall_score, created_at, fix:result->priority_fix->>title")
       .eq("user_id", userId!)
       .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]])
       .order("created_at", { ascending: false })
@@ -110,6 +119,13 @@ export default async function Dashboard({
   ) as Partial<Record<Skill, number>>;
   const analyses = (analysesData as AnalysisRow[] | null) ?? [];
   const goals = (goalsData as GoalRow[] | null) ?? [];
+
+  // Latest priority fix per skill for the card's one-line fix history (D-044).
+  // analyses is ordered newest-first, so the first hit per skill is the latest.
+  const latestFix: Partial<Record<Skill, string>> = {};
+  for (const a of analyses) {
+    if (a.fix && !(a.skill in latestFix)) latestFix[a.skill] = a.fix;
+  }
 
   const overall = overallScore(SKILLS.map((s) => ratings[s] ?? null));
   const weekAgo = Date.now() - 7 * 86_400_000;
@@ -344,6 +360,11 @@ export default async function Dashboard({
                 <div className="mt-3">
                   <Sparkline values={series} skill={skill} />
                 </div>
+                {latestFix[skill] && (
+                  <p className="mt-2.5 truncate font-mono text-[10px] text-chalk-dim">
+                    <span className="text-gold">Focus:</span> {latestFix[skill]}
+                  </p>
+                )}
               </Link>
             );
           })}
