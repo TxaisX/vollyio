@@ -8,7 +8,7 @@
 // directly under Node's type stripping, same as lib/eval-score.ts.
 
 import type { CaseCheck, EvalExpectation } from "./eval-score.ts";
-import { LABEL_CHECKS, isVacuousBand } from "./eval-score.ts";
+import { isVacuousBand } from "./eval-score.ts";
 
 // The population the product actually targets (see
 // docs/analysis-validation-roadmap.md decision 5). Pro footage is a regression
@@ -190,5 +190,3 @@ export function coverageSummaryLine(cov: Coverage): string {
   const l = cov.labels;
   return `${cov.active} active cases | band ${l.overall_band} | weakest ${l.weakest_metric} | strongest ${l.strongest_metric} | target-level ${cov.targetPopulation} | ${coverageGaps(cov).length} blocking gaps`;
 }
-
-export const CHECK_NAMES_REQUIRING_LABELS = LABEL_CHECKS;
