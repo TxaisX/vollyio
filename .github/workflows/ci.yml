@@ -47,3 +47,11 @@ jobs:
 
       - name: Production build (next build)
         run: npm run build
+
+      # Report-only, never blocks. The labeled eval cases are footage-derived and
+      # gitignored, so CI has none to measure: this only smoke-checks that the
+      # coverage tool runs. The enforcing gate is local, before a baseline:
+      # `node scripts/eval-coverage.mjs --strict` (see evals/LABELING.md).
+      - name: Eval coverage (report only, non-blocking)
+        continue-on-error: true
+        run: node scripts/eval-coverage.mjs
