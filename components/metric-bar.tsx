@@ -9,6 +9,7 @@ export function MetricBar({
   elite,
   observed = true,
   pointers,
+  weight,
   delay = 0,
 }: {
   label: string;
@@ -21,6 +22,8 @@ export function MetricBar({
   observed?: boolean;
   /** The checklist the score was computed from: cue text plus its verdict. */
   pointers?: { cue: string; status: string }[];
+  /** The metric's share of the overall (weights sum to 100 per skill). */
+  weight?: number;
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -68,7 +71,12 @@ export function MetricBar({
   return (
     <div ref={ref}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-sm">{label}</span>
+        <span className="min-w-0 truncate text-sm">
+          {label}
+          {weight != null && (
+            <span className="ml-1.5 font-mono text-[10px] text-chalk-dim/70">{weight}%</span>
+          )}
+        </span>
         {observed ? (
           <span className="shrink-0 font-mono text-xs text-gold">{shown}</span>
         ) : (

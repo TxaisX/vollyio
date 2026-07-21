@@ -9,10 +9,9 @@ import { analysisSchema } from "@/lib/ai/schema";
 import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
-import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
 import { updateRating } from "@/lib/ratings";
-import { deriveMetric } from "@/lib/ai/pointers";
+import { deriveResult } from "@/lib/ai/derive";
 import { awardXp, XP_AWARDS } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
@@ -207,39 +206,31 @@ export async function POST(req: NextRequest) {
         string,
         { note: string; pointers: { key: string; status: string }[] }
       >;
-      // Purely the visible mechanics (D-038/D-039/D-040): every checkpoint
-      // score IS its pointer derivation, uncurved, and checkpoints with no
-      // visible pointer are excluded from the overall.
-      const derived = METRICS[skill].map((m) => {
-        const d = deriveMetric(skill, m.key, metricsMap[m.key]?.pointers);
-        return { key: m.key, ...d, score: d.raw };
-      });
-      const observedScores = derived.filter((d) => d.observed).map((d) => d.score);
+      // Weighted derivation (D-045): each checkpoint scores from its pointer
+      // verdicts (D-039, uncurved per D-040); the overall is the weighted mean
+      // over OBSERVED checkpoints, and coverage_pct records how much of the
+      // rubric the clip supported. Only when nothing was observable does the
+      // model's whole-clip read stand in.
+      const derived = deriveResult(skill, metricsMap);
       const top = raw.changes[0];
-      // The product score scale (D-034/D-037): the model's raw judgment is
-      // remapped onto the shipped scale for every account. Monotonic, so
-      // ordering between reps is exactly the model's; only where the numbers
-      // sit changes.
-      // The overall IS the mean of the observed checkpoint scores. Only when
-      // nothing at all was observable does the model's whole-clip read stand in.
-      const overallScore =
-        observedScores.length > 0
-          ? Math.round(observedScores.reduce((a, b) => a + b, 0) / observedScores.length)
-          : raw.overall_score;
+      const overallScore = derived.overall ?? raw.overall_score;
       result = {
         skill,
         overall_score: overallScore,
+        coverage_pct: derived.coveragePct,
+        low_confidence: derived.lowConfidence,
         // Who the model says it analyzed, and whether that matches the athlete
         // the player marked. Optional: an older stored row has no such field,
         // and a reply that omits it must not fail the analysis (D-030).
         subject_check: raw.subject_check,
         rep_scores: raw.rep_scores,
-        metrics: derived.map((d) => ({
-          key: d.key,
-          score: d.score,
-          note: metricsMap[d.key]?.note ?? "",
-          observed: d.observed,
-          pointers: d.statuses,
+        metrics: derived.metrics.map((m) => ({
+          key: m.key,
+          score: m.score,
+          weight: m.weight,
+          note: metricsMap[m.key]?.note ?? "",
+          observed: m.observed,
+          pointers: m.statuses,
         })),
         contact_frame_index: raw.contact_frame_index,
         focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },
@@ -391,7 +382,7 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       skill,
       discipline,
-      rating: updateRating(prev?.rating ?? null, result.overall_score),
+      rating: updateRating(prev?.rating ?? null, result.overall_score, result.coverage_pct ?? 100),
       analyses_count: (prev?.analyses_count ?? 0) + 1,
       updated_at: new Date().toISOString(),
     },

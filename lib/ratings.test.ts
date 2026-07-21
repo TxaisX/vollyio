@@ -27,6 +27,21 @@ test("EWMA converges upward across reps", () => {
   assert.ok(r! > 82, `expected > 82 after convergence, got ${r}`);
 });
 
+test("a low-coverage rep moves the rating less than a full-coverage one", () => {
+  const full = updateRating(70, 90, 100);
+  const half = updateRating(70, 90, 50);
+  const none = updateRating(70, 90, 0);
+  assert.equal(full, Math.round((70 + ALPHA * 1 * 20) * 10) / 10); // 77
+  assert.equal(half, Math.round((70 + ALPHA * 0.5 * 20) * 10) / 10); // 73.5
+  assert.ok(half < full && half > 70, `half ${half} should sit between 70 and ${full}`);
+  assert.equal(none, 70); // zero coverage cannot move the rating at all
+});
+
+test("coverage defaults to a full read and the first rating ignores it", () => {
+  assert.equal(updateRating(70, 90), updateRating(70, 90, 100));
+  assert.equal(updateRating(null, 84, 40), 84);
+});
+
 test("overall ignores unrated skills", () => {
   assert.equal(overallScore([70, null, 90, null]), 80);
 });

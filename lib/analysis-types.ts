@@ -33,6 +33,9 @@ export type Metric = {
   note: string;
   observed?: boolean;
   pointers?: MetricPointer[];
+  // The metric's share of the overall (weights sum to 100 per skill). Optional:
+  // rows stored before D-045 have none and render without a weight badge.
+  weight?: number;
 };
 export type Insight = {
   frame_index: number;
@@ -81,6 +84,10 @@ export type AnalysisResult = {
   skill: Skill;
   discipline?: Discipline;
   overall_score: number;
+  // How much of the weighted checklist this clip supported, and whether that was
+  // low enough to flag (< 60%). Optional: rows stored before D-045 have neither.
+  coverage_pct?: number;
+  low_confidence?: boolean;
   // Who the model says it analyzed. Optional: rows predating this field, and
   // replies that omitted it, simply have none.
   subject_check?: SubjectCheck;
