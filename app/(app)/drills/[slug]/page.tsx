@@ -60,7 +60,7 @@ export default async function DrillDetail({
       }}
       default="none"
     >
-      <section className="max-w-xl">
+      <section className="max-w-4xl">
       <Reveal>
         <Link
           href="/drills"
@@ -102,35 +102,37 @@ export default async function DrillDetail({
         </div>
       </Reveal>
 
-      <Reveal delay={100}>
-        <h2 className="mt-8 mb-4 font-display text-sm font-bold uppercase tracking-wide">
-          Steps
-        </h2>
-        <ol className="space-y-4">
-          {drill.steps.map((step, i) => (
-            <li key={i} className="flex gap-4 text-sm">
-              <span className="font-display text-2xl font-bold leading-none text-gold/70">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="pt-1 leading-relaxed">{step}</span>
-            </li>
-          ))}
-        </ol>
-      </Reveal>
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <Reveal delay={100}>
+          <h2 className="mt-8 mb-4 font-display text-sm font-bold uppercase tracking-wide">
+            Steps
+          </h2>
+          <ol className="space-y-4">
+            {drill.steps.map((step, i) => (
+              <li key={i} className="flex gap-4 text-sm">
+                <span className="font-display text-2xl font-bold leading-none text-gold/70">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="pt-1 leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
 
-      <Reveal delay={160}>
-        <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
-          Common mistakes
-        </h2>
-        <ul className="space-y-2">
-          {drill.common_mistakes.map((m, i) => (
-            <li key={i} className="flex gap-3 text-sm">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-coral" />
-              <span>{m}</span>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
+        <Reveal delay={160}>
+          <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+            Common mistakes
+          </h2>
+          <ul className="space-y-2">
+            {drill.common_mistakes.map((m, i) => (
+              <li key={i} className="flex gap-3 text-sm">
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-coral" />
+                <span>{m}</span>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </div>
 
       {drill.focus_metrics.length > 0 && (
         <Reveal delay={220}>

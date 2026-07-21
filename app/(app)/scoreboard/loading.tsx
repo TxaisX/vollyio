@@ -4,7 +4,7 @@ function Sk({ className = "" }: { className?: string }) {
 
 export default function ScoreboardLoading() {
   return (
-    <section className="max-w-2xl" aria-busy>
+    <section className="max-w-4xl" aria-busy>
       <Sk className="h-3 w-24" />
       <Sk className="mt-1 h-7 w-40" />
 

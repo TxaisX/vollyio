@@ -8,7 +8,7 @@ function Sk({ className = "" }: { className?: string }) {
 
 export default function AppLoading() {
   return (
-    <section className="max-w-4xl" aria-busy>
+    <section className="max-w-6xl" aria-busy>
       <Sk className="h-3 w-24" />
       <Sk className="mt-3 h-8 w-64 max-w-full" />
       <div className="mt-6 grid gap-4 sm:grid-cols-2">

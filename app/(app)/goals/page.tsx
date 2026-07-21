@@ -59,7 +59,7 @@ export default async function Goals() {
   ) as Partial<Record<Skill, number>>;
 
   return (
-    <section className="max-w-2xl">
+    <section className="max-w-4xl">
       <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
         Goals
       </p>
@@ -79,7 +79,7 @@ export default async function Goals() {
           </div>
 
           {active.length > 0 && (
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
               {active.map((goal, i) => (
                 <ActiveGoalCard
                   key={goal.id}

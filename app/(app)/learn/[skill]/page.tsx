@@ -67,7 +67,7 @@ export default async function LearnSkill({
   const t = techniqueFor(skill, discipline);
 
   return (
-    <section className="max-w-2xl">
+    <section className="max-w-5xl">
       <Reveal>
         <Link
           href={`/learn${q}`}
@@ -102,7 +102,7 @@ export default async function LearnSkill({
             <span>{skill}</span>
           </ViewTransition>
         </h1>
-        <p className="mt-3 leading-relaxed text-chalk-dim">{t.overview}</p>
+        <p className="mt-3 max-w-2xl leading-relaxed text-chalk-dim">{t.overview}</p>
 
         <div className="mt-5 flex items-center gap-2">
           {ANALYZE_DISCIPLINES.map((d) => (
@@ -132,7 +132,7 @@ export default async function LearnSkill({
           The phases
         </h2>
       </Reveal>
-      <ol className="space-y-4">
+      <ol className="grid gap-4 sm:grid-cols-2">
         {t.phases.map((p, i) => (
           <Reveal key={p.name} as="li" delay={Math.min(i, 4) * 55} className="flex gap-4 text-sm">
               <span className="font-display text-2xl font-bold leading-none text-gold/70">
@@ -151,7 +151,7 @@ export default async function LearnSkill({
           The five metrics
         </h2>
       </Reveal>
-      <div className="space-y-4">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
           {METRICS[skill].map((m, metricIndex) => {
             const k = t.metrics[m.key];
             const drills = drillsForMetric(skill, m.key);

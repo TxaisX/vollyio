@@ -4,7 +4,7 @@ function Sk({ className = "" }: { className?: string }) {
 
 export default function GoalsLoading() {
   return (
-    <section className="max-w-2xl" aria-busy>
+    <section className="max-w-4xl" aria-busy>
       <Sk className="h-3 w-16" />
       <Sk className="mt-2 h-7 w-44" />
       <Sk className="mt-3 h-4 w-80 max-w-full" />

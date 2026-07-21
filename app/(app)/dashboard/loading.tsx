@@ -11,7 +11,7 @@ function Sk({ className = "" }: { className?: string }) {
 export default function DashboardLoading() {
   return (
     <ViewTransition exit="vt-reveal-out">
-      <section className="max-w-6xl" aria-busy>
+      <section className="max-w-7xl" aria-busy>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Sk className="h-3 w-24" />

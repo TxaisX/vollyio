@@ -193,7 +193,7 @@ export default async function AnalysisDetail({
   ].filter((c) => c.count > 0);
 
   return (
-    <section className="max-w-6xl">
+    <section className="max-w-7xl">
       {/* Reading progress for the long breakdown scroll; pure CSS, hidden
           where scroll timelines aren't supported. */}
       <div aria-hidden="true" className="scroll-progress" />

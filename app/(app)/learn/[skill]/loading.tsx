@@ -7,7 +7,7 @@ function Sk({ className = "" }: { className?: string }) {
 export default function LearnSkillLoading() {
   return (
     <ViewTransition exit="vt-reveal-out">
-      <section className="max-w-2xl" aria-busy>
+      <section className="max-w-5xl" aria-busy>
         <Sk className="h-3 w-16" />
         <Sk className="mt-4 h-3 w-20" />
         <Sk className="mt-2 h-9 w-64 max-w-full" />
