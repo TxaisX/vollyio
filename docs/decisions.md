@@ -1490,3 +1490,111 @@ The operative fix is applying migration 017 to prod — the trigger lives only i
 the DB, so the git push records it but does not change live behavior until it is
 applied (as migration 016 was, via MCP). NOT verified live: a real >12-frame
 save, because the spend cap blocks every coaching call.
+
+## D-047 — Coach chat gated dark and hardened before it returns
+
+Coach chat had a 60/hr quota, no daily ceiling, and no billing gate: one
+account could run 1,440 metered model calls a day. With the monthly spend cap
+already blown (live coach was 503ing anyway), the owner chose hide-plus-harden
+over remove: the surface ships dark behind `NEXT_PUBLIC_COACH_ENABLED`
+(default off; nav entry filtered, /coach 404s, /api/coach 404s before any
+work) and the abuse limits land in the same pass so re-enabling is one env
+flip. Migration `018_coach_quota.sql` adds a rolling 24-hour `coach_daily`
+scope (30/day) and drops the hourly cap to 20; the route consumes hourly then
+daily and refunds the hourly unit when the day gate refuses. Route-side
+tightening: message cap 2000 -> 600 chars, replies 1024 -> 512 tokens, session
+history 20 -> 10 turns, and the prompt drill catalog trimmed to the player's
+two weakest skills. Nothing is deleted: page, components, API, and both DB
+tables stay, so the feature returns intact. Migration 018 is committed but not
+applied to prod; it is inert while the route 404s.
+
+## D-048 — Outdoor lessons derive from the authored outdoor base; grass = sand, indoor distinct
+
+D-035 grouped grass and sand as one outdoor coaching surface, but the Learn
+content never followed: the grass variant was synthesized as an INDOOR clone
+plus one context sentence, so a player picking "Grass & sand" read indoor
+mechanics. The owner's ruling: grass and sand are the same environment, and
+outdoor must read completely differently from indoor, because the mechanics
+differ (researched 2026-07-21, volleyballmag.com / avp.com / betteratbeach.com:
+outdoor hand-setting is judged far more strictly so the legal contact is a
+longer, lower guide and bump-setting is the wind default; open-hand serve
+receive is effectively unusable and each player covers half the court with the
+pass target off the net; sand shortens and slows the attack approach while
+open-hand tips are illegal, making pokey/cobra/roll shots and placement the
+short game; grass keeps near-indoor footing but the outdoor rules and wind
+still apply). The grass variant now derives from the authored beach content
+with combined both-surfaces context notes; sand-only and doubles-only phrasing
+was softened where it would mislead a grass player. Scoring is untouched:
+rubric grouping, the pointer checklist, and the metric taxonomy stand exactly
+as D-037/D-039/D-040 fixed them. `content/technique.test.ts` pins the
+un-cloning (grass differs from indoor, matches its beach base, keeps every
+metric key).
+
+## D-049 — Public share links: the full breakdown and the clip, never the frames
+
+Sharing was a client-drawn PNG carrying skill, score, one fix title. Owners
+can now mint revocable 30-day token links to the full evaluation. Design
+posture: the app still has no service-role client; anonymous access is two
+deliberate, bounded surfaces in migration `019_share_links.sql` — the
+SECURITY DEFINER `analysis_by_share_token(text)` function (returns only skill,
+discipline, overall_score, created_at, result, clip_path; hashes the token
+itself; filters revocation and expiry) and one storage policy letting anon
+read a clips-bucket object only while a live share link points at its
+analysis. Only the token's sha256 is stored, so a table read never yields a
+working link. The clip streams through `/share/<token>/clip`, which validates
+the token and proxies the signed URL server-side with Range support, because
+the storage path embeds the owner's user id and must never reach a viewer.
+The frames bucket gets NO policy and the projection never returns frame
+paths: frames are structurally unshareable, per the owner's explicit "clip
+yes, frames never". The written breakdown is one shared component
+(`components/breakdown-body.tsx`) used by both the private page and the share
+page, so the two can never drift. `lib/share-contract.test.ts` pins the
+projection, the dual revocation/expiry guards, and the clips-only policy.
+Migration 019 is committed but not applied to prod; share links 404 until it
+is.
+
+## D-050 — Dashboard is for evaluations; configuration moves to /settings
+
+Settings, account, coaching level, and the consent toggle lived at the bottom
+of the dashboard, and wide screens stacked everything in one column with dead
+space on the right. The dashboard now carries only play state: score stage,
+skill momentum, recent breakdowns, with an xl right rail (daily challenge,
+goals, a This-week card that absorbs the header pills, and a Focus-now card
+surfacing the newest priority fix). Below xl the old order is untouched. The
+new /settings page (sidebar + tab bar entry) holds Account (display-name edit,
+email, sign out, delete), Coaching level, Player profile (position, play
+frequency, default environment — fields onboarding wrote but no surface ever
+exposed; migration 012 already granted their update), and Privacy. Writes go
+through `lib/profile-update.ts`, one field per submit; settings never
+re-writes the legacy `beach` value. Companion repo standard: `docs/ui.md`
+pins the house primitives and plain-language ease-of-use rules (44px targets,
+labels beside icons, color never alone) for a 13-plus, any-experience
+audience; every surface this round touched conforms to it.
+
+## D-051 — Scoreboard sides are Home (court blue) vs Guest (coral)
+
+The scoreboard's sides were interchangeable neutral cards labeled Us/Them.
+Sides are now Home and Guest by default with a per-side accent: one new token
+`--color-court-blue` (#4f9de2) for Home, the existing coral for Guest, applied
+as a top border plus score tint so the `.card` base and the gold serving/set
+signals stay untouched. Names remain free strings (1-30 chars): stored games
+and live localStorage matches keep whatever names they had; only the defaults
+and setup labels changed. Team keys stay `a`/`b` on the wire and in the
+`games` table.
+
+## D-052 — Analyze flow: environment, then skill, then film; and the checkpoint legend
+
+The capture flow preselected a discipline and buried it above "01 Pick a
+skill", so players never consciously chose where they were playing even
+though environment shapes the rubric prose and the Learn content. The flow is
+now three explicit steps, each revealing after the previous decision: 01
+Where are you playing (nothing preselected on a bare visit; deep links with
+`?discipline=`/`?skill=` still prefill), 02 Pick a skill, 03 film/trim/mark.
+The server contract keeps its `default("indoor")` fallback; the client always
+sends an explicit choice. The video stage also widens to the full content
+width on desktop during mark/trim (containers only; the tap-to-mark
+coordinate math reads intrinsic frame pixels and is unaffected). And the
+metric checkpoint bubbles, previously color-only for met/missed, get a
+plain-language legend (`components/metric-legend.tsx`: Hit / Partly there /
+Missed / Not visible, doesn't count) rendered wherever the metrics render,
+including shared breakdowns.
