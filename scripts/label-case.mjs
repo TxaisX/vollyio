@@ -69,6 +69,12 @@ console.log(
   ].join("\n"),
 );
 
+// Asked once and applied to every case saved this session: a labeling pass is
+// one reviewer, so re-typing initials per case was pure friction.
+const reviewer = (
+  await rl.question("your reviewer id (initials, applied to every case this session): ")
+).trim();
+
 for (const id of todo) {
   const file = path.join(CASES_DIR, `${id}.json`);
   const c = readCase(id);
@@ -106,7 +112,6 @@ for (const id of todo) {
     else delete e.acceptable_weakest_metrics;
   }
 
-  const reviewer = (await rl.question("your reviewer id (initials): ")).trim();
   if (reviewer) {
     e.labeled_by = reviewer;
     e.labeled_at = new Date().toISOString().slice(0, 10);
