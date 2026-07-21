@@ -1,7 +1,8 @@
-import { SKILLS, DISCIPLINES, type Skill, type Discipline } from "@/lib/skills";
-import { metricKeys } from "@/lib/ai/metrics";
+// Relative .ts imports so node --test can load this module (content/technique.test.ts).
+import { SKILLS, DISCIPLINES, type Skill, type Discipline } from "../lib/skills.ts";
+import { metricKeys } from "../lib/ai/metrics.ts";
 import type { Drill } from "./drills-types";
-import { drillsForSkill } from "./drills";
+import { drillsForSkill } from "./drills.ts";
 import type {
   DisciplineVariant,
   MetricKnowledge,
@@ -13,11 +14,12 @@ import type {
 // pro-technique study (docs/pro-technique-study.html). One entry per METRICS[skill]
 // key per discipline. See content/technique.test.ts for the invariants this must hold.
 
-// The authored core carries indoor + beach. Grass is assembled below by reusing
-// the indoor knowledge (grass shares indoor's firm-footing technique) with a
-// grass-specific context note, so the Learn library and Record<Discipline> stay
-// whole without duplicating ~40KB of near-identical prose. The dedicated grass
-// SCORING lives in lib/ai/rubrics; this is the player-facing teaching content.
+// The authored core carries indoor + beach. Grass and sand are one outdoor
+// environment for lessons (D-048): grass is assembled below as the authored
+// beach variant, whose context notes speak to both surfaces, so the Learn
+// library and Record<Discipline> stay whole without duplicating ~40KB of
+// identical outdoor prose. The dedicated grass SCORING lives in lib/ai/rubrics;
+// this is the player-facing teaching content.
 type SkillTechniqueBase = Omit<SkillTechnique, "byDiscipline"> & {
   byDiscipline: Record<"indoor" | "beach", DisciplineVariant>;
 };
@@ -145,14 +147,14 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           "In wind, control beats raw pace. Elite servers flatten the toss and pick the serve (jump-float or jump-topspin) to the conditions.",
         highest_leverage_metric: "toss_quality",
         highest_leverage_note:
-          "Wind-management through the toss and serve selection is the root; a great indoor toss can be a bad beach toss.",
+          "Wind-management through the toss and serve selection is the root; a great indoor toss can be a bad outdoor toss.",
         context_note:
-          "Beach: wind and sand reward control and serve selection (jump-float vs jump-topspin) over indoor power, and the toss must be lower and tighter than indoors.",
+          "Outdoor: wind and sun reward control and serve selection (jump-float vs jump-topspin) over indoor power, and the toss must be lower and tighter than indoors. Sand saps the jump and grass gives firmer footing, but the conditions rule the serve on both.",
         phases: [
           { name: "Read the wind & pick the serve", detail: "Choose jump-float or jump-topspin for the conditions and flatten the toss." },
           { name: "Toss & load", detail: "Place a low, tight, spin-free toss and load a high elbow." },
           { name: "Contact", detail: "Strike a centered, controlled ball (dead-hand float or up-and-over topspin) as high as control allows." },
-          { name: "Finish", detail: "Check the finish on floats and land balanced in the sand, not drifting into the court." },
+          { name: "Finish", detail: "Check the finish on floats and land balanced, not drifting into the court." },
         ],
         metrics: {
           toss_quality: {
@@ -176,9 +178,9 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           arm_swing: {
             key: "arm_swing",
             what: "The mechanics of the hitting arm, matched to the serve.",
-            why: "A float wants a compact, checked swing; a beach jump-topspin wants a sequenced while jumping straight up.",
+            why: "A float wants a compact, checked swing; an outdoor jump-topspin wants a sequenced whip while jumping straight up.",
             elite_marker:
-              "On a jump-float, a compact and checked swing with no whip; on a beach jump-topspin, indoor whip mechanics but jumping straight up.",
+              "On a jump-float, a compact and checked swing with no whip; on an outdoor jump-topspin, indoor whip mechanics but jumping straight up.",
             common_faults: [
               "A big whippy swing on a float that adds spin",
               "An arm-only push on the topspin",
@@ -187,7 +189,7 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
               developing: "On a float, a long whippy or slappy swing that adds spin; on a topspin, an arm-only push.",
               solid: "A compact checked swing on floats or a recognizable high-elbow load on topspin, mostly consistent.",
               advanced:
-                "A controlled, checked contact on floats (no whip) or a fast, sequenced high-elbow whip on beach jump-topspin, repeated every rep.",
+                "A controlled, checked contact on floats (no whip) or a fast, sequenced high-elbow whip on an outdoor jump-topspin, repeated every rep.",
             },
           },
           contact_point: {
@@ -210,35 +212,35 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           follow_through: {
             key: "follow_through",
             what: "What the hand does after contact, tuned for wind.",
-            why: "On a beach float a long finish adds spin the wind runs with; a checked finish keeps the ball dead.",
+            why: "On an outdoor float a long finish adds spin the wind runs with; a checked finish keeps the ball dead.",
             elite_marker:
-              "On floats, a minimal follow-through that keeps the ball dead in the wind, with balance held on the sand landing.",
+              "On floats, a minimal follow-through that keeps the ball dead in the wind, with balance held on the landing.",
             common_faults: [
               "A long flail that spins a float",
-              "Losing balance on the sand finish",
+              "Losing balance on the landing",
             ],
             anchors: {
-              developing: "A long flail on a float (adds spin), a chopped finish on topspin, or balance lost on the sand landing.",
-              solid: "A follow-through mostly matched to intent with a generally balanced sand finish.",
+              developing: "A long flail on a float (adds spin), a chopped finish on topspin, or balance lost on the landing.",
+              solid: "A follow-through mostly matched to intent with a generally balanced finish.",
               advanced:
-                "A deliberately checked, short finish on floats or a full swing-through on topspin, landing balanced on the sand every rep.",
+                "A deliberately checked, short finish on floats or a full swing-through on topspin, landing balanced every rep.",
             },
           },
           body_alignment: {
             key: "body_alignment",
             what: "How square and balanced you are, jumping straight up.",
-            why: "On sand a broad jump sinks and drifts, so a straight-up takeoff and a balanced landing matter more.",
+            why: "A broad jump drifts into the court and sinks on sand, so a straight-up takeoff and a balanced landing matter more outdoors.",
             elite_marker:
-              "A square base with a straight-up takeoff (not a broad jump) and a balanced sand landing that does not drift into the court.",
+              "A square base with a straight-up takeoff (not a broad jump) and a balanced landing that does not drift into the court.",
             common_faults: [
               "A broad-jump takeoff that drifts into the court",
-              "An off-balance sand landing",
+              "An off-balance landing",
             ],
             anchors: {
-              developing: "Hips and shoulders open to the sideline, or a broad-jump takeoff that drifts into an off-balance sand landing.",
+              developing: "Hips and shoulders open to the sideline, or a broad-jump takeoff that drifts into an off-balance landing.",
               solid: "A generally square base with a reasonably balanced straight-up jump and landing.",
               advanced:
-                "Feet, hips and shoulders squared to the target, a straight-up takeoff, tall posture at contact, and a balanced sand landing that does not drift, every rep.",
+                "Feet, hips and shoulders squared to the target, a straight-up takeoff, tall posture at contact, and a balanced landing that does not drift, every rep.",
             },
           },
         },
@@ -346,17 +348,17 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
       },
       beach: {
         overview:
-          "Two passers cover the whole court against wind-blown serves · range, early reads, and a soft high pass define elite beach receiving.",
+          "Fewer passers cover far more court against wind-blown serves · range, early reads, and a soft high pass off the net define elite outdoor receiving.",
         highest_leverage_metric: "footwork_to_ball",
         highest_leverage_note:
-          "With only two passers, the early read and first step cover ground a six-person receive never has to.",
+          "With so few passers, the early read and first step cover ground a six-person receive never has to.",
         context_note:
-          "Beach: only two passers cover the whole sand court against wind-blown serves; an overhand hand-receive is legal on non-hard-driven serves.",
+          "Outdoor: fewer passers cover the whole court against wind-blown serves, and the strict double standard makes open-hand receive a liability, so the platform rules. Pass off the net toward the middle; sand slows every step, grass footing is quicker, and wind forces a lower, later contact on both.",
         phases: [
           { name: "Read early", detail: "Key the server's contact early and release toward the ball's line." },
-          { name: "Cover ground", detail: "Beat the ball across the wide sand court and stop, balanced." },
-          { name: "Contact", detail: "Cushion the ball off a quiet platform (or a legal hand-receive on soft serves)." },
-          { name: "Deliver", detail: "Send a high, soft, on-target ball that gives the setter time in wind." },
+          { name: "Cover ground", detail: "Beat the ball across the wide court and stop, balanced." },
+          { name: "Contact", detail: "Cushion the ball off a quiet, still platform · in wind, take it lower and later." },
+          { name: "Deliver", detail: "Send a high, soft ball off the net toward the middle that gives the setter time in wind." },
         ],
         metrics: {
           platform_angle: {
@@ -364,7 +366,7 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
             what: "The flatness and angle of the platform against wind serves.",
             why: "A still, early-set board is what controls a wind-affected serve toward a two-person target.",
             elite_marker:
-              "The same locked, still board as indoors, but against harder wind-affected serves, aimed at a two-person target and kept quiet.",
+              "The same locked, still board as indoors, but against harder wind-affected serves, aimed off the net toward the middle and kept quiet.",
             common_faults: ["A platform that forms late in the wind", "Swinging up at a knuckling serve"],
             anchors: {
               developing: "The platform forms late or swings up past the shoulders; uneven forearms.",
@@ -389,30 +391,30 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           },
           footwork_to_ball: {
             key: "footwork_to_ball",
-            what: "How you cover the wide sand court to the ball.",
-            why: "With two passers over a huge court, first-step explosiveness and an early read decide the pass.",
+            what: "How you cover the wide outdoor court to the ball.",
+            why: "With so few passers over a huge court, first-step explosiveness and an early read decide the pass.",
             elite_marker:
-              "Reads and releases early, covers the wide sand court, and is stopped and balanced with the midline behind the ball before contact.",
+              "Reads and releases early, covers the wide outdoor court, and is stopped and balanced with the midline behind the ball before contact.",
             common_faults: ["Releasing late over the big court", "Contacting while still drifting"],
             anchors: {
               developing: "Feet late or stuck; reaching, or contacting while drifting.",
               solid: "Shuffles to get mostly behind the ball, occasionally a beat late over the large court.",
               advanced:
-                "Reads and releases early, covers the wide sand court, and is stopped and balanced with the midline behind the ball before contact.",
+                "Reads and releases early, covers the wide outdoor court, and is stopped and balanced with the midline behind the ball before contact.",
             },
           },
           angle_to_target: {
             key: "angle_to_target",
-            what: "How you aim a high pass at the partner setter.",
-            why: "A higher, softer ball gives the lone setter time to move to it in the wind.",
+            what: "How you aim a high pass at the setter.",
+            why: "A higher, softer ball off the net gives the setter time to move to it in the wind.",
             elite_marker:
-              "Platform and hips oriented to the partner's spot, delivering a high, on-target ball on a repeatable line that gives the setter time in the wind.",
-            common_faults: ["Passing flat so the setter can't chase it", "Leaking the ball off the target side"],
+              "Platform and hips oriented to the setter's spot off the net, delivering a high, on-target ball on a repeatable line that gives the setter time in the wind.",
+            common_faults: ["Passing flat so the setter can't chase it", "Passing tight so the wind carries it over"],
             anchors: {
               developing: "The platform faces where the ball came from; the ball rebounds in no controlled direction.",
-              solid: "Drops the shoulder and generally sends the ball toward the partner setter, with the line varying.",
+              solid: "Drops the shoulder and generally sends the ball toward the setter's spot, with the line varying.",
               advanced:
-                "Platform and hips oriented to the partner's spot, delivering a high, on-target ball on a repeatable line that gives the setter time in the wind.",
+                "Platform and hips oriented to the setter's spot off the net, delivering a high, on-target ball on a repeatable line that gives the setter time in the wind.",
             },
           },
           contact_control: {
@@ -528,28 +530,28 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
       },
       beach: {
         overview:
-          "One setter, stricter ball-handling, and wind · the beach set is higher, softer, and often a bump-set, and legality is part of the skill.",
+          "Stricter ball-handling and wind · the outdoor set is higher, softer, and often a bump-set, and legality is part of the skill.",
         highest_leverage_metric: "release",
         highest_leverage_note:
-          "A stable, legal, high ball that gives the lone hitter time beats speed on sand.",
+          "A stable, legal, high ball that gives the hitter time beats speed outdoors.",
         context_note:
-          "Beach: one setter often sets on the move; hand-sets are judged strictly for spin/double-contact, but a longer legal 'deep dish' or a bump-set is a valid choice in wind.",
+          "Outdoor: hand-sets are judged far more strictly (a double contact on a set is a fault), so the legal contact is a longer smooth guide taken lower than indoors would allow, and bump-setting is the default for many players in wind. Sets travel higher and slower with the shoulders squared to the target, on sand and grass alike.",
         phases: [
           { name: "Chase the dig", detail: "Cover the court off the dig and get to the ball however the play allows." },
           { name: "Choose hands or bump", detail: "Hand-set when balanced; bump-set in wind or off a hard dig to stay legal." },
-          { name: "Deliver high & soft", detail: "Give the lone hitter a high, stable ball with room from the block." },
+          { name: "Deliver high & soft", detail: "Square the shoulders and give the hitter a high, stable ball with room from the block." },
           { name: "Transition", detail: "Recover to help cover the hitter." },
         ],
         metrics: {
           hand_shape: {
             key: "hand_shape",
             what: "How clean and legal the ball leaves your hands.",
-            why: "Beach referees judge spin and double-contact strictly, so a clean or bump-set delivery is what avoids a fault.",
+            why: "Outdoor referees judge spin and double-contact strictly, so a clean or bump-set delivery is what avoids a fault.",
             elite_marker:
-              "Beach hand-sets are judged strictly for spin and doubles, but a legal set can have a longer, guided contact ('deep dish') and be played lower, and many top teams bump-set in wind to avoid a call.",
+              "Outdoor hand-sets are judged strictly for spin and doubles, but a legal set can have a longer, guided contact ('deep dish') and be played lower, and many top teams bump-set in wind to avoid a call.",
             common_faults: ["Visible spin a referee would whistle", "A double-contact on an off-balance set"],
             anchors: {
-              developing: "Palm contact or heavy spin on release (a beach lift or double a referee would call).",
+              developing: "Palm contact or heavy spin on release (a lift or double an outdoor referee would call).",
               solid: "Fingerpad contact with a recognizable window and only minor spin, or a clean bump-set.",
               advanced:
                 "Clean, spin-free delivery every rep · either a symmetric fingerpad hand-set with a longer legal guide, or a controlled, accurate bump-set chosen for the wind.",
@@ -558,9 +560,9 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           footwork: {
             key: "footwork",
             what: "How you get to the ball off a dig, often on the move.",
-            why: "One setter covers the whole court, so stability is judged relative to how far the dig pulled you.",
+            why: "The setter covers far more court outdoors, so stability is judged relative to how far the dig pulled you.",
             elite_marker:
-              "One setter covering the whole court off a dig · footwork is more improvised, often setting from a run or slightly off-balance, but stopped and squared when possible.",
+              "The setter covers the whole court off a dig · footwork is more improvised, often setting from a run or slightly off-balance, but stopped and squared when possible.",
             common_faults: ["Setting flat-footed and late", "Badly off-balance when it could have been stopped"],
             anchors: {
               developing: "Sets flat-footed and late, or badly off-balance.",
@@ -574,41 +576,41 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
             what: "How square and stable your delivery is.",
             why: "Against one blocker, consistency and height matter more than the disguise prized indoors.",
             elite_marker:
-              "A stable, square, level delivery with centered contact; on the beach, consistency and height matter more than disguise.",
+              "A stable, square, level delivery with centered contact; outdoors, consistency and height matter more than disguise.",
             common_faults: ["Facing away from the hitter", "An unstable, leaning delivery"],
             anchors: {
               developing: "Hips and shoulders face away from the target; contact off to one side.",
               solid: "Generally square with contact over the forehead.",
               advanced:
-                "A stable, square, level delivery with centered contact; on the beach, consistency and height matter more than the disguise prized indoors.",
+                "A stable, square, level delivery with centered contact; outdoors, consistency and height matter more than the disguise prized indoors.",
             },
           },
           release: {
             key: "release",
-            what: "How the ball is delivered · high and soft for the lone hitter.",
-            why: "A high, soft, stable ball gives the single hitter time to attack against wind and the block.",
+            what: "How the ball is delivered · high and soft for the hitter.",
+            why: "A high, soft, stable ball gives the hitter time to attack against wind and the block.",
             elite_marker:
-              "A smooth, leg-driven release delivering a high, soft, stable ball (a legally guided, longer contact is desirable) that gives the lone hitter time in wind.",
+              "A smooth, leg-driven release delivering a high, soft, stable ball (a legally guided, longer contact is desirable) that gives the hitter time in wind.",
             common_faults: ["A fast flat set that's risky in wind", "An arm-only push"],
             anchors: {
               developing: "A stiff arm-only push, a flat ball, or an asymmetric finish.",
               solid: "A coordinated leg-to-hand extension, a catchable arc, minor push on some reps.",
               advanced:
-                "A smooth, leg-driven release delivering a high, soft, stable ball that gives the lone hitter time in wind, on a repeatable trajectory.",
+                "A smooth, leg-driven release delivering a high, soft, stable ball that gives the hitter time in wind, on a repeatable trajectory.",
             },
           },
           tempo_decision: {
             key: "tempo_decision",
-            what: "Where you place the set for one hitter versus one blocker.",
-            why: "With a single hitter, the decision is placement · on/off the net, in/out, and room from the block and wind.",
+            what: "Where you place the set for your hitter versus the block.",
+            why: "Outdoors the decision is placement · on/off the net, in/out, and room from the block and wind.",
             elite_marker:
-              "Decisive placement for the single partner-hitter versus the one blocker and the wind · on or off the net, in or out, giving the hitter room.",
+              "Decisive placement for your hitter versus the block and the wind · on or off the net, in or out, giving the hitter room.",
             common_faults: ["Placement that ignores the block and wind", "A ball the hitter can't use"],
             anchors: {
               developing: "Predetermined placement that ignores the block and wind; the ball arrives where the hitter cannot use it.",
               solid: "A reasonable location and height for the situation, slightly telegraphed or off on some reps.",
               advanced:
-                "Decisive placement for the single partner-hitter versus the one blocker and the wind · on or off the net, in or out, giving the hitter room.",
+                "Decisive placement for your hitter versus the block and the wind · on or off the net, in or out, giving the hitter room.",
             },
           },
         },
@@ -710,31 +712,31 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
       },
       beach: {
         overview:
-          "On sand you jump straight up and win with shot-making (cut, line, roll, and pokey) as much as with power.",
+          "Outdoors you win with shot-making (cut, line, roll, and pokey) as much as with power · timing keys off high, slow sets and placement outranks pace.",
         highest_leverage_metric: "approach_footwork",
         highest_leverage_note:
-          "Sand punishes the broad jump and rewards a straight-up takeoff plus shot versatility.",
+          "Sand punishes the broad jump and rewards a straight-up takeoff; grass keeps the indoor plant, and shot versatility pays on both.",
         context_note:
-          "Beach: on sand you must jump straight up (a forward broad jump sinks), sets are higher/slower in wind, and shot-making (cut, line, roll, pokey) matters as much as power.",
+          "Outdoor: sand shortens and slows the approach and lowers the jump, while grass plays close to indoor footing so the approach and jump carry over. Sets are higher and slower in wind, open-hand tips are illegal, and the short game is knuckles, cobra, and roll shots · placement outranks power.",
         phases: [
-          { name: "Approach", detail: "Take as many steps as the sand needs with an accelerating finish." },
-          { name: "Jump straight up", detail: "Drive straight up out of the sand with an aggressive arm swing for lift." },
+          { name: "Approach", detail: "Take as many steps as the surface needs with an accelerating finish." },
+          { name: "Jump straight up", detail: "Drive straight up with an aggressive arm swing for lift; a forward jump sinks in sand." },
           { name: "Read & choose the shot", detail: "Adjust to the wind-moved set and pick a swing, cut, line, roll, or pokey." },
           { name: "Land balanced", detail: "Finish under control so you're ready for the next ball." },
         ],
         metrics: {
           approach_footwork: {
             key: "approach_footwork",
-            what: "The approach and takeoff on sand.",
-            why: "A forward broad jump sinks and stalls in sand, so a straight-up takeoff is what preserves your jump.",
+            what: "The approach and takeoff on sand or grass.",
+            why: "A forward broad jump sinks and stalls in sand, so a straight-up takeoff preserves the jump there; grass holds an indoor-style plant, and the accelerating finish decides both.",
             elite_marker:
-              "An efficient approach (as many steps as the sand needs) with a slow-to-fast finish and a straight-up takeoff, arms swung aggressively behind and up to drive lift out of the sand.",
-            common_faults: ["A forward broad-jump takeoff that sinks", "Even-paced steps with no acceleration"],
+              "An efficient approach (as many steps as the surface needs) with a slow-to-fast finish and a straight-up takeoff, arms swung aggressively behind and up to drive lift.",
+            common_faults: ["A forward broad-jump takeoff that sinks or drifts", "Even-paced steps with no acceleration"],
             anchors: {
-              developing: "A wrong or even-paced step pattern, or a forward broad-jump takeoff that sinks into the sand.",
+              developing: "A wrong or even-paced step pattern, or a forward broad-jump takeoff that sinks or drifts.",
               solid: "A recognizable accelerating approach with a roughly straight-up takeoff, some sink or drift.",
               advanced:
-                "An efficient approach with a slow-to-fast finish and a straight-up takeoff, arms swung aggressively behind and up to drive lift out of the sand, repeatable.",
+                "An efficient approach with a slow-to-fast finish and a straight-up takeoff, arms swung aggressively behind and up to drive lift, repeatable.",
             },
           },
           jump_timing: {
@@ -753,7 +755,7 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           arm_swing: {
             key: "arm_swing",
             what: "The hitting arm, built for disguise and shots.",
-            why: "Elite beach hitters disguise the swing so it can become a swing, cut, line, roll, or pokey at the last instant.",
+            why: "Elite outdoor hitters disguise the swing so it can become a swing, cut, line, roll, or pokey at the last instant.",
             elite_marker:
               "A fast, high-elbow load whose contact is disguised until the last instant and can become a hard swing, cut, line, roll, or pokey; clean and versatile across reps.",
             common_faults: ["An arm-only push with one option", "Telegraphing the shot early"],
@@ -780,16 +782,16 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           },
           power_followthrough: {
             key: "power_followthrough",
-            what: "The finish and the sand landing.",
-            why: "On sand a balanced landing keeps you in the play, and control or placement often beats raw power.",
+            what: "The finish and the landing.",
+            why: "Outdoors a balanced landing keeps you in the play, and control or placement often beats raw power.",
             elite_marker:
-              "A controlled full-body finish that drives the ball down, or a disciplined shot placed away from the defender, with a balanced sand landing that leaves the player ready.",
-            common_faults: ["A stumbling, sinking sand landing", "Swinging for power and hitting it out"],
+              "A controlled full-body finish that drives the ball down, or a disciplined shot placed away from the defender, with a balanced landing that leaves the player ready.",
+            common_faults: ["A stumbling, off-balance landing", "Swinging for power and hitting it out"],
             anchors: {
-              developing: "An arm-only swing that stalls, or a stumbling, sinking sand landing.",
-              solid: "Visible core and hip engagement, a follow-through past contact, and a mostly balanced sand landing.",
+              developing: "An arm-only swing that stalls, or a stumbling, off-balance landing.",
+              solid: "Visible core and hip engagement, a follow-through past contact, and a mostly balanced landing.",
               advanced:
-                "A controlled full-body finish that drives the ball down or a disciplined shot placed away from the defender, with a balanced sand landing that leaves the player ready.",
+                "A controlled full-body finish that drives the ball down or a disciplined shot placed away from the defender, with a balanced landing that leaves the player ready.",
             },
           },
         },
@@ -890,17 +892,17 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
       },
       beach: {
         overview:
-          "A one-on-one chess match: take a zone, press to channel the ball to your partner, or peel off the net entirely when the set is bad.",
+          "A one-on-one chess match: take a zone, press to channel the ball to your defender, or peel off the net entirely when the set is bad.",
         highest_leverage_metric: "read_timing",
         highest_leverage_note:
-          "Committing to a zone or peeling correctly is the whole beach blocking skill.",
+          "Committing to a zone or peeling correctly is the whole outdoor blocking skill.",
         context_note:
-          "Beach: blocking is one-on-one; the blocker takes a zone and channels to the single defender, or peels off the net to become the second defender when the set is bad.",
+          "Outdoor: blocking is one-on-one in wind and sun; the blocker takes a zone and channels to the defender, or peels off the net to become the second defender when the set is bad. Sand lowers the jump and grass keeps it closer to indoor, but the block-or-peel read rules both.",
         phases: [
           { name: "Read the hitter", detail: "Line the head up with the ball and read a single hitter." },
           { name: "Decide block or pull", detail: "Commit to a zone (line or angle) or peel off the net on a bad set." },
-          { name: "Penetrate & channel", detail: "Press over and angle the hands to channel the ball to your partner." },
-          { name: "Land & transition", detail: "Land balanced on sand and transition to the next role." },
+          { name: "Penetrate & channel", detail: "Press over and angle the hands to channel the ball to your defender." },
+          { name: "Land & transition", detail: "Land balanced and transition to the next role." },
         ],
         metrics: {
           read_timing: {
@@ -921,22 +923,22 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           hand_penetration: {
             key: "hand_penetration",
             what: "The press, angled to channel the ball to the defender.",
-            why: "On beach the hands take one shot and steer the ball into the partner defender's zone.",
+            why: "Outdoors the hands take one shot and steer the ball into the defender's zone.",
             elite_marker:
-              "The same press as indoors, but the hands are angled to take a specific shot and channel the ball into the partner defender's zone · huge-reach blockers dominate.",
-            common_faults: ["Reaching vertically or splitting the seam", "Not channeling to the partner's zone"],
+              "The same press as indoors, but the hands are angled to take a specific shot and channel the ball into the defender's zone · huge-reach blockers dominate.",
+            common_faults: ["Reaching vertically or splitting the seam", "Not channeling to the defender's zone"],
             anchors: {
               developing: "Hands stay on the blocker's side, reach vertically or backward, or split the seam.",
               solid: "Hands cross the net with firm wrists and press over the tape.",
               advanced:
-                "Shoulders shrugged, hands well onto the hitter's side, wrists angled down-and-in, fingers wide and stiff, deliberately angled to channel the ball into the partner's zone.",
+                "Shoulders shrugged, hands well onto the hitter's side, wrists angled down-and-in, fingers wide and stiff, deliberately angled to channel the ball into the defender's zone.",
             },
             exemplars: ["Phil Dalhausser", "Anders Mol"],
           },
           lateral_footwork: {
             key: "lateral_footwork",
             what: "Small adjustment steps and a vertical jump on the smaller net.",
-            why: "Beach blocking has less lateral travel, so verticality and squaring beat long slides.",
+            why: "Outdoor blocking has less lateral travel, so verticality and squaring beat long slides.",
             elite_marker:
               "Efficient footwork over the smaller net with a squared, vertical, no-drift jump; weight jump verticality and squaring over long lateral travel.",
             common_faults: ["Crossing the feet", "Drifting sideways in the air"],
@@ -963,16 +965,16 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           },
           landing_recovery: {
             key: "landing_recovery",
-            what: "Landing on sand and transitioning to the next role.",
-            why: "After the block the beach player must instantly become a defender or attacker.",
+            what: "Landing and transitioning to the next role.",
+            why: "After the block the outdoor player must instantly become a defender or attacker.",
             elite_marker:
-              "Lands softly and balanced on the sand, then instantly transitions to defense, or peels to become the second back-court defender, a defined beach skill.",
-            common_faults: ["Landing off-balance in the sand", "A slow transition off the net"],
+              "Lands softly and balanced, then instantly transitions to defense, or peels to become the second back-court defender, a defined outdoor skill.",
+            common_faults: ["Landing off-balance", "A slow transition off the net"],
             anchors: {
               developing: "Lands stiff or off-balance, into the net, or unable to make a next play.",
               solid: "Lands balanced on two feet and absorbs with the knees, but transitions slowly.",
               advanced:
-                "Lands softly and balanced on the sand, then instantly transitions to defense, or peels to become the second back-court defender.",
+                "Lands softly and balanced, then instantly transitions to defense, or peels to become the second back-court defender.",
             },
           },
         },
@@ -1073,23 +1075,23 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
       },
       beach: {
         overview:
-          "Two players, a huge sand court, and legal overhand digs · elite beach defense is all-out reading, coverage, and lay-outs.",
+          "A huge outdoor court, few defenders, and legal overhand digs · elite outdoor defense is all-out reading, coverage, and lay-outs.",
         highest_leverage_metric: "read_anticipation",
         highest_leverage_note:
-          "Reading cut, line, and pokey and playing what the block leaves is what defines beach defense.",
+          "Reading cut, line, and pokey and playing what the block leaves is what defines outdoor defense.",
         context_note:
-          "Beach: two players cover a huge court with no libero; reading (line/angle/cut/pokey) is everything, and a legal overhand 'tomahawk' or momentarily-held hand dig is allowed on hard-driven balls.",
+          "Outdoor: few defenders cover a huge court with no libero, so reading (line/angle/cut/pokey) is everything, and a legal overhand 'tomahawk' or momentarily-held hand dig is allowed on hard-driven balls. Sand slows pursuit and grass footing speeds it up, but wind moves every ball.",
         phases: [
           { name: "Read with the blocker", detail: "Start upright to read, coordinated with the blocker's taken zone." },
           { name: "Load late", detail: "Drop into a stopped, loaded base as the hitter swings." },
           { name: "Contact", detail: "Play a firm platform or a legal hand dig high to the middle." },
-          { name: "Transition", detail: "Instantly move to set the partner or approach to attack." },
+          { name: "Transition", detail: "Instantly move to make the next set or approach to attack." },
         ],
         metrics: {
           ready_position: {
             key: "ready_position",
             what: "Reading upright, then loading late with the blocker.",
-            why: "The slower beach ball lets you read longer, but you must drop into a load just before the hitter swings.",
+            why: "The slower outdoor ball lets you read longer, but you must drop into a load just before the hitter swings.",
             elite_marker:
               "Reads more upright (the ball is slower in wind), then drops into a stopped, loaded base just before the hitter contacts, coordinated with the blocker's taken zone.",
             common_faults: ["Weight back with no timed load", "Loading too early or too late"],
@@ -1102,8 +1104,8 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           },
           read_anticipation: {
             key: "read_anticipation",
-            what: "Reading the full beach shot menu off the hitter.",
-            why: "Beach defense is won by picking line, angle, cut, or pokey early and playing what the block leaves.",
+            what: "Reading the full outdoor shot menu off the hitter.",
+            why: "Outdoor defense is won by picking line, angle, cut, or pokey early and playing what the block leaves.",
             elite_marker:
               "Early, correct reads of line, angle, cut, and pokey off the hitter's arm and shoulders, committing to the zone the block does not take and moving to the ball rather than chasing it.",
             common_faults: ["Ball-watching", "Not playing the zone the block leaves open"],
@@ -1117,7 +1119,7 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           platform_control: {
             key: "platform_control",
             what: "The dig contact, including legal hand techniques.",
-            why: "A high, controlled dig to the middle buys the setter time, and beach rules allow overhand and hand digs on hard-driven balls.",
+            why: "A high, controlled dig to the middle buys the setter time, and outdoor rules allow overhand and hand digs on hard-driven balls.",
             elite_marker:
               "A firm, still platform driving a high controlled ball to the middle to buy setting time in wind; on hard-driven balls, a clean legal overhand or tomahawk (or a momentarily-held hand dig) counts equally.",
             common_faults: ["Punching at a hard ball", "Digging flat instead of high to the middle"],
@@ -1130,30 +1132,30 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
           },
           movement_pursuit: {
             key: "movement_pursuit",
-            what: "Covering the huge sand court and committing to lay-outs.",
-            why: "Two players cover an enormous court, so pursuit and all-out lay-out defense define elite beach digging.",
+            what: "Covering the huge outdoor court and committing to lay-outs.",
+            why: "Few defenders cover an enormous court, so pursuit and all-out lay-out defense define elite outdoor digging.",
             elite_marker:
-              "An explosive first step and run-through covering the large sand court, committing to extensions and lay-out digs to keep the ball alive, squaring the feet when the play allows.",
+              "An explosive first step and run-through covering the large outdoor court, committing to extensions and lay-out digs to keep the ball alive, squaring the feet when the play allows.",
             common_faults: ["Reaching before the feet arrive", "Not committing to the lay-out"],
             anchors: {
               developing: "Feet late; reaching or lunging; arriving unbalanced.",
               solid: "Shuffle-and-step footwork that gets behind most balls, with honest pursuit on wide ones.",
               advanced:
-                "An explosive first step and run-through covering the large sand court, committing to extensions and lay-out digs to keep the ball alive, squaring the feet when the play allows.",
+                "An explosive first step and run-through covering the large outdoor court, committing to extensions and lay-out digs to keep the ball alive, squaring the feet when the play allows.",
             },
           },
           recovery: {
             key: "recovery",
             what: "Transitioning off the dig with no libero to cover.",
-            why: "In a two-person game the digger must instantly become the setter or attacker.",
+            why: "With no libero outdoors the digger must instantly become the setter or attacker.",
             elite_marker:
-              "Instantly transitions after the dig, pushing back to a balanced base every rep. With no libero to cover, the defender must be ready to set the partner or approach to attack.",
+              "Instantly transitions after the dig, pushing back to a balanced base every rep. With no libero to cover, the defender must be ready to make the next set or approach to attack.",
             common_faults: ["Staying down after a lay-out", "Slow to transition to the next contact"],
             anchors: {
               developing: "Stays down or is slow, unable to make the next play.",
               solid: "Regains a base after most reps, slow after emergency touches.",
               advanced:
-                "Instantly transitions after the dig, ready to set the partner or approach to attack, pushing back to a balanced base every rep, including after lay-outs.",
+                "Instantly transitions after the dig, ready to make the next set or approach to attack, pushing back to a balanced base every rep, including after lay-outs.",
             },
           },
         },
@@ -1162,9 +1164,9 @@ const TECHNIQUE_BASE: Record<Skill, SkillTechniqueBase> = {
   },
 };
 
-const GRASS_CONTEXT =
-  "Grass: firm footing, so the indoor approach, jump, and swing apply. Read the wind and sun on the ball, and expect a softer, less even surface than a court.";
-
+// Grass and sand are one outdoor environment for lessons (D-048): the grass
+// variant IS the authored beach variant, whose context notes speak to both
+// surfaces, so "Grass & sand" reads the same wherever it is played.
 export const TECHNIQUE: Record<Skill, SkillTechnique> = Object.fromEntries(
   SKILLS.map((skill): [Skill, SkillTechnique] => {
     const base = TECHNIQUE_BASE[skill];
@@ -1174,7 +1176,7 @@ export const TECHNIQUE: Record<Skill, SkillTechnique> = Object.fromEntries(
         ...base,
         byDiscipline: {
           ...base.byDiscipline,
-          grass: { ...base.byDiscipline.indoor, context_note: GRASS_CONTEXT },
+          grass: { ...base.byDiscipline.beach },
         },
       },
     ];
