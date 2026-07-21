@@ -131,7 +131,7 @@ async function runModel(
         },
         {
           type: "text",
-          text: outputSpec(c.skill, c.level),
+          text: outputSpec(c.skill),
           cache_control: { type: "ephemeral" },
         },
       ],

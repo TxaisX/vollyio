@@ -5,24 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { profileUpdateFromForm } from "@/lib/profile-update";
 
-const LEVELS = ["beginner", "intermediate", "expert", "pro"] as const;
-
-// The dashboard greeting reads display_name and level, so profile writes
-// revalidate both surfaces.
+// The dashboard greeting reads display_name, so profile writes revalidate
+// both surfaces.
 function revalidateProfileSurfaces() {
   revalidatePath("/settings");
   revalidatePath("/dashboard");
-}
-
-export async function setLevel(formData: FormData) {
-  const supabase = await createClient();
-  const userId = await getAuthUserId(supabase);
-  if (!userId) return;
-
-  const level = String(formData.get("level") ?? "");
-  if (!(LEVELS as readonly string[]).includes(level)) return;
-  await supabase.from("profiles").update({ level }).eq("id", userId);
-  revalidateProfileSurfaces();
 }
 
 export async function setTrainingConsent(formData: FormData) {

@@ -17,7 +17,7 @@ import {
   releaseAnalysisEntitlement,
   reserveAnalysisEntitlement,
 } from "@/lib/entitlements";
-import { SKILL_LABEL, type Level } from "@/lib/skills";
+import { SKILL_LABEL } from "@/lib/skills";
 import { MAX_BODY_BYTES, type AnalysisResult } from "@/lib/analysis-types";
 import { analyzeRequestSchema } from "@/lib/analyze-request";
 import {
@@ -100,13 +100,6 @@ export async function POST(req: NextRequest) {
     const timeAt = (index: number) =>
     frames.find((f) => f.index === index)?.time_s ?? null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("level")
-    .eq("id", user.id)
-    .single();
-  const level = (profile?.level ?? "beginner") as Level;
-
   let result: AnalysisResult;
   // Server-recorded, server-only measurement of the coaching call (D-043): real
   // token counts, wall-clock, model, and effort. Stored on the analysis row so
@@ -156,7 +149,7 @@ export async function POST(req: NextRequest) {
           },
           {
             type: "text",
-            text: outputSpec(skill, level),
+            text: outputSpec(skill),
             cache_control: { type: "ephemeral" },
           },
         ],
@@ -168,7 +161,7 @@ export async function POST(req: NextRequest) {
               ...focusBlock,
               {
                 type: "text",
-                text: `Discipline: ${discipline}. Player level: ${level}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
+                text: `Discipline: ${discipline}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
               },
             ],
           },

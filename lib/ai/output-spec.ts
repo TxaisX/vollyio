@@ -1,4 +1,4 @@
-import type { Level, Skill } from "../skills.ts";
+import type { Skill } from "../skills.ts";
 import { METRICS } from "./metrics.ts";
 import { pointerSpec } from "./pointers.ts";
 
@@ -11,16 +11,10 @@ const CONTACT_MOMENT: Record<Skill, string> = {
   dig: "the frame where the ball meets the platform (or the point of the emergency touch)",
 };
 
-const RETURN_SCALE: Record<Level, string> = {
-  beginner:
-    "This player is a beginner. Favor one or two foundational changes with generous but honest gains; timeframes are a few focused sessions.",
-  intermediate:
-    "This player is intermediate. Gains are moderate; timeframes span a couple of weeks of deliberate reps.",
-  expert:
-    "This player is expert-level. Remaining gains are smaller and harder-won; be conservative and precise about the payoff.",
-  pro:
-    "This player trains at the professional tier. Only marginal refinements remain; keep expected gains small and timeframes realistic for high-level habit change.",
-};
+// One return-on-effort framing for every account (D-053): the per-level scale
+// went with the coaching-level setting.
+const RETURN_SCALE =
+  "Size each expected gain to what the named change actually buys within the stated timeframe: honest and specific, neither inflated nor padded down.";
 
 // Where the 0-100 scale is anchored. ONE standard for every account (D-037):
 // the advanced-amateur ceiling, with the rubric's ~90 elite prose as the top of
@@ -39,18 +33,11 @@ const STANDARD = [
   "The shape this produces: a rep with a real athletic foundation and one clear fault lands in the mid-to-high 60s overall, not the 40s. Keep the floor honest in the notes, price the fault against what works rather than instead of it, and never hand out a 70 for effort alone.",
 ].join("\n");
 
-// How the coach talks to this player. The single STANDARD above sets where
-// the scale sits for everyone; this sets only the voice.
-const COACH_VOICE: Record<Level, string> = {
-  beginner:
-    "COACHING VOICE: This player is new. Coach like a patient teacher: lead with the one thing that works, then the biggest fix in plain language. Explain any term a first-year player would not know.",
-  intermediate:
-    "COACHING VOICE: Coach like a club coach. Direct and constructive: name what holds this player back and exactly how to fix it, without sugarcoating and without piling on.",
-  expert:
-    "COACHING VOICE: Coach like a high-performance coach. Hold a high bar: skip praise padding, be exacting about each technical deficiency, and name the standard it misses.",
-  pro:
-    "COACHING VOICE: This player wants film reviewed like a professional would hear it: blunt and unsparing. Call out every deficiency by name and never soften a verdict, while scoring on the same scale as everyone else.",
-};
+// One voice for every account (D-053): the coaching-level selector is gone.
+// The single STANDARD above sets where the scale sits; this sets only how the
+// coach talks.
+const COACH_VOICE =
+  "COACHING VOICE: Coach like a high-performance coach reviewing film with a serious player. Hold a high bar: skip praise padding, be exacting about each technical deficiency and name the standard it misses, in plain language any player can follow.";
 
 /**
  * Shared, per-request output instructions appended after the frozen per-skill
@@ -58,12 +45,12 @@ const COACH_VOICE: Record<Level, string> = {
  * fixes as realistic return-on-effort changes. Kept out of the RUBRIC strings so
  * the six scoring prompts stay frozen and these rules stay consistent across skills.
  */
-export function outputSpec(skill: Skill, level: Level): string {
+export function outputSpec(skill: Skill): string {
   const keys = METRICS[skill].map((m) => m.key);
   return [
     STANDARD,
     "",
-    COACH_VOICE[level],
+    COACH_VOICE,
     "",
     "SUBJECT CHECK",
     "Before anything else, state who you analyzed. Set subject_check.analyzed to a short physical description of that one person as they appear in the frames: jersey or kit color, number if legible, and where they are on the court (e.g. \"player in the red jersey, number 7, left-side attacker\"). Describe appearance and position only; never guess a name.",
@@ -87,7 +74,10 @@ export function outputSpec(skill: Skill, level: Level): string {
     `Each change targets exactly one metric via target_metric, chosen ONLY from these keys for this skill: ${keys.join(", ")}.`,
     "expected_gain is the realistic number of points that metric would rise if the player makes this one change within the stated timeframe. Keep it honest and modest, roughly 3 to 25 points, not a jump to a perfect score.",
     "difficulty is one of: quick, moderate, long-term. timeframe is a short human phrase (e.g. \"1-2 practices\", \"2-3 weeks\").",
-    RETURN_SCALE[level],
+    RETURN_SCALE,
+    "",
+    "SUMMARY AND WHAT WAS NOT VISIBLE",
+    "The summary is 2-4 sentences on what most defines this player's rep quality right now. If any pointers were not_visible, end the summary with one short sentence naming what the footage did not show (for example: \"Not visible in this clip: the landing and the follow-through.\"). Unseen mechanics are excluded from every number and never lower a score; that closing sentence is the only place they appear.",
     "",
     pointerSpec(skill),
     "",

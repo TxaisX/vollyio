@@ -1598,3 +1598,29 @@ metric checkpoint bubbles, previously color-only for met/missed, get a
 plain-language legend (`components/metric-legend.tsx`: Hit / Partly there /
 Missed / Not visible, doesn't count) rendered wherever the metrics render,
 including shared breakdowns.
+
+## D-053 — One advanced coaching voice; unseen mechanics become a summary note, never a score cost
+
+The owner removed the coaching-level setting: every account now gets the same
+advanced, high-performance coaching voice, and the per-level expected-gain
+scale went with it. The number was already one standard for every account
+(D-037); now the words are too. profiles.level survives as a self-reported
+experience field that only sizes the daily challenge and drill suggestions;
+the Settings card, the outputSpec/coach-prompt level parameters, and the
+"Player level" line in the analyze message are gone. The onboarding "pro"
+option no longer promises a blunter voice.
+
+Second half, the owner's 90+ goal: a score of 90+ must be reachable in real
+app use, and what the camera cannot see must never stand in the way. The
+derivation already excluded not_visible pointers from every number (D-038,
+D-045) with no coverage cap on the overall, so the math allowed 90+; the leak
+was judging. The pointer instructions let "partial" absorb uncertainty, and a
+half-credit hedge on unclear footage silently pulled clean reps into the 80s.
+The judging rules now state: partial is a verdict about VISIBLE flaws only;
+when evidence is too unclear to judge confidently, the pointer is not_visible,
+excluded entirely, and named once at the end of the summary ("Not visible in
+this clip: ..."), which is the only place unseen mechanics appear. Scoring
+math, weights, floor and ceiling (30..95), and the one-standard rule are
+untouched. This is a deliberate owner-directed prompt change recorded against
+D-034's no-prompt-hunting rule; the labeled eval baseline remains the way to
+verify its effect once the spend cap lifts.
