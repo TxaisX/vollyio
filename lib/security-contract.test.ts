@@ -55,6 +55,25 @@ test("security migration keeps quotas atomic and profile authority server-contro
   assert.match(contract, /drop policy if exists/i);
 });
 
+test("coach quota migration pins the hardened limits (D-047)", async () => {
+  const sql = await readFile(
+    new URL("../supabase/migrations/018_coach_quota.sql", import.meta.url),
+    "utf8",
+  );
+  // The daily scope and the tightened hourly cap must both survive any future
+  // redefinition of the quota functions, or coach reverts to 60/hr with no
+  // day ceiling and no billing gate behind it.
+  assert.match(sql, /scope in \('analyze', 'coach', 'coach_daily', 'account_delete'\)/i);
+  assert.match(sql, /when 'coach' then\s*v_limit := 20;/i);
+  assert.match(sql, /when 'coach_daily' then\s*v_limit := 30;\s*v_window := interval '24 hours';/i);
+  assert.match(sql, /create or replace function public\.refund_api_quota/i);
+  assert.match(sql, /when 'coach_daily' then v_window := interval '24 hours';/i);
+  // The refund floor survives: delete the would-be-zero row, never write zero.
+  assert.match(sql, /request_count <= 1/i);
+  assert.match(sql, /revoke all on function public\.consume_api_quota\(text\) from public/i);
+  assert.match(sql, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
+});
+
 test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {
   const align = await readFile(
     new URL("../supabase/migrations/017_frame_cap_alignment.sql", import.meta.url),

@@ -1,4 +1,4 @@
-export type ApiQuotaScope = "analyze" | "coach" | "account_delete";
+export type ApiQuotaScope = "analyze" | "coach" | "coach_daily" | "account_delete";
 
 type RpcClient = {
   rpc(

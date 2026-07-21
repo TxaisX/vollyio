@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useReducedMotion } from "@/components/motion";
+import { COACH_ENABLED } from "@/lib/flags";
 
 type NavItem = {
   href: string;
@@ -108,11 +109,15 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function visibleNav(items: NavItem[]) {
+  return COACH_ENABLED ? items : items.filter((item) => item.href !== "/coach");
+}
+
 export function SideNavLinks() {
   const pathname = usePathname();
   return (
     <ul className="flex flex-col gap-1">
-      {SIDE_NAV.map((item) => {
+      {visibleNav(SIDE_NAV).map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <li key={item.href}>
@@ -167,7 +172,7 @@ export function TabBar() {
       }}
     >
       <ul className="flex w-max min-w-full snap-x snap-mandatory">
-        {TAB_NAV.map((item) => {
+        {visibleNav(TAB_NAV).map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href} className="w-[4.5rem] shrink-0 snap-center">
