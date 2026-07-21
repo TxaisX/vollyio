@@ -1,8 +1,18 @@
 export const ALPHA = 0.35;
 
-export function updateRating(prev: number | null, score: number): number {
+// Rolling skill rating. A rep graded on partial coverage moves the rating less
+// than one graded on the full checklist, so a few bad-angle clips do not swing
+// the trend (D-044-reconcile). coveragePct defaults to 100 (a full read, and the
+// behavior every older caller had); the first rating seeds with the score and
+// ignores coverage because there is no prior to move toward.
+export function updateRating(
+  prev: number | null,
+  score: number,
+  coveragePct = 100,
+): number {
   if (prev == null) return score;
-  return Math.round((prev + ALPHA * (score - prev)) * 10) / 10;
+  const w = Math.max(0, Math.min(1, coveragePct / 100));
+  return Math.round((prev + ALPHA * w * (score - prev)) * 10) / 10;
 }
 
 export function overallScore(ratings: (number | null)[]): number | null {

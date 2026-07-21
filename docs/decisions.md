@@ -1416,3 +1416,50 @@ Known limits, accepted: the then-to-now number carries the same run-to-run
 pointer noise as any single score (D-039 calibration note), so the strip states
 the two numbers plainly rather than asserting the player improved; and the
 previous rep is the immediately prior one of that skill, not a best or a median.
+
+## D-045 — Weighted checklist scoring and coverage, reconciled from the skill-eval spec
+
+The owner supplied a from-scratch per-rep grading spec (weighted components,
+per-component confidence, coverage %, outcome kept separate, coverage-weighted
+trend). Adopting it verbatim would have reversed five decisions at once
+(D-027/D-034/D-039/D-040/D-041: model free-scoring against prompt anchors, a
+"predicted <=88" hedge, 4-6 keyframes, Sonnet) and swapped the frozen five-metric
+taxonomy for a new set, breaking comparability with every stored analysis, every
+rating, and the D-044 "Last time" strip. The owner chose to RECONCILE: take the
+spec's structure, keep the anti-fabrication guardrails.
+
+What changed (all code-side; the model's pointer job is unchanged):
+- Weighted overall. Each of the five metrics per skill carries a weight summing
+  to 100 (`lib/ai/metrics.ts`). The overall is the weighted mean over OBSERVED
+  metrics, so a heavier checkpoint (contact, swing) moves the number more than a
+  lighter one (follow-through, recovery). This replaces the plain mean of D-038.
+- coverage_pct + low_confidence. coverage_pct is the observed weight over the
+  total; below 60 the read is flagged low-confidence and the results page says how
+  much of the checklist the clip supported. Formalizes D-038's exclude-unobserved
+  into an honest number instead of a silent omission.
+- Coverage-weighted trend. `updateRating` scales the EWMA step by coverage, so a
+  bad-angle rep on 55% coverage moves the rolling rating about half as much as a
+  full read (`lib/ratings.ts`).
+- One scoring path. The analyze route and the eval route now derive through a
+  single `lib/ai/derive.ts` `deriveResult`, so an eval measures exactly what
+  production scores (they had drifted: eval used the model's overall, analyze a
+  derived mean).
+
+Kept from the current system (the guardrails the owner did not want to lose):
+scores stay code-derived from the pointer checklist (D-039), uncurved (D-040), on
+one standard for every account (D-037), read from dense uniform coverage (D-041),
+on Opus at low effort (D-027). No prompt, schema, or model change: the model still
+judges pointers met|partial|missed|not_visible; the weighting and coverage are
+pure code.
+
+Deferred from the spec: the explicit per-component confidence tiers
+(seen/predicted) and the "predicted <=88" cap (a hedge D-040 removed); the 4-6
+keyframe capture (D-041's dense coverage stands); the Sonnet route (D-027's Opus
+stands); a separate outcome field (a small future addition, mechanics-only per
+D-036 either way).
+
+The weights are a calibration knob in one file, tuned against labeled cases like
+RAW_FLOOR/RAW_CEILING (D-034), never through prompt wording. The pure derivation
+and the coverage-weighted rating are unit-tested (weights sum to 100, the weighted
+mean, coverage, low-confidence, and trend weighting). NOT verified live: the felt
+effect on real reps, because the spend cap blocks every coaching call.

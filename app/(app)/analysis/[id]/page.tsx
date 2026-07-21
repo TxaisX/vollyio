@@ -247,6 +247,17 @@ export default async function AnalysisDetail({
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
           Scored like a coach · 40 developing · 70 solid · 90 advanced
         </p>
+        {typeof result.coverage_pct === "number" && (
+          <p
+            className={`mt-1 font-mono text-[11px] uppercase tracking-[0.08em] ${
+              result.low_confidence ? "text-coral" : "text-chalk-dim"
+            }`}
+          >
+            {result.low_confidence
+              ? `Graded on ${result.coverage_pct}% of the checklist; the rest wasn't visible`
+              : `Graded on ${result.coverage_pct}% of the checklist`}
+          </p>
+        )}
       </Reveal>
 
       {lastTime && lastTimeCopy && (
@@ -366,6 +377,7 @@ export default async function AnalysisDetail({
                   score={m.score}
                   note={m.note}
                   observed={m.observed !== false}
+                  weight={m.weight}
                   pointers={m.pointers
                     ?.map((p) => ({
                       cue: pointerCue(row.skill, m.key, p.key),
