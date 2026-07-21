@@ -335,7 +335,7 @@ export default async function Dashboard({
       .map((a) => a.overall_score);
 
   return (
-    <section className="max-w-6xl">
+    <section className="max-w-7xl">
       <Reveal>
         <div className="dashboard-heading relative flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
           <div>

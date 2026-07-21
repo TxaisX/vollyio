@@ -37,7 +37,7 @@ export default async function ScoreboardPage() {
   const games = (data as GameRow[] | null) ?? [];
 
   return (
-    <section className="max-w-2xl">
+    <section className="max-w-4xl">
       <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">Scoreboard</p>
       <h1 className="mt-1 font-display text-2xl font-bold">Track a match</h1>
 

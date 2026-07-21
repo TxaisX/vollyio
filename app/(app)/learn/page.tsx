@@ -32,7 +32,7 @@ export default async function Learn({
   const q = discipline === "indoor" ? "" : `?discipline=${discipline}`;
 
   return (
-    <section className="max-w-3xl">
+    <section className="max-w-5xl">
       <Reveal>
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
           Learn

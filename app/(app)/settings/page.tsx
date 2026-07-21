@@ -57,7 +57,7 @@ export default async function Settings() {
     disciplineGroup(d) === disciplineGroup(profile.discipline);
 
   return (
-    <section className="max-w-2xl">
+    <section className="max-w-5xl">
       <Reveal>
         <div className="border-b border-line pb-5">
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
@@ -69,8 +69,9 @@ export default async function Settings() {
         </div>
       </Reveal>
 
+      <div className="mt-6 space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
       <Reveal delay={60}>
-        <div className="card mt-6 p-5">
+        <div className="card p-5">
           <p className="font-display font-bold">Account</p>
           <form action={updateProfile} className="mt-3">
             <label
@@ -107,7 +108,7 @@ export default async function Settings() {
       </Reveal>
 
       <Reveal delay={120}>
-        <div className="card mt-4 p-5">
+        <div className="card p-5">
           <p className="font-display font-bold">Coaching level</p>
           <p className="mt-1 text-xs text-chalk-dim">
             Shapes how your breakdowns are written, not how they are scored.
@@ -130,7 +131,7 @@ export default async function Settings() {
       </Reveal>
 
       <Reveal delay={180}>
-        <div className="card mt-4 p-5">
+        <div className="card p-5">
           <p className="font-display font-bold">Player profile</p>
           <p className="mt-1 text-xs text-chalk-dim">
             Where and how you usually play. New film starts from these.
@@ -193,7 +194,7 @@ export default async function Settings() {
       </Reveal>
 
       <Reveal delay={240}>
-        <div className="card mt-4 flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
           <div className="min-w-0 max-w-md">
             <p className="font-display font-bold">Improve future analysis</p>
             <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
@@ -217,6 +218,7 @@ export default async function Settings() {
           </form>
         </div>
       </Reveal>
+      </div>
 
     </section>
   );

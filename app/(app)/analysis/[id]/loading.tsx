@@ -7,7 +7,7 @@ function Sk({ className = "" }: { className?: string }) {
 export default function AnalysisLoading() {
   return (
     <ViewTransition exit="vt-reveal-out">
-    <section className="max-w-6xl" aria-busy>
+    <section className="max-w-7xl" aria-busy>
       {/* Score header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

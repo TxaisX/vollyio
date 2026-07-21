@@ -31,7 +31,7 @@ const LEVEL_CLASS: Record<Level, string> = {
 
 export default function Drills() {
   return (
-    <section className="max-w-3xl">
+    <section className="max-w-5xl">
       <Reveal>
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
           Drills

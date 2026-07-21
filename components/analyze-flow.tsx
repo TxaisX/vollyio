@@ -969,7 +969,7 @@ export function AnalyzeFlow({
         className={
           skill && discipline
             ? "mt-8 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
-            : "mt-8 max-w-xl"
+            : "mt-8 max-w-3xl"
         }
       >
         {/* Controls */}

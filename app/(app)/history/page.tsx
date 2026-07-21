@@ -48,7 +48,7 @@ export default async function History({
   const rows = (data as Row[] | null) ?? [];
 
   return (
-    <section className="max-w-2xl">
+    <section className="max-w-4xl">
       <Reveal>
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
           History
