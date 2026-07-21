@@ -41,8 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-
 # local agent tooling stays untracked, but checked-in skills load for every
 # session: ignore .claude's contents except the skills folder.
 /.agents/
@@ -51,59 +49,32 @@ next-env.d.ts
 /skills-lock.json
 /.mcp.json.bak
 
-# scratch / troubleshooting notes
-/The fix is a full restart of Claude Code.md
-
 # local build output and agent tooling
 /dist/
 .codex/
 .openai/
 
-# local eval data (frames from personal/source footage; never committed)
+# local eval data: frames cut from personal/source footage, never committed.
 evals/cases/*.json
 evals/work/
+evals/footage/
 evals/RESULTS.json
 evals/GROUPS.json
+/eval-results/
+/public/pose-test-*.jpg
+/public/pose-test-*.png
 
 # local render/lighthouse scratch
 /.cache/
 
-# root-level benchmark scratch (model/effort attack eval, jul 2026).
-# same reasoning as evals/ above: these hold frames cut from personal source
-# footage and are regenerable from the runner scripts, so they stay local.
-/frames/
-/raw/
-/judging/
-/codex-attack-model-effort-eval/
-
-# generated benchmark reports. self-contained html with the source frames
-# inlined as base64 (the attacker report alone is ~18mb), so committing one
-# commits the footage twice over. rebuild with build-report.mjs instead.
-/attack-analysis-palominos.html
-/model-effort-cost-ladder.html
-/sideout-attacker-model-effort-report.html
-/sideout-commercialization.html
-
-# bulk run output. machine-written, superseded on every rerun, and only
-# meaningful next to the frames above.
-/benchmark-ranking.json
-/matrix-results.json
-/consensus-synthesis.json
-
-# deliberately NOT ignored, even though they came from the same run:
-# run-matrix.mjs, run-judges.mjs, run-stability.mjs, build-report.mjs,
-# coach-output.schema.json, judge-output.schema.json, coach-prompt.txt,
-# video-evidence-notes.md. these are the methodology, not the output — small,
-# hand-written, and what makes the benchmark reproducible. commit them.
-# caveat: /codex-attack-model-effort-eval/ above is ignored wholesale and
-# contains its own copies of those scripts and schemas; the root-level copies
-# are the ones meant to be tracked.
-
-# pose-engine evaluation corpus: frames cut from personal source footage,
-# regenerable with scripts/extract-eval-frames.mjs. never committed.
-/public/evalframes/
-/public/pose-test-*.jpg
-/public/pose-test-*.png
-/eval-results/
-/public/evalframes-full/
-/ab/
+# archive/: historical material kept on disk for reference.
+# - Retired text docs and small report cards were moved here with `git mv` and
+#   stay tracked, so their history is preserved and they remain greppable.
+# - Heavy regenerable outputs (benchmark reports, run JSON) and footage frames
+#   are untracked and ignored; the ~18mb model-effort report inlines the source
+#   footage as base64, so it is never committed. The small hand-written
+#   methodology that reproduces those runs lives in scripts/benchmark/ (tracked).
+# Ignore new untracked archive content; keep the tracked items and the index.
+/archive/*
+!/archive/README.md
+!/archive/handoff-history.md

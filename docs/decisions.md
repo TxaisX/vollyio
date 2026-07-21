@@ -1273,3 +1273,47 @@ because the API account hit its MONTHLY SPEND CAP mid-run ("regain access
 until the owner raises the limit in the provider console. The mechanism
 shipped is deterministic (uniform stride + mark injection + byte budget) and
 unit-gated; the model-behavior validation resumes when budget does.
+
+## D-042 — Repo made to tell the truth: benchmark clutter and dead-system docs archived
+
+The repo root carried roughly 90 MB of benchmark evidence and a stratum of docs
+describing systems D-033 deleted. Session 1 of the road-to-100 playbook moved
+them out of the way of the living repo without rewriting history.
+
+- Untracked benchmark outputs, footage frames, and scratch (the ~18 MB
+  model-effort report, run JSON, `frames/raw/judging/ab/dist`, the codex eval
+  copy, the `.mcp.json.bak` and restart note) moved on disk into
+  `archive/2026-07-model-benchmarks/` and sibling folders.
+- Retired tracked docs describing the deleted pose engine or finished one-time
+  efforts moved via `git mv` into `archive/docs-history/`, `archive/reports/`,
+  and `archive/orchestration/` so their history is preserved and they stay
+  greppable.
+- `docs/` pruned to a living set; `frontend.md`, `motion.md`, and `tooling.md`
+  folded into one `docs/frontend.md`; `validation-plan.md` folded into
+  `analysis-validation-roadmap.md`; `docs/README.md` and `archive/README.md`
+  written; `README.md` and `HANDOFF.md` rewritten to the post-D-033 world.
+- Eval footage moved out of `public/` into `evals/footage/` (gitignored). It was
+  already gitignored under `public/`, so it never reached a deploy; the move is
+  defense in depth against a future un-ignore, and the two extractor scripts now
+  write there so they can never repopulate `public/`.
+
+Archive tracking policy, reconciling two owner-authored intents. This session's
+prompt asked that `archive/` be "gitignore-exempt only for its README"; the
+existing `.gitignore` deliberately kept the small hand-written benchmark
+methodology tracked "because it is the methodology, not the output." Resolution:
+`archive/` is gitignored except `README.md`; the heavy regenerable outputs and
+footage stay untracked there; the reproducible methodology (`run-matrix`,
+`run-judges`, `run-stability`, `build-report`, the two schemas, `coach-prompt`,
+`video-evidence-notes`) moved to `scripts/benchmark/`, where it stays tracked and
+out of the root. Retired text docs moved with `git mv` also stay tracked because
+git does not untrack an already-tracked file under an ignore, and their history
+is worth keeping. Rejected: untracking the methodology (loses reproducibility
+from git) and `git rm`-ing the archived docs (loses history for no real space
+saving on small text).
+
+Confirmed no single git-tracked artifact exceeds 10 MB, so there is no history
+bloat to excise; the heavy artifacts were already untracked. The three
+road-to-100 planning docs left at the root (`sideout-100-playbook.md`,
+`sideout-breakdown.md`, `sideout-improvement-prompt.md`) stay untracked in place
+because the playbook references them there; relocating the owner's own active
+plan was out of scope for a truth-and-clutter pass.

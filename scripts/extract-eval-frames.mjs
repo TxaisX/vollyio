@@ -15,7 +15,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 
 const SOURCE = process.env.EVAL_VIDEO_DIR ?? "D:/Videos/Volleyball";
-const OUT = path.join(process.cwd(), "public", "evalframes");
+const OUT = path.join(process.cwd(), "evals", "footage", "evalframes");
 const FRAMES_PER_CLIP = Number(process.env.FRAMES_PER_CLIP ?? 10);
 // Long edge. Well above what the engine captures, so downscaling stays the
 // engine's decision rather than being baked into the corpus.
@@ -73,7 +73,7 @@ async function main() {
           "-y", out,
         ]);
         manifest.push({
-          src: `/evalframes/${path.basename(out)}`,
+          src: `evals/footage/evalframes/${path.basename(out)}`,
           clip: name,
           t: Number(t.toFixed(2)),
         });
