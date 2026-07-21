@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
 import { coach, ANALYZE_MODEL, ANALYZE_EFFORT } from "@/lib/ai/client";
+import { classifyCoachingError } from "@/lib/ai/errors";
 import { shouldEnforceFreeTier } from "@/lib/billing";
 import { analysisSchema } from "@/lib/ai/schema";
 import { getRubric } from "@/lib/ai/rubrics";
@@ -25,7 +26,7 @@ import {
   readJsonRequest,
   safeClipExtension,
 } from "@/lib/security/request";
-import { consumeApiQuota } from "@/lib/security/rate-limit";
+import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -108,6 +109,11 @@ export async function POST(req: NextRequest) {
   const level = (profile?.level ?? "beginner") as Level;
 
   let result: AnalysisResult;
+  // Server-recorded, server-only measurement of the coaching call (D-043): real
+  // token counts, wall-clock, model, and effort. Stored on the analysis row so
+  // D-027's two open risks (cost per analysis, maxDuration vs real latency)
+  // become measured numbers after a handful of live runs. Null on mock runs.
+  let telemetry: Record<string, unknown> | null = null;
 
   if (process.env.AI_MOCK === "true") {
     result = mockResult(skill, timeAt);
@@ -136,6 +142,7 @@ export async function POST(req: NextRequest) {
           ]
         : [];
 
+      const startedAt = Date.now();
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
         max_tokens: 4096,
@@ -176,6 +183,17 @@ export async function POST(req: NextRequest) {
       // the SDK honors Retry-After and jitters between attempts.
       { maxRetries: 4 },
     );
+
+      const usage = response.usage;
+      telemetry = {
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+        duration_ms: Date.now() - startedAt,
+        model: ANALYZE_MODEL,
+        effort: ANALYZE_EFFORT,
+      };
 
       const raw = response.parsed_output;
       if (!raw) {
@@ -243,13 +261,29 @@ export async function POST(req: NextRequest) {
       // and vendor-neutral (no-vendor-names rule); an opaque 502 with a bare
       // `catch` hid whatever the coaching call actually threw.
       const apiErr = err instanceof Anthropic.APIError ? err : null;
+      const message = apiErr?.message ?? (err instanceof Error ? err.message : String(err));
       console.error("[analyze] coaching call failed", {
         status: apiErr?.status,
         requestId: apiErr?.requestID,
-        message: err instanceof Error ? err.message : String(err),
+        message,
       });
+      const kind = classifyCoachingError({ status: apiErr?.status ?? null, message });
+      if (kind === "capacity") {
+        // The coaching service refused before doing any billable work (credit or
+        // spend-cap outage), so the player was not charged: give the hourly slot
+        // back (the free entitlement is released by the outer finally) and say so
+        // plainly, distinctly from "your clip failed". Vendor stays unnamed.
+        await refundApiQuota(supabase, "analyze");
+        return NextResponse.json(
+          {
+            error:
+              "The coaching service is temporarily out of capacity, so your clip wasn't counted against your limit. Please try again later.",
+          },
+          { status: 503, headers: { "Retry-After": "1800" } },
+        );
+      }
       const clientMessage =
-        apiErr?.status === 429
+        kind === "busy"
           ? "The coaching service is busy right now. Try again in a moment."
           : "The coaching service is unavailable. Try again.";
       return NextResponse.json({ error: clientMessage }, { status: 502 });
@@ -301,6 +335,7 @@ export async function POST(req: NextRequest) {
     overall_score: result.overall_score,
     result,
     model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
+    telemetry,
   });
   if (insertError) {
     if (insertError.message.includes("analysis rate limit exceeded")) {

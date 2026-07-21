@@ -21,3 +21,22 @@ export async function consumeApiQuota(
     return { ok: false, allowed: false };
   }
 }
+
+// Give back one unit of the current window after a paid call that did no
+// billable work (e.g. the coaching service refused before charging), so the
+// player's hourly slot is not burned by our own outage. Best-effort: the caller
+// is already returning an error, so a failed refund is logged and ignored, never
+// surfaced. Safe against rate-limit escape because the DB function only
+// decrements inside the active window and never below the floor (see
+// refund_api_quota); it cannot manufacture extra allowance.
+export async function refundApiQuota(
+  client: RpcClient,
+  scope: ApiQuotaScope,
+): Promise<boolean> {
+  try {
+    const { error } = await client.rpc("refund_api_quota", { p_scope: scope });
+    return !error;
+  } catch {
+    return false;
+  }
+}

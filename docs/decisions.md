@@ -1317,3 +1317,58 @@ road-to-100 planning docs left at the root (`sideout-100-playbook.md`,
 `sideout-breakdown.md`, `sideout-improvement-prompt.md`) stay untracked in place
 because the playbook references them there; relocating the owner's own active
 plan was out of scope for a truth-and-clutter pass.
+
+## D-043 — Production resilience: honest degraded-service handling and measured telemetry
+
+Production analyze/coach is down: the account API key hit its monthly spend cap
+(D-041). Two failures compound the outage. First, a coaching-call failure
+returned a generic 502 that reads like "your clip failed," when the real cause
+is a temporary account-level capacity outage that charged the player nothing.
+Second, the hourly analyze quota is consumed before the coaching call and was
+never refunded, so an outage that did no billable work still burned one of the
+player's twenty hourly slots.
+
+Degraded-service handling. `lib/ai/errors.ts` `classifyCoachingError` maps a
+failure to `capacity | busy | unknown` from status plus message, kept pure so it
+is unit-tested without the SDK error object. The two production shapes (a 400
+"credit balance is too low" and a usage/spend cap) classify as `capacity`; a
+plain 429 or 529 is `busy`; everything else is `unknown`. On `capacity` the route
+refunds the analyze quota (`refund_api_quota`, migration 016) and returns a
+distinct honest 503: "temporarily out of capacity, so your clip wasn't counted
+against your limit." The class requires both a billing signal and a plausible
+status, so a stray substring in an unrelated 500 cannot trigger a refund.
+
+The entitlement reservation needed no change: the free-tier check keys on the
+`analyses` table, not the reservation row (`reserve_analysis_entitlement`), and
+the route's `finally` already releases the reservation on every path, so a
+failed analysis that never inserts a row leaves the free tier unspent. Verified
+against the reserve/release/link flow rather than assumed.
+
+`refund_api_quota` only decrements inside the active window and never crosses the
+`request_count > 0` check (it deletes a would-be-zero row), so it cannot be used
+to escape the rate limit: the window still expires on schedule and no paid work
+happened during the outage.
+
+Telemetry. A server-set `telemetry jsonb` column on `analyses` records real input
+/output/cache token counts, wall-clock duration, model, and effort, written in
+the same insert. This turns D-027's two open risks (cost per analysis,
+`maxDuration=120` versus real latency) into measured numbers after a handful of
+live runs. It is a dedicated column, not a key inside `result`, for two reasons:
+`result` is sent to the client by the analysis, history, and coach read paths, so
+telemetry there would ship the model's vendor string to the browser (no-vendor
+rule) and bloat the payload; and no read path selects `telemetry`, so it stays
+server-side. There is an insert grant but no update grant, so a row stays
+immutable after creation; like `result` and `model`, the owner could set it at
+insert via the Data API, and it gates nothing (security.md).
+
+Rejected: storing telemetry in `result` (client exposure, vendor-string leak); a
+post-insert update path (needs an update grant plus an RLS update policy, which
+would break analyses immutability); moving quota consumption after the coaching
+call (breaks the atomic-before-paid-work rule in security.md).
+
+Honesty. The pure classifier and the refund helper are unit-tested (TDD, red
+first). Migration 016 is additive and was applied to production and verified
+(column, function, grants). NOT verified live: the full-route degraded behavior
+and the real telemetry values, because the spend cap blocks every live call
+until the owner raises the limit. The exact production error body should be
+confirmed against `classifyCoachingError` when the cap next lifts.
