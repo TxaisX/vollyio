@@ -1463,3 +1463,30 @@ RAW_FLOOR/RAW_CEILING (D-034), never through prompt wording. The pure derivation
 and the coverage-weighted rating are unit-tested (weights sum to 100, the weighted
 mean, coverage, low-confidence, and trend weighting). NOT verified live: the felt
 effect on real reps, because the spend cap blocks every coaching call.
+
+## D-046 — The save ceiling follows the send budget: DB frame cap raised 12 -> 40
+
+D-041 raised the send budget MAX_FRAMES from 12 to 40 for dense coverage, but the
+insert guard `private.enforce_analysis_insert_limit` (migrations 011/013) still
+rejected `frame_count > 12`. So every clip whose dense extraction produced more
+than 12 frames was read by the model, billed, and THEN thrown out at the insert
+with `check_violation 'invalid analysis media count'` — surfaced to the player as
+the route's generic "Couldn't save your analysis." 500. Production proof: a
+`POST /rest/v1/analyses 400` paired with the postgres error, the entitlement
+released but the hourly quota NOT refunded (the read had succeeded), while every
+saved row capped at frame_count 12 and the failure was post-deploy.
+
+Migration `017_frame_cap_alignment.sql` raises the ceiling to 40 (matching
+MAX_FRAMES) and changes nothing else: the media-count check, the per-index
+frame-path format loop, the stored-extras cap (MAX_STORED_FRAMES - 2 = 22), the
+owner check, the advisory-lock hourly rate limit, and the server-set created_at
+all stand. Safe because the read set is contiguous by construction —
+`finalizePlanned` re-indexes the frames 0..N-1 after any byte-budget drop — so the
+`f00..fNN` position loop holds at 40 exactly as it did at 12. No app code changed;
+the bug was purely the DB guard trailing the app constant.
+`lib/security-contract.test.ts` now pins the DB ceiling to the MAX_FRAMES constant
+so the two cannot drift again. Verified by the contract test and the full gate.
+The operative fix is applying migration 017 to prod — the trigger lives only in
+the DB, so the git push records it but does not change live behavior until it is
+applied (as migration 016 was, via MCP). NOT verified live: a real >12-frame
+save, because the spend cap blocks every coaching call.

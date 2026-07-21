@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { MAX_FRAMES } from "./analysis-types.ts";
 
 test("security migration keeps quotas atomic and profile authority server-controlled", async () => {
   const expand = await readFile(
@@ -52,4 +53,23 @@ test("security migration keeps quotas atomic and profile authority server-contro
   assert.equal(contract.includes("\\\\."), false);
   assert.doesNotMatch(expand, /drop policy if exists/i);
   assert.match(contract, /drop policy if exists/i);
+});
+
+test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {
+  const align = await readFile(
+    new URL("../supabase/migrations/017_frame_cap_alignment.sql", import.meta.url),
+    "utf8",
+  );
+  assert.match(align, /create or replace function private\.enforce_analysis_insert_limit/i);
+  // The DB media-count ceiling must equal the app send budget, or a dense clip is
+  // read, billed, then rejected at the insert (D-046). Tie it to the constant so
+  // the two can never drift again.
+  assert.match(align, new RegExp(`new\\.frame_count > ${MAX_FRAMES}\\b`, "i"));
+  assert.doesNotMatch(align, /new\.frame_count > 12\b/i);
+  // The stored-extras cap and every other guardrail survive the redefinition.
+  assert.match(align, /cardinality\(new\.stored_frame_paths\) > 22/i);
+  assert.match(align, /new\.user_id <> v_user_id/i);
+  assert.match(align, /pg_advisory_xact_lock/i);
+  assert.match(align, /raise check_violation using message = 'invalid frame path'/i);
+  assert.match(align, /new\.created_at := v_now/i);
 });
