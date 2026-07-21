@@ -418,6 +418,7 @@ export function Scoreboard() {
                 serving={match.serving === "a"}
                 badge={badgeFor("a")}
                 popping={pop === "a"}
+                tone="home"
                 onPoint={() => point("a")}
               />
               <TapZone
@@ -426,6 +427,7 @@ export function Scoreboard() {
                 serving={match.serving === "b"}
                 badge={badgeFor("b")}
                 popping={pop === "b"}
+                tone="guest"
                 onPoint={() => point("b")}
               />
             </div>
@@ -501,11 +503,21 @@ export function Scoreboard() {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <SetDots total={setsToWin} won={winsA} team={match.teamA} />
+            <SetDots
+              total={setsToWin}
+              won={winsA}
+              team={match.teamA}
+              tone="home"
+            />
             <span className="font-mono text-xs text-chalk-dim">
               Set {setIndex + 1} · to {target}
             </span>
-            <SetDots total={setsToWin} won={winsB} team={match.teamB} />
+            <SetDots
+              total={setsToWin}
+              won={winsB}
+              team={match.teamB}
+              tone="guest"
+            />
           </div>
 
           <div className="mt-5 flex justify-center">
@@ -567,6 +579,7 @@ function TapZone({
   serving,
   badge,
   popping,
+  tone,
   onPoint,
 }: {
   name: string;
@@ -574,6 +587,7 @@ function TapZone({
   serving: boolean;
   badge: "set" | "match" | null;
   popping: boolean;
+  tone: "home" | "guest";
   onPoint: () => void;
 }) {
   const badgeText =
@@ -583,7 +597,9 @@ function TapZone({
       type="button"
       onClick={onPoint}
       aria-label={`Point for ${name}${serving ? ", serving" : ""}. Score ${score}.${badgeText}`}
-      className="card card-lift flex min-h-[38vh] touch-manipulation select-none flex-col items-center justify-center gap-3 px-2 py-6 md:min-h-[320px]"
+      className={`card card-lift flex min-h-[38vh] touch-manipulation select-none flex-col items-center justify-center gap-3 border-t-2 px-2 py-6 md:min-h-[320px] ${
+        tone === "home" ? "border-t-court-blue" : "border-t-coral"
+      }`}
     >
       <span className="flex max-w-full items-center gap-2 px-2">
         <span
@@ -594,8 +610,8 @@ function TapZone({
       </span>
       <span
         className={`font-display text-7xl font-bold tabular-nums transition-transform duration-[180ms] ease-[var(--ease-court)] md:text-8xl ${
-          popping ? "scale-110" : "scale-100"
-        }`}
+          tone === "home" ? "text-court-blue" : "text-coral"
+        } ${popping ? "scale-110" : "scale-100"}`}
       >
         {score}
       </span>
@@ -619,11 +635,14 @@ function SetDots({
   total,
   won,
   team,
+  tone,
 }: {
   total: number;
   won: number;
   team: string;
+  tone: "home" | "guest";
 }) {
+  const wonColor = tone === "home" ? "bg-court-blue" : "bg-coral";
   return (
     <span
       className="flex items-center gap-1.5"
@@ -634,7 +653,7 @@ function SetDots({
         <span
           key={i}
           className={`h-2 w-2 rounded-full ${
-            i < won ? "set-dot-won bg-gold" : "border border-line"
+            i < won ? `set-dot-won ${wonColor}` : "border border-line"
           }`}
         />
       ))}
@@ -647,8 +666,8 @@ function Setup({
 }: {
   onStart: (teamA: string, teamB: string, bestOf: 3 | 5) => void;
 }) {
-  const [teamA, setTeamA] = useState("Us");
-  const [teamB, setTeamB] = useState("Them");
+  const [teamA, setTeamA] = useState("Home");
+  const [teamB, setTeamB] = useState("Guest");
   const [bestOf, setBestOf] = useState<3 | 5>(3);
 
   return (
@@ -656,25 +675,25 @@ function Setup({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
-            Team A
+            Home
           </span>
           <input
             className="input-field mt-1.5"
             value={teamA}
             maxLength={30}
-            placeholder="Us"
+            placeholder="Home"
             onChange={(e) => setTeamA(e.target.value)}
           />
         </label>
         <label className="block">
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
-            Team B
+            Guest
           </span>
           <input
             className="input-field mt-1.5"
             value={teamB}
             maxLength={30}
-            placeholder="Them"
+            placeholder="Guest"
             onChange={(e) => setTeamB(e.target.value)}
           />
         </label>
@@ -705,8 +724,8 @@ function Setup({
         className="btn-primary mt-6 w-full"
         onClick={() =>
           onStart(
-            teamA.trim().slice(0, 30) || "Us",
-            teamB.trim().slice(0, 30) || "Them",
+            teamA.trim().slice(0, 30) || "Home",
+            teamB.trim().slice(0, 30) || "Guest",
             bestOf,
           )
         }
