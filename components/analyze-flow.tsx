@@ -28,6 +28,7 @@ import {
   MIN_TRIM_SPAN_S,
   type TrimWindow,
 } from "@/lib/frame-select";
+import { scaledSize, SPOT_FRAME_DIM } from "@/lib/frame-scale";
 import type { AnalyzeRequest } from "@/lib/analysis-types";
 
 type Status =
@@ -482,13 +483,15 @@ export function AnalyzeFlow({
   function currentFrameB64(): string | null {
     const v = frameVideoRef.current;
     if (!v || !v.videoWidth) return null;
-    const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
+    // Shared sizing with the analysis pipeline (scaledSize) instead of a second
+    // inline scale math, so the spot frame never drifts from the frame rules.
+    const [w, h] = scaledSize(v.videoWidth, v.videoHeight, SPOT_FRAME_DIM);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(v.videoWidth * scale);
-    canvas.height = Math.round(v.videoHeight * scale);
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(v, 0, 0, w, h);
     return canvas.toDataURL("image/jpeg", 0.72).split(",")[1];
   }
 
