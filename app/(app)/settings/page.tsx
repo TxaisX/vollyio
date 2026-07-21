@@ -11,13 +11,12 @@ import {
 } from "@/lib/skills";
 import {
   FREQUENCY_OPTIONS,
-  LEVEL_OPTIONS,
   POSITION_OPTIONS,
   type PlayFrequency,
   type Position,
 } from "@/lib/funnel";
 import { logout } from "@/app/(auth)/actions";
-import { setLevel, setTrainingConsent, updateProfile } from "./actions";
+import { setTrainingConsent, updateProfile } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +27,6 @@ export const metadata: Metadata = {
 
 type ProfileRow = {
   display_name: string | null;
-  level: string;
   discipline: Discipline;
   position: Position | null;
   play_frequency: PlayFrequency | null;
@@ -45,7 +43,7 @@ export default async function Settings() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, level, discipline, position, play_frequency, training_consent")
+    .select("display_name, discipline, position, play_frequency, training_consent")
     .eq("id", userId!)
     .single();
   if (error) throw error;
@@ -104,29 +102,6 @@ export default async function Settings() {
             </form>
           </div>
           <DeleteAccount />
-        </div>
-      </Reveal>
-
-      <Reveal delay={120}>
-        <div className="card p-5">
-          <p className="font-display font-bold">Coaching level</p>
-          <p className="mt-1 text-xs text-chalk-dim">
-            Shapes how your breakdowns are written, not how they are scored.
-          </p>
-          <form action={setLevel} className="mt-3 flex flex-wrap gap-2">
-            {LEVEL_OPTIONS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="submit"
-                name="level"
-                value={value}
-                aria-pressed={profile.level === value}
-                className={`chip min-h-11 ${profile.level === value ? "chip-active" : ""}`}
-              >
-                {label}
-              </button>
-            ))}
-          </form>
         </div>
       </Reveal>
 

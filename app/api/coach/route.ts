@@ -230,7 +230,6 @@ export async function POST(req: NextRequest) {
   const context: CoachContext = {
     player: {
       display_name: profile?.display_name ?? null,
-      level,
       position: profile?.position ?? null,
       play_frequency: profile?.play_frequency ?? null,
     },

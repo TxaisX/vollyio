@@ -10,7 +10,7 @@ export const LEVEL_OPTIONS: { value: Level; label: string; detail: string }[] = 
   { value: "beginner", label: "Beginner", detail: "Learning the basics, building touches" },
   { value: "intermediate", label: "Intermediate", detail: "Solid fundamentals, inconsistent under pressure" },
   { value: "expert", label: "Expert", detail: "Refining details, chasing consistency" },
-  { value: "pro", label: "Pro", detail: "Judged against the professional standard. Expect blunt." },
+  { value: "pro", label: "Pro", detail: "Competing or training at the professional level" },
 ];
 
 export const LEVEL_LABEL: Record<Level, string> = {
