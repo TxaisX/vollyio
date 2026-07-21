@@ -350,8 +350,10 @@ export function AnalyzeFlow({
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [retrying, setRetrying] = useState(false);
-  const [discipline, setDiscipline] = useState<Discipline>(
-    initialDiscipline ?? "indoor",
+  // No default surface: the environment is an explicit step-01 decision
+  // (D-052). Only a deliberate ?discipline= deep link preselects it.
+  const [discipline, setDiscipline] = useState<Discipline | null>(
+    initialDiscipline,
   );
   const [frameDebug, setFrameDebug] = useState<FrameDebug | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
@@ -359,6 +361,8 @@ export function AnalyzeFlow({
   const debugRef = useRef(false);
   const clipRef = useRef<Blob | null>(null);
   const extrasRef = useRef<Frame[]>([]);
+  const stepSkillRef = useRef<HTMLHeadingElement>(null);
+  const prevDisciplineRef = useRef<Discipline | null>(discipline);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
   const prevSkillRef = useRef<Skill | null>(skill);
   // Pre-analysis pause: the opening frame is up, waiting for the player to
@@ -644,7 +648,15 @@ export function AnalyzeFlow({
     };
   }, [videoUrl]);
 
-  // Move focus into the revealed step-02 block the first time a skill is picked
+  // Move focus into the revealed skill step the first time a discipline is
+  // picked (null -> a value); re-picks leave focus on the chips.
+  useEffect(() => {
+    const had = prevDisciplineRef.current;
+    prevDisciplineRef.current = discipline;
+    if (!had && discipline) stepSkillRef.current?.focus();
+  }, [discipline]);
+
+  // Move focus into the revealed capture block the first time a skill is picked
   // (null -> a value); re-picks leave focus where it is so roving arrow-key
   // navigation in the skill radiogroup is not disrupted.
   useEffect(() => {
@@ -659,7 +671,7 @@ export function AnalyzeFlow({
     dur: number | null,
     isRetry = false,
   ) {
-    if (!skill || payloadFrames.length === 0) return;
+    if (!skill || !discipline || payloadFrames.length === 0) return;
     // One-time training-data question before the first analysis ever runs.
     // While the answered-check is still in flight (null), the submit waits for
     // it; skipping ahead here is how the question used to get lost entirely.
@@ -918,7 +930,7 @@ export function AnalyzeFlow({
   }
 
   function downloadEvalCase() {
-    if (!skill || frames.length === 0) return;
+    if (!skill || !discipline || frames.length === 0) return;
     const caseId = `${skill}-${discipline}-${Date.now()}`;
     const payload = {
       id: caseId,
@@ -953,26 +965,9 @@ export function AnalyzeFlow({
         Film the rep.
       </h1>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
-          Discipline
-        </span>
-        {ANALYZE_DISCIPLINES.map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setDiscipline(d)}
-            aria-pressed={discipline === d}
-            className={`chip ${discipline === d ? "chip-active" : ""}`}
-          >
-            {DISCIPLINE_LABEL[d]}
-          </button>
-        ))}
-      </div>
-
       <div
         className={
-          skill
+          skill && discipline
             ? "mt-8 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
             : "mt-8 max-w-xl"
         }
@@ -981,22 +976,53 @@ export function AnalyzeFlow({
         <div className="min-w-0">
           <div>
             <h2
-              id="pick-a-skill"
+              id="where-playing"
               className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
             >
-              <span className="font-mono text-xs text-gold">01</span> Pick a skill
+              <span className="font-mono text-xs text-gold">01</span> Where are you
+              playing?
             </h2>
-            <SkillPicker value={skill} onChange={setSkill} labelledBy="pick-a-skill" />
+            <div
+              role="group"
+              aria-labelledby="where-playing"
+              className="flex flex-wrap gap-2"
+            >
+              {ANALYZE_DISCIPLINES.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDiscipline(d)}
+                  aria-pressed={discipline === d}
+                  className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
+                >
+                  {DISCIPLINE_LABEL[d]}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {skill && (
+          {discipline && (
+            <div className="mt-8 animate-fade-up">
+              <h2
+                ref={stepSkillRef}
+                tabIndex={-1}
+                id="pick-a-skill"
+                className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
+              >
+                <span className="font-mono text-xs text-gold">02</span> Pick a skill
+              </h2>
+              <SkillPicker value={skill} onChange={setSkill} labelledBy="pick-a-skill" />
+            </div>
+          )}
+
+          {discipline && skill && (
             <div className="mt-8 animate-fade-up">
               <h2
                 ref={stepTwoRef}
                 tabIndex={-1}
                 className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
               >
-                <span className="font-mono text-xs text-gold">02</span> Capture your{" "}
+                <span className="font-mono text-xs text-gold">03</span> Capture your{" "}
                 {SKILL_LABEL[skill].toLowerCase()} rep
               </h2>
 
@@ -1050,9 +1076,16 @@ export function AnalyzeFlow({
           )}
         </div>
 
-        {/* Preview */}
-        {skill && (
-          <div className="mt-8 min-w-0 lg:sticky lg:top-8 lg:mt-0">
+        {/* Preview. While the mark/trim card is up it spans the full content
+            width on desktop: that stage is the whole task at that point, and
+            the wider box renders the clip larger. The wrapper stays sized by
+            its content (w-fit media box), so tap-coordinate math is unchanged. */}
+        {skill && discipline && (
+          <div
+            className={`mt-8 min-w-0 lg:mt-0 ${
+              openingPick ? "lg:col-span-2" : "lg:sticky lg:top-8"
+            }`}
+          >
             <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
               Preview
             </p>
@@ -1104,14 +1137,14 @@ export function AnalyzeFlow({
                         if (v) v.currentTime = openingPick.timeS;
                       }}
                       onError={() => setFrameVideoFailed(true)}
-                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full"
+                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full lg:max-h-[60vh]"
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={openingPick.dataUrl}
                       alt="Opening frame. Tap the player to analyze."
-                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full"
+                      className="pointer-events-none block max-h-[45vh] w-auto max-w-full lg:max-h-[60vh]"
                       draggable={false}
                     />
                   )}
