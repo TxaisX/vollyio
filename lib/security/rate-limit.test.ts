@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consumeApiQuota } from "./rate-limit.ts";
+import { consumeApiQuota, refundApiQuota } from "./rate-limit.ts";
 
 test("consumeApiQuota returns allowed only for a successful true RPC", async () => {
   const allowedClient = {
@@ -42,4 +42,33 @@ test("consumeApiQuota fails closed when quota storage is unavailable", async () 
     ok: false,
     allowed: false,
   });
+});
+
+test("refundApiQuota gives back one unit of the named scope's window", async () => {
+  let name: string | undefined;
+  let args: unknown;
+  const client = {
+    rpc: async (rpcName: string, value: unknown) => {
+      name = rpcName;
+      args = value;
+      return { data: null, error: null };
+    },
+  };
+  assert.equal(await refundApiQuota(client, "analyze"), true);
+  assert.equal(name, "refund_api_quota");
+  assert.deepEqual(args, { p_scope: "analyze" });
+});
+
+test("refundApiQuota reports failure without throwing (refund is best-effort)", async () => {
+  const failing = {
+    rpc: async () => ({ data: null, error: { message: "missing function" } }),
+  };
+  assert.equal(await refundApiQuota(failing, "analyze"), false);
+
+  const throwing = {
+    rpc: async (): Promise<never> => {
+      throw new Error("network unavailable");
+    },
+  };
+  assert.equal(await refundApiQuota(throwing, "coach"), false);
 });

@@ -18,7 +18,7 @@ This file is the authority for who may call each Sideout operation. Update it in
 | Public pages | Read | Read | Deploy | Static or public content only; hosting-firewall baseline per-IP limit |
 | Login and signup actions | Submit bounded form | Submit or sign out | Configure auth rate limits and bot protection | Framework origin check, server input schema, auth provider rate limits, generic errors |
 | `GET /auth/callback` | Present one-time code or token | Same | Configure allowed redirect URLs | Fixed redirect target, known token types, bounded query values, provider verification |
-| `POST /api/analyze` | Denied | Create analysis for self | Configure entitlement policy | Same-origin, verified user, atomic entitlement reservation, atomic 20 per hour quota, 4 MB JSON cap, 2 to 12 JPEG-signature-checked frames, database insert trigger |
+| `POST /api/analyze` | Denied | Create analysis for self | Configure entitlement policy | Same-origin, verified user, atomic entitlement reservation, atomic 20 per hour quota, 4 MB JSON cap, 2 to 12 JPEG-signature-checked frames, database insert trigger, server-set telemetry column; a coaching credit/capacity outage refunds the hourly quota and returns 503 |
 | `POST /api/coach` | Denied | Read and append own conversation | None | Same-origin, verified user, atomic 60 per hour quota, 16 KB JSON cap, 2,000 character message cap, session ownership check |
 | `POST /api/account/delete` | Denied | Delete own account | Support fallback | Same-origin, verified user, atomic 3 per hour quota, own-folder storage policies, self-delete database function |
 | `GET /api/eval` | Denied | Denied | Local developer with bearer token | Returns 404 in production, for every non-loopback host, and without `EVAL_TOKEN` |
@@ -32,7 +32,7 @@ Anonymous access to every application table is revoked. The signed-in role has o
 | Resource | Player permissions | Ownership rule | Protected authority |
 |---|---|---|---|
 | `profiles` | Read own; update display name, level, consent, discipline, position, frequency, timestamps | `id = auth.uid()` | Player cannot update plan, billing ID, or XP total |
-| `analyses` | Read and create own through explicit columns | `user_id = auth.uid()` | Insert trigger forces database time, validates declared media paths, and serializes creation at 20 per hour |
+| `analyses` | Read and create own through explicit columns | `user_id = auth.uid()` | Insert trigger forces database time, validates declared media paths, and serializes creation at 20 per hour. No update grant, so a row is immutable after creation. The server-set `telemetry` column (token counts, duration, model, effort) is operational-only: like `result` and `model` the owner could set it at insert via the Data API, and it gates no authorization or billing decision |
 | `skill_ratings` | Read, create, and update own | `user_id = auth.uid()` | No cross-account access |
 | `goals` | Read, create, and update own | `user_id = auth.uid()` | No cross-account access |
 | `games` | Read and create own | `user_id = auth.uid()` | No cross-account access |
@@ -68,6 +68,8 @@ Client uploads use create-only semantics. Replacement is not granted. The path, 
 | External spend after quota | Yes | Yes | Not applicable |
 
 Quota storage fails closed. If the quota function or migration is missing, expensive endpoints return 503 before calling the coaching service.
+
+A coaching capacity or credit outage (the external service refusing before any billable work) refunds the analyze quota via `refund_api_quota` (migration 016). The refund only decrements inside the active window and never below the floor, so it cannot escape the rate limit: the window still expires on schedule and no paid work happened during the outage.
 
 Public authentication endpoints use the authentication service's own rate limits. Production must also have a hosting-firewall baseline per-IP limit across all public paths, plus stricter POST limits for `/login`, `/signup`, and `/api/*`, before requests reach application compute. Enable managed bot protection on login and signup before a public marketing push.
 
