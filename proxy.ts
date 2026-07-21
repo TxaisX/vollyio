@@ -10,6 +10,7 @@ const PROTECTED = [
   "/coach",
   "/scoreboard",
   "/goals",
+  "/settings",
 ];
 
 export async function proxy(request: NextRequest) {
