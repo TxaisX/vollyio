@@ -8,6 +8,11 @@ export const MAX_FRAME_DIM = 768;
 // than photos because the model reads motion detail out of them.
 export const VIDEO_FRAME_DIM = 1568;
 
+// Long edge for the single frame sent to the coach-spotting endpoint. Smaller
+// than the analysis frames: it only needs to resolve players well enough to
+// describe kit and position, not to grade mechanics.
+export const SPOT_FRAME_DIM = 1024;
+
 // Upscaling adds no information — it changes how the vision model samples the
 // image. A sub-target frame is otherwise handed over at native size, so a 640px
 // clip is read at 640px even though the budget allows 1568, and thin structures
