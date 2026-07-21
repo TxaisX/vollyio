@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { CoachChat } from "@/components/coach-chat";
 import { CoachSessions, type CoachSession } from "@/components/coach-sessions";
+import { COACH_ENABLED } from "@/lib/flags";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function Coach({
 }: {
   searchParams: Promise<{ s?: string }>;
 }) {
+  if (!COACH_ENABLED) notFound();
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
   const { s } = await searchParams;

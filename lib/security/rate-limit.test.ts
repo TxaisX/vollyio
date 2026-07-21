@@ -24,6 +24,20 @@ test("consumeApiQuota returns allowed only for a successful true RPC", async () 
   });
 });
 
+test("the daily coach scope rides the same RPC contract", async () => {
+  const client = {
+    rpc: async (name: string, args: unknown) => {
+      assert.equal(name, "consume_api_quota");
+      assert.deepEqual(args, { p_scope: "coach_daily" });
+      return { data: false, error: null };
+    },
+  };
+  assert.deepEqual(await consumeApiQuota(client, "coach_daily"), {
+    ok: true,
+    allowed: false,
+  });
+});
+
 test("consumeApiQuota fails closed when quota storage is unavailable", async () => {
   const client = {
     rpc: async () => ({ data: null, error: { message: "missing function" } }),

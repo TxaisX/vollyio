@@ -7,14 +7,17 @@ import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
 import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
-import { consumeApiQuota } from "@/lib/security/rate-limit";
+import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
+import { COACH_ENABLED } from "@/lib/flags";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// 600 characters is a generous coaching question; the old 2000 mostly bought
+// prompt-stuffing room on a metered endpoint (D-047).
 const bodySchema = z.object({
-  message: z.string().trim().min(1).max(2000),
+  message: z.string().trim().min(1).max(600),
   session_id: z.string().uuid().optional(),
 });
 
@@ -58,6 +61,9 @@ function* textChunks(text: string, size = 12) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!COACH_ENABLED) {
+    return NextResponse.json({ error: "Coach is unavailable right now." }, { status: 404 });
+  }
   if (!hasTrustedMutationOrigin(req)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
@@ -81,6 +87,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "You've hit the hourly message limit. Try again soon." },
       { status: 429, headers: { "Retry-After": "3600" } },
+    );
+  }
+
+  // Second gate, rolling 24 hours (D-047): the hourly window alone lets one
+  // account burn a day of spend. The hourly unit above is refunded so a
+  // day-capped player's next-hour slot is not also consumed.
+  const daily = await consumeApiQuota(supabase, "coach_daily");
+  if (!daily.ok || !daily.allowed) {
+    await refundApiQuota(supabase, "coach");
+    if (!daily.ok) {
+      return NextResponse.json(
+        { error: "The coaching service is unavailable. Try again." },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json(
+      { error: "You've hit the daily coaching limit. Come back tomorrow." },
+      { status: 429, headers: { "Retry-After": "86400" } },
     );
   }
 
@@ -166,29 +190,42 @@ export async function POST(req: NextRequest) {
       .eq("user_id", user.id)
       .eq("session_id", sessionId)
       .order("created_at", { ascending: false })
-      .limit(20),
+      // 10 turns of history: enough thread memory for a coaching exchange
+      // without re-billing the whole conversation every message (D-047).
+      .limit(10),
   ]);
 
   const level = (profile?.level as Level) ?? "beginner";
   const ratings = (ratingsData as RatingRow[] | null) ?? [];
 
-  // Enrich with "what good looks like" for the player's weakest 1-2 skills.
-  const techniqueNotes = [...ratings]
+  // The player's weakest 1-2 skills drive both the technique notes and the
+  // drill catalog the prompt carries (D-047: 30 drills across all skills was
+  // token spend the answer never used).
+  const weakestSkills = [...ratings]
     .sort((a, b) => a.rating - b.rating)
     .filter((r, i, arr) => arr.findIndex((x) => x.skill === r.skill) === i)
     .slice(0, 2)
-    .map((r) => {
-      const v = techniqueFor(r.skill, "indoor");
-      return {
-        skill: r.skill,
-        overview: v.overview,
-        highest_leverage: `${metricLabel(r.skill, v.highest_leverage_metric)}: ${v.highest_leverage_note}`,
-        elite_markers: METRICS[r.skill].map((m) => ({
-          metric: m.label,
-          marker: v.metrics[m.key].elite_marker,
-        })),
-      };
-    });
+    .map((r) => r.skill);
+
+  const techniqueNotes = weakestSkills.map((skill) => {
+    const v = techniqueFor(skill, "indoor");
+    return {
+      skill,
+      overview: v.overview,
+      highest_leverage: `${metricLabel(skill, v.highest_leverage_metric)}: ${v.highest_leverage_note}`,
+      elite_markers: METRICS[skill].map((m) => ({
+        metric: m.label,
+        marker: v.metrics[m.key].elite_marker,
+      })),
+    };
+  });
+
+  // A player with no rated skills yet keeps the full catalog so the coach can
+  // still point somewhere concrete.
+  const drillPool =
+    weakestSkills.length > 0
+      ? DRILLS.filter((d) => weakestSkills.includes(d.skill))
+      : DRILLS;
 
   const context: CoachContext = {
     player: {
@@ -210,7 +247,7 @@ export async function POST(req: NextRequest) {
       date: a.created_at.slice(0, 10),
     })),
     active_goals: (goalsData as GoalRow[] | null) ?? [],
-    drill_catalog: DRILLS.map((d) => ({
+    drill_catalog: drillPool.map((d) => ({
       name: d.name,
       slug: d.slug,
       skill: d.skill,
@@ -246,7 +283,9 @@ export async function POST(req: NextRequest) {
           const events = coach().messages.stream(
             {
               model: COACH_MODEL,
-              max_tokens: 1024,
+              // Half the old budget: coaching answers land in 2-4 paragraphs;
+              // anything longer was cost, not coaching (D-047).
+              max_tokens: 512,
               // Sonnet 5 defaults to high effort, where it fabricated detail the
               // frames contradict. Medium was the last correct setting (D-027).
               output_config: { effort: COACH_EFFORT },
