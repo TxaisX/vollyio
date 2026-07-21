@@ -10,6 +10,7 @@ import { scoreBand } from "@/lib/ratings";
 import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
 import { MetricBar } from "@/components/metric-bar";
+import { MetricLegend } from "@/components/metric-legend";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareCard } from "@/components/share-card";
@@ -366,9 +367,12 @@ export default async function AnalysisDetail({
           )}
 
           <Reveal delay={180}>
-            <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+            <h2 className="mt-8 mb-2 font-display text-sm font-bold uppercase tracking-wide">
               Metrics
             </h2>
+            <div className="mb-3">
+              <MetricLegend />
+            </div>
             <div className="card space-y-4 p-5">
               {result.metrics.map((m, i) => (
                 <MetricBar
