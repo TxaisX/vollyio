@@ -46,11 +46,16 @@ production. Live at https://sideout-jet.vercel.app.
 - **Model config** (D-027, D-004). The coaching read runs at opus-low effort; coach
   chat at sonnet-medium. Roughly 30k input tokens and ~$0.15-0.20 per full-window
   analysis - **derived, not yet measured live** (Phase 2 telemetry will measure it).
-- **PRODUCTION AI IS DOWN.** The account API key hit its **monthly spend cap** on
-  2026-07-20 ("regain access 2026-08-01 00:00 UTC"). The same key serves local
-  validation and production, so live analyze calls 502 until the owner raises
-  the monthly usage limit in the provider billing console (owner-only). This blocks
-  every live-run validation, including telemetry and the eval baseline.
+- **PRODUCTION AI IS BACK (2026-07-22).** The owner raised the monthly spend
+  cap and the post-cap validation runbook was executed the same day
+  (`docs/post-cap-validation.md`, all Claude-executable steps): real dense
+  40-frame save on prod (proves 016/017 at the cap; telemetry measured
+  31.7k input tokens, ~$0.27 for a maximal run, ~$0.23/analysis
+  month-to-date via `/api/usage`), budget guard live-tripped (503 calm copy
+  vs 400 control), first scored eval baseline committed (`evals/BASELINE.md`
+  at `cac170c`: band agreement 7/18, pass rate 0.11, spread median 6 —
+  honest numbers; no quality claim until labeling). Key-splitting and the
+  Vercel `ANALYZE_MONTHLY_BUDGET_USD` env remain owner console items.
 - **UI restructure shipped 2026-07-21** (D-047 -> D-052): configuration moved off
   the dashboard to `/settings` (D-050) and the dashboard gained an xl right rail;
   scoreboard sides are Home (court blue) vs Guest (coral) (D-051); coach chat is
@@ -139,14 +144,25 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-Owner actions: restore and split API access (Open items 1). The moment live
-calls work, run `docs/post-cap-validation.md` top to bottom — pre-checks
-passed 2026-07-21, so the day itself is one command per step (eval baseline,
-real dense-clip save, `/api/usage` sanity, budget-guard trip test, device
-checklist). Coach returns whenever the owner flips
-`NEXT_PUBLIC_COACH_ENABLED` (018 applied first).
+The post-cap runbook ran 2026-07-22 (see State). What remains: the owner's
+seven-item real-phone device checklist (below), eval labeling
+(`evals/LABELING.md` — the biggest scoring-trust lever; the committed
+baseline gives labeling a concrete target list), splitting dev/prod keys +
+setting `ANALYZE_MONTHLY_BUDGET_USD` in Vercel (Open items 1), and coach
+re-enable whenever wanted (018 applied first).
 
 ## Session log
+- **2026-07-22 (Session 4, post-cap runbook executed)** - Owner raised the
+  spend cap; the whole `docs/post-cap-validation.md` sequence ran the same
+  night. Live key confirmed; eval pre-checks green; full eval run (18 cases
+  x2, zero failed runs) + first scored baseline committed (`cac170c`);
+  real 40-frame serve analysis saved through prod (throwaway account via
+  local Playwright — the owner's Chrome automation tab throttles video
+  decode, so the extension path can't do uploads; account deleted after,
+  which also live-tested 015's media purge: 41 storage objects gone);
+  `/api/usage` verified against live data ($0.23/analysis month-to-date);
+  budget guard tripped for real on a 1-cent `next start` and controlled
+  against prod. Remaining: owner device checklist, labeling, key split.
 - **2026-07-21 (Session 3, spend containment + share links live, D-054)** -
   Applied 019 to prod; the end-to-end share check caught that anon clip
   streaming could never work (RLS policy subqueries run with caller

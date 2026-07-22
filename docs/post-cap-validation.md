@@ -32,8 +32,9 @@ without `--force` — a capped dry run poisons the baseline.
    (dev key in `.env.local`, production key in Vercel only).
 2. **Eval baseline**: dev server on 3222, then
    `npm run eval:run` (resumable; ~15-minute per-case timeout; 2 runs/case for
-   stability), then `npm run eval:baseline`. Commit `evals/RESULTS.json` and
-   the regenerated `evals/BASELINE.md`.
+   stability), then `npm run eval:baseline`. Commit the regenerated
+   `evals/BASELINE.md` + `evals/BASELINE.json` (`evals/RESULTS.json` stays
+   local by design; it is gitignored).
    **Honesty note**: with 0/18 active cases carrying a `weakest_metric` label
    and 0 intermediate/expert cases, this run yields overall-band agreement and
    run-to-run stability only; most verdicts will read "unverified" and that is
