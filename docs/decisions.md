@@ -1624,3 +1624,55 @@ math, weights, floor and ceiling (30..95), and the one-standard rule are
 untouched. This is a deliberate owner-directed prompt change recorded against
 D-034's no-prompt-hunting rule; the labeled eval baseline remains the way to
 verify its effect once the spend cap lifts.
+
+## D-054 — Spend containment: self-imposed budget, estimate-only pricing, and the share-clip repair
+
+The 2026-07-20 outage had a structural cause: one provider key with one
+monthly spend cap serves production and local development, so local usage
+killed the live app. The owner-side fix is split keys with per-workspace
+limits (HANDOFF "Open items" 1); the app-side fix is this entry.
+
+Migration 021 adds two SECURITY DEFINER aggregates over `analyses.telemetry`
+(month-to-date and per-day, grouped by model), granted to authenticated only
+— an anon grant would publish org-wide spend volume through the public rpc
+surface. `lib/ai/pricing.ts` holds checked-in per-MTok rates and refuses to
+price a model it does not know (a silent $0 would understate spend, the one
+direction an estimate must never err); every consumer labels its output an
+estimate, never billing truth. `/api/usage` (dev-only, 404 in production,
+session-required — the same posture as `/api/eval`) renders the report.
+
+`lib/ai/budget.ts` is the guard: `ANALYZE_MONTHLY_BUDGET_USD` set in the
+environment makes the analyze route check estimated month-to-date spend
+before anything is consumed — no body parsed, no hourly slot, no entitlement.
+Tripped or unknown spend returns the existing capacity 503 verbatim, so the
+client's calm "clip wasn't counted" path covers it unchanged. Semantics: env
+unset or malformed = guard disabled (a misconfigured deploy degrades to
+no-guard, never dead-app); AI_MOCK skipped; 5-minute per-instance cache; a
+spend figure that cannot be fetched or priced fails closed, which matches
+`consumeApiQuota`'s existing 503-on-rpc-failure behavior, so no new
+availability mode exists. Deploy order is code (dormant) -> migration 021 ->
+env var; never the env var first.
+
+Client honesty rode along: hourly-limit 429 and free-cap 402 previously
+rendered as the coral error even though the player did nothing wrong and the
+clip was never read. `lib/analyze-status.ts` maps 503/429/402 to the calm
+unavailable state (server copy first), leaves 409 and everything else as
+errors, and is unit-tested; `analyze-flow.tsx` lost its inline branch.
+
+Share links went live the same session and the end-to-end check caught a real
+D-049 bug: RLS policy subqueries run with the caller's privileges, and anon
+has no grants on `share_links`/`analyses` (012 default-deny), so 019's
+storage policy could never pass for the audience it was written for —
+anonymous clip streams always 404'd, and owner-side testing masked it because
+owners stream through their own-objects policy. Migration 020 routes the
+check through a SECURITY DEFINER predicate (`clip_is_shared`) and covers
+authenticated non-owner viewers too. 019, 020, and 021 are all applied to
+prod and verified. The share status copy now names the 30-day lifetime
+(pinned to the DDL by test), and dead links land on a bespoke
+`app/share/[token]/not-found.tsx` instead of the default 404.
+
+Known-inert, deliberately not fixed: the `games` table DDL still defaults
+`team_a`/`team_b` to 'Us'/'Them' (003) — the client always sends explicit
+names (D-051), and prod DDL churn while the deploy-integration misconfig
+(HANDOFF "Open items" 4) is unresolved is the wrong trade. The post-cap
+validation sequence lives in `docs/post-cap-validation.md`.

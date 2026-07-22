@@ -60,10 +60,20 @@ production. Live at https://sideout-jet.vercel.app.
   stage and a metric-checkpoint legend (D-052); analyses are shareable as
   revocable token links carrying the full breakdown plus the clip, never frames
   (D-049). Repo standard: `docs/ui.md`.
-- **Migration state**: 017 (frame cap 40) APPLIED to prod and verified via
-  pg_proc. 018 (coach quotas) and 019 (share links) are COMMITTED, NOT APPLIED —
-  coach is dark so 018 is inert, but share links 404 in prod until 019 is
-  applied with the owner's go.
+- **Migration state**: 017 (frame cap 40), 019 (share links), 020 (share-clip
+  policy fix), and 021 (usage aggregates) are APPLIED to prod and verified.
+  018 (coach quotas) is COMMITTED, NOT APPLIED — coach is dark so it is inert;
+  apply it before or with any coach re-enable.
+- **Share links are LIVE** (D-049, D-054): minted, streamed anonymously (206
+  with Range), and revoked end-to-end against prod 2026-07-21. The 019 anon
+  clip policy could never pass (RLS policy subqueries run with the caller's
+  privileges); migration 020's SECURITY DEFINER predicate fixed it.
+- **Spend containment shipped** (D-054): `/api/usage` dev-only estimate
+  report over `analyses.telemetry` (partial-month measured ~$0.19/analysis,
+  inside D-027's derived range), and a self-imposed monthly budget guard in
+  the analyze route behind `ANALYZE_MONTHLY_BUDGET_USD` (unset = disabled;
+  tripped/unknown = the calm capacity 503, fail closed). 429/402 now render
+  calm on the client instead of coral (`lib/analyze-status.ts`).
 - **Security** is live and is authored by `docs/security.md`: atomic per-endpoint
   quotas, entitlement reservations, least-privilege grants, bounded uploads;
   migrations 011-013 applied. Read/update its matrices with any surface change.
@@ -87,9 +97,15 @@ changes (watch the test fail first). Gates before any commit: `npm run lint`,
 consequence get numbered entries in `docs/decisions.md`.
 
 ## Open items needing the owner
-1. **Raise the API monthly spend cap** - production is down until then. Ideally
-   split a production key from an experiments key, with per-key spend limits and a
-   spend alert.
+1. **Restore and split API access** - production analyze is down until the
+   monthly cap resets (2026-08-01 00:00 UTC) or the owner raises it. In the
+   provider console: (a) raise the cap now or wait for the reset; (b) create a
+   separate dev workspace with its own spend limit (suggest $10-20/mo) and a
+   distinct key, spend alerts on both; (c) dev key goes in `.env.local` only,
+   the production key in Vercel Production env only — after this, local usage
+   can never take prod down again; (d) then set `ANALYZE_MONTHLY_BUDGET_USD`
+   in Vercel (suggest 25) so the in-app guard (D-054, migration 021 already
+   applied) becomes the second wall beneath the provider cap.
 2. **Rotate the briefly-exposed Supabase credentials** (`SUPABASE_JWT_SECRET` and
    siblings were removed from prod env but never rotated).
 3. **Resolve the likeness gate** on `public/film-court.webp` (D-022): consent, swap
@@ -99,10 +115,9 @@ consequence get numbered entries in `docs/decisions.md`.
 5. **Counsel skim of `/privacy` and `/terms`** before any marketing push.
 6. **Eval labeling** (see `evals/LABELING.md`): label all 18 active cases, source
    intermediate/expert footage, then run a scored baseline and stability check.
-7. **Apply migration 019 (share links)** so share links work in prod, and
-   **migration 018 (coach quotas) before or with any coach re-enable**
-   (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to stay
-   dark).
+7. **Migration 018 (coach quotas) before or with any coach re-enable**
+   (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to
+   stay dark). 019/020/021 are already applied; share links are live.
 
 ## Device-verification checklist (current flow)
 Nothing in the post-D-033 flow has been eyeballed in a browser. Once the API cap is
@@ -124,12 +139,26 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-Owner actions: apply migration 019 (share links live) and raise the API spend
-cap. Then the AI_MOCK visual pass items below and the eval baseline. Coach
-returns whenever the owner flips `NEXT_PUBLIC_COACH_ENABLED` (018 applied
-first).
+Owner actions: restore and split API access (Open items 1). The moment live
+calls work, run `docs/post-cap-validation.md` top to bottom — pre-checks
+passed 2026-07-21, so the day itself is one command per step (eval baseline,
+real dense-clip save, `/api/usage` sanity, budget-guard trip test, device
+checklist). Coach returns whenever the owner flips
+`NEXT_PUBLIC_COACH_ENABLED` (018 applied first).
 
 ## Session log
+- **2026-07-21 (Session 3, spend containment + share links live, D-054)** -
+  Applied 019 to prod; the end-to-end share check caught that anon clip
+  streaming could never work (RLS policy subqueries run with caller
+  privileges) and migration 020 fixed it with a SECURITY DEFINER predicate —
+  mint/stream/revoke all verified live. Shipped migration 021 (usage
+  aggregates, authenticated-only), `lib/ai/pricing.ts` (estimate-only rates,
+  throws on unknown models), `/api/usage` (dev-only report), the
+  `ANALYZE_MONTHLY_BUDGET_USD` guard in the analyze route (fail closed,
+  dormant until the env var is set), calm 429/402 client states
+  (`lib/analyze-status.ts`), share expiry copy + bespoke dead-link page, and
+  `docs/post-cap-validation.md` (pre-checks run green). 132 tests; gates
+  green.
 - **2026-07-21 (Session 2, UI restructure D-047 -> D-052)** - Eight work
   packages planned with the owner and merged FF to master: migration-file
   hygiene (missing 014s reconstructed; prod already allowed grass) + `docs/ui.md`
