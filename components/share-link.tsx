@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createShareLink, revokeShareLinks } from "@/app/(app)/analysis/[id]/actions";
+import { SHARE_LINK_TTL_DAYS } from "@/lib/share-constants";
 
 // Owner control for the public share link (D-049). Each press of the copy
 // button mints a fresh token server-side; the URL is shown once and copied,
@@ -32,12 +33,16 @@ export function ShareLink({
       setSharing(true);
       try {
         await navigator.clipboard.writeText(result.url);
-        setStatus("Link copied. Anyone with it can see this breakdown.");
+        setStatus(
+          `Link copied. Anyone with it can see this breakdown. It turns off on its own in ${SHARE_LINK_TTL_DAYS} days.`,
+        );
       } catch {
         // Clipboard can be blocked (permissions, non-secure context); the
         // link still has to reach the player, so show it for manual copy.
         setUrl(result.url);
-        setStatus("Copy the link below. Anyone with it can see this breakdown.");
+        setStatus(
+          `Copy the link below. Anyone with it can see this breakdown. It turns off on its own in ${SHARE_LINK_TTL_DAYS} days.`,
+        );
       }
     } finally {
       setBusy(false);

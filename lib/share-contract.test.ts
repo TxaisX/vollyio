@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { analysisByShareToken } from "./share-read.ts";
+import { SHARE_LINK_TTL_DAYS } from "./share-constants.ts";
 
 test("share migration keeps the anon surface bounded (D-049)", async () => {
   const sql = await readFile(
@@ -31,6 +32,35 @@ test("share migration keeps the anon surface bounded (D-049)", async () => {
   assert.doesNotMatch(projection[1], /telemetry/i);
   // Clips only; the frames bucket never gets an anon path.
   assert.match(sql, /bucket_id = 'clips'/i);
+  assert.doesNotMatch(sql, /bucket_id = 'frames'/i);
+});
+
+test("share copy and DDL agree on the link lifetime (D-049)", async () => {
+  const sql = await readFile(
+    new URL("../supabase/migrations/019_share_links.sql", import.meta.url),
+    "utf8",
+  );
+  assert.match(sql, new RegExp(`interval '${SHARE_LINK_TTL_DAYS} days'`));
+});
+
+test("the clip policy goes through the shared-clip predicate only (D-049)", async () => {
+  const sql = await readFile(
+    new URL("../supabase/migrations/020_share_clip_policy_fix.sql", import.meta.url),
+    "utf8",
+  );
+  // The predicate is SECURITY DEFINER because RLS policy subqueries run with
+  // the caller's privileges, and anon has none on share_links/analyses.
+  assert.match(sql, /create or replace function public\.clip_is_shared/i);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /set search_path = ''/i);
+  // Still zero anon table grants; the predicate is the only new anon surface.
+  assert.doesNotMatch(sql, /grant [^;]* on table/i);
+  // A dead link stays dead in the predicate too.
+  assert.match(sql, /revoked_at is null/i);
+  assert.match(sql, /expires_at > pg_catalog\.clock_timestamp\(\)/i);
+  // Clips only, checked through the predicate.
+  assert.match(sql, /bucket_id = 'clips'/i);
+  assert.match(sql, /public\.clip_is_shared\(name\)/);
   assert.doesNotMatch(sql, /bucket_id = 'frames'/i);
 });
 
