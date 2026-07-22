@@ -26,6 +26,7 @@ import {
   safeClipExtension,
 } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
+import { checkAnalyzeBudget } from "@/lib/ai/budget";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -41,6 +42,22 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
+  }
+
+  // Self-imposed monthly budget (D-054), checked before anything is consumed:
+  // no body parsed, no hourly slot taken, no entitlement reserved. Tripped or
+  // unknown spend returns the same capacity response as the provider-side
+  // outage below, so the client's calm 503 path covers both, and "wasn't
+  // counted" stays literally true with nothing to refund.
+  const budget = await checkAnalyzeBudget(supabase);
+  if (budget !== "ok") {
+    return NextResponse.json(
+      {
+        error:
+          "The coaching service is temporarily out of capacity, so your clip wasn't counted against your limit. Please try again later.",
+      },
+      { status: 503, headers: { "Retry-After": "1800" } },
+    );
   }
 
   const json = await readJsonRequest(req, MAX_BODY_BYTES);
