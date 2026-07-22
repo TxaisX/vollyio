@@ -1,13 +1,12 @@
 {
   "version": 1,
-  "label": "harness-capability-build",
-  "created_at": "2026-07-20T09:52:52.934Z",
-  "git_rev": "2728cb9",
+  "label": null,
+  "created_at": "2026-07-22T02:21:33.111Z",
+  "git_rev": "4c3bebf",
   "provisional": true,
   "blocking_gaps": [
     "0 active cases at intermediate/expert. The suite cannot measure the stated target population.",
     "0 of 18 active cases carry a weakest_metric label, so the constraint-diagnosis check never fires. Needs human labeling.",
-    "0 of 18 active cases carry a captured measurement block, so the on-device measurement path is untested. Needs re-capture with pose tracking on.",
     "18 active cases have neither a weakest_metric nor a reviewer-confirmed weakest_metric_unknown flag; they are unlabeled, not abstentions."
   ],
   "coverage": {
@@ -36,30 +35,291 @@
       "weakest_metric": 0,
       "weakest_metric_unknown": 0,
       "weakest_metric_missing": 18,
-      "strongest_metric": 17,
-      "measurements": 0
+      "strongest_metric": 17
     },
     "unverifiable": 0
   },
-  "scored_cases": 0,
+  "scored_cases": 18,
   "failed_runs": 0,
   "verdicts": {
-    "pass": 0,
-    "fail": 0,
+    "pass": 2,
+    "fail": 16,
     "unverified": 0
   },
-  "pass_rate_over_verifiable": null,
-  "checks": {},
-  "checks_never_ran": [],
+  "pass_rate_over_verifiable": 0.11,
+  "checks": {
+    "overall_in_range": {
+      "fired": 18,
+      "passed": 7,
+      "skipped": 0
+    },
+    "weakest_metric": {
+      "fired": 0,
+      "passed": 0,
+      "skipped": 18
+    },
+    "strongest_metric": {
+      "fired": 17,
+      "passed": 4,
+      "skipped": 1
+    },
+    "citations_valid": {
+      "fired": 18,
+      "passed": 18,
+      "skipped": 0
+    }
+  },
+  "checks_never_ran": [
+    "weakest_metric"
+  ],
   "stability": {
-    "median_run_spread": null,
-    "max_run_spread": null
+    "median_run_spread": 6,
+    "max_run_spread": 22
   },
   "bands": {
     "Elite": 0,
-    "Advanced": 0,
-    "Solid": 0,
-    "Developing": 0
+    "Advanced": 3,
+    "Solid": 13,
+    "Developing": 2
   },
-  "cases": []
+  "cases": [
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p1",
+      "skill": "serve",
+      "discipline": "beach",
+      "coherent_overall": 61,
+      "band": "Solid",
+      "overalls": [
+        83,
+        82
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p2",
+      "skill": "dig",
+      "discipline": "beach",
+      "coherent_overall": 73,
+      "band": "Solid",
+      "overalls": [
+        80,
+        73
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p3",
+      "skill": "pass",
+      "discipline": "beach",
+      "coherent_overall": 68,
+      "band": "Solid",
+      "overalls": [
+        67,
+        68
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p4",
+      "skill": "block",
+      "discipline": "beach",
+      "coherent_overall": 62,
+      "band": "Solid",
+      "overalls": [
+        56,
+        62
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p5",
+      "skill": "attack",
+      "discipline": "beach",
+      "coherent_overall": 79,
+      "band": "Solid",
+      "overalls": [
+        63,
+        79,
+        66
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p1",
+      "skill": "serve",
+      "discipline": "grass",
+      "coherent_overall": 53,
+      "band": "Developing",
+      "overalls": [
+        68,
+        68
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p2",
+      "skill": "attack",
+      "discipline": "grass",
+      "coherent_overall": 56,
+      "band": "Solid",
+      "overalls": [
+        60,
+        56
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p1",
+      "skill": "set",
+      "discipline": "grass",
+      "coherent_overall": 72,
+      "band": "Solid",
+      "overalls": [
+        84,
+        72,
+        74
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p2",
+      "skill": "set",
+      "discipline": "grass",
+      "coherent_overall": 54,
+      "band": "Developing",
+      "overalls": [
+        62,
+        54
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v05-his-vertical-jump-is-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "coherent_overall": 75,
+      "band": "Solid",
+      "overalls": [
+        82,
+        75
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v06-is-taylor-crabb-most-p1",
+      "skill": "block",
+      "discipline": "beach",
+      "coherent_overall": 63,
+      "band": "Solid",
+      "overalls": [
+        62,
+        63
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v07-powerful-ace-volleyball-shorts-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "coherent_overall": 81,
+      "band": "Advanced",
+      "overalls": [
+        81,
+        81
+      ],
+      "verdict": "pass",
+      "grounded": false
+    },
+    {
+      "id": "v07-powerful-ace-volleyball-shorts-p2",
+      "skill": "serve",
+      "discipline": "indoor",
+      "coherent_overall": 60,
+      "band": "Solid",
+      "overalls": [
+        59,
+        81,
+        68
+      ],
+      "verdict": "pass",
+      "grounded": false
+    },
+    {
+      "id": "v08-taylor-crabbs-welcome-to-p1",
+      "skill": "attack",
+      "discipline": "beach",
+      "coherent_overall": 65,
+      "band": "Solid",
+      "overalls": [
+        66,
+        65
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v09-power-behind-yuji-nishida-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "coherent_overall": 84,
+      "band": "Advanced",
+      "overalls": [
+        88,
+        84
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v10-what-an-amazing-spike-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "coherent_overall": 59,
+      "band": "Solid",
+      "overalls": [
+        65,
+        77,
+        69
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v11-wild-rally-ends-in-p1",
+      "skill": "dig",
+      "discipline": "beach",
+      "coherent_overall": 66,
+      "band": "Solid",
+      "overalls": [
+        68,
+        66
+      ],
+      "verdict": "fail",
+      "grounded": false
+    },
+    {
+      "id": "v12-videoplayback-mp4-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "coherent_overall": 81,
+      "band": "Advanced",
+      "overalls": [
+        88,
+        81
+      ],
+      "verdict": "fail",
+      "grounded": false
+    }
+  ]
 }
