@@ -15,6 +15,7 @@ import {
   type OpeningFrame,
 } from "@/lib/frames";
 import { Reveal } from "@/components/motion";
+import { analyzeFailureStatus } from "@/lib/analyze-status";
 import {
   SKILL_LABEL,
   ANALYZE_DISCIPLINES,
@@ -712,21 +713,14 @@ export function AnalyzeFlow({
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: null }));
-        if (res.status === 503) {
-          // Degraded service (D-043): the coaching service is temporarily out of
-          // capacity, or a fail-closed control tripped. The clip was not counted
-          // against any limit, so this is surfaced distinctly from a failed read
-          // (calm, not the coral error state) with a path forward, not a dead end.
-          setRetrying(false);
-          setStatus({
-            kind: "unavailable",
-            message:
-              error ??
-              "The coaching service is temporarily unavailable. Your clip wasn't counted against your limit. Try again later.",
-          });
-          return;
-        }
-        throw new Error(error ?? "The coaching service is unavailable. Try again.");
+        // Degraded service, hourly limit, and free cap (D-043/D-054) all mean
+        // the player did nothing wrong and the clip was never read, so they
+        // render calm (not the coral error state) with a path forward;
+        // everything else stays an error. The mapping lives in
+        // lib/analyze-status.ts where it is unit-tested.
+        setRetrying(false);
+        setStatus(analyzeFailureStatus(res.status, error));
+        return;
       }
       const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
       if (clip && clipPath) {
