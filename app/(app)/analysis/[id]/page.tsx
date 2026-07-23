@@ -8,7 +8,6 @@ import { scoreBand } from "@/lib/ratings";
 import { BreakdownBody } from "@/components/breakdown-body";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
-import { ShareCard } from "@/components/share-card";
 import { ShareLink } from "@/components/share-link";
 import { AnalysisFeedback } from "@/components/analysis-feedback";
 import { XpToast } from "@/components/xp-toast";
@@ -236,13 +235,6 @@ export default async function AnalysisDetail({
             )}
           </div>
           <div className="flex items-center gap-4">
-            <ShareCard
-              skill={row.skill}
-              skillLabel={SKILL_LABEL[row.skill]}
-              score={row.overall_score}
-              date={dateLabel}
-              result={result}
-            />
             {/* Morph target: the row score from /history or the dashboard
                 recent list lands here, appearing to travel into the ring.
                 share="morph" + default="none" keeps it inert on the Suspense
@@ -366,18 +358,12 @@ export default async function AnalysisDetail({
               <div className="min-w-0 max-w-md">
                 <p className="font-display font-bold">Proud of this rep?</p>
                 <p className="mt-1 text-xs text-chalk-dim">
-                  Send the score card, or share a link to this whole breakdown
-                  with the clip. Frames are never shared.
+                  Share a read-only link to this whole breakdown, with the clip.
+                  Anyone can open it without an account; they can view but not
+                  change it, and the raw frames are never shared.
                 </p>
               </div>
               <div className="flex flex-col items-start gap-2">
-                <ShareCard
-                  skill={row.skill}
-                  skillLabel={SKILL_LABEL[row.skill]}
-                  score={row.overall_score}
-                  date={dateLabel}
-                  result={result}
-                />
                 <ShareLink analysisId={row.id} active={sharingActive} />
               </div>
             </div>
