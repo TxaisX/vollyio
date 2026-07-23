@@ -53,3 +53,44 @@ export async function revokeShareLinks(
   revalidatePath(`/analysis/${parsed.data}`);
   return { ok: !error };
 }
+
+// The player's decision on a breakdown (the flywheel ground-truth signal): did
+// the opus-low COACHING nail it, and if not, WHAT was off + an optional note.
+// The skill/subject are user-declared, so this grades the coaching, not the skill.
+// Upserts one row per analysis; RLS ties the write to an analysis the caller owns.
+const FEEDBACK_REASONS = ["wrong_player", "off_read", "not_helpful"] as const;
+const feedbackSchema = z.object({
+  analysisId: z.string().uuid(),
+  wasRight: z.boolean(),
+  reasons: z.array(z.enum(FEEDBACK_REASONS)).max(3).optional(),
+  note: z.string().trim().max(500).nullish(),
+});
+
+export async function submitAnalysisFeedback(
+  input: unknown,
+): Promise<{ ok: boolean } | { error: string }> {
+  const parsed = feedbackSchema.safeParse(input);
+  if (!parsed.success) return { error: "Couldn't save that." };
+  const { analysisId, wasRight, reasons, note } = parsed.data;
+
+  const supabase = await createClient();
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return { error: "Please log in." };
+
+  const { error } = await supabase.from("analysis_feedback").upsert(
+    {
+      analysis_id: analysisId,
+      user_id: userId,
+      was_right: wasRight,
+      // reasons only apply when they said it missed
+      reasons: wasRight ? [] : (reasons ?? []),
+      note: note && note.length > 0 ? note : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "analysis_id" },
+  );
+  if (error) return { error: "Couldn't save that." };
+
+  revalidatePath(`/analysis/${analysisId}`);
+  return { ok: true };
+}
