@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
 
   const history = (((historyData as HistoryRow[] | null) ?? [])).slice().reverse();
   // The Messages API requires the first turn to be from the user, and this
-  // model rejects a trailing assistant turn — so trim and re-anchor here.
+  // model rejects a trailing assistant turn, so trim and re-anchor here.
   while (history.length > 0 && history[0].role !== "user") history.shift();
   const last = history[history.length - 1];
   if (!last || last.role !== "user" || last.content !== message) {

@@ -71,14 +71,14 @@ export function MetricBar({
   return (
     <div ref={ref}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-sm">
+        <span className="min-w-0 truncate text-base font-medium">
           {label}
           {weight != null && (
-            <span className="ml-1.5 font-mono text-[10px] text-chalk-dim/70">{weight}%</span>
+            <span className="ml-1.5 font-mono text-[11px] text-chalk-dim/70">{weight}%</span>
           )}
         </span>
         {observed ? (
-          <span className="shrink-0 font-mono text-xs text-gold">{shown}</span>
+          <span className="shrink-0 font-mono text-lg font-semibold text-gold">{shown}</span>
         ) : (
           <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
             Not visible
@@ -93,7 +93,7 @@ export function MetricBar({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuetext={`${valueNow} out of 100`}
-          className="mt-1 h-1.5 overflow-hidden rounded-full bg-line"
+          className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-line"
         >
           <div
             className="h-full rounded-full bg-gold"
@@ -109,7 +109,7 @@ export function MetricBar({
       {pointers && pointers.length > 0 && (
         <ul className="mt-1.5 space-y-0.5">
           {pointers.map((p, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs">
+            <li key={i} className="flex items-start gap-2 text-sm">
               <span
                 aria-hidden
                 className={`mt-1 inline-block h-2 w-2 shrink-0 rounded-full ${
@@ -131,7 +131,7 @@ export function MetricBar({
           ))}
         </ul>
       )}
-      {note && <p className="mt-1 text-xs text-chalk-dim">{note}</p>}
+      {note && <p className="mt-1 text-sm text-chalk-dim">{note}</p>}
       {elite && (
         <details className="mt-1">
           <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wide text-teal">

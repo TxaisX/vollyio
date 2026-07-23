@@ -247,7 +247,7 @@ export default async function AnalysisDetail({
                 share="morph" + default="none" keeps it inert on the Suspense
                 reveal and every unrelated transition. When the breakdown
                 streams behind its skeleton first, this simply yields to that
-                reveal — the morph is a best-effort continuity cue, never a
+                reveal, the morph is a best-effort continuity cue, never a
                 dependency. */}
             <ViewTransition
               name={`rep-${row.id}`}
@@ -304,7 +304,7 @@ export default async function AnalysisDetail({
         </Reveal>
       )}
 
-      <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-8">
+      <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,42rem)] lg:items-start lg:gap-8">
         {/* Player: right column on desktop, first thing on mobile */}
         <div className="lg:order-2 lg:sticky lg:top-8">
           <Reveal delay={80}>

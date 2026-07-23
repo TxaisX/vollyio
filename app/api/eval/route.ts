@@ -34,8 +34,8 @@ import { deriveResult } from "@/lib/ai/derive";
 import { hasLocalEvalAccess } from "@/lib/security/request";
 
 // Dev-only analysis eval harness. Replays labeled cases from evals/cases/*.json
-// through the SAME scoring path as /api/analyze — identical system blocks
-// (getRubric + outputSpec) and the case's player level — and reports agreement
+// through the SAME scoring path as /api/analyze, identical system blocks
+// (getRubric + outputSpec) and the case's player level, and reports agreement
 // + run-to-run stability, so frame/prompt changes can be measured against what
 // production actually runs. Never exposed in production. Requires
 // ANTHROPIC_API_KEY.

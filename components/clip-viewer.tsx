@@ -76,7 +76,7 @@ function FrameStrip({
               aria-current={i === active ? "true" : undefined}
               aria-label={frameName(i, f.time_s)}
               title={frameName(i, f.time_s)}
-              className={`relative w-20 shrink-0 overflow-hidden rounded-md border-2 transition-transform hover:scale-[1.03] ${
+              className={`relative w-28 shrink-0 overflow-hidden rounded-md border-2 transition-transform hover:scale-[1.03] ${
                 i === active
                   ? "border-gold"
                   : f.highlighted
@@ -90,7 +90,7 @@ function FrameStrip({
                   src={f.url}
                   alt={`Frame ${i + 1}`}
                   className="block w-full object-cover"
-                  style={{ height: 56 }}
+                  style={{ height: 76 }}
                 />
               )}
               <span

@@ -72,9 +72,6 @@ for (const absolute of sourceRoots.flatMap((dir) => walk(join(root, dir)))) {
   function visit(node) {
     if (checksCopy) {
       const value = literalText(node);
-      if (!isModuleSpecifier(node) && value?.includes("—")) {
-        report(file, source, node.getStart(source), "user-facing copy contains an em dash");
-      }
       if (
         !isModuleSpecifier(node) &&
         /\b(?:Anthropic|Claude|OpenAI|Supabase|Vercel)\b/i.test(value ?? "")
@@ -88,6 +85,11 @@ for (const absolute of sourceRoots.flatMap((dir) => walk(join(root, dir)))) {
 
   for (const match of text.matchAll(/\bdebugger\b|console\.log\s*\(/g)) {
     report(file, source, match.index, "debug code is not allowed in production source");
+  }
+  // Sideout house rule: no em dashes anywhere in source (copy OR comments) --
+  // they read as machine-written. Use a comma or a hyphen instead.
+  for (const match of text.matchAll(/—/g)) {
+    report(file, source, match.index, "em dash is not allowed (sideout rule); use a comma or hyphen");
   }
 }
 
