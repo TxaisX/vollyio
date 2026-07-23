@@ -237,10 +237,11 @@ export default async function AnalysisDetail({
           </div>
           <div className="flex items-center gap-4">
             <ShareCard
+              skill={row.skill}
               skillLabel={SKILL_LABEL[row.skill]}
               score={row.overall_score}
-              fixTitle={result.priority_fix.title}
               date={dateLabel}
+              result={result}
             />
             {/* Morph target: the row score from /history or the dashboard
                 recent list lands here, appearing to travel into the ring.
@@ -371,10 +372,11 @@ export default async function AnalysisDetail({
               </div>
               <div className="flex flex-col items-start gap-2">
                 <ShareCard
+                  skill={row.skill}
                   skillLabel={SKILL_LABEL[row.skill]}
                   score={row.overall_score}
-                  fixTitle={result.priority_fix.title}
                   date={dateLabel}
+                  result={result}
                 />
                 <ShareLink analysisId={row.id} active={sharingActive} />
               </div>
