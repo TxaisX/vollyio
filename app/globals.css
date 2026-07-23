@@ -246,6 +246,16 @@
   }
 }
 
+html {
+  /* Larger, more readable base text site-wide. Tailwind sizes in rem, so type
+     and spacing grow together and layouts stay proportional; bump this one
+     number to scale everything. text-size-adjust keeps mobile browsers from
+     re-inflating text on top of this. */
+  font-size: 106.25%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--color-navy);
   color: var(--color-chalk);

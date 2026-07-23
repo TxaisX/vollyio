@@ -10,6 +10,7 @@ import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareCard } from "@/components/share-card";
 import { ShareLink } from "@/components/share-link";
+import { AnalysisFeedback } from "@/components/analysis-feedback";
 import { XpToast } from "@/components/xp-toast";
 import { ClipViewer } from "@/components/clip-viewer";
 import { SKILL_LABEL, type Skill, type Discipline } from "@/lib/skills";
@@ -119,6 +120,22 @@ export default async function AnalysisDetail({
     .gt("expires_at", new Date().toISOString())
     .limit(1);
   const sharingActive = (liveLinks?.length ?? 0) > 0;
+
+  // The player's standing decision on this breakdown (flywheel signal), if any.
+  // Owner-scoped by RLS + the explicit filter; a read within the select grant.
+  const { data: fb } = await supabase
+    .from("analysis_feedback")
+    .select("was_right, reasons, note")
+    .eq("analysis_id", row.id)
+    .maybeSingle();
+  const initialFeedback = fb
+    ? {
+        wasRight: fb.was_right as boolean,
+        reasons:
+          (fb.reasons as ("wrong_player" | "off_read" | "not_helpful")[] | null) ?? [],
+        note: (fb.note as string | null) ?? null,
+      }
+    : null;
 
   const lastTimeLabel = lastTime ? metricLabel(row.skill, lastTime.metricKey) : null;
   const lastTimeCopy =
@@ -338,6 +355,10 @@ export default async function AnalysisDetail({
             </Reveal>
           )}
           <BreakdownBody skill={row.skill} result={result} />
+
+          <Reveal delay={320}>
+            <AnalysisFeedback analysisId={row.id} initial={initialFeedback} />
+          </Reveal>
 
           <Reveal delay={340}>
             <div className="card mt-8 flex flex-wrap items-center justify-between gap-3 p-5">
