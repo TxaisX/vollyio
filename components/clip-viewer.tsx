@@ -145,6 +145,9 @@ function ClipPlayer({
         Clip
       </p>
 
+      {/* min-h on mobile keeps the clip visible: a w-full/height-auto video
+          collapses to 0 height on iOS Safari until it plays. object-contain + bg
+          keeps portrait clips undistorted (letterboxed, not stretched). */}
       <div className="relative overflow-hidden rounded-lg bg-navy">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
@@ -155,7 +158,7 @@ function ClipPlayer({
           playsInline
           preload="metadata"
           onError={() => setFailed(true)}
-          className="block max-h-[70vh] w-full"
+          className="block max-h-[70vh] min-h-[52vh] w-full bg-navy object-contain sm:min-h-0"
         />
       </div>
 
