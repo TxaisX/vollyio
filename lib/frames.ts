@@ -111,7 +111,7 @@ export function videoErrorMessage(video: HTMLVideoElement): string {
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve) => {
-    // Seeking to the current time fires no 'seeked' event — resolve immediately.
+    // Seeking to the current time fires no 'seeked' event, resolve immediately.
     if (Math.abs(video.currentTime - time) < 1e-3) {
       resolve();
       return;

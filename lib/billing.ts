@@ -5,7 +5,7 @@ import "server-only";
 // The enforcement half of billing has been built and atomic since D-012:
 // `reserve_analysis_entitlement(p_enforce_free)` will hold a free account to a
 // single lifetime analysis and the route returns 402. The COMMERCE half does
-// not exist — there is no Stripe integration, no checkout, no webhook, and
+// not exist, there is no Stripe integration, no checkout, no webhook, and
 // nothing anywhere that can write `profiles.plan`, which is revoked from the
 // authenticated role and has no server-side writer.
 //
@@ -17,7 +17,7 @@ import "server-only";
 // billing is therefore a two-key operation, and the wrong single key is inert
 // instead of destructive.
 //
-// Deliberately NOT a "did someone remember to build Stripe" check — it is a
+// Deliberately NOT a "did someone remember to build Stripe" check, it is a
 // check that the upgrade destination the 402 promises exists. If a future
 // payment path is not a URL, extend this predicate rather than bypassing it.
 
@@ -35,7 +35,7 @@ export function shouldEnforceFreeTier(): boolean {
   return BILLING_ENABLED && hasUpgradePath();
 }
 
-// True when billing is switched on but there is nowhere to pay — a
+// True when billing is switched on but there is nowhere to pay, a
 // misconfiguration worth surfacing rather than silently ignoring.
 export function isBillingMisconfigured(): boolean {
   return BILLING_ENABLED && !hasUpgradePath();

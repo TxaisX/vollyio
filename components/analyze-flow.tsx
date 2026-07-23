@@ -227,7 +227,7 @@ function clipExt(b: Blob): string {
 
 // What the pipeline is actually doing while the model scores the rep, in
 // order. The ticker walks forward and rests on the last line rather than
-// looping — a loop would read as fake progress.
+// looping, a loop would read as fake progress.
 const SCORING_STAGES = [
   "Reading your frames…",
   "Following your player…",
@@ -871,7 +871,7 @@ export function AnalyzeFlow({
     if (!file) return;
     setStatus({ kind: "reading" });
     try {
-      // The gallery picker can return a still image as well as a video —
+      // The gallery picker can return a still image as well as a video -
       // handle whichever the player chose.
       if (file.type.startsWith("image/")) {
         const f = await extractFramesFromPhotos([file]);
@@ -1038,7 +1038,7 @@ export function AnalyzeFlow({
               <input
                 ref={videoInput}
                 type="file"
-                // Explicit MIME types only — Android maps wildcard accepts
+                // Explicit MIME types only, Android maps wildcard accepts
                 // (video/*, image/*) to a camera-capture intent on some
                 // devices, skipping the gallery entirely. Concrete types
                 // always open the media picker. onVideoPicked handles

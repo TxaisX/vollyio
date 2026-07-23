@@ -33,7 +33,7 @@ export function BreakdownBody({
   return (
     <>
       <Reveal delay={140}>
-        <p className="text-sm leading-relaxed text-chalk-dim">
+        <p className="text-base leading-relaxed text-chalk-dim sm:text-lg">
           {result.summary}
         </p>
       </Reveal>

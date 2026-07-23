@@ -529,7 +529,7 @@ body {
   }
   /* Hidden pre-reveal state only while JS is present (the inline script in
      app/layout.tsx stamps .js on <html>). Without JS nothing ever adds .in,
-     so content must default to visible — the reveal is pure enhancement. */
+     so content must default to visible, the reveal is pure enhancement. */
   :root.js .reveal:not(.in) {
     opacity: 0;
     transform: translateY(14px);
@@ -595,7 +595,7 @@ body {
   }
 
   /* Mobile-menu overlay entrance: reuses fade-up at menu speed. Enhancement
-     only — the overlay's presence carries the state, so the reduced-motion
+     only, the overlay's presence carries the state, so the reduced-motion
      block landing it instantly loses nothing. */
   .landing-menu-in {
     animation: fade-up 0.24s var(--ease-court) both;
@@ -1037,7 +1037,7 @@ body {
   /* Reading progress for long breakdown pages. Pure CSS scroll-driven
      animation: no scroll listener, no layout work, scaleX only. Hidden
      entirely where scroll timelines aren't supported. It mirrors scroll
-     position (user-driven), so it stays on under reduced motion — the
+     position (user-driven), so it stays on under reduced motion, the
      override lives next to the global reduce block below. */
   .scroll-progress {
     display: none;
@@ -1110,7 +1110,7 @@ body {
   .scan-line {
     display: none;
   }
-  /* Scroll progress mirrors the user's own scrolling — not autonomous motion —
+  /* Scroll progress mirrors the user's own scrolling, not autonomous motion -
      so it stays. The universal 0.01ms duration above would collapse the scroll
      timeline's range mapping; restore the timeline-driven duration. */
   .scroll-progress {
@@ -1125,7 +1125,7 @@ body {
    The framework-native React <ViewTransition> layer for navigation and
    content-change motion. Every rule below is scoped to the ::view-transition-*
    pseudo-elements only; none of it reaches into component styles. It is a
-   progressive enhancement behind experimental.viewTransition — browsers with
+   progressive enhancement behind experimental.viewTransition, browsers with
    no support render the app normally with instant swaps. Enter/exit sit in the
    150-210ms band; 400ms is reserved only for morph and directional travel.
    Every keyframe is named so the layer stays auditable. The reduced-motion

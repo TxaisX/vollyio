@@ -174,7 +174,7 @@ export function Tilt({
     let ry = 0;
     // The persistent short transition is what makes tracking feel weighted:
     // each pointermove retargets it, so the plane follows the cursor with a
-    // slight lag instead of snapping — and pointerleave reuses it to settle.
+    // slight lag instead of snapping, and pointerleave reuses it to settle.
     el.style.transition = "transform 0.2s var(--ease-court)";
     const apply = () => {
       raf = 0;
@@ -202,7 +202,7 @@ export function Tilt({
       el.removeEventListener("pointerleave", leave);
       if (raf) cancelAnimationFrame(raf);
       // Settle flat instantly when the effect tears down (unmount or reduce
-      // enabled mid-session) — never strand a card mid-rotation.
+      // enabled mid-session), never strand a card mid-rotation.
       el.style.transition = "";
       el.style.transform = "";
     };
