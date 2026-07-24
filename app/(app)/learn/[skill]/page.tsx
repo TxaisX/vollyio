@@ -36,7 +36,7 @@ export async function generateMetadata({
   return {
     title: label,
     description,
-    openGraph: { title: `${label} · Sideout`, description },
+    openGraph: { title: `${label} · Vollyio`, description },
     robots: { index: true, follow: true },
   };
 }

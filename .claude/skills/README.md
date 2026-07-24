@@ -27,7 +27,7 @@ to add the repo to the session.
 
 ## In-house skills
 
-Sideout ships its own skills rather than generic marketplace ones, so the
+Vollyio ships its own skills rather than generic marketplace ones, so the
 guidance is pre-fitted to this repo's constraints:
 
 - `ui-animation` — the motion ground rules (10.2 encoded): durations,

@@ -14,7 +14,7 @@ const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x01, 0xff, 0xd9]).toStr
 );
 
 test("readJsonRequest accepts JSON within the byte limit", async () => {
-  const request = new Request("https://sideout.example/api/analyze", {
+  const request = new Request("https://vollyio.example/api/analyze", {
     method: "POST",
     headers: { "content-type": "application/json; charset=utf-8" },
     body: JSON.stringify({ ok: true }),
@@ -26,7 +26,7 @@ test("readJsonRequest accepts JSON within the byte limit", async () => {
 });
 
 test("readJsonRequest rejects an unsupported content type", async () => {
-  const request = new Request("https://sideout.example/api/analyze", {
+  const request = new Request("https://vollyio.example/api/analyze", {
     method: "POST",
     headers: { "content-type": "text/plain" },
     body: "{}",
@@ -38,7 +38,7 @@ test("readJsonRequest rejects an unsupported content type", async () => {
 });
 
 test("readJsonRequest rejects a declared oversized body", async () => {
-  const request = new Request("https://sideout.example/api/analyze", {
+  const request = new Request("https://vollyio.example/api/analyze", {
     method: "POST",
     headers: { "content-type": "application/json", "content-length": "65" },
     body: "{}",
@@ -50,7 +50,7 @@ test("readJsonRequest rejects a declared oversized body", async () => {
 });
 
 test("readJsonRequest rejects a streamed body that crosses the limit", async () => {
-  const request = new Request("https://sideout.example/api/analyze", {
+  const request = new Request("https://vollyio.example/api/analyze", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ value: "x".repeat(80) }),
@@ -62,7 +62,7 @@ test("readJsonRequest rejects a streamed body that crosses the limit", async () 
 });
 
 test("readJsonRequest rejects malformed JSON", async () => {
-  const request = new Request("https://sideout.example/api/analyze", {
+  const request = new Request("https://vollyio.example/api/analyze", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: "{",
@@ -76,22 +76,22 @@ test("readJsonRequest rejects malformed JSON", async () => {
 test("mutation origin must match the request origin", () => {
   assert.equal(
     hasTrustedMutationOrigin(
-      new Request("https://sideout.example/api/coach", {
-        headers: { origin: "https://sideout.example" },
+      new Request("https://vollyio.example/api/coach", {
+        headers: { origin: "https://vollyio.example" },
       }),
     ),
     true,
   );
   assert.equal(
     hasTrustedMutationOrigin(
-      new Request("https://sideout.example/api/coach", {
+      new Request("https://vollyio.example/api/coach", {
         headers: { origin: "https://attacker.example" },
       }),
     ),
     false,
   );
   assert.equal(
-    hasTrustedMutationOrigin(new Request("https://sideout.example/api/coach")),
+    hasTrustedMutationOrigin(new Request("https://vollyio.example/api/coach")),
     false,
   );
 });

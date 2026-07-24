@@ -76,7 +76,7 @@ const times = Array.from({ length: frameCount }, (_, i) => {
   return Math.round(t * 100) / 100;
 });
 
-const workDir = mkdtempSync(path.join(tmpdir(), "sideout-eval-"));
+const workDir = mkdtempSync(path.join(tmpdir(), "vollyio-eval-"));
 try {
   // Re-encode down if the base64 payload would blow the request budget,
   // mirroring the shrink loop in lib/frames.ts.

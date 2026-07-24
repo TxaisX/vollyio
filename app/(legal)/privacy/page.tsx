@@ -4,7 +4,7 @@ import { SUPPORT_EMAIL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How Sideout handles your account, your film, and your analysis data.",
+    "How Vollyio handles your account, your film, and your analysis data.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-chalk-dim">
-        Sideout analyzes volleyball technique from film you choose to record or
+        Vollyio analyzes volleyball technique from film you choose to record or
         upload. This policy explains, in plain language, what we collect, what
         we do with it, and the choices you have. The short version: your film
         is private to your account, we don&rsquo;t sell your data, and we
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
         <p>
           <strong className="text-chalk">Technical basics.</strong> Cookies
           used to keep you signed in. We do not use advertising trackers or
-          third-party analytics on Sideout.
+          third-party analytics on Vollyio.
         </p>
       </Section>
 
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
 
       <Section title="Who we share data with">
         <p>
-          We share data only with the service providers we use to run Sideout
+          We share data only with the service providers we use to run Vollyio
           (hosting, storage, and the coaching service that generates your
           breakdown), and only as needed to provide the product. They process
           it on our behalf and are not permitted to use it for their own
@@ -122,8 +122,8 @@ export default function PrivacyPage() {
 
       <Section title="Age requirements">
         <p>
-          Sideout is not directed to children under 13, and we do not knowingly
-          collect data from them. If you are under 18, use Sideout with the
+          Vollyio is not directed to children under 13, and we do not knowingly
+          collect data from them. If you are under 18, use Vollyio with the
           knowledge and permission of a parent or guardian. If you believe a
           child under 13 has created an account, contact us and we will delete
           it.
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
           Your data is encrypted in transit, and footage and analysis records
           are access-scoped to your account. No system is perfectly secure, but
           limiting what we collect and who can see it is the core of how
-          Sideout is built.
+          Vollyio is built.
         </p>
       </Section>
 

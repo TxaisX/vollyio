@@ -1,4 +1,4 @@
-const STATIC_CACHE = "sideout-static-v1";
+const STATIC_CACHE = "vollyio-static-v1";
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {

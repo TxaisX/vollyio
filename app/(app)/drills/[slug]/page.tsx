@@ -25,7 +25,7 @@ export async function generateMetadata({
   return {
     title: drill.name,
     description: drill.summary,
-    openGraph: { title: `${drill.name} · Sideout`, description: drill.summary },
+    openGraph: { title: `${drill.name} · Vollyio`, description: drill.summary },
     robots: { index: true, follow: true },
   };
 }

@@ -1,16 +1,16 @@
 # Deploy & CI (Thomas — Phase 3)
 
-How sideout is gated, built, and shipped. Written to close the Phase 3 documentation gap: the deploy actually happened (recorded in `ORCHESTRATION_STATE.md`) but the dedicated doc and the CI gate did not exist until now.
+How vollyio is gated, built, and shipped. Written to close the Phase 3 documentation gap: the deploy actually happened (recorded in `ORCHESTRATION_STATE.md`) but the dedicated doc and the CI gate did not exist until now.
 
 ## Environments
 
 | | Value |
 |---|---|
-| Vercel project | `sideout` (`prj_Trry0xeajBupSXSXruQoFIk0VKLr`, team `team_4ik4RqLW0j3baDcg95uols99`) |
-| Production URL | https://sideout-jet.vercel.app |
+| Vercel project | `vollyio` (`prj_Trry0xeajBupSXSXruQoFIk0VKLr`, team `team_4ik4RqLW0j3baDcg95uols99`) |
+| Production URL | https://vollyio.com |
 | Framework | Next.js 16.2.10 (App Router, React 19.2) |
 | Runtime | Node 22+ (Vercel default 24; CI pins 22) |
-| Supabase project | `sideout` — ref `tbbievneojaxkkjvcwjp`, us-west-2, Postgres 17 |
+| Supabase project | `vollyio` — ref `tbbievneojaxkkjvcwjp`, us-west-2, Postgres 17 |
 
 ## Environment variables
 
@@ -58,7 +58,7 @@ Use an expand, deploy, contract rollout. First apply `011_security_hardening.sql
 
 ### Production deploy record (2026-07-08)
 - Core mission deployed and verified live (middot title, on-page mark, OG image, zero user-facing em dashes).
-- After merging the parallel `master` stream (beach discipline, knowledge-core/Learn, frame sampling, eval harness, ball-tracking) into the polish branch and fast-forwarding `master` to the mission tip, the merged tree was redeployed to production (`sideout-5utsbctv0`). Verified live: landing, middot title, and `/learn` (master's new route) all return 200. Both workstreams are live together.
+- After merging the parallel `master` stream (beach discipline, knowledge-core/Learn, frame sampling, eval harness, ball-tracking) into the polish branch and fast-forwarding `master` to the mission tip, the merged tree was redeployed to production (`vollyio-5utsbctv0`). Verified live: landing, middot title, and `/learn` (master's new route) all return 200. Both workstreams are live together.
 
 ## Post-deploy verification
 - Hit the production URL and confirm 200 on landing + the new/changed routes.

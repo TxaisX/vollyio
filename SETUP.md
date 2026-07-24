@@ -1,4 +1,4 @@
-# Sideout — setup
+# Vollyio — setup
 
 ## 1. Supabase
 1. Create a project at supabase.com.
@@ -31,7 +31,7 @@ node --test lib/ratings.test.ts
 If a build fails with `EPERM: unlink .next/...`, OneDrive locked a build file — `Remove-Item -Recurse -Force .next` and rebuild.
 
 ## 4. Deploy
-The Vercel project is connected to `github.com/TxaisX/sideout` — any push to `master` auto-deploys to production (sideout-jet.vercel.app). The CLI is only needed for ad-hoc previews:
+The Vercel project is connected to `github.com/TxaisX/vollyio` — any push to `master` auto-deploys to production (vollyio.com). The CLI is only needed for ad-hoc previews:
 ```
 vercel deploy              # preview
 vercel deploy --prod       # production (equivalent to pushing master)

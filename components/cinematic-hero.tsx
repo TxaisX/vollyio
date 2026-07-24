@@ -14,9 +14,9 @@ export function CinematicHero() {
   return (
     <section className="landing-hero cinematic-hero relative flex min-h-[100svh] items-end overflow-hidden md:items-center">
       <CourtFilm
-        src="/sideout-hero-loop.mp4"
-        srcWebm="/sideout-hero-loop.webm"
-        poster="/sideout-hero-loop-poster.webp"
+        src="/vollyio-hero-loop.mp4"
+        srcWebm="/vollyio-hero-loop.webm"
+        poster="/vollyio-hero-loop-poster.webp"
         className="absolute inset-0"
         autoPlay={false}
         controlCorner="right-4 top-24 md:bottom-[6.75rem] md:right-8 md:top-auto"

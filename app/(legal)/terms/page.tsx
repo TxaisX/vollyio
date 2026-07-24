@@ -4,7 +4,7 @@ import { SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The agreement that governs your use of Sideout.",
+  description: "The agreement that governs your use of Vollyio.",
   alternates: { canonical: "/terms" },
 };
 
@@ -37,7 +37,7 @@ export default function TermsPage() {
         Terms of Service
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-chalk-dim">
-        These terms are the agreement between you and Sideout when you use the
+        These terms are the agreement between you and Vollyio when you use the
         service. By creating an account or analyzing a rep, you accept them.
         How we handle your data is covered separately in the{" "}
         <Link
@@ -49,17 +49,17 @@ export default function TermsPage() {
         .
       </p>
 
-      <Section title="Who can use Sideout">
+      <Section title="Who can use Vollyio">
         <p>
           You must be at least 13 years old to create an account. If you are
-          under 18, you may only use Sideout with the permission of a parent or
+          under 18, you may only use Vollyio with the permission of a parent or
           guardian, who agrees to these terms on your behalf.
         </p>
       </Section>
 
-      <Section title="What Sideout is, and is not">
+      <Section title="What Vollyio is, and is not">
         <p>
-          Sideout provides automated, evidence-cited feedback on volleyball
+          Vollyio provides automated, evidence-cited feedback on volleyball
           technique from film you submit. It is a training aid, not a
           substitute for a qualified coach, athletic trainer, or medical
           professional.
@@ -81,7 +81,7 @@ export default function TermsPage() {
 
       <Section title="Your film stays yours">
         <p>
-          You own the clips and photos you submit. You grant Sideout a limited
+          You own the clips and photos you submit. You grant Vollyio a limited
           license to store and process them solely to provide the service to
           you: generating your breakdowns, showing your history, and powering
           coach chat. Use of your footage to train future analysis features
@@ -115,7 +115,7 @@ export default function TermsPage() {
 
       <Section title="Termination">
         <p>
-          You can stop using Sideout and request deletion of your account at
+          You can stop using Vollyio and request deletion of your account at
           any time. We may suspend or close accounts that violate these terms,
           and we will tell you why unless the law prevents it.
         </p>
@@ -123,9 +123,9 @@ export default function TermsPage() {
 
       <Section title="Disclaimers and limitation of liability">
         <p>
-          Sideout is provided &ldquo;as is&rdquo; without warranties of any
+          Vollyio is provided &ldquo;as is&rdquo; without warranties of any
           kind, express or implied. To the maximum extent permitted by law,
-          Sideout is not liable for indirect, incidental, or consequential
+          Vollyio is not liable for indirect, incidental, or consequential
           damages arising from your use of the service, and our total
           liability for any claim is limited to the amount you paid us in the
           twelve months before the claim arose. Some jurisdictions do not
@@ -138,7 +138,7 @@ export default function TermsPage() {
         <p>
           If we make a material change to these terms, we will post the updated
           version here with a new effective date and note the change in the
-          app. Continuing to use Sideout after a change takes effect means you
+          app. Continuing to use Vollyio after a change takes effect means you
           accept the updated terms.
         </p>
       </Section>

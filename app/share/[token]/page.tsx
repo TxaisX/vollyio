@@ -28,7 +28,7 @@ export async function generateMetadata({
   const label = SKILL_LABEL[shared.skill];
   return {
     title: `${label} breakdown, ${shared.overall_score}/100`,
-    description: `A ${label.toLowerCase()} rep scored ${shared.overall_score} out of 100 on Sideout. Priority fix: ${shared.result.priority_fix.title}`,
+    description: `A ${label.toLowerCase()} rep scored ${shared.overall_score} out of 100 on Vollyio. Priority fix: ${shared.result.priority_fix.title}`,
     robots: { index: false, follow: false },
   };
 }
@@ -57,7 +57,7 @@ export default async function SharedBreakdown({
             href="/"
             className="font-display text-lg font-bold tracking-wide text-gold"
           >
-            Sideout
+            Vollyio
           </Link>
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
             Shared breakdown
@@ -122,7 +122,7 @@ export default async function SharedBreakdown({
             </p>
           </div>
           <Link href="/" className="btn-primary min-h-11 px-5 text-sm">
-            Try Sideout
+            Try Vollyio
           </Link>
         </div>
       </Reveal>

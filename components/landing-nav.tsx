@@ -98,11 +98,11 @@ export function LandingNav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 md:px-8">
         <Link
           href="/"
-          aria-label="Sideout, home"
+          aria-label="Vollyio, home"
           className="flex min-h-11 items-center gap-2 font-display text-xl font-bold tracking-tight"
         >
           <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
-          Sideout
+          Vollyio
         </Link>
 
         <nav

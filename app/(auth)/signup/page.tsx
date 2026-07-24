@@ -8,7 +8,7 @@ import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
   title: "Sign up",
-  description: "Create your Sideout account and get your first breakdown free.",
+  description: "Create your Vollyio account and get your first breakdown free.",
 };
 
 export default async function Signup({
@@ -32,7 +32,7 @@ export default async function Signup({
           className="mb-6 flex min-h-11 items-center justify-center gap-2 font-display text-2xl font-bold tracking-tight"
         >
           <Image src="/icon-mark.png" alt="" width={30} height={30} />
-          Sideout
+          Vollyio
         </Link>
         <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">

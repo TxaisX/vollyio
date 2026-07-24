@@ -29,11 +29,11 @@ export default function AppLayout({
       >
         <Link
           href="/dashboard"
-          aria-label="Sideout, home"
+          aria-label="Vollyio, home"
           className="flex min-h-11 items-center gap-2 font-display text-lg font-bold tracking-tight"
         >
           <Image src="/icon-mark.png" alt="" width={24} height={24} className="h-6 w-6" />
-          Sideout
+          Vollyio
         </Link>
         <form action={logout}>
           <LogoutButton variant="mobile" />
@@ -46,11 +46,11 @@ export default function AppLayout({
       >
         <Link
           href="/dashboard"
-          aria-label="Sideout, home"
+          aria-label="Vollyio, home"
           className="mb-6 flex min-h-11 items-center gap-2 px-3 font-display text-xl font-bold tracking-tight"
         >
           <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
-          Sideout
+          Vollyio
         </Link>
         <SideNavLinks />
         <form action={logout} className="mt-auto">

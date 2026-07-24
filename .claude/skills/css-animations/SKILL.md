@@ -1,9 +1,9 @@
 ---
 name: css-animations
-description: Pure-CSS animation techniques for Sideout — performant loops, glow effects, gradient sheens, masks, and sweep patterns with zero JavaScript and zero dependencies. Use when implementing motion that ui-animation/animation-designer has already justified, and it can be done in CSS alone.
+description: Pure-CSS animation techniques for Vollyio — performant loops, glow effects, gradient sheens, masks, and sweep patterns with zero JavaScript and zero dependencies. Use when implementing motion that ui-animation/animation-designer has already justified, and it can be done in CSS alone.
 ---
 
-# CSS animations — Sideout technique book
+# CSS animations — Vollyio technique book
 
 Everything here is hand-rolled CSS on the existing tokens. No libraries,
 no new colors (mix with `color-mix(in oklab, var(--color-gold) N%,

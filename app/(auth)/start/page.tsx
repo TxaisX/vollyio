@@ -26,7 +26,7 @@ export default function Start() {
           className="mb-8 flex min-h-11 items-center justify-center gap-2 font-display text-2xl font-bold tracking-tight"
         >
           <Image src="/icon-mark.png" alt="" width={30} height={30} />
-          Sideout
+          Vollyio
         </Link>
         <OnboardingFlow name={null} mode="public" />
       </Reveal>

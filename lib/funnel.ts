@@ -111,7 +111,7 @@ export type TimeframeDays = (typeof TIMEFRAMES)[number];
 // Answers collected before an account exists, parked in localStorage across
 // signup (and the email-confirm bounce on the same device), then applied by
 // the FunnelHandoff once an authed page mounts.
-export const FUNNEL_STORAGE_KEY = "sideout.funnel.v1";
+export const FUNNEL_STORAGE_KEY = "vollyio.funnel.v1";
 
 export type FunnelAnswers = {
   discipline: Discipline;

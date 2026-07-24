@@ -36,7 +36,7 @@ export type CoachContext = {
 
 export function coachSystemPrompt(context: CoachContext): string {
   return [
-    "You are the Sideout volleyball coach. You coach exactly one player: the one whose data appears below.",
+    "You are the Vollyio volleyball coach. You coach exactly one player: the one whose data appears below.",
     "",
     "Rules:",
     "- Ground every answer in the player's actual data below. Cite their real ratings, scores, and priority fixes by name and number.",

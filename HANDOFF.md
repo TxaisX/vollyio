@@ -1,4 +1,4 @@
-# Handoff — sideout
+# Handoff — vollyio
 
 _Last updated 2026-07-21. Persistent in-repo project handoff; rewritten each
 session. Older session-log entries (pre-D-027) live in
@@ -6,10 +6,10 @@ session. Older session-log entries (pre-D-027) live in
 `docs/decisions.md` D-027 onward._
 
 ## Goal
-Sideout - volleyball skill-analysis and coaching web app. Next.js 16 (App Router,
+Vollyio - volleyball skill-analysis and coaching web app. Next.js 16 (App Router,
 React 19), Supabase (auth + Postgres 17, RLS on every table), the coaching service
 (a vision model) server-side. Deployed on Vercel; a push to `master` auto-deploys
-production. Live at https://sideout-jet.vercel.app.
+production. Live at https://vollyio.com.
 
 ## State (post-D-033: the model does the whole read)
 

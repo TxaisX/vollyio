@@ -1,9 +1,9 @@
 ---
 name: animation-designer
-description: Recipes for Sideout's higher-order motion patterns — staggered lists, scroll-driven effects, progress indicators, microinteractions, and loading states. Use when designing a new animated surface or upgrading a static one, after reading ui-animation for the ground rules.
+description: Recipes for Vollyio's higher-order motion patterns — staggered lists, scroll-driven effects, progress indicators, microinteractions, and loading states. Use when designing a new animated surface or upgrading a static one, after reading ui-animation for the ground rules.
 ---
 
-# Animation designer — Sideout pattern recipes
+# Animation designer — Vollyio pattern recipes
 
 Read `ui-animation` first for the non-negotiables. This skill is the
 pattern book: which shape of motion fits which product moment, with the
