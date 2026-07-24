@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PwaRegister } from "@/components/pwa-register";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -78,6 +79,7 @@ export default function RootLayout({
         <PwaRegister />
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
