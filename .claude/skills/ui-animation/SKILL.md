@@ -1,9 +1,9 @@
 ---
 name: ui-animation
-description: Sideout's UX motion principles. Use before adding or changing any interaction transition, entrance, exit, or state-change motion in the app — buttons, cards, dialogs, navigation, list changes. Encodes the section 10.2 motion discipline so proposals never fight the repo constitution.
+description: Vollyio's UX motion principles. Use before adding or changing any interaction transition, entrance, exit, or state-change motion in the app — buttons, cards, dialogs, navigation, list changes. Encodes the section 10.2 motion discipline so proposals never fight the repo constitution.
 ---
 
-# UI animation — Sideout motion principles
+# UI animation — Vollyio motion principles
 
 Motion here is a coaching tool: it directs attention to the next action and
 confirms what just happened. If a motion does neither, it doesn't ship.

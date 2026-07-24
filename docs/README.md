@@ -19,8 +19,8 @@ describes deleted or superseded systems lives in `../archive/`, not here.
 - **analysis-validation-roadmap.md** - The analysis-quality validation plan, eval
   release gates, and the go-to-market validation strategy. Partially superseded by
   D-033 (its measurement-layer sections are void); its eval gates and strategy stand.
-- **sideout-commercialization.md/html** - The paid-tier plan referenced by D-029
+- **vollyio-commercialization.md/html** - The paid-tier plan referenced by D-029
   (kept as a future reference; billing is not built).
 
-Operational status is in the repo root: `README.md` (what Sideout is) and
+Operational status is in the repo root: `README.md` (what Vollyio is) and
 `HANDOFF.md` (current state and next step).

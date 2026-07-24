@@ -118,7 +118,7 @@ The page is currently a dead end. Keep the shipped heading and body; add a forwa
 | WHERE | PURPOSE | STRING |
 |---|---|---|
 | app/offline/page.tsx, heading | offline title | `You're offline` (shipped, keep) |
-| app/offline/page.tsx, body | reassurance | `Sideout needs a connection to analyze reps. Your saved analyses will be here when you're back online.` (shipped, keep) |
+| app/offline/page.tsx, body | reassurance | `Vollyio needs a connection to analyze reps. Your saved analyses will be here when you're back online.` (shipped, keep) |
 | app/offline/page.tsx, primary action | try again (reloads / retries current route) | `Try again` |
 | app/offline/page.tsx, secondary link | back into the app | `Back to dashboard` |
 
@@ -221,7 +221,7 @@ These strings currently ship with an em dash or an over-promise and breach the v
 
 | WHERE | BEFORE | AFTER |
 |---|---|---|
-| app/page.tsx hero paragraph | `Record a rep. Sideout breaks it down frame by frame — serve, pass, set, attack, block, and defense — scored the way a coach scores it.` | `Record a rep. Sideout breaks it down frame by frame across serve, pass, set, attack, block, and defense, scored the way a coach scores it.` |
+| app/page.tsx hero paragraph | `Record a rep. Vollyio breaks it down frame by frame — serve, pass, set, attack, block, and defense — scored the way a coach scores it.` | `Record a rep. Vollyio breaks it down frame by frame across serve, pass, set, attack, block, and defense, scored the way a coach scores it.` |
 | app/page.tsx STEPS[2].body | `One priority fix per rep — the change that buys the most — with drills matched to it.` | `One priority fix per rep, the change that buys the most, with drills matched to it.` |
 | app/page.tsx MockAnalysisCard fix | `Contact is behind your head — toss six inches further into the court.` | `Contact is behind your head. Toss six inches further into the court.` |
 | app/page.tsx evidence paragraph | `…so you can see exactly what the score saw — and argue with it if you want.` | `…so you can see exactly what the score saw, and argue with it if you want.` |
@@ -242,7 +242,7 @@ These already meet voice; listed so they are not rewritten. Only the trailing-pe
 - history empty: `Nothing here yet.` / `No ${skill} reps logged.` / `No reps logged yet.` / CTA `Film a rep`.
 - coach empty: `Your coach knows your game.` / `Ask about your scores, your priority fixes, or what to train next. Every answer comes from your own analyses.`
 
-Cross-reference: the section 10.6 logo accessible name (`Sideout, home`) and all volleyball-visual alt text live in `docs/metadata.md`.
+Cross-reference: the section 10.6 logo accessible name (`Vollyio, home`) and all volleyball-visual alt text live in `docs/metadata.md`.
 
 ---
 

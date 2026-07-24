@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Sideout: record a rep and get a frame-by-frame breakdown of every volleyball skill.";
+export const alt = "Vollyio: record a rep and get a frame-by-frame breakdown of every volleyball skill.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -39,7 +39,7 @@ export default async function Image() {
               color: "#e8b93b",
             }}
           >
-            SIDEOUT
+            VOLLYIO
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>

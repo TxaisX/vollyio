@@ -86,10 +86,10 @@ for (const absolute of sourceRoots.flatMap((dir) => walk(join(root, dir)))) {
   for (const match of text.matchAll(/\bdebugger\b|console\.log\s*\(/g)) {
     report(file, source, match.index, "debug code is not allowed in production source");
   }
-  // Sideout house rule: no em dashes anywhere in source (copy OR comments) --
+  // Vollyio house rule: no em dashes anywhere in source (copy OR comments) --
   // they read as machine-written. Use a comma or a hyphen instead.
   for (const match of text.matchAll(/—/g)) {
-    report(file, source, match.index, "em dash is not allowed (sideout rule); use a comma or hyphen");
+    report(file, source, match.index, "em dash is not allowed (vollyio rule); use a comma or hyphen");
   }
 }
 

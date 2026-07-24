@@ -21,7 +21,7 @@ React `<ViewTransition>` (Next 16 integrated, not a third-party lib — fits the
 ## D-003 — User-facing em-dash title separator → middot (voice-law enforcement)
 Date: 2026-07-08 · By: Orchestrator (both Phase 0 agents flagged; ruled under the explicit voice law, not a contestable redesign)
 
-Shipped metadata uses an em-dash separator: `app/layout.tsx` title default + template (`%s — Sideout`), OG title, twitter title; `app/manifest.ts` name; `app/opengraph-image.tsx` alt. The no-em-dash voice law applies to all user-facing copy, and tab titles + OG + manifest are user-facing. The brand already uses the middot (·) as its separator throughout the UI. RULING: replace the em-dash SEPARATOR with ` · ` in title default/template, OG title, twitter title, and manifest name; rewrite the OG `alt` (a mid-sentence em-dash) as a clean no-em-dash sentence. Resolves Leon's R-ROOT-1 and Lisa's metadata flag. Implemented by Dave/Jerry in Phase 1 per `docs/metadata.md`; Sierra verifies zero user-facing em dashes repo-wide.
+Shipped metadata uses an em-dash separator: `app/layout.tsx` title default + template (`%s — Vollyio`), OG title, twitter title; `app/manifest.ts` name; `app/opengraph-image.tsx` alt. The no-em-dash voice law applies to all user-facing copy, and tab titles + OG + manifest are user-facing. The brand already uses the middot (·) as its separator throughout the UI. RULING: replace the em-dash SEPARATOR with ` · ` in title default/template, OG title, twitter title, and manifest name; rewrite the OG `alt` (a mid-sentence em-dash) as a clean no-em-dash sentence. Resolves Leon's R-ROOT-1 and Lisa's metadata flag. Implemented by Dave/Jerry in Phase 1 per `docs/metadata.md`; Sierra verifies zero user-facing em dashes repo-wide.
 
 ## D-004 — Coaching-service model split by task (owner-authorized, Phase 1a integration)
 Date: 2026-07-08 · By: Orchestrator (integration step) · Recorded retroactively 2026-07-08
@@ -76,12 +76,12 @@ Date: 2026-07-10 · By: Orchestrator (sections 10.2, 10.3, and 10.6)
 
 Replace the landing page's split text/mockup hero with a full-bleed, generated
 volleyball action photograph and an in-scene analysis HUD. The H1 is now the product
-name, Sideout, with the offer in supporting display copy. The same still image carries
+name, Vollyio, with the offer in supporting display copy. The same still image carries
 the sport into login and signup behind stable, high-contrast form tools. The app shell
 gets low-opacity court geometry, and the dashboard uses clearer score, challenge,
 streak, level, and momentum hierarchy without becoming a marketing layout.
 
-The hero asset was generated specifically for Sideout from this brief: an elite
+The hero asset was generated specifically for Vollyio from this brief: an elite
 indoor player at jump-serve contact in a mostly empty training gym, athlete on the
 right with clean left-side copy space, photoreal sports-campaign treatment, no text,
 logos, watermark, crowd, duplicate anatomy, or branded uniform. The selected output
@@ -133,7 +133,7 @@ action. The examples auto-progress only while visible and only when reduced moti
 is not requested; the manual tabs expose the same content without motion.
 
 Add `/launch` as a five-chapter 16:9 campaign surface and render that route into
-`public/sideout-launch.mp4`. New named motion (`analytics-draw`,
+`public/vollyio-launch.mp4`. New named motion (`analytics-draw`,
 `analytics-point-in`, `analytics-playhead-in`, `launch-cut`, `launch-photo`,
 `launch-bar`, `launch-step`, and `launch-line`) stays on existing palette and type
 tokens, moves only fixed-size layers, and carries no state alone. Reduced motion
@@ -230,7 +230,7 @@ An external "Player Lock" spec proposed server-side single-player tracking
 through a hosted segmentation vendor: transcode proxy, per-frame masks, a
 track state machine, exit/re-entry prediction, virtual-camera crops. The
 review found the state machine and continuity ideas excellent and the spine
-wrong for Sideout today: server video processing surrenders privacy and the
+wrong for Vollyio today: server video processing surrenders privacy and the
 zero-marginal-cost analysis path, adds per-clip vendor spend while billing
 is dormant, and brings two to three new dependency gates plus first-time
 queue infrastructure. The spec stays in the decision record as the premium
@@ -272,8 +272,8 @@ so scene state is fully periodic.
 every animation via the Web Animations API, sets `currentTime` explicitly
 per frame, and screenshots 300 frames at 30fps over CDP, verifying the
 loop closes by comparing frame 300 against frame 0 byte-for-byte. Two takes
-ship: `sideout-hero-loop` (ambient, hero backdrop) and
-`sideout-court-vision` (full HUD story, "The film room" landing section),
+ship: `vollyio-hero-loop` (ambient, hero backdrop) and
+`vollyio-court-vision` (full HUD story, "The film room" landing section),
 each as H.264 MP4 plus a VP9 WebM that capable browsers prefer, with WebP
 posters extracted from the same frame set.
 
@@ -293,7 +293,7 @@ asked for all of them applied at best quality, installing what's needed.
 The registry hosting them is unreachable from this environment, and on
 review they are instruction documents, not code — so the decision is to
 apply the craft they encode directly, inside the section 10.2 discipline,
-and decline the two that fail Sideout's gates on the merits: Flutter
+and decline the two that fail Vollyio's gates on the merits: Flutter
 animations target a different platform entirely, and a Three.js/WebGL layer
 fails the 10.5 necessity test — the landing already carries real product
 motion (D-015 court films) and a 3D scene would spend the dependency budget
@@ -328,7 +328,7 @@ production build. No new dependencies, no new colors, no new fonts.
 Date: 2026-07-12 · By: 3D-animations research pass (section 10.2 motion grant)
 
 The owner asked how agency sites (ramanstudio.com class) get their 3D feel
-and how Sideout can have it. The honest decomposition: most of that feel is
+and how Vollyio can have it. The honest decomposition: most of that feel is
 pointer-tracked perspective tilt, not WebGL. A real-time three.js/R3F layer
 stays declined on the D-016 grounds (10.5 necessity fails while the court
 films carry the landing), and the pre-rendered film pipeline (D-015) remains
@@ -366,7 +366,7 @@ The D-012 teardown adopted the commitment funnel post-signup. This closes the
 gap to the competitor pattern: the funnel now runs before the account exists.
 `/start` (public, in the auth route group) asks discipline, level, position,
 play frequency, focus skill, then target rating with a chosen timeframe
-(30/90/180 days). Answers park in localStorage under `sideout.funnel.v1`;
+(30/90/180 days). Answers park in localStorage under `vollyio.funnel.v1`;
 `FunnelHandoff` (mounted in the app layout) consumes them on the first authed
 page, and `applyFunnel` validates with the same zod schema as the form path,
 writes the profile, creates the goal with the chosen deadline, and redirects
@@ -747,7 +747,7 @@ model runs with no reasoning at all — the analyze route had been doing this si
 D-004, a configuration neither of the 2026-07-20 benchmarks tested.
 
 Two studies informed the fix, and they are not comparable to each other. The
-GPT-family study (`sideout-attacker-model-effort-report.html`, 33 model/effort
+GPT-family study (`vollyio-attacker-model-effort-report.html`, 33 model/effort
 cells) scored candidates with blinded LLM judges on a 7-dimension rubric. The
 Anthropic-family study (`model-effort-cost-ladder.html`, 20 cells) scored one
 checkable fact: whether the model placed ball contact after the jump peak
@@ -809,7 +809,7 @@ engine a hard blocker on monetisation, not a tuning choice.
 
 Considered removing on-device pose entirely and letting the vision model read
 the frames unaided. Rejected: the measured-checkpoint block IS the
-differentiator (`sideout-commercialization.html` positions it against "everyone
+differentiator (`vollyio-commercialization.html` positions it against "everyone
 ships VLM vibes"), and kill gate A tests measured checkpoints against VLM
 narrative in blind comparison — deleting them does not fail that gate, it
 deletes the thing being gated. The per-metric scores in `lib/ai/schema.ts` come
@@ -875,7 +875,7 @@ RTMPose reference (`D:\posecmp\`) is the honest way to quantify what was traded.
 
 Decision: run a free community beta to gather feedback, and do not build
 commerce yet. The paid tier stays a documented future idea
-(`sideout-commercialization.html`: Pro $14.99/mo, free tier 3 analyses/mo).
+(`vollyio-commercialization.html`: Pro $14.99/mo, free tier 3 analyses/mo).
 
 The audit that preceded this found the seam is not what the plan assumed.
 `canAnalyze` — cited in the commercialization plan as an existing billing seam —
@@ -1313,8 +1313,8 @@ saving on small text).
 
 Confirmed no single git-tracked artifact exceeds 10 MB, so there is no history
 bloat to excise; the heavy artifacts were already untracked. The three
-road-to-100 planning docs left at the root (`sideout-100-playbook.md`,
-`sideout-breakdown.md`, `sideout-improvement-prompt.md`) stay untracked in place
+road-to-100 planning docs left at the root (`vollyio-100-playbook.md`,
+`vollyio-breakdown.md`, `vollyio-improvement-prompt.md`) stay untracked in place
 because the playbook references them there; relocating the owner's own active
 plan was out of scope for a truth-and-clutter pass.
 

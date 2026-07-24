@@ -39,7 +39,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
         A phone and a browser. Film up to 45 seconds of one skill with your
         camera app and upload it, or use a clip you already have. Photos work
         too. No
-        wearables, no rig, no second person required. Sideout runs on the web
+        wearables, no rig, no second person required. Vollyio runs on the web
         on iOS, Android, and desktop, and you can install it like an app.
       </p>
     ),
@@ -108,7 +108,7 @@ export default function Landing() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Sideout",
+    name: "Vollyio",
     applicationCategory: "SportsApplication",
     operatingSystem: "Web, iOS, Android",
     description:
@@ -165,9 +165,9 @@ export default function Landing() {
               <Tilt max={2}>
                 <div className="relative mt-10 aspect-video overflow-hidden rounded-card border border-line bg-navy-light shadow-lift">
                   <CourtFilm
-                    src="/sideout-court-vision.mp4"
-                    srcWebm="/sideout-court-vision.webm"
-                    poster="/sideout-court-vision-poster.webp"
+                    src="/vollyio-court-vision.mp4"
+                    srcWebm="/vollyio-court-vision.webm"
+                    poster="/vollyio-court-vision-poster.webp"
                     label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, spike checkpoints are scored, and the spike scores 82 with one priority fix."
                     posterAlt="A two-player volleyball spike: the tapped hitter ringed in gold, scored attack checkpoints, and a spike score of 82."
                     className="absolute inset-0"
@@ -231,7 +231,7 @@ export default function Landing() {
                 Turn every rep into a reason to take the next one.
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
-                Sideout connects the score to the motion that made it, then turns
+                Vollyio connects the score to the motion that made it, then turns
                 that evidence into one clear adjustment for your next rep.
               </p>
             </Reveal>
@@ -526,7 +526,7 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-5 py-10 md:px-8">
           <div className="flex flex-col justify-between gap-10 md:flex-row">
             <div>
-              <p className="font-display text-lg font-bold">Sideout</p>
+              <p className="font-display text-lg font-bold">Vollyio</p>
               <p className="mt-1 max-w-xs text-sm text-chalk-dim">
                 Built for players who watch their own film.
               </p>
@@ -595,7 +595,7 @@ export default function Landing() {
             </nav>
           </div>
           <p className="mt-10 border-t border-line pt-6 font-mono text-xs text-chalk-dim">
-            © 2026 Sideout
+            © 2026 Vollyio
           </p>
         </div>
       </footer>

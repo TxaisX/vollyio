@@ -1,6 +1,6 @@
 # Security and access control
 
-This file is the authority for who may call each Sideout operation. Update it in the same change whenever an endpoint, server action, table, storage path, role, or paid external call changes.
+This file is the authority for who may call each Vollyio operation. Update it in the same change whenever an endpoint, server action, table, storage path, role, or paid external call changes.
 
 ## The simple version
 

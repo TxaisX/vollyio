@@ -1,13 +1,13 @@
-# Sideout
+# Vollyio
 
-Sideout is a volleyball skill-analysis and coaching web app: a player uploads a
+Vollyio is a volleyball skill-analysis and coaching web app: a player uploads a
 short clip, taps the athlete to analyze, and gets a mechanics breakdown of their
 serve, pass, set, attack, block, or dig. The read is done entirely by the
 coaching service (a vision model) watching the frames; there is no on-device ML.
 Every score is derived from a concrete pointer checklist and marks what it could
 not see, so the product never claims more than the footage supports.
 
-Live: https://sideout-jet.vercel.app
+Live: https://vollyio.com
 
 ## Stack
 

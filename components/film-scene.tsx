@@ -2,7 +2,7 @@
 
 import { useReducedMotion } from "@/components/motion";
 
-// The Sideout court-vision film: a 10s seamless loop staged for capture at
+// The Vollyio court-vision film: a 10s seamless loop staged for capture at
 // 1280x720 (scripts/render-hero-film.mjs) and served as MP4 on the landing
 // page. Every animation runs exactly FILM_SECONDS with infinite iterations,
 // so the scene state at t equals the state at t + FILM_SECONDS and any
@@ -242,7 +242,7 @@ export function FilmScene({
 
   return (
     <main
-      aria-label="Sideout court vision. A real two-player rep is read by the coaching service: the player taps their athlete, a gold ring marks who to analyze, and the checkpoints, score, and one priority fix appear."
+      aria-label="Vollyio court vision. A real two-player rep is read by the coaching service: the player taps their athlete, a gold ring marks who to analyze, and the checkpoints, score, and one priority fix appear."
       className="grid min-h-svh place-items-center bg-navy"
     >
       <style dangerouslySetInnerHTML={{ __html: FILM_CSS }} />
@@ -346,7 +346,7 @@ export function FilmScene({
                 className="film-hud-pop text-[11px] uppercase tracking-[0.24em] text-chalk-dim"
                 style={{ animation: `film-caption-in ${FILM_SECONDS}s linear infinite` }}
               >
-                Sideout <span className="text-gold">&middot;</span> film room
+                Vollyio <span className="text-gold">&middot;</span> film room
               </p>
             </div>
           </div>

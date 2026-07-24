@@ -4,7 +4,7 @@ import { FilmScene } from "@/components/film-scene";
 export const metadata: Metadata = {
   title: "Court vision film",
   description:
-    "Sideout court vision film. Watch a spike get read frame by frame.",
+    "Vollyio court vision film. Watch a spike get read frame by frame.",
   robots: { index: false, follow: false },
 };
 

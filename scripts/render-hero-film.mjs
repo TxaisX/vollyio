@@ -8,8 +8,8 @@
 // Usage (Linux cloud session):
 //   CHROME_PATH=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell \
 //   FFMPEG_PATH=... SITE_URL=http://localhost:3001 VARIANT=film \
-//   OUTPUT_PATH=public/sideout-court-vision.mp4 \
-//   POSTER_PATH=public/sideout-court-vision-poster.webp POSTER_FRAME=186 \
+//   OUTPUT_PATH=public/vollyio-court-vision.mp4 \
+//   POSTER_PATH=public/vollyio-court-vision-poster.webp POSTER_FRAME=186 \
 //   node scripts/render-hero-film.mjs
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -21,13 +21,13 @@ const chromePath = process.env.CHROME_PATH;
 const ffmpegPath = process.env.FFMPEG_PATH;
 const siteUrl = process.env.SITE_URL ?? "http://localhost:3001";
 const variant = process.env.VARIANT ?? "film";
-const outputPath = path.resolve(process.env.OUTPUT_PATH ?? `public/sideout-${variant}.mp4`);
+const outputPath = path.resolve(process.env.OUTPUT_PATH ?? `public/vollyio-${variant}.mp4`);
 const posterPath = process.env.POSTER_PATH ? path.resolve(process.env.POSTER_PATH) : null;
 const posterFrame = Number(process.env.POSTER_FRAME ?? 0);
 const fps = 30;
 const seconds = Number(process.env.FILM_SECONDS ?? 10);
 const frameTotal = fps * seconds;
-const frameDirectory = path.join(tmpdir(), `sideout-film-frames-${variant}`);
+const frameDirectory = path.join(tmpdir(), `vollyio-film-frames-${variant}`);
 
 if (!chromePath) throw new Error("CHROME_PATH is required.");
 if (!ffmpegPath) throw new Error("FFMPEG_PATH is required.");
@@ -39,7 +39,7 @@ const port = 9222 + Math.floor(Math.random() * 500);
 // A dedicated profile + headless keeps this independent of any Chrome the
 // user already has open (otherwise a full Chrome just re-attaches to the
 // running instance and never opens a debuggable target).
-const userDataDir = path.join(tmpdir(), `sideout-film-chrome-${variant}-${port}`);
+const userDataDir = path.join(tmpdir(), `vollyio-film-chrome-${variant}-${port}`);
 rmSync(userDataDir, { recursive: true, force: true });
 const chrome = spawn(
   chromePath,

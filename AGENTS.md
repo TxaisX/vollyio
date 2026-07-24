@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# Sideout conventions
+# Vollyio conventions
 
 - Commit messages carry no attribution trailers of any kind (no Co-Authored-By, no generated-with lines).
 - No vendor names in UI, docs, or user-visible errors. The AI layer is referred to as "the coaching service"; the only vendor-named string in the repo is the `ANTHROPIC_API_KEY` env var, server-side only.

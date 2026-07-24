@@ -9,7 +9,7 @@ Original status: proposed operating plan, 2026-07-16
 
 ## Objective
 
-Make Sideout defensible for intermediate and expert players by validating each
+Make Vollyio defensible for intermediate and expert players by validating each
 layer of the analysis separately, emitting measurements only when they are
 reliable, and calibrating coaching feedback to the largest trainable constraint
 rather than a professional ideal.
@@ -20,7 +20,7 @@ rather than a professional ideal.
    objective measurements with subjective coaching judgment and cannot be
    supported by one number.
 2. The defensible 95% claim is narrower: on eligible clips, at least 95% of
-   measurements Sideout chooses to emit fall within a published tolerance.
+   measurements Vollyio chooses to emit fall within a published tolerance.
 3. Measurement validity, measurement coverage, constraint diagnosis, score
    calibration, and run-to-run stability are separate gates. One cannot offset
    another.
@@ -54,13 +54,13 @@ correctness:
 - The eval directory contains 23 professional-footage cases, of which 18 are
   active. All use the pro level, none contain captured measurement blocks, and
   most do not label a weakest constraint. It cannot measure calibration for the
-  target population or whether Sideout finds their biggest constraint.
+  target population or whether Vollyio finds their biggest constraint.
 - The skill rubrics use elite execution language while a later prompt block
   re-anchors scores to an amateur ceiling. Conflicting anchors encourage
   severity drift even though the later block tries to correct it.
 
 Research on pose confidence also finds that common keypoint confidence scores
-are often miscalibrated relative to actual localization accuracy. Sideout must
+are often miscalibrated relative to actual localization accuracy. Vollyio must
 calibrate its own thresholds against its own volleyball footage rather than
 treat raw confidence as correctness.
 
@@ -84,8 +84,8 @@ confident coaching statement.
 
 Use this as the eventual product claim:
 
-> On clips that meet Sideout's filming requirements, at least 95% of the
-> measurements Sideout reports as measured are within the published tolerance.
+> On clips that meet Vollyio's filming requirements, at least 95% of the
+> measurements Vollyio reports as measured are within the published tolerance.
 
 Do not extend this sentence to the full score, the priority fix, or every frame
 of every upload.
@@ -111,7 +111,7 @@ experimental and is excluded from the claim.
 
 ### Coverage cannot be hidden
 
-Selective emission makes high precision possible, but Sideout must publish
+Selective emission makes high precision possible, but Vollyio must publish
 coverage next to validity so it cannot reach 95% by saying almost nothing.
 
 - Measurement validity target: at least 95% within tolerance.
@@ -196,7 +196,7 @@ represent the user experience.
 ### Human labels
 
 Two independent volleyball reviewers label each locked case before seeing the
-Sideout output. Resolve disagreements through adjudication and retain the
+Vollyio output. Resolve disagreements through adjudication and retain the
 original labels to measure human-to-human agreement.
 
 Each case should include:
@@ -250,7 +250,7 @@ A useful target scale is:
 | 85 to 91 | Standout advanced-amateur execution |
 | 92 and above | Rare, near-flawless execution within the selected standard |
 
-Anchor every band with labeled Sideout clips. Text alone is not enough. Use
+Anchor every band with labeled Vollyio clips. Text alone is not enough. Use
 paired examples such as "this clip should score above that clip" to expose
 severity inversions before tuning exact numbers.
 
@@ -379,7 +379,7 @@ Decision rule after that table:
 - If scores are fair but feedback still feels punishing, adjust voice and change
   sizing without altering the evidence or score.
 
-This experiment produces the first honest baseline and tells Sideout what to
+This experiment produces the first honest baseline and tells Vollyio what to
 fix next without guessing.
 
 ## Go-to-market validation
@@ -416,7 +416,7 @@ Reconciliations against later decisions (the old plan predated them):
 
 - **Pricing and billing** are now governed by D-029, not the old plan's
   "$8 to $12 at flip." D-029 keeps a free community beta now and documents the
-  paid tier as a future (`docs/sideout-commercialization.html`: Pro $14.99/mo,
+  paid tier as a future (`docs/vollyio-commercialization.html`: Pro $14.99/mo,
   free tier three analyses/month). The old plan's `canAnalyze` billing seam
   **does not exist**; free-plan enforcement lives entirely in the Postgres
   function `reserve_analysis_entitlement`, and shipping billing needs Stripe,

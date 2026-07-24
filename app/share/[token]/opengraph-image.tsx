@@ -4,7 +4,7 @@ import { analysisByShareToken } from "@/lib/share-read";
 import { SKILL_LABEL } from "@/lib/skills";
 
 export const runtime = "nodejs";
-export const alt = "Sideout breakdown";
+export const alt = "Vollyio breakdown";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -42,7 +42,7 @@ export default async function OgImage({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: 2, color: gold }}>
-            SIDEOUT
+            VOLLYIO
           </div>
           <div style={{ fontSize: 24, color: chalkDim, textTransform: "uppercase", letterSpacing: 3 }}>
             Breakdown

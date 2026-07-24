@@ -32,7 +32,7 @@ type Match = Snapshot & {
   history: Snapshot[];
 };
 
-const STORAGE_KEY = "sideout:live-match";
+const STORAGE_KEY = "vollyio:live-match";
 
 function targetFor(setIndex: number, bestOf: number) {
   return setIndex === bestOf - 1 ? 15 : 25;

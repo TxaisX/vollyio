@@ -11,7 +11,7 @@ export default function SharedBreakdownNotFound() {
           href="/"
           className="font-display text-lg font-bold tracking-wide text-gold"
         >
-          Sideout
+          Vollyio
         </Link>
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
           Shared breakdown
@@ -27,7 +27,7 @@ export default function SharedBreakdownNotFound() {
           Breakdowns stay private unless someone chooses to share them.
         </p>
         <Link href="/" className="btn-primary mt-5 inline-block min-h-11 px-5 py-2.5 text-sm">
-          Try Sideout
+          Try Vollyio
         </Link>
       </div>
     </main>

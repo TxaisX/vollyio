@@ -13,11 +13,11 @@ export default function LegalLayout({
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <Link
             href="/"
-            aria-label="Sideout, home"
+            aria-label="Vollyio, home"
             className="flex min-h-11 items-center gap-2 font-display text-xl font-bold tracking-tight"
           >
             <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
-            Sideout
+            Vollyio
           </Link>
           <Link
             href="/login"
@@ -40,7 +40,7 @@ export default function LegalLayout({
               Terms
             </Link>
           </div>
-          <span className="font-mono text-xs">© 2026 Sideout</span>
+          <span className="font-mono text-xs">© 2026 Vollyio</span>
         </div>
       </footer>
     </div>

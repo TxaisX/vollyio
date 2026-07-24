@@ -26,21 +26,21 @@ const description =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Sideout · Volleyball Form Coach", template: "%s · Sideout" },
+  title: { default: "Vollyio · Volleyball Form Coach", template: "%s · Vollyio" },
   description,
-  applicationName: "Sideout",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Sideout" },
+  applicationName: "Vollyio",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Vollyio" },
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",
-    siteName: "Sideout",
-    title: "Sideout · Volleyball Form Coach",
+    siteName: "Vollyio",
+    title: "Vollyio · Volleyball Form Coach",
     description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sideout · Volleyball Form Coach",
+    title: "Vollyio · Volleyball Form Coach",
     description,
   },
 };
