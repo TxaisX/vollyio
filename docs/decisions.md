@@ -1811,3 +1811,88 @@ And the no-em-dash rule became structural: 110 em dashes were removed across
 11 files and `scripts/lint.mjs` now fails the build on one anywhere in
 scanned source, in copy or comments alike. It is a house rule now, not a
 copy review note.
+
+## D-059 — The post-012 grant leak: new tables inherited TRUNCATE
+
+Found by reading live grants against the contract this file claims, not by a
+test. Migration 012 wrote its forward-looking default as:
+
+    alter default privileges for role postgres in schema public
+      revoke select, insert, update, delete on tables from anon, authenticated;
+
+Four privileges, and Postgres has more than four. TRUNCATE, REFERENCES, and
+TRIGGER stayed in the inherited default set. Pre-012 tables were unaffected,
+because the same migration also ran `revoke all on all tables`. Every table
+created AFTER 012 inherited those three for both `anon` and `authenticated`:
+`share_links` (019) and `analysis_feedback` (022). Both of those migrations
+carry a comment asserting "012's default-deny leaves new tables ungranted",
+which was true only of the four privileges 012 happened to name.
+
+TRUNCATE is the one that matters, and not because of what it deletes.
+**TRUNCATE bypasses row security entirely.** RLS is this product's whole tenant
+boundary (see the top of `docs/security.md`), so a privilege that ignores RLS
+on a table holding every account's rows is a hole in that boundary by
+definition, whatever today's reachability happens to be.
+
+Reachability today is nil, which is why this is repair and not an incident:
+PostgREST exposes no TRUNCATE verb and no arbitrary SQL, so there is no request
+that reaches the privilege. It mattered anyway, because the next SECURITY
+INVOKER function with a dynamic statement, or any future SQL-adjacent surface,
+would have made it reachable, and nothing in the repo was watching.
+
+Migration 023 fixes both halves: it widens the default revoke to `revoke all`
+so no future table inherits anything, and it strips the three privileges from
+the two tables that already had them. Column-scoped grants are untouched, and
+verified so after the fact: `share_links` still has table SELECT plus INSERT on
+(`analysis_id`, `token_hash`, `user_id`) and UPDATE on (`revoked_at`);
+`analysis_feedback` still has SELECT, INSERT, UPDATE. `anon` now holds nothing
+on either.
+
+Applied to production 2026-07-26 and verified by re-reading
+`information_schema.role_table_grants` and `column_privileges`.
+
+The generalizable lesson, and the reason this is a numbered entry rather than a
+commit message: a revoke list that names privileges is a denylist, and it
+silently stops being correct as soon as the set of privileges is larger than
+the list. `revoke all` is the allowlist form. Any future default-privileges
+statement in this project uses `all`.
+
+## D-060 — Middleware must not be able to take the site down
+
+Production had been throwing, at low volume, since 2026-07-07:
+
+    Error running the exported Web Handler: Error: Your project's URL and Key
+    are required to create a Supabase client!    route=/middleware
+
+`proxy.ts` read its configuration as `process.env.NEXT_PUBLIC_SUPABASE_URL!`.
+The `!` is an assertion to the type checker, not a runtime guarantee, so an
+absent or empty variable handed `undefined` to `createServerClient`, which
+threw. The proxy matcher covers nearly every path, which makes the blast radius
+total: the landing page, `/login`, `/signup`, `/privacy`, and every share link
+500 together, and none of them need a session at all. A configuration mistake
+should cost the authenticated surface, never the public one.
+
+The same shape sat one layer down. `getClaims()` was wrapped in try/catch but
+the `getUser()` fallback was not, so an auth-service blip or a rejected token
+propagated out of the middleware with the identical whole-site result. The
+second observed production error, PGRST303 "JWT issued at future" (clock skew
+between the token and the database), is exactly the class of transient that
+reaches that path.
+
+The fix keeps the security property intact by collapsing two states into one.
+`lib/route-guard.ts` decides routing from `userId: string | null`, and a missing
+configuration, a failed verification, and a genuine visitor all arrive as
+`null`. That is fail-closed by construction: a protected path with no verified
+user is always redirected to `/login`, so an unconfigured deployment cannot
+serve protected content. There is deliberately no separate "unconfigured"
+branch, because such a branch is where a fail-open bug would eventually live.
+Public paths pass through and keep rendering.
+
+Extracting the decision also made it testable without a request object, which
+is the reason the guard is in `lib/` rather than inline: four cases now pin the
+behavior, including the regression itself.
+
+Not fixed, and deliberately: the PGRST303 skew error is PostgREST validating a
+token's `iat` against the database clock. Nothing in application code can
+correct it, and it now degrades to an unauthenticated request rather than a
+crash, which is the right outcome for a token this server cannot trust.

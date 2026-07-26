@@ -28,6 +28,7 @@ This file is the authority for who may call each Vollyio operation. Update it in
 | `GET /api/eval` | Denied | Denied | Local developer with bearer token | Returns 404 in production, for every non-loopback host, and without `EVAL_TOKEN` |
 | `POST /functions/v1/purge-user-media` | Denied in effect | Denied in effect | Called by the database's delete hook | Gateway `verify_jwt`; then the function refuses any `user_id` whose account still exists, so it can only finish a deletion the policy already requires and can never take a live player's film; `user_id` must be a UUID |
 | App server actions | Denied unless the action is authentication | Mutate own resource | None | Framework origin check, verified user inside every action, bounded inputs, ownership filters, row security |
+| `proxy.ts` (middleware, all non-static non-API paths) | Public paths pass; protected paths redirect to `/login` | Session verified from the JWT locally, refreshed only when expired | None | Fails closed and never throws: a missing Supabase configuration, a failed verification, and a genuine visitor all resolve to "no verified user", so protected paths redirect while public paths keep rendering. Route decision is `lib/route-guard.ts`, unit-tested (D-060) |
 
 ## Database matrix
 
@@ -82,6 +83,7 @@ Public authentication endpoints use the authentication service's own rate limits
 
 ## Rules for future changes
 
+0. Default-privilege and revoke statements use `all`, never a list of privilege names. A named list is a denylist and stops being correct the moment Postgres has a privilege the list forgot: 012 revoked `select, insert, update, delete` by default and thereby handed `TRUNCATE` to `anon` on every table created after it (D-059, migration 023). TRUNCATE bypasses row security, which is this product's tenant boundary.
 1. Treat every route handler and server action as directly callable. Authenticate and authorize inside it.
 2. For cookie-authenticated route handlers that mutate state, require a matching `Origin`. Server Actions receive the framework's built-in origin check but still need app authentication.
 3. Validate content type and byte size before parsing. Validate structure, bounds, and ownership again after parsing.
