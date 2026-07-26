@@ -83,14 +83,14 @@ production. Live at https://vollyio.com.
   built and removed the same day; `ShareCard` is gone. Sharing is the revocable,
   30-day token link only (`/share/[token]`), which carries the clip, stays
   truthful on re-read, and needs one renderer instead of two.
-- **A flawless rep still cannot reach 100** (D-056, OPEN DEFECT). The owner's
-  100-is-attainable ruling shipped only into the prompt prose
-  (`lib/ai/output-spec.ts` now describes a 94-100 band). The displayed number is
-  derived in code from pointer verdicts and the model's own numbers are discarded,
-  so `RAW_CEILING = 95` in `lib/ai/pointers.ts` still caps every metric and the
-  weighted overall at 95. The one-line repair is `RAW_CEILING = 100`; it is an
-  owner call because it lifts the whole top half of the scale and invalidates the
-  95-ceiling eval baseline.
+- **A flawless rep now reaches 100** (D-056, FIXED 2026-07-26). The
+  100-is-attainable ruling had shipped only into the prompt prose, while the
+  displayed number is derived in code from pointer verdicts, so `RAW_CEILING = 95`
+  in `lib/ai/pointers.ts` still capped every metric and the weighted overall.
+  Ceiling is now 100: still linear, still uncurved, floor still 30, one standard
+  (D-037/D-040 intact). The UI already said "out of 100" everywhere. One
+  consequence: `evals/BASELINE.md` was measured at the 95 ceiling, so its
+  band-agreement numbers need a re-run before they are cited again.
 - **Migration state**: 017 (frame cap 40), 019 (share links), 020 (share-clip
   policy fix), and 021 (usage aggregates) are APPLIED to prod and verified.
   018 (coach quotas) is COMMITTED, NOT APPLIED — coach is dark so it is inert;
@@ -154,11 +154,10 @@ consequence get numbered entries in `docs/decisions.md`.
 8. **Apply migration 022 (analysis feedback)**, or confirm it is already applied.
    The widget is live in the UI and fails on every submit without it, so this is
    the shortest path from "shipped" to "collecting signal" (D-055).
-9. **Decide the scoring ceiling** (D-056): set `RAW_CEILING = 100` in
-   `lib/ai/pointers.ts` so a flawless rep reads 100 as intended, accepting that
-   every score above the midpoint rises and `evals/BASELINE.md` needs a re-run to
-   stay comparable; or keep 95 and roll back the 94-100 prose in
-   `lib/ai/output-spec.ts` so the prompt stops describing a band nothing reads.
+9. **Re-run the eval baseline** (D-056). The 100 ceiling shipped, so
+   `evals/BASELINE.md` at `cac170c` was measured against a scale that no longer
+   exists. Its band-agreement figures must not be cited until a re-run replaces
+   them, and labeling (item 6) wants the same run anyway.
 
 ## Device-verification checklist (current flow)
 Nothing in the post-D-033 flow has been eyeballed in a browser. Once the API cap is
@@ -180,8 +179,8 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-Two small owner decisions gate real progress: apply migration 022 so the
-feedback widget starts collecting (Open items 8), and settle the scoring
+The nearest owner action is applying migration 022 so the feedback widget starts
+collecting (Open items 8), then re-running the eval baseline against the 100
 ceiling (Open items 9). Then the standing list is unchanged: the owner's
 seven-item real-phone device checklist (below), eval labeling
 (`evals/LABELING.md` — the biggest scoring-trust lever; the committed
@@ -196,6 +195,21 @@ against a known answer. Getting 022 applied first means the cheap stream is
 running while the expensive one is still being built.
 
 ## Session log
+- **2026-07-26 (Session 6b, the three defects the docs pass exposed)** - Fixed
+  D-056: `RAW_CEILING` 95 -> 100, so a flawless rep scores what every "out of
+  100" label in the UI already promised (tests re-pinned to 100 first, watched
+  fail, then fixed). Fixed the feedback widget's Change button, which set
+  `correcting` and dropped the player straight into the negative form, leaving
+  anyone who had answered "did not help" with no path back to helpful; `revising`
+  and `correcting` are now separate states, Cancel restores from what is stored
+  rather than from the stale `initial` prop, and a Cancel affordance exists on the
+  re-opened question. Backfilled `docs/security.md`, which was missing a row for
+  every surface added since D-049: `share_links`, `analysis_feedback`,
+  `POST /api/players`, `GET /api/usage`, `GET /share/[token]` and its clip route,
+  the `analysis_by_share_token` function, and a `clips` bucket row that still
+  claimed owner-only read after 019/020 opened the shared path. The "simple
+  version" now admits its one visitor-readable exception. 132 tests; lint,
+  typecheck, and build green.
 - **2026-07-26 (Session 6, feedback copy + docs brought current)** - Reframed the
   breakdown feedback ask from "Did this breakdown nail it?" / "Yes, nailed it" to
   "Was this helpful?" / "Yes, helpful", with the standing answer reading back as
