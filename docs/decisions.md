@@ -1676,3 +1676,126 @@ Known-inert, deliberately not fixed: the `games` table DDL still defaults
 names (D-051), and prod DDL churn while the deploy-integration misconfig
 (HANDOFF "Open items" 4) is unresolved is the wrong trade. The post-cap
 validation sequence lives in `docs/post-cap-validation.md`.
+
+## D-055 — Player feedback on breakdowns: the flywheel signal, asked as usefulness
+
+Eval labeling is the slow, expensive way to learn whether a breakdown was any
+good (`evals/LABELING.md`, still unfinished). The player already knows, and
+they know it at the moment they read it. Migration 022 adds
+`analysis_feedback`: one row per analysis, owner-only RLS with the same
+posture as `share_links` (D-049) plus an `exists()` check on the parent
+analysis so a forged `analysis_id` is rejected at the RLS boundary rather
+than only in the app. Writes upsert on `analysis_id`, because a player is
+allowed to change their mind. No anon surface.
+
+What it grades is deliberately narrow. Skill, environment, and subject are
+all user-declared at upload, so the model is not classifying the skill; its
+job is the technique read, the number, and the fix. The feedback therefore
+grades the COACHING, not the classification: one boolean, and when it is
+negative, which of three reasons (wrong player / off read / nothing usable)
+plus an optional 500-character note. Wrong-player answers feed subject
+detection (D-030, D-036), off-read answers feed the rubric and pointer cues,
+and nothing-usable answers feed the fix generator. That is a real-usage
+ground-truth stream that costs the player one tap.
+
+The ask was originally "Did this breakdown nail it?" with a "Yes, nailed it"
+affirmative. Reframed 2026-07-26 to **"Was this helpful?" / "Yes, helpful"**,
+and the standing answer now reads back as helpful / did not help. Two
+reasons: correctness is not the thing the player can actually judge (they
+cannot see the rubric, so "did it nail it" invites them to grade the score
+they were just given), whereas usefulness is exactly what they know; and
+"nailed it" asks them to defend the app rather than report their experience.
+The third reason chip moved from "Not helpful" to "Nothing I can use",
+which under a usefulness question would otherwise restate the question. The
+stored column stays `was_right` (022 is already written); only the ask is
+framed as usefulness, and the semantics are close enough that existing rows
+stay meaningful. Rename the column only if a migration touches this table
+for another reason.
+
+**Migration 022 must be applied for feedback to persist.** Until it is, the
+widget renders and every submit returns "Couldn't save that."
+
+## D-056 — A flawless rep should reach 100, and currently cannot (open defect)
+
+The owner's ruling: 100 is real and attainable, not a number withheld on
+principle. A rep with no correctable fault left across every checkpoint
+should read 100.
+
+Half of that shipped on 2026-07-23. `lib/ai/output-spec.ts` STANDARD was
+remapped so the ceiling is a reachable 100: solid execution moved to 70-84,
+standout to 85-93, and a new band reserves 94-100 for near-flawless to
+flawless work, with an explicit instruction that a checkpoint which cannot
+be faulted for this competitive-amateur population is a 100.
+
+That change does not move the displayed number, and the reason is D-039 and
+D-040 working as designed. The score is derived in code from pointer
+verdicts, and the model's own numbers are discarded: `deriveResult` reads
+only `pointers[].status`, and `deriveMetric` maps the met-over-visible
+fraction onto `RAW_FLOOR = 30 .. RAW_CEILING = 95` (`lib/ai/pointers.ts`).
+Every metric therefore caps at 95, the overall is a weighted mean of those,
+so the overall caps at 95 too. All-pointers-met still displays 95. The
+STANDARD prose that now describes a 94-100 band governs a number nothing
+reads.
+
+Status: **open defect, not fixed.** The honest repair is `RAW_CEILING = 100`,
+which is one line and no new curve (D-040 stays intact: the mapping remains
+linear and uncurved, the floor stays 30, and one standard still serves every
+account per D-037). It is left for an owner decision because it raises every
+score on the top half of the scale at once, and because the committed eval
+baseline (`evals/BASELINE.md` at `cac170c`) was measured against the 95
+ceiling and would need a re-run to stay comparable. Whoever takes it should
+also reword the STANDARD prose, which currently instructs the model to
+assign per-checkpoint numbers that are thrown away.
+
+## D-057 — Sharing is a read-only link, not an image
+
+Shipped and then reverted inside one day, recorded because the reasoning
+should not have to be rediscovered.
+
+The share export originally drew a single summary card (score + priority
+fix) to an image. On 2026-07-23 it was widened to render the entire analysis
+to a dynamic-height image: header, score, full summary, every metric with
+bar and note, all fixes with expected gain and timeframe, and the drills.
+Then the whole image path was removed in favor of the token link that
+already existed (D-049): `ShareLink` -> `/share/[token]`, opened by anyone
+without an account, showing the breakdown and the clip, editable by nobody,
+with raw frames never shared. `ShareCard` and both its usages are gone.
+
+Why the link wins: the image duplicated the entire breakdown renderer in a
+second medium that has to be kept in sync by hand, it could not carry the
+clip (which is the thing worth watching), and it cannot be revoked once
+sent, whereas a token link is revocable and 30-day-expiring by DDL. The
+link also stays truthful when the analysis is re-read, and one renderer
+means one place for a copy or layout fix.
+
+## D-058 — Vollyio
+
+The product is Vollyio, on vollyio.com. Every brand string across app,
+components, lib, docs, and the project skills was rewritten, the public film
+assets and the launch teaser renamed, the commercialization report retitled,
+and the production URL repointed off the vercel.app subdomain. The package
+name, the localStorage keys, the service worker cache name, and the script
+temp-dir prefixes moved too.
+
+Two migration notes. The service worker deletes any cache that is not the
+current one on activate, so the cache rename self-cleans. The localStorage
+rename does orphan existing client state: an in-progress scoreboard match
+resets once, accepted knowingly.
+
+Left alone on purpose: `archive/` (historical material, documented as such),
+the pinned sha256 vector in `lib/share-token.test.ts` (cross-checked against
+migration 019, not a brand string), and the perception env plus repo
+filesystem paths in the frozen cv scripts.
+
+Alongside the rename, the breakdown got a legibility pass: metric labels and
+scores, cue justifications, the summary, and the clip/frame viewer all
+enlarged (clip column 34rem -> 42rem), and the global base font-size raised
+to 106.25% on `html` so Tailwind's rem sizing scales type and spacing
+together from one number, with `text-size-adjust: 100%` stopping mobile
+browsers from re-inflating on top of it. A `w-full` height-auto video
+collapses to zero height on iOS Safari until it plays, so the clip element
+carries a mobile min-height (dropped at sm and up) with `object-contain`.
+And the no-em-dash rule became structural: 110 em dashes were removed across
+11 files and `scripts/lint.mjs` now fails the build on one anywhere in
+scanned source, in copy or comments alike. It is a house rule now, not a
+copy review note.

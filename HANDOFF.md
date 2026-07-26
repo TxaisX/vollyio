@@ -1,6 +1,6 @@
 # Handoff — vollyio
 
-_Last updated 2026-07-21. Persistent in-repo project handoff; rewritten each
+_Last updated 2026-07-26. Persistent in-repo project handoff; rewritten each
 session. Older session-log entries (pre-D-027) live in
 `archive/handoff-history.md`. The authoritative account of the current system is
 `docs/decisions.md` D-027 onward._
@@ -65,10 +65,38 @@ production. Live at https://vollyio.com.
   stage and a metric-checkpoint legend (D-052); analyses are shareable as
   revocable token links carrying the full breakdown plus the clip, never frames
   (D-049). Repo standard: `docs/ui.md`.
+- **Named Vollyio 2026-07-24** (D-058). Every brand string, asset name, package
+  name, localStorage key, and service worker cache renamed off Sideout; production
+  URL repointed to vollyio.com. `archive/` left as historical material. One
+  accepted cost: the localStorage rename resets an in-progress scoreboard match
+  once. Same commit range carried a breakdown legibility pass (bigger metrics,
+  summary, and clip; base font-size 106.25% on `html`), an iOS Safari clip-height
+  fix, and the em dash ban made structural in `scripts/lint.mjs`.
+- **Player feedback on breakdowns** (D-055): `analysis_feedback` (migration 022,
+  owner-only RLS + parent-analysis `exists()` check, upsert on `analysis_id`) with
+  a one-tap widget under every breakdown. Asked as **"Was this helpful?"** as of
+  2026-07-26 (reframed from "Did this breakdown nail it?" — usefulness is what the
+  player can actually judge); a negative answer collects wrong player / off read /
+  nothing usable plus an optional note. This is the real-usage ground-truth stream
+  that does not wait on hand-labeling. The stored column is still `was_right`.
+- **Sharing is a link, not an image** (D-057). A full-breakdown share image was
+  built and removed the same day; `ShareCard` is gone. Sharing is the revocable,
+  30-day token link only (`/share/[token]`), which carries the clip, stays
+  truthful on re-read, and needs one renderer instead of two.
+- **A flawless rep still cannot reach 100** (D-056, OPEN DEFECT). The owner's
+  100-is-attainable ruling shipped only into the prompt prose
+  (`lib/ai/output-spec.ts` now describes a 94-100 band). The displayed number is
+  derived in code from pointer verdicts and the model's own numbers are discarded,
+  so `RAW_CEILING = 95` in `lib/ai/pointers.ts` still caps every metric and the
+  weighted overall at 95. The one-line repair is `RAW_CEILING = 100`; it is an
+  owner call because it lifts the whole top half of the scale and invalidates the
+  95-ceiling eval baseline.
 - **Migration state**: 017 (frame cap 40), 019 (share links), 020 (share-clip
   policy fix), and 021 (usage aggregates) are APPLIED to prod and verified.
   018 (coach quotas) is COMMITTED, NOT APPLIED — coach is dark so it is inert;
-  apply it before or with any coach re-enable.
+  apply it before or with any coach re-enable. 022 (analysis feedback) is
+  COMMITTED, APPLY STATUS UNCONFIRMED — until it is applied the feedback widget
+  renders but every submit returns "Couldn't save that."
 - **Share links are LIVE** (D-049, D-054): minted, streamed anonymously (206
   with Range), and revoked end-to-end against prod 2026-07-21. The 019 anon
   clip policy could never pass (RLS policy subqueries run with the caller's
@@ -123,6 +151,14 @@ consequence get numbered entries in `docs/decisions.md`.
 7. **Migration 018 (coach quotas) before or with any coach re-enable**
    (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to
    stay dark). 019/020/021 are already applied; share links are live.
+8. **Apply migration 022 (analysis feedback)**, or confirm it is already applied.
+   The widget is live in the UI and fails on every submit without it, so this is
+   the shortest path from "shipped" to "collecting signal" (D-055).
+9. **Decide the scoring ceiling** (D-056): set `RAW_CEILING = 100` in
+   `lib/ai/pointers.ts` so a flawless rep reads 100 as intended, accepting that
+   every score above the midpoint rises and `evals/BASELINE.md` needs a re-run to
+   stay comparable; or keep 95 and roll back the 94-100 prose in
+   `lib/ai/output-spec.ts` so the prompt stops describing a band nothing reads.
 
 ## Device-verification checklist (current flow)
 Nothing in the post-D-033 flow has been eyeballed in a browser. Once the API cap is
@@ -144,14 +180,41 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-The post-cap runbook ran 2026-07-22 (see State). What remains: the owner's
+Two small owner decisions gate real progress: apply migration 022 so the
+feedback widget starts collecting (Open items 8), and settle the scoring
+ceiling (Open items 9). Then the standing list is unchanged: the owner's
 seven-item real-phone device checklist (below), eval labeling
 (`evals/LABELING.md` — the biggest scoring-trust lever; the committed
 baseline gives labeling a concrete target list), splitting dev/prod keys +
 setting `ANALYZE_MONTHLY_BUDGET_USD` in Vercel (Open items 1), and coach
 re-enable whenever wanted (018 applied first).
 
+Note that D-055's feedback stream and eval labeling answer the same question
+from opposite ends. Feedback is free, arrives from real reps, and grades
+usefulness; labeling is slow, costs the owner's time, and grades correctness
+against a known answer. Getting 022 applied first means the cheap stream is
+running while the expensive one is still being built.
+
 ## Session log
+- **2026-07-26 (Session 6, feedback copy + docs brought current)** - Reframed the
+  breakdown feedback ask from "Did this breakdown nail it?" / "Yes, nailed it" to
+  "Was this helpful?" / "Yes, helpful", with the standing answer reading back as
+  helpful / did not help and the third reason chip changed from the now-circular
+  "Not helpful" to "Nothing I can use" (D-055). Copy and comments only; the
+  `was_right` column and the whole write path are untouched. Then closed the
+  four-day documentation gap: D-055 (feedback), D-056 (the 100-ceiling defect),
+  D-057 (share link over share image), D-058 (the Vollyio rename and the
+  legibility pass) written up, and this file brought to current state. The
+  documentation pass is what surfaced D-056: the 07-23 "scoring reaches 100" work
+  edited only the prompt prose, and code-derived scoring (D-039/D-040) means the
+  displayed number never sees it. 132 tests; lint, typecheck, and build green.
+- **2026-07-23 / 24 (Session 5, feedback, share, and the rename)** - Undocumented
+  until 2026-07-26; see D-055 through D-058. In order: `analysis_feedback` +
+  migration 022 + the widget, the 94-100 prose remap, and the base type bump;
+  breakdown legibility enlargement plus the repo-wide em dash removal and the
+  lint rule that keeps it that way; the iOS Safari clip-height fix; the
+  full-breakdown share image built and then dropped for the read-only token
+  link; and the Sideout -> Vollyio rename onto vollyio.com.
 - **2026-07-22 (Session 4, post-cap runbook executed)** - Owner raised the
   spend cap; the whole `docs/post-cap-validation.md` sequence ran the same
   night. Live key confirmed; eval pre-checks green; full eval run (18 cases
