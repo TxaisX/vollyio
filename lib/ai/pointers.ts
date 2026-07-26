@@ -220,11 +220,16 @@ export function parsePointerStatus(value: unknown): PointerStatus {
 }
 
 // Scale mapping for a checkpoint from its visible pointers: all missed sits at
-// a broken-fundamentals 30, all met at an elite 95, linear between. This IS
+// a broken-fundamentals 30, all met at a flawless 100, linear between. This IS
 // the product scale (D-040): no display curve sits on top of it. 40 developing,
 // 70 solid, 90 advanced, earned pointer by pointer.
+//
+// The ceiling is 100, not a withheld 95 (D-056). Every visible pointer met means
+// there is no correctable fault left to name, and the honest number for that is
+// 100. The floor, the linearity, and the one-standard rule (D-037) are unchanged,
+// so this raises the top of the scale without curving anything beneath it.
 const RAW_FLOOR = 30;
-const RAW_CEILING = 95;
+const RAW_CEILING = 100;
 
 export type DerivedMetric = {
   observed: boolean;
