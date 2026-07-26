@@ -4,21 +4,23 @@ import { useState } from "react";
 import { submitAnalysisFeedback } from "@/app/(app)/analysis/[id]/actions";
 
 type Reason = "wrong_player" | "off_read" | "not_helpful";
-const REASONS: { key: Reason; label: string }[] = [
-  { key: "wrong_player", label: "Wrong player" },
-  { key: "off_read", label: "The read was off" },
-  { key: "not_helpful", label: "Not helpful" },
+// `label` is the chip; `phrase` is the same reason read back inside a sentence.
+const REASONS: { key: Reason; label: string; phrase: string }[] = [
+  { key: "wrong_player", label: "Wrong player", phrase: "wrong player" },
+  { key: "off_read", label: "The read was off", phrase: "the read was off" },
+  { key: "not_helpful", label: "Nothing I can use", phrase: "nothing you could use" },
 ];
-const REASON_LABEL: Record<Reason, string> = Object.fromEntries(
-  REASONS.map((r) => [r.key, r.label]),
+const REASON_PHRASE: Record<Reason, string> = Object.fromEntries(
+  REASONS.map((r) => [r.key, r.phrase]),
 ) as Record<Reason, string>;
 
 type Feedback = { wasRight: boolean; reasons: Reason[]; note: string | null };
 
-// The player's one-tap decision on a breakdown -- did the opus-low COACHING nail
-// it. Skill/subject are user-declared, so this grades the coaching (read + score
-// + fix), not the skill. Kept light so it's a reflex, not a chore. This is the
-// real-usage ground-truth signal that replaces hand-labeling.
+// The player's one-tap decision on a breakdown -- was the opus-low COACHING
+// helpful. Skill/subject are user-declared, so this grades the coaching (read +
+// score + fix), not the skill. Kept light so it's a reflex, not a chore. This is
+// the real-usage ground-truth signal that replaces hand-labeling. The stored
+// column stays `was_right` (migration 022); only the ask is framed as usefulness.
 export function AnalysisFeedback({
   analysisId,
   initial,
@@ -57,11 +59,11 @@ export function AnalysisFeedback({
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">Your call</p>
         <p className="mt-2 text-sm text-chalk">
           {saved.wasRight ? (
-            <>You marked this breakdown <span className="font-semibold text-teal">spot-on</span>.</>
+            <>You marked this breakdown <span className="font-semibold text-teal">helpful</span>.</>
           ) : (
-            <>You said this breakdown <span className="font-semibold text-coral">missed</span>
+            <>You said this breakdown <span className="font-semibold text-coral">did not help</span>
               {saved.reasons.length > 0 && (
-                <>: {saved.reasons.map((r) => REASON_LABEL[r]).join(", ").toLowerCase()}</>
+                <>: {saved.reasons.map((r) => REASON_PHRASE[r]).join(", ")}</>
               )}
               .</>
           )}
@@ -80,7 +82,7 @@ export function AnalysisFeedback({
 
   return (
     <div className="card mt-8 p-5">
-      <p className="font-display font-bold">Did this breakdown nail it?</p>
+      <p className="font-display font-bold">Was this helpful?</p>
       <p className="mt-1 text-xs text-chalk-dim">
         A quick call helps the coach get sharper on reps like yours.
       </p>
@@ -93,7 +95,7 @@ export function AnalysisFeedback({
             onClick={() => send(true)}
             className="rounded-card border border-teal/50 bg-navy-lighter px-4 py-2 text-sm font-semibold text-teal transition hover:border-teal disabled:opacity-50"
           >
-            Yes, nailed it
+            Yes, helpful
           </button>
           <button
             type="button"
