@@ -1715,7 +1715,7 @@ for another reason.
 **Migration 022 must be applied for feedback to persist.** Until it is, the
 widget renders and every submit returns "Couldn't save that."
 
-## D-056 — A flawless rep should reach 100, and currently cannot (open defect)
+## D-056 — A flawless rep reaches 100 (defect found and fixed)
 
 The owner's ruling: 100 is real and attainable, not a number withheld on
 principle. A rep with no correctable fault left across every checkpoint
@@ -1737,15 +1737,27 @@ so the overall caps at 95 too. All-pointers-met still displays 95. The
 STANDARD prose that now describes a 94-100 band governs a number nothing
 reads.
 
-Status: **open defect, not fixed.** The honest repair is `RAW_CEILING = 100`,
-which is one line and no new curve (D-040 stays intact: the mapping remains
-linear and uncurved, the floor stays 30, and one standard still serves every
-account per D-037). It is left for an owner decision because it raises every
-score on the top half of the scale at once, and because the committed eval
-baseline (`evals/BASELINE.md` at `cac170c`) was measured against the 95
-ceiling and would need a re-run to stay comparable. Whoever takes it should
-also reword the STANDARD prose, which currently instructs the model to
-assign per-checkpoint numbers that are thrown away.
+Fixed 2026-07-26 on the owner's instruction: `RAW_CEILING = 100` in
+`lib/ai/pointers.ts`. D-040 stays intact, because this is not a curve. The
+mapping is still linear, the floor is still a broken-fundamentals 30, and one
+standard still serves every account (D-037). All that changed is where the top
+of the line sits, and the tests that pinned 95 now pin 100.
+
+The UI was already telling the truth the code did not: `score-ring`,
+`metric-bar`, `radar`, and both share and analysis page titles have always
+rendered "out of 100". `scoreBand` needs no change either, since Elite is
+`>= 92` and remains reachable. The lasting lesson is narrower than the bug:
+when scoring moved into code (D-039/D-040), the prompt prose stopped being
+able to set numbers, so any future change to the scale has to touch
+`pointers.ts` or it changes nothing that a player sees.
+
+Two consequences to carry. The committed eval baseline
+(`evals/BASELINE.md` at `cac170c`) was measured against the 95 ceiling, so its
+band-agreement figures are no longer comparable and need a re-run before they
+are cited again. And the STANDARD prose remains worth keeping despite grading
+nothing directly: `raw.overall_score` is still the fallback when no checkpoint
+was observable at all, and `rep_scores` are still the model's own numbers, so
+the prose governs both.
 
 ## D-057 — Sharing is a read-only link, not an image
 

@@ -4,7 +4,7 @@ This file is the authority for who may call each Vollyio operation. Update it in
 
 ## The simple version
 
-- Visitors may read public pages and submit login or signup forms. They cannot read app data.
+- Visitors may read public pages and submit login or signup forms. They cannot read app data, with one deliberate exception: a visitor holding a live share link may read that one shared breakdown and stream its clip, and nothing else.
 - A signed-in player may read and change only records whose owner ID matches their verified account ID.
 - Paid coaching calls happen only after identity, an atomic quota check, and an atomic entitlement reservation pass.
 - Browser requests never receive the coaching key. Server-only modules own secret access.
@@ -20,6 +20,10 @@ This file is the authority for who may call each Vollyio operation. Update it in
 | `GET /auth/callback` | Present one-time code or token | Same | Configure allowed redirect URLs | Fixed redirect target, known token types, bounded query values, provider verification |
 | `POST /api/analyze` | Denied | Create analysis for self | Configure entitlement policy | Same-origin, verified user, atomic entitlement reservation, atomic 20 per hour quota, 4 MB JSON cap, 2 to 12 JPEG-signature-checked frames, database insert trigger, server-set telemetry column; a coaching credit/capacity outage refunds the hourly quota and returns 503 |
 | `POST /api/coach` | Denied | Read and append own conversation | None | Same-origin, verified user, atomic 60 per hour quota, 16 KB JSON cap, 2,000 character message cap, session ownership check |
+| `POST /api/players` | Denied | Spot candidate athletes in one own frame | None | Same-origin, verified user, atomic quota on the `coach` scope (so spotting shares coach chat's 60 per hour budget), one 1.5 MB JPEG-signature-checked frame, bounded base64 length, at most six candidates; labels are kit-and-position descriptions and never names (D-036) |
+| `GET /api/usage` | Denied | Denied in production | Local developer with a signed-in session | Returns 404 when `NODE_ENV` is production (same posture as `/api/eval`); the aggregate RPCs are granted to `authenticated` only, so an anonymous caller gets nothing; every dollar figure is an estimate from checked-in rates, never billing truth |
+| `GET /share/[token]` | Read one live shared breakdown | Same | None | Anonymous read goes only through the `analysis_by_share_token` SECURITY DEFINER function, which requires the link to be unrevoked and inside its 30-day expiry. Carries the breakdown and the clip; raw frames are never shared (D-049) |
+| `GET /share/[token]/clip` | Stream one live shared clip | Same | None | Same function gate. The signed storage URL stays server-side and the bytes are proxied, because the storage path embeds the owner's user ID and must never reach the viewer; `Range` is forwarded so scrubbing works |
 | `POST /api/account/delete` | Denied | Delete own account | Support fallback | Same-origin, verified user, atomic 3 per hour quota, own-folder storage policies, self-delete database function |
 | `GET /api/eval` | Denied | Denied | Local developer with bearer token | Returns 404 in production, for every non-loopback host, and without `EVAL_TOKEN` |
 | `POST /functions/v1/purge-user-media` | Denied in effect | Denied in effect | Called by the database's delete hook | Gateway `verify_jwt`; then the function refuses any `user_id` whose account still exists, so it can only finish a deletion the policy already requires and can never take a live player's film; `user_id` must be a UUID |
@@ -39,6 +43,9 @@ Anonymous access to every application table is revoked. The signed-in role has o
 | `coach_sessions` | Read, create, update, and delete own | `user_id = auth.uid()` | Deleting a session cascades only its messages |
 | `chat_messages` | Read and create own | `user_id = auth.uid()` | API verifies session ownership before inserting |
 | `xp_events` | Read and create own | `user_id = auth.uid()` | Server flows deduplicate reasons |
+| `share_links` | Read own; create through `analysis_id`, `user_id`, `token_hash`; update `revoked_at` | `user_id = auth.uid()` | Only the token HASH is stored, never the token itself, so the database cannot reveal a live link. No delete grant: revoking is an update, and the row survives as a record. No anon grants; anonymous readers reach shared data only through the function below (D-049, migration 019) |
+| `analysis_feedback` | Read, create, and update own | `user_id = auth.uid()` | Writes additionally require an `exists()` check that the parent analysis belongs to the caller, so a forged `analysis_id` is rejected at the RLS boundary and not only in the app. Upserts on `analysis_id`: one row per analysis, because the player may change their mind. Advisory only, it gates no authorization, billing, or scoring decision (D-055, migration 022) |
+| `analysis_by_share_token` function | Execute as anonymous or signed-in | Function narrows to a live, unrevoked, unexpired link | The one anonymous data surface. SECURITY DEFINER is load-bearing, not convenience: RLS policy subqueries run with the caller's privileges and anonymous has no table grants under 012, so the original policy-only design could never pass (D-049, migration 020) |
 | Private quota table | None | Internal function derives `auth.uid()` | No direct role access; security-definer function accepts three fixed scopes only |
 | Private analysis reservations | None | Internal function derives `auth.uid()` | Analysis requests serialize behind an opaque five-minute reservation; the free-plan rule is checked inside the same lock when billing is enabled |
 | Account deletion function | Execute as signed-in user | Function deletes `auth.uid()` only | Anonymous and public execution revoked |
@@ -51,7 +58,7 @@ The server currently uses the player's session client instead of a database-wide
 | Bucket | Read | Write | Limits |
 |---|---|---|---|
 | `frames` | Owner only through authenticated download or one-hour signed URL | Owner only, exact paths declared by an existing owned analysis | JPEG or JSON only, 5 MB per object, at most 12 sent frames, 22 stored frames, and one keypoints file per analysis |
-| `clips` | Owner only through authenticated download or one-hour signed URL | Owner only, exact path declared by an existing owned analysis | WebM, MP4, or QuickTime only, 100 MB per object, at most one clip per analysis |
+| `clips` | Owner through authenticated download or one-hour signed URL; anyone holding a live share link, proxied, never as a URL | Owner only, exact path declared by an existing owned analysis | WebM, MP4, or QuickTime only, 100 MB per object, at most one clip per analysis. The shared read is gated by a SECURITY DEFINER predicate that dies with the link on revoke or expiry (D-049, migration 020) |
 | `models` | Public read | Operator only | Pinned filenames and client hash verification |
 
 Client uploads use create-only semantics. Replacement is not granted. The path, filename, and MIME type must match the media fields recorded on the owned analysis. Required server-uploaded frames are checked, and a partial upload discards the new analysis so broken media references are not retained.
