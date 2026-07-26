@@ -29,6 +29,11 @@ export function AnalysisFeedback({
   initial: Feedback | null;
 }) {
   const [saved, setSaved] = useState<Feedback | null>(initial);
+  // Two distinct states, deliberately not one. `revising` means "re-open the
+  // question"; `correcting` means "I am filling in what was off". Collapsing
+  // them sent Change straight into the negative form, which left a player who
+  // had answered "did not help" no way back to helpful.
+  const [revising, setRevising] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const [reasons, setReasons] = useState<Reason[]>(initial?.reasons ?? []);
   const [note, setNote] = useState(initial?.note ?? "");
@@ -37,6 +42,15 @@ export function AnalysisFeedback({
 
   function toggle(r: Reason) {
     setReasons((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]));
+  }
+
+  // Back to the standing answer, with the draft reset to what is actually
+  // stored (not to `initial`, which goes stale the moment they answer once).
+  function dismissDraft() {
+    setCorrecting(false);
+    setRevising(false);
+    setReasons(saved?.reasons ?? []);
+    setNote(saved?.note ?? "");
   }
 
   async function send(wasRight: boolean, rs?: Reason[], n?: string) {
@@ -48,12 +62,16 @@ export function AnalysisFeedback({
       setError(res.error);
       return;
     }
-    setSaved({ wasRight, reasons: wasRight ? [] : (rs ?? []), note: n?.trim() || null });
+    const next = { wasRight, reasons: wasRight ? [] : (rs ?? []), note: n?.trim() || null };
+    setSaved(next);
+    setReasons(next.reasons);
+    setNote(next.note ?? "");
     setCorrecting(false);
+    setRevising(false);
   }
 
   // Already answered: show the standing decision with a way to change it.
-  if (saved && !correcting) {
+  if (saved && !correcting && !revising) {
     return (
       <div className="card mt-8 p-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">Your call</p>
@@ -71,7 +89,7 @@ export function AnalysisFeedback({
         {saved.note && <p className="mt-1 text-xs text-chalk-dim">&ldquo;{saved.note}&rdquo;</p>}
         <button
           type="button"
-          onClick={() => setCorrecting(true)}
+          onClick={() => setRevising(true)}
           className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim underline underline-offset-4 hover:text-gold"
         >
           Change
@@ -105,6 +123,16 @@ export function AnalysisFeedback({
           >
             Not quite
           </button>
+          {saved && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={dismissDraft}
+              className="px-3 py-2 text-sm text-chalk-dim transition hover:text-chalk disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-4">
@@ -147,10 +175,7 @@ export function AnalysisFeedback({
             <button
               type="button"
               disabled={busy}
-              onClick={() => {
-                setCorrecting(false);
-                setReasons(initial?.reasons ?? []);
-              }}
+              onClick={dismissDraft}
               className="px-3 py-2 text-sm text-chalk-dim transition hover:text-chalk"
             >
               Cancel
