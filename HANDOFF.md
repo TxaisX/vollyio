@@ -94,9 +94,10 @@ production. Live at https://vollyio.com.
 - **Migration state**: 017 (frame cap 40), 019 (share links), 020 (share-clip
   policy fix), and 021 (usage aggregates) are APPLIED to prod and verified.
   018 (coach quotas) is COMMITTED, NOT APPLIED — coach is dark so it is inert;
-  apply it before or with any coach re-enable. 022 (analysis feedback) is
-  COMMITTED, APPLY STATUS UNCONFIRMED — until it is applied the feedback widget
-  renders but every submit returns "Couldn't save that."
+  apply it before or with any coach re-enable. 022 (analysis feedback) was
+  VERIFIED APPLIED 2026-07-26 (applied 07-23, one feedback row already stored),
+  and 023 (grant leak repair, D-059) was applied and verified the same day.
+  Live migration state read directly: everything through 023 except 018.
 - **Share links are LIVE** (D-049, D-054): minted, streamed anonymously (206
   with Range), and revoked end-to-end against prod 2026-07-21. The 019 anon
   clip policy could never pass (RLS policy subqueries run with the caller's
@@ -151,9 +152,11 @@ consequence get numbered entries in `docs/decisions.md`.
 7. **Migration 018 (coach quotas) before or with any coach re-enable**
    (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to
    stay dark). 019/020/021 are already applied; share links are live.
-8. **Apply migration 022 (analysis feedback)**, or confirm it is already applied.
-   The widget is live in the UI and fails on every submit without it, so this is
-   the shortest path from "shipped" to "collecting signal" (D-055).
+8. **Enable leaked-password protection** in the Supabase auth dashboard. The
+   security advisor flags it as off; it checks new passwords against
+   HaveIBeenPwned. One toggle, and it pairs with the managed bot protection this
+   file already wants before a public push. (Migration 022 is applied and
+   verified, so the feedback widget is collecting; that item is closed.)
 9. **Re-run the eval baseline** (D-056). The 100 ceiling shipped, so
    `evals/BASELINE.md` at `cac170c` was measured against a scale that no longer
    exists. Its band-agreement figures must not be cited until a re-run replaces
@@ -179,9 +182,10 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
-The nearest owner action is applying migration 022 so the feedback widget starts
-collecting (Open items 8), then re-running the eval baseline against the 100
-ceiling (Open items 9). Then the standing list is unchanged: the owner's
+Merge this branch to `master` to deploy the middleware fix (D-060) — production is
+still running the version that 500s the whole site on a configuration miss. Then
+re-run the eval baseline against the 100 ceiling (Open items 9). Then the
+standing list is unchanged: the owner's
 seven-item real-phone device checklist (below), eval labeling
 (`evals/LABELING.md` — the biggest scoring-trust lever; the committed
 baseline gives labeling a concrete target list), splitting dev/prod keys +
@@ -195,6 +199,24 @@ against a known answer. Getting 022 applied first means the cheap stream is
 running while the expensive one is still being built.
 
 ## Session log
+- **2026-07-26 (Session 6c, live infrastructure audit)** - Connectors authorized,
+  so prod was read directly for the first time this session. Confirmed migration
+  022 applied 07-23 (one feedback row stored, so the widget works). Found and
+  fixed two defects nobody was watching. D-059: 012's default-privilege revoke
+  named four privileges, so every table created after it inherited TRUNCATE,
+  REFERENCES, and TRIGGER for `anon` and `authenticated` (`share_links`,
+  `analysis_feedback`); TRUNCATE bypasses RLS, which is the tenant boundary.
+  Migration 023 widens the default to `revoke all` and strips the leak; applied
+  to prod and verified, column grants intact. D-060: `proxy.ts` asserted its
+  Supabase env with `!` and threw on every matched path when unset, which is
+  nearly the whole site, and the `getUser()` fallback was unguarded too;
+  production had been logging it since 07-07. Routing moved to a tested
+  `lib/route-guard.ts` where missing config, failed verification, and a real
+  visitor all collapse to `userId = null`, fail-closed by construction. Also
+  triaged the Supabase security advisor: the SECURITY DEFINER warnings are all
+  documented-by-design, `rls_auto_enable` is a Supabase platform event-trigger
+  function that cannot be called over RPC, and leaked-password protection is off
+  (now Open items 8). 136 tests; lint, typecheck, build green.
 - **2026-07-26 (Session 6b, the three defects the docs pass exposed)** - Fixed
   D-056: `RAW_CEILING` 95 -> 100, so a flawless rep scores what every "out of
   100" label in the UI already promised (tests re-pinned to 100 first, watched
