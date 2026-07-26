@@ -54,8 +54,8 @@ export async function revokeShareLinks(
   return { ok: !error };
 }
 
-// The player's decision on a breakdown (the flywheel ground-truth signal): did
-// the opus-low COACHING nail it, and if not, WHAT was off + an optional note.
+// The player's decision on a breakdown (the flywheel ground-truth signal): was
+// the opus-low COACHING helpful, and if not, WHAT was off + an optional note.
 // The skill/subject are user-declared, so this grades the coaching, not the skill.
 // Upserts one row per analysis; RLS ties the write to an analysis the caller owns.
 const FEEDBACK_REASONS = ["wrong_player", "off_read", "not_helpful"] as const;
