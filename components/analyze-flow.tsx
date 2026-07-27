@@ -7,7 +7,6 @@ import { Filmstrip } from "@/components/filmstrip";
 import { createClient } from "@/lib/supabase/client";
 import {
   extractFrames,
-  extractFramesFromPhotos,
   openingFrame,
   MAX_CLIP_SECONDS,
   type Frame,
@@ -346,7 +345,6 @@ export function AnalyzeFlow({
   const router = useRouter();
   const [skill, setSkill] = useState<Skill | null>(initialSkill);
   const [frames, setFrames] = useState<Frame[]>([]);
-  const [source, setSource] = useState<"video" | "photos">("video");
   const [duration, setDuration] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -358,7 +356,6 @@ export function AnalyzeFlow({
   );
   const [frameDebug, setFrameDebug] = useState<FrameDebug | null>(null);
   const videoInput = useRef<HTMLInputElement>(null);
-  const photoInput = useRef<HTMLInputElement>(null);
   const debugRef = useRef(false);
   const clipRef = useRef<Blob | null>(null);
   const extrasRef = useRef<Frame[]>([]);
@@ -668,7 +665,6 @@ export function AnalyzeFlow({
 
   async function submit(
     payloadFrames: Frame[],
-    src: "video" | "photos",
     dur: number | null,
     isRetry = false,
   ) {
@@ -678,18 +674,18 @@ export function AnalyzeFlow({
     // it; skipping ahead here is how the question used to get lost entirely.
     if (consentAnsweredRef.current !== true) {
       pendingSubmitRef.current = () => {
-        void submit(payloadFrames, src, dur, isRetry);
+        void submit(payloadFrames, dur, isRetry);
       };
       if (consentAnsweredRef.current === false) setConsentOpen(true);
       return;
     }
     setRetrying(isRetry);
     setStatus({ kind: "sending" });
-    const clip = src === "video" ? clipRef.current : null;
+    const clip = clipRef.current;
     const body: AnalyzeRequest = {
       skill,
       discipline,
-      source: src,
+      source: "video",
       duration_s: dur,
       has_clip: !!clip,
       clip_ext: clip ? clipExt(clip) : null,
@@ -698,12 +694,12 @@ export function AnalyzeFlow({
         time_s: f.time_s,
         data: f.dataUrl.split(",")[1],
       })),
-      focus_marker: src === "video" && markedRef.current ? true : undefined,
+      focus_marker: markedRef.current ? true : undefined,
       marker_frame_index:
-        src === "video" && markedRef.current && markerIndexRef.current != null
+        markedRef.current && markerIndexRef.current != null
           ? markerIndexRef.current
           : undefined,
-      extra_frame_count: src === "video" ? extrasRef.current.length : 0,
+      extra_frame_count: extrasRef.current.length,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -784,7 +780,6 @@ export function AnalyzeFlow({
       }
       setMarkerShown(markedRef.current);
       setFrames(shown);
-      setSource("video");
       setDuration(duration_s);
       setFrameDebug(debug ?? null);
       if (debug) {
@@ -802,7 +797,9 @@ export function AnalyzeFlow({
   }
 
   // Entry for uploaded clips: pause on the opening frame so the player can
-  // mark who to analyze before any analysis runs.
+  // mark who to analyze before any analysis runs. Marking is mandatory
+  // (D-062), so a clip this browser cannot render a frame from is a dead stop
+  // and says so, rather than quietly analyzing whoever the model picks.
   async function handleVideo(blob: Blob) {
     setStatus({ kind: "reading" });
     setFrameDebug(null);
@@ -811,25 +808,28 @@ export function AnalyzeFlow({
     clipRef.current = blob;
     setVideoUrl(URL.createObjectURL(blob));
     try {
-      if (skill) {
-        const opening = await openingFrame(blob);
-        // Long clips get the card too: the trim window makes them analyzable.
-        if (opening) {
-          extrasRef.current = [];
-          setFrames([]);
-          markedRef.current = false;
-          markerIndexRef.current = null;
-          setMarkerShown(false);
-          setSource("video");
-          setDuration(opening.duration_s);
-          const pick = { ...opening, blob };
-          setLastOpening(pick);
-          setOpeningPick(pick);
-          setStatus({ kind: "idle" });
-          return;
-        }
+      const opening = await openingFrame(blob);
+      if (!opening) {
+        clipRef.current = null;
+        setVideoUrl(null);
+        setStatus({
+          kind: "error",
+          message:
+            "This browser couldn't read a frame from that clip, so there's no way to mark your player. iPhones record HEVC, which Chrome can't decode: open Vollyio in Safari, or re-export the clip as MP4 and try again.",
+        });
+        return;
       }
-      await runVideoExtraction(blob);
+      // Long clips get the card too: the trim window makes them analyzable.
+      extrasRef.current = [];
+      setFrames([]);
+      markedRef.current = false;
+      markerIndexRef.current = null;
+      setMarkerShown(false);
+      setDuration(opening.duration_s);
+      const pick = { ...opening, blob };
+      setLastOpening(pick);
+      setOpeningPick(pick);
+      setStatus({ kind: "idle" });
     } catch (err) {
       setStatus({
         kind: "error",
@@ -838,8 +838,8 @@ export function AnalyzeFlow({
     }
   }
 
-  // The mark is confirmed. A mark is mandatory here; the no-marker path is
-  // skipFraming, always available but visually secondary.
+  // The mark is confirmed. There is no unmarked path any more (D-062): this is
+  // the only way out of the framing card.
   function confirmFraming() {
     const opening = openingPick;
     const picked = mark;
@@ -856,71 +856,28 @@ export function AnalyzeFlow({
     void runVideoExtraction(opening.blob, { x: picked.x, y: picked.y, t }, win);
   }
 
-  // Analysis without a mark. Never a dead end: the model chooses the subject
-  // and says so via subject_check ("unmarked"), which the results page shows.
-  function skipFraming() {
-    const opening = openingPick;
-    if (!opening) return;
-    const win = trim ?? undefined;
-    setOpeningPick(null);
-    setStatus({ kind: "reading" });
-    void runVideoExtraction(opening.blob, undefined, win);
-  }
-
   async function onVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // The gallery picker can hand back a still even though the input asks for
+    // video types only. Stills are not analyzable (D-062): one photo has no
+    // sequence to read and no moment to mark an athlete at.
+    if (file.type.startsWith("image/")) {
+      setStatus({
+        kind: "error",
+        message:
+          "That's a photo. Vollyio reads the movement between frames, so pick a video of the rep.",
+      });
+      return;
+    }
     setStatus({ kind: "reading" });
     try {
-      // The gallery picker can return a still image as well as a video -
-      // handle whichever the player chose.
-      if (file.type.startsWith("image/")) {
-        const f = await extractFramesFromPhotos([file]);
-        setFrames(f);
-        setLastOpening(null);
-        markedRef.current = false;
-        markerIndexRef.current = null;
-        setMarkerShown(false);
-        setSource("photos");
-        setDuration(null);
-        setVideoUrl(null);
-        clipRef.current = null;
-        extrasRef.current = [];
-        setStatus({ kind: "idle" });
-      } else {
-        await handleVideo(file);
-      }
+      await handleVideo(file);
     } catch (err) {
       setStatus({
         kind: "error",
         message: err instanceof Error ? err.message : "Couldn't read that clip.",
-      });
-    }
-  }
-
-  async function onPhotosPicked(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (files.length === 0) return;
-    setStatus({ kind: "reading" });
-    try {
-      const f = await extractFramesFromPhotos(files);
-      setFrames(f);
-      setLastOpening(null);
-      markedRef.current = false;
-      markerIndexRef.current = null;
-      setMarkerShown(false);
-      setSource("photos");
-      setDuration(null);
-      setVideoUrl(null);
-      clipRef.current = null;
-      extrasRef.current = [];
-      setStatus({ kind: "idle" });
-    } catch (err) {
-      setStatus({
-        kind: "error",
-        message: err instanceof Error ? err.message : "Couldn't read those photos.",
       });
     }
   }
@@ -1053,14 +1010,6 @@ export function AnalyzeFlow({
                 accept="video/mp4,video/quicktime,video/webm,video/3gpp,video/x-matroska"
                 hidden
                 onChange={onVideoPicked}
-              />
-              <input
-                ref={photoInput}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                hidden
-                onChange={onPhotosPicked}
               />
 
             </div>
@@ -1252,10 +1201,9 @@ export function AnalyzeFlow({
                     )}
                   </>
                 )}
-                {/* One primary button. A mark analyzes that player; without a
-                    mark it stays disabled with the reason spelled out, and the
-                    unmarked path remains available underneath so nothing ever
-                    dead-ends. */}
+                {/* One primary button, one path. A mark is required (D-062):
+                    without it the button stays disabled with the reason
+                    spelled out. */}
                 {mark ? (
                   <button
                     type="button"
@@ -1283,19 +1231,12 @@ export function AnalyzeFlow({
                     </p>
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={skipFraming}
-                  className="btn-ghost mt-2 min-h-11 w-full text-xs"
-                >
-                  Analyze without marking a player
-                </button>
               </div>
             )}
 
             {frames.length > 0 ? (
               <div className="reward-earned">
-                {(markerShown || (lastOpening && source === "video")) && (
+                {(markerShown || lastOpening) && (
                   <div className="mb-2 flex items-center gap-2 text-xs text-chalk-dim">
                     {markerShown && (
                       <>
@@ -1308,7 +1249,7 @@ export function AnalyzeFlow({
                         </span>
                       </>
                     )}
-                    {lastOpening && source === "video" && !openingPick && (
+                    {lastOpening && !openingPick && (
                       <button
                         type="button"
                         onClick={() => setOpeningPick(lastOpening)}
@@ -1358,7 +1299,7 @@ export function AnalyzeFlow({
                 type="button"
                 aria-busy={busy}
                 disabled={busy}
-                onClick={() => submit(frames, source, duration)}
+                onClick={() => submit(frames, duration)}
                 className="btn-primary mt-4 w-full disabled:opacity-40"
               >
                 {busy ? (
@@ -1396,7 +1337,7 @@ export function AnalyzeFlow({
                   type="button"
                   aria-busy={retrying}
                   disabled={busy}
-                  onClick={() => submit(frames, source, duration, true)}
+                  onClick={() => submit(frames, duration, true)}
                   className="btn-ghost mt-3 flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
                 >
                   {retrying ? (

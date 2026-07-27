@@ -20,7 +20,10 @@ export const analyzeRequestSchema = z
   .object({
     skill: z.enum(SKILLS),
     discipline: z.enum(DISCIPLINES).default("indoor"),
-    source: z.enum(["video", "photos"]),
+    // Video only (D-062). A still sequence cannot carry the ring marker the
+    // subject read depends on, and the mechanics live between frames. Stored
+    // rows keep the older 'photos' value; nothing new may create one.
+    source: z.literal("video"),
     duration_s: z.number().min(0).max(MAX_CAPTURE_SECONDS).nullable(),
     has_clip: z.boolean().optional(),
     clip_ext: z.string().trim().max(16).nullable().optional(),

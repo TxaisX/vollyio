@@ -35,6 +35,12 @@ test("analysis request rejects non-sequential frame indices", () => {
   assert.equal(analyzeRequestSchema.safeParse(body).success, false);
 });
 
+test("analysis request rejects a photo sequence", () => {
+  const body = validBody();
+  body.source = "photos";
+  assert.equal(analyzeRequestSchema.safeParse(body).success, false);
+});
+
 test("analysis request rejects impossible durations and timestamps", () => {
   const body = validBody();
   body.duration_s = -1;
