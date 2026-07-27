@@ -17,7 +17,7 @@ const STEPS = [
   {
     n: "01",
     title: "Upload a rep",
-    body: "Film with your camera app and upload up to 45 seconds of any skill. Photos work too.",
+    body: "Film with your camera app and upload up to 10 seconds of one skill. iPhone or Android.",
   },
   {
     n: "02",
@@ -36,9 +36,10 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "What do I need to get started?",
     a: (
       <p>
-        A phone and a browser. Film up to 45 seconds of one skill with your
-        camera app and upload it, or use a clip you already have. Photos work
-        too. No
+        A phone and a browser. Film up to 10 seconds of one skill with your
+        camera app and upload it, or trim a clip you already have. One rep
+        reads better than a rally, and a whole game is not what this scores.
+        iPhone and Android clips both work. No
         wearables, no rig, no second person required. Vollyio runs on the web
         on iOS, Android, and desktop, and you can install it like an app.
       </p>
