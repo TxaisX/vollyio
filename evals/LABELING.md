@@ -52,8 +52,10 @@ Once the spend cap is raised:
 
 1. Local coverage gate first: `node scripts/eval-coverage.mjs --strict` must exit 0
    (no blocking gaps) once the cases are labeled. This is the enforcing gate; the
-   CI step of the same name is report-only, because the cases are gitignored and
-   never reach CI.
+   CI step of the same name is report-only, because `evals/cases/*.json` is
+   gitignored local scratch and never reaches CI. The one case set that IS
+   tracked is `evals/cases-pro-regression/`, the set `BASELINE.json`'s ids
+   resolve to; run it with `node scripts/run-evals.mjs --cases evals/cases-pro-regression`.
 2. Start a local server, and set the coaching key plus `EVAL_TOKEN` in the
    environment (the eval route returns 404 without the token and off loopback).
 3. Score with stability:

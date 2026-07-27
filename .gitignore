@@ -54,15 +54,13 @@ next-env.d.ts
 .codex/
 .openai/
 
-# local eval data: frames cut from personal/source footage, never committed.
+# Local eval data: frames cut from personal/source footage, never committed.
+# evals/cases-pro-regression/ is deliberately NOT here. It is the one tracked
+# case set, because the committed BASELINE.json resolves its ids against it.
 evals/cases/*.json
-evals/work/
 evals/footage/
 evals/RESULTS.json
-evals/GROUPS.json
 /eval-results/
-/public/pose-test-*.jpg
-/public/pose-test-*.png
 
 # local render/lighthouse scratch
 /.cache/
