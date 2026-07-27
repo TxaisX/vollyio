@@ -24,6 +24,22 @@ denominator. Run `node scripts/eval-coverage.mjs` before trusting any number.
 6. **Freeze** — `node scripts/make-baseline.mjs --label "<what changed>"` writes
    `evals/BASELINE.json` and `evals/BASELINE.md` from the recorded run.
 
+## Two case directories, and why
+
+`evals/cases/` is **gitignored local scratch**. Whatever you capture lands there
+and stays on your machine.
+
+`evals/cases-pro-regression/` is **tracked**, and it is the set the committed
+`BASELINE.json` ids resolve to. It exists so a fresh clone can reproduce the
+baseline; without it the baseline would be a number nobody could re-derive.
+Point the runner at it explicitly:
+
+```
+node scripts/run-evals.mjs --cases evals/cases-pro-regression
+```
+
+`--cases` defaults to `evals/cases`, so the capture loop above is unchanged.
+
 ## Case format (`evals/cases/*.json`)
 
 ```json
@@ -50,7 +66,7 @@ denominator. Run `node scripts/eval-coverage.mjs` before trusting any number.
 ### `measurements`
 
 The on-device motion-tracking block captured alongside the frames, in the shape
-`lib/ai/measurements-schema.ts` validates (`version`, `capture`, `units`,
+`lib/ai/schema.ts` validates (`version`, `capture`, `units`,
 `reps`, `session`, `omitted_below_confidence`). The runner feeds it to the model
 exactly as `/api/analyze` does, so grounded scoring is measured rather than
 assumed. `null` means the case never captured one, and the

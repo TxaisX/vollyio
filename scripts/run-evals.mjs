@@ -5,7 +5,12 @@
 //
 // Usage:
 //   node scripts/run-evals.mjs [--base http://localhost:3222] [--runs 2]
-//     [--case <id prefix>] [--force]
+//     [--case <id prefix>] [--force] [--cases <dir>]
+//
+// --cases exists because evals/cases/*.json is gitignored local scratch, while
+// the case set BASELINE.json's ids resolve to is tracked at
+// evals/cases-pro-regression. Without a way to point at it, the committed
+// baseline could not be reproduced from a fresh clone.
 
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import {
@@ -25,7 +30,12 @@ const BASE = args.base ?? "http://localhost:3222";
 const RUNS = Math.max(1, Math.min(3, Number(args.runs ?? 2)));
 const STABILITY_TOLERANCE = 8;
 const RESULTS_PATH = "evals/RESULTS.json";
+const CASES_DIR = (args.cases ?? "evals/cases").replace(/[\\/]+$/, "");
 const EVAL_TOKEN = process.env.EVAL_TOKEN;
+
+if (!existsSync(CASES_DIR)) {
+  throw new Error(`No case directory at ${CASES_DIR}.`);
+}
 
 if (!EVAL_TOKEN) {
   throw new Error("EVAL_TOKEN is required.");
@@ -36,7 +46,7 @@ const requestOptions = () => ({
   signal: AbortSignal.timeout(15 * 60 * 1000),
 });
 
-const ids = readdirSync("evals/cases")
+const ids = readdirSync(CASES_DIR)
   .filter((f) => f.endsWith(".json"))
   .map((f) => f.replace(/\.json$/, ""))
   .filter((id) => !args.case || id.startsWith(args.case))
@@ -51,7 +61,7 @@ function save() {
 }
 
 for (const id of ids) {
-  const meta = JSON.parse(readFileSync(`evals/cases/${id}.json`, "utf8"));
+  const meta = JSON.parse(readFileSync(`${CASES_DIR}/${id}.json`, "utf8"));
   if (meta.excluded) {
     console.log(`${id}: excluded, skipped`);
     continue;
@@ -116,7 +126,7 @@ console.log(
     `, ${verifiable}/${done.length} judgeable)`,
 );
 
-const coverage = summarizeCoverage(loadCoverageCases());
+const coverage = summarizeCoverage(loadCoverageCases(CASES_DIR));
 console.log("");
 for (const line of coverageReport(coverage)) console.log(line);
 if (coverageGaps(coverage).length) {
