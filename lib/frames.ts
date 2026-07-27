@@ -6,6 +6,14 @@ import {
   type TrimWindow,
 } from "./frame-select";
 import { MAX_FRAME_DIM, VIDEO_FRAME_DIM, scaledSize } from "./frame-scale";
+import {
+  planFrameTimes,
+  frameDimForKind,
+  CORE_FRAME_DIM,
+  normalizeFps,
+  fpsFromSamples,
+} from "./frame-plan";
+import type { Skill } from "./skills";
 
 // Re-exported: callers have imported MAX_FRAME_DIM from this module since
 // before the sizing rules were split out into their own pure file.
@@ -60,6 +68,11 @@ export type VideoExtraction = {
 
 export type ExtractOpts = {
   debug?: boolean;
+  // The skill the player declared at upload. It decides where the frame budget
+  // goes: each skill's contact phase gets the source's own frame rate and the
+  // rest of the window stays gapless around it (D-061). Omitted falls back to
+  // the uniform pass, so nothing depends on it being supplied.
+  skill?: Skill;
   // A user-trimmed analysis window (absolute clip seconds). Every sampling
   // path stays inside it; omitted means the whole clip. Lets a long clip be
   // analyzed by choosing a window instead of being rejected outright.
@@ -121,6 +134,53 @@ function sampleFractions(duration: number): number[] {
 // in desktop Chrome plays fine in Safari, because Chrome ships no HEVC decoder
 // on most platforms. So these messages name the browser and give the two fixes
 // that actually work, rather than blaming the clip.
+// The source's own frame rate, measured rather than assumed, because it sets
+// the floor on stride: asking for frames closer together than the source
+// contains just re-decodes the same image. requestVideoFrameCallback reports
+// the presented-frame count against media time, which is exact where it
+// exists; Firefox has no such API, so 30 is the fallback and the planner
+// treats it as a normal value rather than a special case.
+export async function detectSourceFps(video: HTMLVideoElement): Promise<number> {
+  type Meta = { mediaTime: number; presentedFrames: number };
+  type WithRvfc = HTMLVideoElement & {
+    requestVideoFrameCallback?: (cb: (now: number, meta: Meta) => void) => number;
+  };
+  const v = video as WithRvfc;
+  if (typeof v.requestVideoFrameCallback !== "function") return 30;
+
+  const wasMuted = video.muted;
+  video.muted = true;
+  try {
+    return await new Promise<number>((resolve) => {
+      let first: Meta | null = null;
+      let settled = false;
+      const finish = (fps: number) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        video.pause();
+        resolve(normalizeFps(fps));
+      };
+      // Measuring must never be able to hang an upload.
+      const timer = setTimeout(() => finish(30), 1500);
+      const step = (_now: number, meta: Meta) => {
+        if (settled) return;
+        if (!first) {
+          first = { ...meta };
+        } else {
+          const measured = fpsFromSamples(first, meta);
+          if (measured != null) return finish(measured);
+        }
+        v.requestVideoFrameCallback!(step);
+      };
+      v.requestVideoFrameCallback!(step);
+      video.play().catch(() => finish(30));
+    });
+  } finally {
+    video.muted = wasMuted;
+  }
+}
+
 export function videoErrorMessage(video: HTMLVideoElement): string {
   const code = video.error?.code;
   if (code === 4)
@@ -245,7 +305,11 @@ async function renderPlanned(
   const out: Rendered[] = [];
   for (const pf of planned) {
     await seekTo(video, pf.timeS);
-    const [w, h] = scaledSize(vw, vh, dim, { upscale });
+    // Pixels follow the frame's role (D-061): contact frames keep full size,
+    // approach and recovery frames render smaller. `dim` scales both together
+    // so the over-budget fallback can shrink the whole set at once.
+    const kindDim = Math.round(dim * (frameDimForKind(pf.kind) / CORE_FRAME_DIM));
+    const [w, h] = scaledSize(vw, vh, kindDim, { upscale });
     canvas.width = w;
     canvas.height = h;
     // Canvas resets context state when the backing size changes.
@@ -267,12 +331,13 @@ async function renderPlanned(
 async function finalizePlanned(
   video: HTMLVideoElement,
   planned: PlannedFrame[],
+  dim = DENSE_FRAME_DIM,
 ): Promise<{ frames: Frame[]; chosen: { t: number; kind: FrameKind }[]; totalBytes: number }> {
   const budget = MAX_BODY_BYTES * 0.9;
   // Upscale on the primary pass only: a sub-target clip is worth interpolating
   // up to the budget. The fallback pass below exists because we are already
   // over budget, so enlarging there would be self-defeating.
-  let rendered = await renderPlanned(video, planned, DENSE_FRAME_DIM, VIDEO_JPEG_QUALITY, true);
+  let rendered = await renderPlanned(video, planned, dim, VIDEO_JPEG_QUALITY, true);
   let total = rendered.reduce((a, r) => a + b64Bytes(r.dataUrl), 0);
 
   // Over budget → re-encode everything smaller and cheaper (one extra pass).
@@ -311,20 +376,34 @@ async function sampleDense(
   wantDebug: boolean,
   win?: TrimWindow,
   markT?: number,
+  skill?: Skill,
+  sourceFps = 30,
 ): Promise<VideoExtraction> {
   const duration = video.duration;
   const startS = Math.max(0, win?.startS ?? 0);
   const endS = Math.min(duration, win?.endS ?? duration);
   const span = Math.max(0.1, endS - startS);
 
-  // Uniform coverage of the WHOLE window: near video rate on short clips,
-  // spread evenly when the window is longer than the frame budget covers.
-  const count = Math.max(4, Math.min(MAX_FRAMES, Math.ceil(span * DENSE_FPS)));
-  const step = span / count;
-  let planned: PlannedFrame[] = Array.from({ length: count }, (_, i) => ({
-    timeS: Math.min(startS + step * (i + 0.5), Math.max(endS - 0.05, startS)),
-    kind: "context" as const,
-  }));
+  // With a declared skill the budget is shaped to the movement: the contact
+  // phase at the source's own frame rate, the rest gapless around it (D-061).
+  // Without one, the original uniform pass, unchanged.
+  let planned: PlannedFrame[];
+  if (skill) {
+    planned = planFrameTimes({
+      window: { startS, endS },
+      skill,
+      sourceFps,
+      maxFrames: MAX_FRAMES,
+      markT,
+    });
+  } else {
+    const count = Math.max(4, Math.min(MAX_FRAMES, Math.ceil(span * DENSE_FPS)));
+    const step = span / count;
+    planned = Array.from({ length: count }, (_, i) => ({
+      timeS: Math.min(startS + step * (i + 0.5), Math.max(endS - 0.05, startS)),
+      kind: "context" as const,
+    }));
+  }
   if (markT != null) planned = injectMarkTime(planned, markT);
 
   const { frames, chosen, totalBytes } = await finalizePlanned(video, planned);
@@ -352,7 +431,9 @@ export async function extractFramesFromVideo(
     opts?.markT != null
       ? Math.min(Math.max(opts.markT, win.startS + 0.02), Math.max(win.startS + 0.02, win.endS - 0.05))
       : undefined;
-  return sampleDense(video, opts?.debug ?? false, win, markT);
+  // Only worth measuring when a skill plan will actually use it.
+  const sourceFps = opts?.skill ? await detectSourceFps(video) : 30;
+  return sampleDense(video, opts?.debug ?? false, win, markT, opts?.skill, sourceFps);
 }
 
 export async function extractFrames(
