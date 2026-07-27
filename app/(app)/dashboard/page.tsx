@@ -496,7 +496,7 @@ export default async function Dashboard({
                     No film yet.
                   </p>
                   <p className="mx-auto mt-1 max-w-xs text-sm text-chalk-dim">
-                    Your rating starts with one rep. Forty-five seconds, any skill.
+                    Your rating starts with one rep. Ten seconds, any skill.
                   </p>
                   <Link href="/analyze" className="btn-primary mt-5 inline-flex text-sm">
                     Film your first rep

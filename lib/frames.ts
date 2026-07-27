@@ -11,7 +11,13 @@ import { MAX_FRAME_DIM, VIDEO_FRAME_DIM, scaledSize } from "./frame-scale";
 // before the sizing rules were split out into their own pure file.
 export { MAX_FRAME_DIM };
 
-export const MAX_CLIP_SECONDS = 45;
+// A product limit, not a technical one. Nothing here can reliably pick one
+// skill out of continuous play yet, so a long clip gets scored against
+// whatever happened to be in frame. Ten seconds is about one rep plus the
+// approach, which forces the player to choose the moment instead of us
+// guessing at it. Raise this only when segmentation is proven, not when the
+// request budget allows more.
+export const MAX_CLIP_SECONDS = 10;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Dense uniform sampler tuning (D-041): the coach sees the WHOLE window at a
@@ -19,7 +25,17 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 // old sparse set so a full watch still fits the request budget.
 const VIDEO_JPEG_QUALITY = 0.65;
 const DENSE_FRAME_DIM = 1024;
-const DENSE_FPS = 6;
+// Sized to the movement, not to a round number. A spike arm swing from cocked
+// to contact runs 120-160ms and a phase needs 4-5 frames before its sequence
+// is readable rather than aliased, so the swing wants ~30ms between frames.
+// MAX_FRAMES is the real ceiling (40 frames at 1024px already fills the 4MB
+// body), which makes this a coverage-versus-resolution trade: 40 frames buys
+// 20fps over 2s, 16fps over 2.5s, or 4fps over the full 10s window.
+//
+// At the old value of 6 a short window UNDERSPENT the budget: a 2s window
+// asked for 12 frames when 40 were available. This only changes short windows,
+// since anything past ~2s was already clamped by MAX_FRAMES.
+const DENSE_FPS = 20;
 
 
 export type Frame = {
@@ -100,13 +116,18 @@ function sampleFractions(duration: number): number[] {
 }
 
 
+// Frames are pulled client side, so playability is a property of the BROWSER
+// the player is standing in, not of the file. The same iPhone clip that fails
+// in desktop Chrome plays fine in Safari, because Chrome ships no HEVC decoder
+// on most platforms. So these messages name the browser and give the two fixes
+// that actually work, rather than blaming the clip.
 export function videoErrorMessage(video: HTMLVideoElement): string {
   const code = video.error?.code;
   if (code === 4)
-    return "This browser can't decode that file. iPhone clips are often HEVC, which desktop Chrome can't play. Re-export the clip as MP4, or use the photo option below.";
+    return "This browser can't play that clip. iPhones record HEVC by default, which Chrome can't decode. Open Vollyio in Safari, or set your iPhone to Camera, Formats, Most Compatible and film it again.";
   if (code === 3)
-    return "That video looks corrupted or only partly loaded. Re-export the clip, or use the photo option below.";
-  return "Couldn't read that video in this browser. Try a different export of the clip, or use the photo option below.";
+    return "That video looks corrupted or only partly loaded. Re-export the clip and try again.";
+  return "Couldn't read that video in this browser. Try Safari on iPhone, or re-export the clip as MP4.";
 }
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {

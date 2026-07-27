@@ -20,9 +20,9 @@ Add one visually-hidden `role="status" aria-live="polite"` region. The visible t
 | WHERE | PURPOSE | STRING |
 |---|---|---|
 | recorder.tsx, camera ready (`phase === "ready"`) | camera opened | `Camera ready. Press Start to record.` |
-| recorder.tsx, on `start()` | recording started | `Recording started. 45 seconds max.` |
+| recorder.tsx, on `start()` | recording started | `Recording started. 10 seconds max.` |
 | recorder.tsx, countdown (throttled: fire once at 10s left, once at 5s left) | counting | `10 seconds left.` / `5 seconds left.` |
-| recorder.tsx, auto-stop at cap | auto-stopped | `Recording stopped at the 45 second limit. Analyzing your rep.` |
+| recorder.tsx, auto-stop at cap | auto-stopped | `Recording stopped at the 10 second limit. Analyzing your rep.` |
 | recorder.tsx, manual Stop | stopped | `Recording stopped. Analyzing your rep.` |
 | recorder.tsx, `getUserMedia`/`MediaRecorder` throws | capture failed | `Your camera could not start. Upload a clip instead.` |
 | recorder.tsx, `<video>` element | label the live preview | aria-label: `Camera preview` |
@@ -236,7 +236,9 @@ Note on the dashboard `Deadline` helper (goals.tsx): `${days} days left` / `Due 
 
 These already meet voice; listed so they are not rewritten. Only the trailing-period fix in scoreboard (section 1) applies.
 
-- dashboard recent: `No film yet.` / `Your rating starts with one rep. Forty-five seconds, any skill.` / CTA `Film your first rep`.
+- dashboard recent: `No film yet.` / `Your rating starts with one rep. Ten seconds, any skill.` / CTA `Film your first rep`.
+
+Clip-length note (2026-07-27): the cap moved 45s to 10s and `lib/frames.ts` `MAX_CLIP_SECONDS` is the only source. It is a product limit, not a technical one, because nothing can reliably pick one skill out of continuous play yet. Copy says "one rep" rather than "a few seconds", and never invites a full game.
 - dashboard goals card: `Nothing on the board.` + `Set a target.`
 - goals empty: `One number to chase gives every session a direction.`
 - history empty: `Nothing here yet.` / `No ${skill} reps logged.` / `No reps logged yet.` / CTA `Film a rep`.

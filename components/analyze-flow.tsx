@@ -1030,7 +1030,7 @@ export function AnalyzeFlow({
                   Upload a clip
                 </button>
                 <p className="mt-3 text-xs text-chalk-dim">
-                  A few seconds, up to 45. Any angle you can get. Film with
+                  One rep, up to 10 seconds. Any angle you can get. Film with
                   your camera app, then pick the clip here.
                 </p>
               </div>
@@ -1041,9 +1041,14 @@ export function AnalyzeFlow({
                 // Explicit MIME types only, Android maps wildcard accepts
                 // (video/*, image/*) to a camera-capture intent on some
                 // devices, skipping the gallery entirely. Concrete types
-                // always open the media picker. onVideoPicked handles
-                // either kind.
-                accept="video/mp4,video/quicktime,video/webm,video/3gpp,video/x-matroska,image/jpeg,image/png,image/webp"
+                // always open the media picker.
+                //
+                // Covers both platforms at the picker: video/quicktime is the
+                // iPhone .mov, video/3gpp and video/x-matroska are what some
+                // Android cameras write. Stills are no longer offered here.
+                // A single photo cannot show a swing's sequence, and the whole
+                // point of the read is the mechanics between frames.
+                accept="video/mp4,video/quicktime,video/webm,video/3gpp,video/x-matroska"
                 hidden
                 onChange={onVideoPicked}
               />
@@ -1056,16 +1061,6 @@ export function AnalyzeFlow({
                 onChange={onPhotosPicked}
               />
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => photoInput.current?.click()}
-                  disabled={busy}
-                  className="chip min-h-11"
-                >
-                  Use photos instead
-                </button>
-              </div>
             </div>
           )}
         </div>
