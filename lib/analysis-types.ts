@@ -106,10 +106,17 @@ export type AnalysisResult = {
   frame_times?: (number | null)[];
 };
 
-// Dense continuous coverage (D-041): the whole trim window at up to 6fps,
-// capped by what one request can carry. The coach watches the clip, it does
-// not get a highlight reel.
-export const MAX_FRAMES = 40;
+// Dense continuous coverage (D-041), shaped to the movement (D-061). Raised
+// 40 -> 64 without growing the request: context frames render at 640 while
+// contact frames keep 1024, so the pixel pool is unchanged and the extra
+// budget buys the approach back to a ~55ms stride.
+//
+// This number is MIRRORED BY A DATABASE TRIGGER. Changing it here alone
+// recreates D-046, where a dense clip was read and BILLED and then rejected at
+// the insert. The trigger ceiling lives in the newest migration that redefines
+// private.enforce_analysis_insert_limit, and lib/security-contract.test.ts
+// pins the two together.
+export const MAX_FRAMES = 64;
 // Total frames stored permanently per analysis (send set + extras); only the
 // send set ships to the model. Shared so the API schema accepts exactly what
 // the extraction planner can produce.

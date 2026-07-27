@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { MAX_FRAMES } from "./analysis-types.ts";
 
 test("security migration keeps quotas atomic and profile authority server-controlled", async () => {
@@ -75,10 +75,18 @@ test("coach quota migration pins the hardened limits (D-047)", async () => {
 });
 
 test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {
-  const align = await readFile(
-    new URL("../supabase/migrations/017_frame_cap_alignment.sql", import.meta.url),
-    "utf8",
-  );
+  // Read the NEWEST migration that redefines the trigger, not a fixed filename.
+  // Pinning 017 by name meant a later migration could raise the ceiling and
+  // leave this test still asserting against the superseded one, which is the
+  // exact drift D-046 was about.
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let align = "";
+  for (const name of names) {
+    const sql = await readFile(new URL(name, dir), "utf8");
+    if (/create or replace function private\.enforce_analysis_insert_limit/i.test(sql)) align = sql;
+  }
+  assert.notEqual(align, "", "no migration defines enforce_analysis_insert_limit");
   assert.match(align, /create or replace function private\.enforce_analysis_insert_limit/i);
   // The DB media-count ceiling must equal the app send budget, or a dense clip is
   // read, billed, then rejected at the insert (D-046). Tie it to the constant so

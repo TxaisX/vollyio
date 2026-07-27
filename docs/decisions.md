@@ -1896,3 +1896,68 @@ Not fixed, and deliberately: the PGRST303 skew error is PostgREST validating a
 token's `iat` against the database clock. Nothing in application code can
 correct it, and it now degrades to an unauthenticated request rather than a
 crash, which is the right outcome for a token this server cannot trust.
+
+## D-061 - The frame budget follows the movement, amending D-041
+
+D-041 deleted the motion-picked sampler on evidence: sparse coverage scored a
+standstill jump as an approach jump, because the sampler guessed which moments
+mattered and left gaps everywhere else. That finding stands and this does not
+reopen it. Coverage remains continuous end to end; only the stride varies, and
+`lib/frame-plan.test.ts` pins the guarantee that earns the right to move frames
+around: no part of any plan is sampled sparser than spreading the old 40-frame
+budget evenly over the same window would have been.
+
+The forcing argument is arithmetic. An attack needs about three seconds to show
+approach through landing, which spread evenly is 75ms per frame, while the
+swing from cocked to contact runs 120-160ms and needs four or five frames
+before its sequence reads as motion rather than a slideshow. Evenly spread, the
+swing gets two. No per-skill window tuning fixes that while the stride is
+constant, so "score the mechanics" and "uniform stride" could not both be true.
+
+`lib/frame-plan.ts` holds a profile per skill (window in whole seconds, the
+contact phase to protect, and where contact sits when the player marked no
+instant) and allocates in a fixed order that makes the guarantee structural
+rather than incidental. Reserve the edges first at uniform-40 density. Give the
+core whatever remains, at the source's own frame rate. Then trim the core, and
+only the core, until the plan fits the pixel pool. The edges are the guarantee
+and the core is the upgrade, so the upgrade is what yields. An earlier attempt
+capped the core at 30fps instead, and it inverted on short high-fps windows
+where a fixed core came out coarser than uniform would have been.
+
+The core is anchored on the marked instant when there is one, since that is the
+moment the player chose. Core frames are `burst` and edges are `context`, which
+makes the existing over-budget backstop in `finalizePlanned` degrade in the
+right direction: it thins the approach and never the contact.
+
+MAX_FRAMES moves 40 to 64 and costs no extra request budget, because pixels now
+vary by role exactly as stride does. Contact frames keep 1024 where hand shape
+and elbow lead must be legible; approach and recovery frames render at 640,
+where the question is only where the athlete is and what the body is doing. So
+64 frames occupy the pixel pool 40 already spent. Migration 025 moves the
+database ceiling in the same change, because raising the app constant alone is
+D-046 exactly: a dense clip read, billed, and only then rejected at the insert.
+`lib/security-contract.test.ts` now resolves the newest migration defining
+`enforce_analysis_insert_limit` instead of pinning 017 by filename, which was
+that same drift waiting to happen a second time.
+
+Two limits are measured rather than assumed. Source frame rate comes from
+`requestVideoFrameCallback` (`detectSourceFps`), since sampling finer than the
+source only re-decodes the same image; Firefox has no such API and falls back
+to 30. `fpsFromSamples` is split out so the arithmetic is testable headlessly,
+and it abstains on a stalled clock, a backwards seek, or too few frames instead
+of inventing a rate. And no region is planned denser than the frames it
+actually contains.
+
+Three defects the tests caught before this shipped, all of which would have
+degraded coverage silently. A region planned denser than the source, whose
+duplicate filter then stripped the region and tore a 0.41s hole. A float error
+where a 0.1s tail arrives as 0.09999999999999998 and a bare `floor()` drops a
+whole frame, turning a 33ms stride into 50ms. And the pixel pool not
+constraining the allocator, so a 60fps source produced a plan costing 43.7M of
+41.9M pixels, which the over-budget fallback would have silently trimmed.
+
+Verified against a real clip (3840x2160 h264, 60.12fps): every skill beats
+uniform-40 at every point, attack running a 29ms core against a 74ms approach
+where uniform was 75ms throughout, at 98-99% of the pixel pool. Windows are
+whole seconds. Omitting the skill falls back to the original uniform pass, and
+a window too long to carve a worthwhile core out of degrades to it too.

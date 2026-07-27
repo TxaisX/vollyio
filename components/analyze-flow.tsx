@@ -766,6 +766,8 @@ export function AnalyzeFlow({
         debug: debugRef.current,
         window,
         markT: target?.t,
+        // Shapes the frame budget around this skill's contact phase (D-061).
+        skill: skill ?? undefined,
       });
       setStatus({ kind: "reading" });
       extrasRef.current = extras;
