@@ -9,7 +9,7 @@ export type AnalyzeRequestFrame = {
 export type AnalyzeRequest = {
   skill: Skill;
   discipline: Discipline;
-  source: "video" | "photos";
+  source: "video";
   duration_s: number | null;
   has_clip?: boolean;
   clip_ext?: string | null;

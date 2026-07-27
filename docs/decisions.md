@@ -1961,3 +1961,71 @@ uniform-40 at every point, attack running a 29ms core against a 74ms approach
 where uniform was 75ms throughout, at 98-99% of the pixel pool. Windows are
 whole seconds. Omitting the skill falls back to the original uniform pass, and
 a window too long to carve a worthwhile core out of degrades to it too.
+
+## D-062 - Marking the athlete is required, and video is the only input
+
+Reverses the "never a dead end" half of D-033 and D-036. The framing card used
+to offer "Analyze without marking a player" underneath the primary button, on
+the reasoning that the model would choose a subject and report `subject_check:
+unmarked`, so the player always had a way forward. In practice that path
+produces the one failure the product cannot absorb: a confident, detailed
+breakdown of somebody else's rep. The player has no way to tell a wrong-subject
+read from a harsh one, and every downstream number (the rating EWMA, the
+priority-fix loop, the goal progress) inherits the error silently.
+
+So the mark is now mandatory, and the three ways around it are closed:
+
+1. The skip button is gone. The primary button stays disabled with the reason
+   spelled out until a tap lands, and the coach-spotted candidate list (D-036)
+   remains the assist that makes the tap cheap.
+2. A clip this browser cannot render an opening frame from is now a hard stop
+   with a named cause, not a silent fall-through to unmarked extraction. That
+   fall-through was the real leak: the one case where marking was impossible
+   was exactly the case that skipped it. The message names HEVC and Safari,
+   matching `videoErrorMessage`, because the failure is a property of the
+   browser the player is standing in and not of their clip.
+3. Photos are no longer an input at all. `extractFramesFromPhotos`, the hidden
+   photo input, and the still-image branch of the gallery picker are removed;
+   `analyzeRequestSchema` narrows `source` to the literal `"video"`. A still
+   sequence carries no ring marker and no scrub timeline to place one on, so
+   "marking is required" and "photos are accepted" cannot both be true. The
+   database check constraint still allows `photos` because stored rows predate
+   this; nothing new can create one.
+
+`subject_check` keeps rendering "unmarked" for older rows. The model still
+reports it, and a mismatch verdict is still the loudest thing on the results
+page, because a mark tells the model who to watch but does not guarantee it
+obeyed.
+
+## D-063 - The marketing film assets are re-rendered, not just the code that makes them
+
+Two claims the code gates cannot see were shipping in pixels. The film-room
+clip carried "SIDEOUT - FILM ROOM" burned into the frame, rendered 2026-07-20
+from a component whose caption was renamed a week later. The hero loop drew a
+green pose skeleton with joint dots and a tracking box over the athlete,
+rendered 2026-07-14, before D-033 removed on-device pose estimation from the
+product and `landing-cinematic.test.ts` started pinning "the mark is a ring,
+not a skeleton" against `film-scene.tsx`.
+
+Both components were correct. Both assets were stale. Every gate passed the
+whole time, because `npm run lint`, `tsc`, and 151 tests read source, and the
+lie was in an mp4.
+
+Both variants are re-rendered from the current `film-scene.tsx` via
+`scripts/render-hero-film.mjs`: `VARIANT=ambient` to `vollyio-hero-loop.*` and
+`VARIANT=film` to `vollyio-court-vision.*`, posters at frame 186, which is
+inside the 22%-to-100% window where `film-ring-in` holds the ring at full
+opacity. The hero now shows what the product does: a tap pulse, a gold ring
+around the chosen athlete, and a "watching" tag. No box, no skeleton, no
+projected ball path.
+
+Render against a PRODUCTION server, never `next dev`. The first pass was
+captured off the dev server and baked the Next.js dev-tools badge into the
+bottom-left of all 300 frames. The script drives Chrome by CDP and screenshots
+whatever the page paints, so anything a dev build overlays becomes part of the
+asset. `npm run build && npx next start -p 3002`, then `SITE_URL` at that port.
+
+The gap this leaves open: a rendered asset can contradict a decision entry and
+nothing will fail. Re-render both variants whenever `film-scene.tsx`, the
+brand name, or the analysis overlay changes, and treat "did the assets get
+re-rendered" as part of any change to what the product claims to measure.

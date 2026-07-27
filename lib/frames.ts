@@ -26,7 +26,6 @@ export { MAX_FRAME_DIM };
 // guessing at it. Raise this only when segmentation is proven, not when the
 // request budget allows more.
 export const MAX_CLIP_SECONDS = 10;
-export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Dense uniform sampler tuning (D-041): the coach sees the WHOLE window at a
 // steady rate, never a motion-picked subset. Frames render smaller than the
@@ -458,52 +457,3 @@ export async function extractFrames(
   }
 }
 
-function readDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
-    reader.readAsDataURL(file);
-  });
-}
-
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () =>
-      reject(new Error("Could not decode that image. It may be corrupted or unsupported."));
-    img.src = dataUrl;
-  });
-}
-
-async function resizeDataUrl(dataUrl: string): Promise<string> {
-  const img = await loadImage(dataUrl);
-  const [width, height] = scaledSize(
-    img.naturalWidth || img.width,
-    img.naturalHeight || img.height,
-  );
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", 0.7);
-}
-
-export async function extractFramesFromPhotos(files: File[]): Promise<Frame[]> {
-  if (files.length < 2) {
-    throw new Error("Pick at least 2-3 photos so there is a sequence to read.");
-  }
-  if (files.length > MAX_FRAMES) {
-    throw new Error(`Pick up to ${MAX_FRAMES} photos - the sequence reads best under that.`);
-  }
-  const bad = files.find((f) => !ALLOWED_IMAGE_TYPES.includes(f.type));
-  if (bad) {
-    throw new Error(
-      `"${bad.name}" isn't a JPG, PNG, or WEBP. iPhone photos are often HEIC. Pick "Most Compatible" in Settings > Camera > Formats, or take a screenshot instead.`,
-    );
-  }
-  const raw = await Promise.all(files.map(readDataUrl));
-  const resized = await Promise.all(raw.map(resizeDataUrl));
-  return resized.map((dataUrl, index) => ({ index, time_s: null, dataUrl }));
-}
