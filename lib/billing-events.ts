@@ -113,6 +113,23 @@ export function planChangeFromEvent(event: unknown): PlanChange {
     if (!type || !object) return null;
 
     switch (type) {
+      // All three checkout outcomes share ONE rule: grant if and only if the
+      // session itself says the money settled. The event name is not the
+      // signal; `payment_status` is.
+      //
+      // `completed` fires when the player finishes the page, which for a card
+      // means paid and for a delayed method (bank debit, and several wallets
+      // and redirects that automatic payment methods enable per country) means
+      // the money has not moved yet. `async_payment_succeeded` is that money
+      // arriving, minutes or days later, and it is the moment the entitlement
+      // is actually owed. `async_payment_failed` is it never arriving.
+      //
+      // Reading payment_status rather than the event type means a method we
+      // have never seen behaves correctly the first time someone uses it, which
+      // matters because the enabled set is a dashboard toggle rather than
+      // anything this code declares.
+      case "checkout.session.async_payment_succeeded":
+      case "checkout.session.async_payment_failed":
       case "checkout.session.completed": {
         // The only event that knows the player without a lookup, because the
         // session was created carrying their id. It is also the event that

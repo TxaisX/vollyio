@@ -341,3 +341,68 @@ test("a paid session that is not complete grants nothing", () => {
   );
   assert.equal(change, null);
 });
+
+test("a delayed payment that later succeeds grants Pro", () => {
+  // Bank debits and several wallets close the session before the money moves.
+  // Without this event the player has paid and is still on Free until some
+  // later subscription event happens to land.
+  const change = planChangeFromEvent(
+    event("checkout.session.async_payment_succeeded", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
+      client_reference_id: USER,
+      customer: "cus_1",
+      subscription: "sub_1",
+    }),
+  );
+  assert.equal(change?.plan, "pro");
+  assert.equal(change?.customerId, "cus_1");
+  assert.equal(change?.subscriptionId, "sub_1");
+});
+
+test("a delayed payment that later fails grants nothing", () => {
+  const change = planChangeFromEvent(
+    event("checkout.session.async_payment_failed", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "unpaid",
+      client_reference_id: USER,
+      customer: "cus_1",
+    }),
+  );
+  assert.equal(change, null);
+});
+
+test("the checkout rule is payment_status, not the event name", () => {
+  // The same unsettled session must be refused whichever of the three checkout
+  // events carries it, and the same settled session accepted. That is what lets
+  // a payment method nobody has tested behave correctly the first time.
+  for (const type of [
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+    "checkout.session.async_payment_failed",
+  ]) {
+    const unsettled = planChangeFromEvent(
+      event(type, {
+        id: "cs_1",
+        status: "complete",
+        payment_status: "unpaid",
+        client_reference_id: USER,
+        customer: "cus_1",
+      }),
+    );
+    assert.equal(unsettled, null, `${type} unsettled`);
+
+    const settled = planChangeFromEvent(
+      event(type, {
+        id: "cs_1",
+        status: "complete",
+        payment_status: "paid",
+        client_reference_id: USER,
+        customer: "cus_1",
+      }),
+    );
+    assert.equal(settled?.plan, "pro", `${type} settled`);
+  }
+});
