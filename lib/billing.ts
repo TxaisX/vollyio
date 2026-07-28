@@ -1,4 +1,5 @@
 import "server-only";
+import { stripeConfigured } from "./stripe.ts";
 
 // Two switches, not one (D-066).
 //
@@ -47,17 +48,27 @@ export function billingOpen(): boolean {
 /**
  * The value handed to `reserve_analysis_entitlement(p_enforce_free)`.
  *
- * All three: the cap is switched on, the purchase path exists, and there is
- * somewhere to send a player who hits it. Any one missing and the answer is
- * false, because refusing a rep is only fair when the player can do something
- * about it.
+ * FOUR conditions, and the fourth is the one the first version of this split
+ * missed: the provider must actually be configured. Checking only for an
+ * upgrade URL meant the cap could engage while `stripeConfigured()` was false,
+ * so a player would hit a 402, follow the upsell to the plan card, and find no
+ * button there at all. That is the D-029 trapdoor wearing a different hat.
+ *
+ * The useful consequence: the cap flag is now safe to set BEFORE the provider
+ * keys land. It arms the intent and engages itself the moment checkout works,
+ * exactly like the upgrade button does. Nothing is ever capped in a
+ * configuration where a player cannot buy their way past it.
  */
 export function shouldEnforceFreeTier(): boolean {
-  return FREE_CAP_ENFORCED && BILLING_ENABLED && hasUpgradePath();
+  return FREE_CAP_ENFORCED && billingOpen() && stripeConfigured();
 }
 
-// True when the cap is switched on but there is nowhere to pay: a
-// misconfiguration worth surfacing rather than silently ignoring.
+/**
+ * The cap is switched on but something behind it is missing, so it is not
+ * actually engaging. Not an error: this is the armed-and-waiting state between
+ * setting the flag and the keys arriving. Worth surfacing so the difference
+ * between "waiting" and "on" is never guessed at.
+ */
 export function isBillingMisconfigured(): boolean {
-  return FREE_CAP_ENFORCED && !billingOpen();
+  return FREE_CAP_ENFORCED && !shouldEnforceFreeTier();
 }
