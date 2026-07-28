@@ -22,6 +22,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
+  // Deleting the account here does not cancel anything at the payment
+  // provider: the subscription lives on their side, keyed on a customer record
+  // this delete is about to orphan. A player who deletes while subscribed would
+  // keep being charged every month for a product they can no longer sign into,
+  // and with the profile gone there is no longer a row tying the customer id to
+  // a person, so even reconciling it by hand gets hard.
+  //
+  // So this refuses rather than silently doing the damage. It is the one thing
+  // standing between "I deleted my account" and a recurring charge with no way
+  // to stop it from inside the app. Cancelling for them was the alternative,
+  // and it is worse: a cancellation is a billing decision, and making one on
+  // someone's behalf inside a delete request they may have half-meant is not a
+  // decision to take for them.
+  const { data: billing } = await supabase
+    .from("profiles")
+    .select("plan, stripe_subscription_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (billing?.plan === "pro" && billing?.stripe_subscription_id) {
+    return NextResponse.json(
+      {
+        error:
+          "Cancel your plan first, in Settings. Deleting your account now would leave the subscription running and still charging you.",
+      },
+      { status: 409 },
+    );
+  }
+
   const quota = await consumeApiQuota(supabase, "account_delete");
   if (!quota.ok) {
     return NextResponse.json(

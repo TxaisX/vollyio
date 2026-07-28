@@ -7,7 +7,7 @@ import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
 import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
-import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
+import { consumeApiQuota } from "@/lib/security/rate-limit";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { COACH_ENABLED } from "@/lib/flags";
 
@@ -91,11 +91,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Second gate, rolling 24 hours (D-047): the hourly window alone lets one
-  // account burn a day of spend. The hourly unit above is refunded so a
-  // day-capped player's next-hour slot is not also consumed.
+  // account burn a day of spend.
+  //
+  // The hourly unit is NOT refunded here any more. Migration 030 narrowed
+  // `refund_api_quota` to the analyze scope and made it require an entitlement
+  // reservation id, because granted to `authenticated` and callable through
+  // PostgREST the old shape let a player reset their own window and walk
+  // through the hourly cap. Coach has no reservation to present, so there is
+  // nothing to prove the call came from this route. The cost of dropping it is
+  // that a player who trips the daily ceiling also spends one hourly unit they
+  // did not get an answer for; the cost of keeping it was a quota escape.
   const daily = await consumeApiQuota(supabase, "coach_daily");
   if (!daily.ok || !daily.allowed) {
-    await refundApiQuota(supabase, "coach");
     if (!daily.ok) {
       return NextResponse.json(
         { error: "The coaching service is unavailable. Try again." },

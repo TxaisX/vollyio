@@ -135,3 +135,23 @@ test("player-written telemetry cannot move the platform spend estimate far", asy
   assert.match(sql, /output_tokens.*between 0 and 1000000/i);
   assert.match(sql, /duration_ms.*between 0 and 600000/i);
 });
+
+test("the quota refund cannot be driven by a player", async () => {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let sql = "";
+  for (const name of names) {
+    const body = await readFile(new URL(name, dir), "utf8");
+    if (/create or replace function public\.refund_api_quota/i.test(body)) sql = body;
+  }
+  assert.notEqual(sql, "", "no migration defines refund_api_quota");
+  // The reservation id is the proof of server origin: it is generated in the
+  // database, handed to the analyze route, and never sent to a client.
+  assert.match(sql, /p_reservation_id uuid/i);
+  assert.match(sql, /from private\.analysis_entitlement_reservations/i);
+  // Deleting the row was the escape: the next consume then started a fresh
+  // window, so the hourly cap never fired.
+  assert.doesNotMatch(sql, /delete from private\.api_rate_limits/i);
+  assert.match(sql, /greatest\(0, request_count - 1\)/i);
+  assert.match(sql, /drop function if exists public\.refund_api_quota\(text\)/i);
+});

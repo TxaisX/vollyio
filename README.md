@@ -12,10 +12,15 @@ Live: https://vollyio.com
 ## Stack
 
 - Next.js 16 (App Router, React 19). Middleware is `proxy.ts`, not `middleware.ts`.
-- Supabase (auth + Postgres 17, row-level security on every table).
+- Supabase (auth + Postgres 17, row-level security on every table). Exactly one
+  code path can bypass row security: `lib/supabase/service.ts` reads
+  `SUPABASE_SERVICE_ROLE_KEY` and the payment webhook is its only importer, so
+  every other request runs as the signed-in player. That key is not set in
+  production yet, and the webhook fails closed without it.
 - The coaching service (a vision model) runs server-side only; the browser never
-  sees its key. It is never vendor-named in the UI or docs; the only vendor string
-  in the repo is the `ANTHROPIC_API_KEY` env var.
+  sees its key. It is never vendor-named in the UI or docs; the vendor-named
+  strings in the repo are env var names and code paths (`ANTHROPIC_API_KEY`, the
+  `STRIPE_*` variables, `app/api/stripe/`), never anything a player reads.
 - Tailwind v4 design tokens, hand-rolled motion, no chart/state/animation libraries.
 - Deployed on Vercel; a push to `master` auto-deploys production.
 
@@ -31,6 +36,21 @@ renders the full checklist under each bar so a score explains itself line by lin
 No display curve softens the number (D-040), and the coaching service watches the
 whole trim window at uniform dense coverage rather than a few picked frames (D-041).
 
+## Plans
+
+Free is 3 completed analyses per UTC calendar month, resetting on the 1st. Pro
+is $14.99 a month for 18. The count reads stored analysis rows, so a clip that
+fails, times out, or hits a capacity outage costs the player nothing and needs no
+refund path.
+
+The paid path is built end to end and is switched off. Metering arms only when
+both `BILLING_ENABLED=true` and `NEXT_PUBLIC_UPGRADE_URL` are set. Checkout needs
+those same two plus the provider key, price, and endpoint secret, and answers 503
+otherwise rather than selling an allowance nothing is enforcing. Today none of
+that is configured, so nothing is metered, no upgrade button renders, and no
+money can move. `docs/billing.md` is the authority on the model; `SETUP.md` lists
+the environment variables and says which are secret.
+
 ## Quickstart
 
 See `SETUP.md` for environment variables, the Supabase project, and running the
@@ -43,7 +63,11 @@ Gates before any commit: `npm run lint`, `npm run typecheck`, `npm test`,
 - `docs/README.md` - index of the living documentation set.
 - `docs/decisions.md` - the decision log; **D-027 onward is the accurate account
   of the current system.**
-- `docs/security.md` - the access-control authority (endpoint, database, storage).
+- `docs/security.md` - the access-control authority (endpoint, database, storage),
+  including the billing verification steps that prove a player cannot write their
+  own plan.
+- `docs/billing.md` - plans, allowances, and what is built versus switched off.
+- `docs/deploy.md` - environments, gates, environment variables, rollout order.
 - `HANDOFF.md` - current project state and the exact next step.
 - `archive/` - historical material and evidence for retired systems (do not treat
   as current).
