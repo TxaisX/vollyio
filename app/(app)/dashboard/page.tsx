@@ -11,6 +11,8 @@ import { SkillIcon } from "@/components/skill-icons";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { overallScore } from "@/lib/ratings";
+import { shouldEnforceFreeTier } from "@/lib/billing";
+import { allowanceCopy, readAllowance } from "@/lib/allowance";
 import {
   SKILLS,
   SKILL_LABEL,
@@ -265,6 +267,7 @@ export default async function Dashboard({
     { data: analysesData, error: analysesError },
     { data: goalsData, error: goalsError },
     progress,
+    allowance,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -294,6 +297,10 @@ export default async function Dashboard({
       .order("created_at", { ascending: false })
       .limit(3),
     getProgress(supabase, userId!),
+    // Only ask when the cap is actually enforced, so the counter cannot appear
+    // in a build where nothing is metered. In the same round trip as the rest:
+    // this is one line of text and must not add latency to the dashboard.
+    shouldEnforceFreeTier() ? readAllowance(supabase) : null,
   ]);
 
   const fetchError =
@@ -357,6 +364,14 @@ export default async function Dashboard({
                 </Link>
               ))}
             </div>
+            {/* Before the drive to /analyze, not after the upload. A player who
+                films, marks and waits only to meet a paywall has done 90
+                seconds of work for nothing (docs/billing.md 4.6). */}
+            {allowance && (
+              <p className="mt-3 font-mono text-[11px] text-chalk-dim">
+                {allowanceCopy(allowance)}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3 xl:hidden">
             <div className="flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5">

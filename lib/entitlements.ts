@@ -4,9 +4,26 @@ type EntitlementClient = {
   rpc(name: string, args?: Record<string, unknown>): RpcResult;
 };
 
+// What the 402 needs in order to say something true: which plan, how many the
+// plan allows, how many are spent, and when the window rolls. Null when the
+// database reply did not carry them, in which case the client says "you're
+// out" without inventing a number.
+export type AllowanceDetail = {
+  plan: string;
+  allowance: number;
+  used: number;
+  resetsAt: string;
+};
+
 type ReservationResult =
   | { ok: true; allowed: true; reservationId: string }
-  | { ok: true; allowed: false; reason: "used" | "in_progress" }
+  | { ok: true; allowed: false; reason: "in_progress" }
+  | {
+      ok: true;
+      allowed: false;
+      reason: "month_exhausted";
+      detail: AllowanceDetail | null;
+    }
   | { ok: false; allowed: false };
 
 const UUID_PATTERN =
@@ -49,10 +66,38 @@ export async function reserveAnalysisEntitlement(
     return { ok: true, allowed: true, reservationId };
   }
 
-  if (row.reason === "used" || row.reason === "in_progress") {
-    return { ok: true, allowed: false, reason: row.reason };
+  if (row.reason === "in_progress") {
+    return { ok: true, allowed: false, reason: "in_progress" };
+  }
+
+  // 'used' is migration 011's lifetime-one reason, superseded by 026's monthly
+  // window. Accepting it here makes the deploy order not matter: code that
+  // lands before the migration still denies with an upsell instead of reading
+  // as a malformed reply and returning a 503.
+  if (row.reason === "month_exhausted" || row.reason === "used") {
+    return {
+      ok: true,
+      allowed: false,
+      reason: "month_exhausted",
+      detail: allowanceDetail(row),
+    };
   }
   return { ok: false, allowed: false };
+}
+
+function allowanceDetail(row: Record<string, unknown>): AllowanceDetail | null {
+  const { plan, allowance, used, resets_at: resetsAt } = row;
+  if (
+    typeof plan !== "string" ||
+    typeof allowance !== "number" ||
+    !Number.isFinite(allowance) ||
+    typeof used !== "number" ||
+    !Number.isFinite(used) ||
+    typeof resetsAt !== "string"
+  ) {
+    return null;
+  }
+  return { plan, allowance, used, resetsAt };
 }
 
 export async function releaseAnalysisEntitlement(

@@ -2029,3 +2029,194 @@ The gap this leaves open: a rendered asset can contradict a decision entry and
 nothing will fail. Re-render both variants whenever `film-scene.tsx`, the
 brand name, or the analysis overlay changes, and treat "did the assets get
 re-rendered" as part of any change to what the product claims to measure.
+
+## D-064 - Three a month replaces one forever, and one function is the only thing that can make a player pay
+
+D-029 left billing unable to move in either direction. The enforcement half
+was real and atomic: `reserve_analysis_entitlement` would refuse a free
+account any analysis after its first, ever. The commerce half was absent, and
+`profiles.plan` had no writer at all, because migration 012 revoked the column
+from `authenticated` and nothing replaced it. So `BILLING_ENABLED=true` was a
+trapdoor rather than a flag, and `lib/billing.ts` answered it with a two-key
+gate: enforce only when the flag is set AND an upgrade destination exists.
+That gate was a promise that the second key would eventually be real. This
+entry is the work that makes it real, and the boundaries that work had to
+respect.
+
+**Lifetime-one becomes 3 a month free and 18 a month Pro** (migration 026).
+Lifetime-one was never a plan. It was containment: one analysis per account
+meant a farmed signup was worth one analysis, and that property was carrying
+weight the signup flow does not carry on its own. Giving it up is what section
+6 of `docs/billing.md` is about, and the owner's call is recorded there rather
+than relitigated here. What is settled is the shape: an allowance is per plan,
+resolved inside the same advisory lock that already serialized the check, and
+compared against a count. Nothing about the D-012 reservation machinery
+changed. Only the question it asks did.
+
+**The window is the UTC calendar month, not the subscription anniversary.**
+An anniversary window is the one the payment provider knows and the database
+does not. Answering "how many do I have left" would mean asking the provider
+for the current period boundaries, so a provider outage would take the counter
+down with it, and a player sitting between a failed renewal and a successful
+retry would have no defined window at all. Worse, the number the player sees
+would depend on a remote system that has no reason to be up when they are
+about to film. The calendar month is computed from the server clock inside
+`private.allowance_window`, never passed in, and it agrees with
+`analyze_usage_month()` (migration 021), so the per-user counter and the
+platform spend backstop measure the same month rather than two overlapping
+ones. It also makes "when do I get more" a date a player can read off a
+calendar instead of a fact about their own billing history. The cost is real
+and accepted: subscribe on the 28th and you get 18 for three days, then 18
+again on the 1st. Charging on the anniversary while metering on the calendar
+is the trade, and the alternative trades a durable local answer for a remote
+one.
+
+**The count reads completed analyses, never attempts.** A row in `analyses`
+is inserted only after the coaching call returned and parsed, so counting rows
+means a clip that fails, times out, or hits a capacity outage costs the player
+nothing, and there is no refund path to get wrong. This falls out of the
+existing insert ordering rather than being bolted on, which is exactly why it
+is written down here and in the migration comment: the property is one
+refactor away from being lost, and the failure would be silent and would land
+on the player, who would have paid an analysis for an error that was ours.
+Counting reservations or requests would also collapse the allowance into the
+abuse quota, and section 2 of `docs/billing.md` is explicit that those three
+walls stay separate.
+
+**The plan writer is `service_role` only** (migration 027). AGENTS.md says
+player-editable metadata never decides authorization or billing entitlement,
+and `profiles.plan` is the sharpest test of that rule in the product: if the
+account could write the column that describes what the account may spend, one
+data-API call would grant 18 analyses a month and every other control would
+still pass, cheerfully. `set_subscription_plan` is `security definer` with
+`search_path = ''`, revoked from `public`, `anon`, and `authenticated`, and
+granted to `service_role`. The signature-verified webhook is its only caller.
+That is also the reason a service-role key now exists in the deployment at
+all, which is the largest single change to the security posture here:
+`lib/supabase/service.ts` is the only module that holds it, the webhook route
+is its only importer, and `docs/security.md` records that a second importer is
+a security change and not a refactor. The verification steps that prove a
+player cannot write their own plan live in that file's billing section, and
+they are steps to run rather than claims to trust.
+
+**No payment SDK.** The integration is two POSTs and one HMAC: `fetch`
+against the provider's form-encoded API to mint the checkout and management
+pages, and `node:crypto` to verify the webhook. The vendor SDK is a large
+transitive tree carrying an API-version coupling, its own retry behavior, and
+telemetry this app never asked for, against a dependency budget that is
+deliberately small and gated (D-001 section 10.5), and it would have to clear
+that gate on necessity alone. It does not: `lib/stripe-sign.ts` is pure and
+unit-tested, which is more than the SDK's verifier can be from inside our test
+run. There is a second reason that matters more. On the one route where
+getting verification wrong means anyone on the internet can set anyone's plan,
+the verification should be code we can read.
+
+**Cancel takes effect at period end.** The cancel click does not map to
+anything. A subscription cancelled at period end stays active until it gets
+there, and it is the subscription-deleted event that maps to `free`. So a
+player who cancels on the 3rd keeps Pro for the month they already paid for.
+Ending access at the click would be taking back something already bought, at
+exactly the moment the player is deciding what to think about us. The
+follow-on is stated in `docs/billing.md` section 7 and should reach the cancel
+confirmation rather than being discovered: their Pro-era analyses that month
+still count against the 3 they drop to.
+
+What is NOT built, so nobody reads this as a finished feature:
+
+- **No provider objects exist yet.** No product, no price, no webhook
+  endpoint, no keys. `BILLING_ENABLED` is unset, so nothing is metered and
+  every account is effectively unlimited right now, and `stripeConfigured()`
+  is false, so the plan card renders an honest "not switched on" state instead
+  of a button that would 503. The code path is complete; the account is empty.
+- **Neither billing route consumes an atomic quota.** The scope list in
+  `consume_api_quota` is fixed in SQL and holds no billing scope, and
+  borrowing `analyze` would charge a player analyses for pressing upgrade.
+  A signed-in player can therefore loop checkout. Recorded in
+  `docs/security.md` under request and cost controls with what closing it
+  costs.
+- **The "already on Pro" check is read-then-act.** The stored plan only turns
+  `pro` when the webhook lands, so two upgrade clicks seconds apart both pass
+  and both mint a session. If the player completes both, that is their money.
+  A billing quota, an idempotency key, or a post-payment state on the plan
+  card each fix a different part of it; none is built.
+- **The configuration gate is two keys wide and the feature needs three.**
+  `stripeConfigured()` checks the API key and the price, not the endpoint
+  secret, so a deploy holding the first two renders a live upgrade button and
+  then rejects every event the provider sends. The player is charged, the plan
+  is never written, and they cannot reach the portal to cancel because the
+  portal keys on a customer reference only the webhook records. `docs/security.md`
+  step B0 has the ordering that avoids it; widening the predicate is the fix.
+- **Nothing reconciles the stored plan against the provider.** The webhook
+  applies whatever the newest delivery says, deliveries are not ordered, and a
+  redelivered stale event can therefore overwrite a newer one with no further
+  event coming to correct it.
+- **`profiles.stripe_customer_id` has no unique index**, so two profiles
+  holding the same customer reference would resolve arbitrarily.
+- **Deleting an account does not cancel the subscription.** A player can
+  delete themselves and keep being charged for a product they no longer have.
+  That is the most user-hostile gap on this list and it should not survive the
+  first paying customer.
+- No dunning, no proration, no annual price, no trial, and no user-facing
+  "you are out of analyses" email. Players find out in the app, at the moment
+  it matters, which is section 5's call and stands.
+- The owner alert covers the spend backstop tripping. The other half of
+  section 5, the provider reporting credits exhausted, has no alert.
+
+## D-065 - The billing review found five ways to take money and deliver nothing
+
+Six agents built the billing surface in parallel and a reviewer read each slice
+against auth, secrets, fail-closed, entitlement integrity and correctness. It
+returned eleven blocking findings. Five of them were the same shape: a path
+where the product could charge a player and then fail to give them anything, and
+each one passed every gate the repo had.
+
+`stripeConfigured()` gated on the secret key and the price and not on the
+endpoint secret, which the same module owns. A deploy with two of the three
+shows a working upgrade button, takes the card, and then rejects every webhook
+forever: the plan never becomes pro, the customer id is never recorded, and
+because the portal needs that id the player cannot even cancel what they are
+being charged for. A missing environment variable has to deny the sale.
+
+The checkout route sold Pro without consulting `shouldEnforceFreeTier()`. With
+the free cap switched off, which is its state today, a subscription buys
+literally nothing, because an unenforced allowance is already unlimited. The
+route now refuses unless the thing being sold is the thing being enforced.
+
+Webhook delivery is not ordered, and the write was idempotent for duplicates
+only. A cancellation and the update that preceded it can arrive either way
+round, so a stale "still active" event landing second restored a subscription
+the player had already ended. `set_subscription_plan` now takes the event
+timestamp, compares it under an advisory lock against the newest one applied,
+and refuses to move a plan backwards. It still records the identifiers from a
+stale event, because dropping the customer id over an ordering accident is how a
+paying player ends up unable to reach the portal.
+
+`past_due` mapped to free while `invoice.payment_failed` deliberately did
+nothing. That is one policy stated twice and disagreeing with itself: the same
+failed renewal downgraded or did not depending on which event carried it. The
+provider retries a failed charge for days and most retries succeed, so
+`past_due` now keeps access and only `unpaid` and `canceled` drop it.
+
+The two payment routes had no atomic quota, which AGENTS.md requires before any
+paid or high-amplification call. They were the only mutating cookie-
+authenticated routes in the repo without one. Reusing the analyze scope would
+have let opening plan settings eat an analysis, so migration 028 adds a
+`billing` scope at 10 per hour.
+
+The finding worth the most was not in this work at all. `analyses.telemetry` is
+inserted by the analyze route using the PLAYER'S credentials, so migration 016
+had to grant `insert (telemetry)` to authenticated and nothing can tell the
+server apart from a client posting its own numbers. `analyze_usage_month()` sums
+that column, the budget guard prices the sum, and a tripped budget returns 503
+to every player. One account writing an absurd token count could therefore take
+the whole product offline, and after this change it would also have spammed the
+owner alert. Migration 028 bounds each field far above any real analysis and far
+below anything that could move a monthly total. That is a bound, not a fix: the
+fix is for the server to write telemetry with credentials the player does not
+hold, and that belongs in its own change to the analyze route.
+
+What this says about the method: parallel agents produced a working surface
+quickly and every one of them wrote code that passed lint, types, tests and the
+build. The defects were all in the seams between slices, in what one agent
+assumed another had handled. The review pass was not a formality, and neither
+was reading its findings rather than trusting the green gates.

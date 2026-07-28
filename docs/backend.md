@@ -14,15 +14,26 @@ learning: the coaching service (a server-side vision model) does the entire read
 
 ## 1. Supabase clients
 
-Three creators, one per execution context, all keyed on the public URL + anon key
-only. There is no service-role key anywhere, so every query runs as the signed-in
-user under RLS.
+Four creators, one per execution context. Three are keyed on the public URL plus
+the anon key, so every query they make runs as the signed-in user under RLS. The
+fourth is the service-role client, and it exists for exactly one caller.
 
 | Context | File | Cookies |
 |---|---|---|
 | Server Components / route handlers / server actions | `lib/supabase/server.ts` | `setAll` is try/caught; Server Components cannot set cookies, so the proxy refreshes the session instead |
 | Browser (client components, direct storage upload) | `lib/supabase/client.ts` | managed by the SSR helper |
 | Edge middleware | `proxy.ts` | mutates a rolling `NextResponse` so refreshed auth cookies ride back |
+| Payment webhook only | `lib/supabase/service.ts` | none; no session, no cookies |
+
+The service-role client is the one place in the repo that bypasses RLS, and its
+only legitimate caller is `POST /api/stripe/webhook`. It exists because
+`set_subscription_plan` and `user_id_for_billing_customer` (migration 027) are
+granted to `service_role` alone: the player must not be able to write their own
+plan, so the writer cannot be reachable by the authenticated role. The creator
+returns null when `SUPABASE_SERVICE_ROLE_KEY` is absent, so a deployment without
+the key fails closed instead of throwing at import. Do not import it anywhere
+else, and in particular never from a path whose request body a player controls
+without a verified signature in front of it.
 
 Middleware is `proxy.ts`, not `middleware.ts` (Next 16). It resolves identity
 local-first via `getClaims()` (JWT verified against the project keys, cached per

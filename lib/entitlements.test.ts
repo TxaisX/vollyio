@@ -77,6 +77,70 @@ test("entitlement reservation returns atomic denial and reservation states", asy
   });
 });
 
+test("an exhausted month carries the numbers the upsell needs", async () => {
+  const client = {
+    rpc: async () => ({
+      data: {
+        allowed: false,
+        reason: "month_exhausted",
+        reservation_id: null,
+        plan: "free",
+        allowance: 3,
+        used: 3,
+        resets_at: "2026-08-01T00:00:00+00:00",
+      },
+      error: null,
+    }),
+  };
+
+  assert.deepEqual(await reserveAnalysisEntitlement(client, true), {
+    ok: true,
+    allowed: false,
+    reason: "month_exhausted",
+    detail: {
+      plan: "free",
+      allowance: 3,
+      used: 3,
+      resetsAt: "2026-08-01T00:00:00+00:00",
+    },
+  });
+});
+
+test("an exhausted month without usable numbers still denies cleanly", async () => {
+  // A reply missing the detail fields must deny, not crash and not allow. The
+  // client can still say "you're out" without being able to say "of 3".
+  const partial = {
+    rpc: async () => ({
+      data: { allowed: false, reason: "month_exhausted", reservation_id: null },
+      error: null,
+    }),
+  };
+  assert.deepEqual(await reserveAnalysisEntitlement(partial, true), {
+    ok: true,
+    allowed: false,
+    reason: "month_exhausted",
+    detail: null,
+  });
+});
+
+test("the superseded lifetime-one reason still denies during a deploy window", async () => {
+  // Migration 026 replaces 'used' with 'month_exhausted'. If code lands before
+  // the migration does, the old reason must still read as exhausted rather than
+  // as a malformed reply, or a free player gets a 503 instead of an upsell.
+  const legacy = {
+    rpc: async () => ({
+      data: { allowed: false, reason: "used", reservation_id: null },
+      error: null,
+    }),
+  };
+  assert.deepEqual(await reserveAnalysisEntitlement(legacy, true), {
+    ok: true,
+    allowed: false,
+    reason: "month_exhausted",
+    detail: null,
+  });
+});
+
 test("entitlement release is scoped to its opaque reservation", async () => {
   let args: unknown;
   const client = {

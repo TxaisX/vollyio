@@ -22,6 +22,7 @@ import {
   type Skill,
   type Discipline,
 } from "@/lib/skills";
+import { PLAN_LABEL } from "@/lib/plans";
 import {
   clampTrimWindow,
   clockStamp,
@@ -34,7 +35,13 @@ import type { AnalyzeRequest } from "@/lib/analysis-types";
 type Status =
   | { kind: "idle" | "reading" | "sending" }
   | { kind: "error"; message: string }
-  | { kind: "unavailable"; message: string };
+  | { kind: "unavailable"; message: string; canUpgrade?: boolean };
+
+// Where a player who has used their month goes. `lib/billing.ts` owns the
+// server-side view of this variable, but that module is server-only, so the
+// client reads the public var itself. Unset means no paid tier has shipped
+// yet: render no link at all rather than an upgrade that leads nowhere.
+const UPGRADE_HREF = process.env.NEXT_PUBLIC_UPGRADE_URL?.trim() || null;
 
 // The tap that marks the athlete: a normalized point in the frame at a clip
 // time. Just a coordinate; nothing on the device interprets it (D-033).
@@ -638,6 +645,14 @@ export function AnalyzeFlow({
 
   const busy = status.kind === "reading" || status.kind === "sending";
   const canSubmit = frames.length > 0;
+  // The paid way out, offered only when there is one: a player who has used
+  // their month on the free plan. A paid player at their limit is waiting for
+  // the reset, and an unset destination means nothing is for sale yet.
+  const upgradeHref =
+    status.kind === "unavailable" && status.canUpgrade ? UPGRADE_HREF : null;
+  const canRetry =
+    frames.length > 0 &&
+    (status.kind === "error" || status.kind === "unavailable" || retrying);
 
   // Release the preview object URL when it is replaced or on unmount.
   useEffect(() => {
@@ -708,14 +723,16 @@ export function AnalyzeFlow({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: null }));
-        // Degraded service, hourly limit, and free cap (D-043/D-054) all mean
-        // the player did nothing wrong and the clip was never read, so they
-        // render calm (not the coral error state) with a path forward;
+        // The whole body, not just the message: a monthly-allowance 402 also
+        // carries which wall was hit and when it lifts.
+        const failure = await res.json().catch(() => null);
+        // Degraded service, hourly limit, and monthly allowance (D-043/D-054)
+        // all mean the player did nothing wrong and the clip was never read,
+        // so they render calm (not the coral error state) with a path forward;
         // everything else stays an error. The mapping lives in
         // lib/analyze-status.ts where it is unit-tested.
         setRetrying(false);
-        setStatus(analyzeFailureStatus(res.status, error));
+        setStatus(analyzeFailureStatus(res.status, failure));
         return;
       }
       const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
@@ -1329,25 +1346,34 @@ export function AnalyzeFlow({
               {status.kind === "unavailable" && (
                 <p className="animate-fade-up text-chalk">{status.message}</p>
               )}
-              {frames.length > 0 &&
-                (status.kind === "error" ||
-                  status.kind === "unavailable" ||
-                  retrying) && (
-                <button
-                  type="button"
-                  aria-busy={retrying}
-                  disabled={busy}
-                  onClick={() => submit(frames, duration, true)}
-                  className="btn-ghost mt-3 flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
-                >
-                  {retrying ? (
-                    <>
-                      <WorkingDots /> Scoring your rep, frame by frame…
-                    </>
-                  ) : (
-                    "Send it again"
+              {(canRetry || upgradeHref !== null) && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  {canRetry && (
+                    <button
+                      type="button"
+                      aria-busy={retrying}
+                      disabled={busy}
+                      onClick={() => submit(frames, duration, true)}
+                      className="btn-ghost flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
+                    >
+                      {retrying ? (
+                        <>
+                          <WorkingDots /> Scoring your rep, frame by frame…
+                        </>
+                      ) : (
+                        "Send it again"
+                      )}
+                    </button>
                   )}
-                </button>
+                  {upgradeHref && (
+                    <a
+                      href={upgradeHref}
+                      className="btn-primary min-h-11 px-4 py-2 text-sm"
+                    >
+                      Upgrade to {PLAN_LABEL.pro}
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
