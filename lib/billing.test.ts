@@ -25,16 +25,21 @@ function shouldEnforceFreeTier(
   capEnforced: boolean,
   billingEnabled: boolean,
   upgradeUrl: string | null,
+  providerConfigured: boolean,
 ): boolean {
-  return capEnforced && billingEnabled && upgradeUrl !== null;
+  return capEnforced && billingOpen(billingEnabled, upgradeUrl) && providerConfigured;
 }
 
 function isBillingMisconfigured(
   capEnforced: boolean,
   billingEnabled: boolean,
   upgradeUrl: string | null,
+  providerConfigured: boolean,
 ): boolean {
-  return capEnforced && !billingOpen(billingEnabled, upgradeUrl);
+  return (
+    capEnforced &&
+    !shouldEnforceFreeTier(capEnforced, billingEnabled, upgradeUrl, providerConfigured)
+  );
 }
 
 const URL_SET = "https://vollyio.com/settings#plan";
@@ -44,26 +49,26 @@ test("the launch posture: open product, Pro on offer, nothing capped", () => {
   // anyone who wants the paid plan can choose it.
   assert.equal(billingOpen(true, URL_SET), true, "Pro must be purchasable");
   assert.equal(
-    shouldEnforceFreeTier(false, true, URL_SET),
+    shouldEnforceFreeTier(false, true, URL_SET, true),
     false,
     "nobody may be refused a rep while the cap is off",
   );
-  assert.equal(isBillingMisconfigured(false, true, URL_SET), false);
+  assert.equal(isBillingMisconfigured(false, true, URL_SET, true), false);
 });
 
 test("the metered posture: cap on, with somewhere to pay", () => {
-  assert.equal(shouldEnforceFreeTier(true, true, URL_SET), true);
+  assert.equal(shouldEnforceFreeTier(true, true, URL_SET, true), true);
   assert.equal(billingOpen(true, URL_SET), true);
-  assert.equal(isBillingMisconfigured(true, true, URL_SET), false);
+  assert.equal(isBillingMisconfigured(true, true, URL_SET, true), false);
 });
 
 test("a cap with no way to pay never engages, and is flagged", () => {
   // The trapdoor. Either half missing and the cap must not bite.
-  assert.equal(shouldEnforceFreeTier(true, true, null), false, "no upgrade destination");
-  assert.equal(shouldEnforceFreeTier(true, false, URL_SET), false, "billing switched off");
-  assert.equal(shouldEnforceFreeTier(true, false, null), false, "neither");
-  assert.equal(isBillingMisconfigured(true, true, null), true);
-  assert.equal(isBillingMisconfigured(true, false, URL_SET), true);
+  assert.equal(shouldEnforceFreeTier(true, true, null, true), false, "no upgrade destination");
+  assert.equal(shouldEnforceFreeTier(true, false, URL_SET, true), false, "billing switched off");
+  assert.equal(shouldEnforceFreeTier(true, false, null, true), false, "neither");
+  assert.equal(isBillingMisconfigured(true, true, null, true), true);
+  assert.equal(isBillingMisconfigured(true, false, URL_SET, true), true);
 });
 
 test("billing off sells nothing, whatever the cap variable says", () => {
@@ -76,7 +81,8 @@ test("enforcement can never exceed the ability to pay, over the whole table", ()
   for (const cap of [true, false]) {
     for (const billing of [true, false]) {
       for (const url of [URL_SET, null]) {
-        const enforcing = shouldEnforceFreeTier(cap, billing, url);
+      for (const provider of [true, false]) {
+        const enforcing = shouldEnforceFreeTier(cap, billing, url, provider);
         // The property that matters: a player is never refused a rep in a
         // configuration where they could not have bought their way past it.
         if (enforcing) {
@@ -85,9 +91,15 @@ test("enforcement can never exceed the ability to pay, over the whole table", ()
             true,
             `enforcing with no purchase path at cap=${cap} billing=${billing} url=${url}`,
           );
+          assert.equal(
+            provider,
+            true,
+            `enforcing with no configured provider at cap=${cap} billing=${billing} url=${url}`,
+          );
         }
         // And the two states are mutually exclusive by construction.
-        assert.ok(!(enforcing && isBillingMisconfigured(cap, billing, url)));
+        assert.ok(!(enforcing && isBillingMisconfigured(cap, billing, url, provider)));
+      }
       }
     }
   }
@@ -97,5 +109,19 @@ test("an unset cap variable leaves the product open", () => {
   // The safe default is the open one. `ENFORCE_FREE_CAP` unset parses to false,
   // so forgetting it can never be the thing that starts refusing work.
   assert.equal(process.env.ENFORCE_FREE_CAP === "true", false);
-  assert.equal(shouldEnforceFreeTier(false, true, URL_SET), false);
+  assert.equal(shouldEnforceFreeTier(false, true, URL_SET, true), false);
+});
+
+test("the cap flag can be armed before the provider keys arrive", () => {
+  // This is the state the product is deliberately in: the owner has decided to
+  // meter the free tier, and the provider secret has not landed yet. The cap
+  // must NOT bite here, or a player hits a 402, follows the upsell to the plan
+  // card, and finds no button on it. It engages itself when the key arrives.
+  assert.equal(shouldEnforceFreeTier(true, true, URL_SET, false), false);
+  assert.equal(
+    isBillingMisconfigured(true, true, URL_SET, false),
+    true,
+    "armed but not engaging is a state worth surfacing, not a silent no-op",
+  );
+  assert.equal(shouldEnforceFreeTier(true, true, URL_SET, true), true, "and it engages once it can");
 });

@@ -205,13 +205,27 @@ export async function alertOwnerBudget(alert: BudgetAlert, deps: AlertDeps = {})
     // unreachable mailbox would hold this open on Node's default socket
     // behaviour, and this is awaited inside a player's analyze request. The
     // player is already getting a 503; they must not also wait on our mail.
+    //
+    // The timer is NOT unref'd, and is always cleared. An unref'd timer does not
+    // keep the event loop alive, so when this race is the only pending work the
+    // process can exit before it fires and the await never settles. That is not
+    // theoretical: it turned up as a CANCELLED test in CI (pass 266, fail 0,
+    // cancelled 1, exit 1) while passing locally, because local runs happened to
+    // have other work keeping the loop busy. Clearing in `finally` is what stops
+    // the un-unref'd timer dangling for the full timeout after a fast send.
     const timeoutMs = deps.timeoutMs ?? SEND_TIMEOUT_MS;
-    const result = await Promise.race([
-      send({ to, subject, text }),
-      new Promise<SendResult>((resolve) =>
-        setTimeout(() => resolve({ ok: false, error: "timed out" }), timeoutMs).unref?.(),
-      ),
-    ]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let result: SendResult;
+    try {
+      result = await Promise.race([
+        send({ to, subject, text }),
+        new Promise<SendResult>((resolve) => {
+          timer = setTimeout(() => resolve({ ok: false, error: "timed out" }), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
 
     if (!result.ok) {
       console.warn(`[owner-alert] ${alert.verdict} alert not delivered: ${result.error}`);
