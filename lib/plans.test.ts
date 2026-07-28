@@ -3,6 +3,21 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { MONTHLY_ALLOWANCE, monthlyAllowance, isPlan, PLANS } from "./plans.ts";
 
+
+// "Did this ever happen" is a different question from "what is the shape now".
+// A `drop function` or an `alter table ... add constraint` is a one-time event
+// recorded in the migration that performed it, so it must be looked for across
+// ALL of them; a later `create or replace` of the same function does not and
+// should not repeat it.
+async function allMigrations(): Promise<string> {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  const bodies = await Promise.all(
+    names.map((n) => readFile(new URL(n, dir), "utf8")),
+  );
+  return bodies.join("\n");
+}
+
 // Read the NEWEST migration that defines the allowance, not a fixed filename,
 // so a later migration that changes the numbers cannot leave this test
 // asserting against a superseded one. Same lesson as D-046.
@@ -60,7 +75,8 @@ test("only the service role may write a plan", async () => {
   // A player writing their own plan would be player-editable metadata deciding
   // billing entitlement, which AGENTS.md forbids outright.
   assert.doesNotMatch(sql, /grant update \([^)]*plan[^)]*\) on table public\.profiles to authenticated/i);
-  assert.match(sql, /check \(plan in \('free', 'pro'\)\)/i);
+  // The constraint was added once, by the migration that introduced the column.
+  assert.match(await allMigrations(), /check \(plan in \('free', 'pro'\)\)/i);
 });
 
 test("an unknown plan falls back to the free allowance rather than throwing", () => {
@@ -99,8 +115,12 @@ test("the plan writer refuses to move a plan backwards on an out-of-order event"
   // id because an event arrived out of order leaves a paying player unable to
   // reach the portal and cancel.
   assert.match(sql, /stripe_customer_id = coalesce\(p_customer_id, stripe_customer_id\)/i);
-  // The unguarded five-argument shape must not remain callable.
-  assert.match(sql, /drop function if exists public\.set_subscription_plan\(uuid, text, timestamptz, text, text\)/i);
+  // The unguarded five-argument shape must not remain callable. Dropped once,
+  // by the migration that introduced the guarded one.
+  assert.match(
+    await allMigrations(),
+    /drop function if exists public\.set_subscription_plan\(uuid, text, timestamptz, text, text\)/i,
+  );
 });
 
 test("the payment routes have their own quota scope and never borrow the analyze one", async () => {
@@ -153,5 +173,51 @@ test("the quota refund cannot be driven by a player", async () => {
   // window, so the hourly cap never fired.
   assert.doesNotMatch(sql, /delete from private\.api_rate_limits/i);
   assert.match(sql, /greatest\(0, request_count - 1\)/i);
-  assert.match(sql, /drop function if exists public\.refund_api_quota\(text\)/i);
+  assert.match(await allMigrations(), /drop function if exists public\.refund_api_quota\(text\)/i);
+});
+
+test("GREATEST and LEAST are never schema-qualified in any migration", async () => {
+  // `pg_catalog.greatest(...)` parses at creation and raises 42883 at execution,
+  // because GREATEST is a SQL construct handled by the grammar rather than a
+  // function in the catalog. It shipped in three functions and every gate stayed
+  // green, because the other pins in this file assert migration TEXT and a text
+  // pin cannot see a function that throws only when called.
+  //
+  // The qualification is never needed: the grammar resolves both regardless of
+  // search_path, which is exactly why `set search_path = ''` is safe.
+  // Scoped to the definition IN EFFECT for each function, not to every file
+  // that ever existed. 026, 027 and 030 still contain the broken form and are
+  // left alone on purpose: they are applied, and the repo has to keep matching
+  // what ran. 032 supersedes all three, and a replay from scratch ends correct
+  // because it runs last.
+  //
+  // Comments are stripped because 032 names the construct in prose to explain
+  // the failure, and a guard that trips on its own post-mortem would have to be
+  // deleted to stay green.
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  const effective = new Map<string, string>();
+  for (const name of names) {
+    const body = await readFile(new URL(name, dir), "utf8");
+    const code = body
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    for (const match of code.matchAll(
+      /create or replace function\s+([a-z_]+\.[a-z_]+)/gi,
+    )) {
+      // Everything from this definition to the next one, which is the body the
+      // database would end up holding.
+      const from = code.indexOf(match[0]);
+      const rest = code.slice(from);
+      const next = rest.slice(match[0].length).search(/create or replace function/i);
+      effective.set(match[1].toLowerCase(), next === -1 ? rest : rest.slice(0, next));
+    }
+  }
+
+  assert.ok(effective.size > 0, "no function definitions found");
+  for (const [fn, body] of effective) {
+    assert.doesNotMatch(body, /pg_catalog\.greatest/i, `${fn} qualifies GREATEST`);
+    assert.doesNotMatch(body, /pg_catalog\.least/i, `${fn} qualifies LEAST`);
+  }
 });
