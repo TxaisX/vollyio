@@ -50,29 +50,37 @@ export default async function History({
   return (
     <section className="max-w-4xl">
       <Reveal>
-        <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-          History
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-          The film room
-        </h1>
+        {/* Same header rhythm as the dashboard and settings: kicker, title,
+            controls, then one rule closing the block off from the content. */}
+        <div className="border-b border-line pb-5">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            History
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+            The film room
+          </h1>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link
-            href="/history"
-            className={`chip min-h-11 ${!activeSkill ? "chip-active" : ""}`}
-          >
-            All
-          </Link>
-          {SKILLS.map((s) => (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {/* aria-current, because the active filter is otherwise carried by
+                the gold fill alone. */}
             <Link
-              key={s}
-              href={`/history?skill=${s}`}
-              className={`chip min-h-11 ${activeSkill === s ? "chip-active" : ""}`}
+              href="/history"
+              aria-current={!activeSkill ? "page" : undefined}
+              className={`chip min-h-11 ${!activeSkill ? "chip-active" : ""}`}
             >
-              {SKILL_LABEL[s]}
+              All
             </Link>
-          ))}
+            {SKILLS.map((s) => (
+              <Link
+                key={s}
+                href={`/history?skill=${s}`}
+                aria-current={activeSkill === s ? "page" : undefined}
+                className={`chip min-h-11 ${activeSkill === s ? "chip-active" : ""}`}
+              >
+                {SKILL_LABEL[s]}
+              </Link>
+            ))}
+          </div>
         </div>
       </Reveal>
 
@@ -89,9 +97,9 @@ export default async function History({
           default="none"
         >
           {rows.length === 0 ? (
-            <div className="card mt-8 p-8 text-center">
-              <p className="font-display font-bold">Nothing here yet.</p>
-              <p className="mt-1 text-sm text-chalk-dim">
+            <div className="card mt-6 p-8 text-center">
+              <p className="font-display text-lg font-bold">Nothing here yet.</p>
+              <p className="mx-auto mt-1 max-w-xs text-sm text-chalk-dim">
                 {activeSkill
                   ? `No ${SKILL_LABEL[activeSkill].toLowerCase()} reps logged.`
                   : "No reps logged yet."}
@@ -106,7 +114,7 @@ export default async function History({
               <li key={r.id}>
                 <Link
                   href={`/analysis/${r.id}`}
-                  className="group flex items-start gap-3 rounded-control p-3 transition-colors hover:bg-navy-light"
+                  className="group flex min-h-11 items-start gap-3 rounded-control p-3 transition-colors hover:bg-navy-light"
                 >
                   <span className="w-12 shrink-0 pt-1 font-mono text-xs text-chalk-dim">
                     {new Date(r.created_at).toLocaleDateString(undefined, {

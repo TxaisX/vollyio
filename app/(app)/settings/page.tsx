@@ -80,7 +80,7 @@ export default async function Settings() {
       <div className="mt-6 space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
       <Reveal delay={60}>
         <div className="card p-5">
-          <p className="font-display font-bold">Account</p>
+          <h2 className="font-display font-bold">Account</h2>
           <form action={updateProfile} className="mt-3">
             <label
               htmlFor="display_name"
@@ -121,15 +121,25 @@ export default async function Settings() {
 
       <Reveal delay={180}>
         <div className="card p-5">
-          <p className="font-display font-bold">Player profile</p>
+          <h2 className="font-display font-bold">Player profile</h2>
           <p className="mt-1 text-xs text-chalk-dim">
             Where and how you usually play. New film starts from these.
           </p>
 
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+          {/* Each chip row is a named group: on its own, a button reading
+              "Indoor" or "Setter" arrives with no statement of what it sets. */}
+          <p
+            id="settings-environment"
+            className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim"
+          >
             Environment
           </p>
-          <form action={updateProfile} className="mt-2 flex flex-wrap gap-2">
+          <form
+            action={updateProfile}
+            role="group"
+            aria-labelledby="settings-environment"
+            className="mt-2 flex flex-wrap gap-2"
+          >
             {ANALYZE_DISCIPLINES.map((d) => (
               <button
                 key={d}
@@ -144,10 +154,18 @@ export default async function Settings() {
             ))}
           </form>
 
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+          <p
+            id="settings-position"
+            className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim"
+          >
             Position
           </p>
-          <form action={updateProfile} className="mt-2 flex flex-wrap gap-2">
+          <form
+            action={updateProfile}
+            role="group"
+            aria-labelledby="settings-position"
+            className="mt-2 flex flex-wrap gap-2"
+          >
             {POSITION_OPTIONS[profile.discipline].map(({ value, label }) => (
               <button
                 key={value}
@@ -162,10 +180,18 @@ export default async function Settings() {
             ))}
           </form>
 
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+          <p
+            id="settings-frequency"
+            className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim"
+          >
             How often you play
           </p>
-          <form action={updateProfile} className="mt-2 flex flex-wrap gap-2">
+          <form
+            action={updateProfile}
+            role="group"
+            aria-labelledby="settings-frequency"
+            className="mt-2 flex flex-wrap gap-2"
+          >
             {FREQUENCY_OPTIONS.map(({ value, label }) => (
               <button
                 key={value}
@@ -185,7 +211,9 @@ export default async function Settings() {
       <Reveal delay={240}>
         <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
           <div className="min-w-0 max-w-md">
-            <p className="font-display font-bold">Improve future analysis</p>
+            <h2 id="settings-consent" className="font-display font-bold">
+              Improve future analysis
+            </h2>
             <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
               Allow your clips and frames to help train future analysis
               features. Footage stays private to your account either way.
@@ -197,9 +225,12 @@ export default async function Settings() {
               name="allow"
               value={profile.training_consent ? "false" : "true"}
             />
+            {/* Named from the card title: "Allowed" on its own does not say
+                what was allowed. */}
             <button
               type="submit"
               aria-pressed={!!profile.training_consent}
+              aria-describedby="settings-consent"
               className={`chip min-h-11 ${profile.training_consent ? "chip-active" : ""}`}
             >
               {profile.training_consent ? "Allowed" : "Not allowed"}

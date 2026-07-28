@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { AnalyzeFlow } from "@/components/analyze-flow";
+import { LimitNotice } from "@/components/limit-notice";
 import { createClient } from "@/lib/supabase/server";
-import { shouldEnforceFreeTier } from "@/lib/billing";
-import { allowanceCopy, readAllowance } from "@/lib/allowance";
+import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
+import {
+  allowanceLine,
+  allowanceTone,
+  readAllowance,
+  resetDate,
+} from "@/lib/allowance";
 import { isDiscipline, isSkill } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +33,37 @@ export default async function Analyze({
     ? await readAllowance(await createClient())
     : null;
 
+  // None left: the flow is not offered at all. Every path through it ends at
+  // the same 402, so rendering the picker would be asking for a clip we already
+  // know will be refused, and the refusal would land after the upload instead
+  // of before it. A read that failed leaves `allowance` null and the flow
+  // renders as normal, because the server is still the thing that decides.
+  if (allowance && allowanceTone(allowance) === "out") {
+    return (
+      <section className="max-w-xl">
+        <LimitNotice
+          headingAs="h1"
+          plan={allowance.plan}
+          allowance={allowance.allowance}
+          resetsOn={resetDate(allowance)}
+          upgradeHref={UPGRADE_URL}
+        />
+      </section>
+    );
+  }
+
   return (
     <>
       {allowance && (
-        <p className="mb-5 font-mono text-[11px] text-chalk-dim">
-          {allowanceCopy(allowance)}
+        // At one left this reads as a warning rather than a fact: gold, not the
+        // coral error colour, because running out is a state and not a mistake
+        // the player made.
+        <p
+          className={`mb-5 font-mono text-[11px] ${
+            allowanceTone(allowance) === "last" ? "text-gold" : "text-chalk-dim"
+          }`}
+        >
+          {allowanceLine(allowance)}
         </p>
       )}
       <AnalyzeFlow

@@ -61,6 +61,15 @@ export type FrameDebug = {
 
 export type VideoExtraction = {
   frames: Frame[];
+  // Always empty since D-041 folded the extras pass into the dense send set.
+  // Kept, deliberately, because the layers behind it are still wired end to end
+  // and deleting this field alone would leave them live and lying. Retiring it
+  // is one change across: lib/analysis-types.ts (MAX_STORED_FRAMES,
+  // extra_frame_count), lib/analyze-request.ts, app/api/analyze/route.ts
+  // (storedFramePaths), components/analyze-flow.tsx (uploadExtraFrames and
+  // extrasRef), lib/security-contract.test.ts (the stored_frame_paths pin), and
+  // a new migration retiring analyses.stored_frame_paths from the insert
+  // trigger and the frames storage policies.
   extras: Frame[];
   debug?: FrameDebug;
 };

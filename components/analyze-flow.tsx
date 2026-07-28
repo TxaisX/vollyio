@@ -14,7 +14,12 @@ import {
   type OpeningFrame,
 } from "@/lib/frames";
 import { Reveal } from "@/components/motion";
-import { analyzeFailureStatus } from "@/lib/analyze-status";
+import { LimitNotice } from "@/components/limit-notice";
+import {
+  analyzeFailureStatus,
+  type AnalyzeErrorBody,
+} from "@/lib/analyze-status";
+import { planFromReason, resetDateOf } from "@/lib/allowance";
 import {
   SKILL_LABEL,
   ANALYZE_DISCIPLINES,
@@ -22,7 +27,7 @@ import {
   type Skill,
   type Discipline,
 } from "@/lib/skills";
-import { PLAN_LABEL } from "@/lib/plans";
+import type { Plan } from "@/lib/plans";
 import {
   clampTrimWindow,
   clockStamp,
@@ -35,12 +40,27 @@ import type { AnalyzeRequest } from "@/lib/analysis-types";
 type Status =
   | { kind: "idle" | "reading" | "sending" }
   | { kind: "error"; message: string }
-  | { kind: "unavailable"; message: string; canUpgrade?: boolean };
+  | {
+      kind: "unavailable";
+      message: string;
+      // Set only for a 402: the monthly allowance is spent, as opposed to the
+      // hourly limit or a capacity outage, which are the other two calm states.
+      // Read from the HTTP status rather than inferred from the body, because a
+      // body lost in transit must not turn a paywall back into a retry button
+      // that is guaranteed to be refused again.
+      exhausted?: boolean;
+      // Which plan ran out, when the reason survived the trip. Null means the
+      // 402 arrived without one; the offer then stays available rather than
+      // naming a plan nobody read.
+      plan?: Plan | null;
+      // The reset date, formatted from the raw instant in the body.
+      resetsOn?: string | null;
+    };
 
 // Where a player who has used their month goes. `lib/billing.ts` owns the
 // server-side view of this variable, but that module is server-only, so the
 // client reads the public var itself. Unset means no paid tier has shipped
-// yet: render no link at all rather than an upgrade that leads nowhere.
+// yet: render no offer at all rather than an upgrade that leads nowhere.
 const UPGRADE_HREF = process.env.NEXT_PUBLIC_UPGRADE_URL?.trim() || null;
 
 // The tap that marks the athlete: a normalized point in the frame at a clip
@@ -644,13 +664,16 @@ export function AnalyzeFlow({
   }, []);
 
   const busy = status.kind === "reading" || status.kind === "sending";
-  const canSubmit = frames.length > 0;
-  // The paid way out, offered only when there is one: a player who has used
-  // their month on the free plan. A paid player at their limit is waiting for
-  // the reset, and an unset destination means nothing is for sale yet.
-  const upgradeHref =
-    status.kind === "unavailable" && status.canUpgrade ? UPGRADE_HREF : null;
+  // The highest-intent moment in the product: they filmed, marked their
+  // athlete, waited, and got refused. It is also the one calm state where
+  // sending the same clip again cannot possibly work, so the offer REPLACES
+  // both retry affordances rather than sitting beside them. Leaving either one
+  // up would cost the player another round trip to be told the same thing.
+  const outOfAnalyses =
+    status.kind === "unavailable" && status.exhausted === true;
+  const canSubmit = frames.length > 0 && !outOfAnalyses;
   const canRetry =
+    !outOfAnalyses &&
     frames.length > 0 &&
     (status.kind === "error" || status.kind === "unavailable" || retrying);
 
@@ -725,14 +748,32 @@ export function AnalyzeFlow({
       if (!res.ok) {
         // The whole body, not just the message: a monthly-allowance 402 also
         // carries which wall was hit and when it lifts.
-        const failure = await res.json().catch(() => null);
+        const body: AnalyzeErrorBody | null = await res
+          .json()
+          .catch(() => null);
         // Degraded service, hourly limit, and monthly allowance (D-043/D-054)
         // all mean the player did nothing wrong and the clip was never read,
         // so they render calm (not the coral error state) with a path forward;
         // everything else stays an error. The mapping lives in
         // lib/analyze-status.ts where it is unit-tested.
+        const failure = analyzeFailureStatus(res.status, body);
         setRetrying(false);
-        setStatus(analyzeFailureStatus(res.status, failure));
+        setStatus(
+          failure.kind === "unavailable"
+            ? {
+                kind: "unavailable",
+                message: failure.message,
+                exhausted: res.status === 402,
+                plan: planFromReason(failure.reason),
+                // The raw instant, formatted in UTC, because the window is a
+                // UTC calendar month: rendering it in the viewer's own zone
+                // tells anyone west of Greenwich that an Aug 1 reset happens on
+                // Jul 31, and it would then disagree with the counter on the
+                // dashboard by a day.
+                resetsOn: resetDateOf(body?.resets_at),
+              }
+            : { kind: "error", message: failure.message },
+        );
         return;
       }
       const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
@@ -1343,36 +1384,39 @@ export function AnalyzeFlow({
               {status.kind === "error" && (
                 <p className="animate-fade-up text-coral">{status.message}</p>
               )}
-              {status.kind === "unavailable" && (
+              {status.kind === "unavailable" && !outOfAnalyses && (
                 <p className="animate-fade-up text-chalk">{status.message}</p>
               )}
-              {(canRetry || upgradeHref !== null) && (
+              {status.kind === "unavailable" && outOfAnalyses && (
+                // Inside the live region so the refusal is announced, and
+                // font-sans so the card escapes the monospace status context
+                // around it. The card carries the message itself: this state
+                // used to be one line of text with a small link beside a retry
+                // button that could not help.
+                <LimitNotice
+                  className="animate-fade-up font-sans"
+                  plan={status.plan ?? null}
+                  resetsOn={status.resetsOn ?? null}
+                  upgradeHref={UPGRADE_HREF}
+                />
+              )}
+              {canRetry && (
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  {canRetry && (
-                    <button
-                      type="button"
-                      aria-busy={retrying}
-                      disabled={busy}
-                      onClick={() => submit(frames, duration, true)}
-                      className="btn-ghost flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
-                    >
-                      {retrying ? (
-                        <>
-                          <WorkingDots /> Scoring your rep, frame by frame…
-                        </>
-                      ) : (
-                        "Send it again"
-                      )}
-                    </button>
-                  )}
-                  {upgradeHref && (
-                    <a
-                      href={upgradeHref}
-                      className="btn-primary min-h-11 px-4 py-2 text-sm"
-                    >
-                      Upgrade to {PLAN_LABEL.pro}
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    aria-busy={retrying}
+                    disabled={busy}
+                    onClick={() => submit(frames, duration, true)}
+                    className="btn-ghost flex min-h-11 items-center gap-2 px-4 py-2 text-sm disabled:opacity-40"
+                  >
+                    {retrying ? (
+                      <>
+                        <WorkingDots /> Scoring your rep, frame by frame…
+                      </>
+                    ) : (
+                      "Send it again"
+                    )}
+                  </button>
                 </div>
               )}
             </div>

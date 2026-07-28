@@ -40,8 +40,18 @@ export async function PlanCard({ plan }: { plan: Plan }) {
   const action = planAction(pro, sellable, canPay);
 
   return (
-    <div id="plan" className="card scroll-mt-20 p-5">
-      <p className="font-display font-bold">Plan</p>
+    // Both billing routes and NEXT_PUBLIC_UPGRADE_URL land on /settings#plan.
+    // A bare div would be scrolled to and nothing more; the name plus the
+    // focus target means arriving here announces where "here" is.
+    <section
+      id="plan"
+      aria-labelledby="plan-heading"
+      tabIndex={-1}
+      className="card scroll-mt-20 p-5"
+    >
+      <h2 id="plan-heading" className="font-display font-bold">
+        Plan
+      </h2>
 
       <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <p className="font-display text-2xl font-bold">{PLAN_LABEL[plan]}</p>
@@ -129,6 +139,6 @@ export async function PlanCard({ plan }: { plan: Plan }) {
             : "Upgrading is not open yet."}
         </p>
       )}
-    </div>
+    </section>
   );
 }
