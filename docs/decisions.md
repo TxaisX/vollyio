@@ -2220,3 +2220,41 @@ quickly and every one of them wrote code that passed lint, types, tests and the
 build. The defects were all in the seams between slices, in what one agent
 assumed another had handled. The review pass was not a formality, and neither
 was reading its findings rather than trusting the green gates.
+
+## D-066 - Open first, premium optional: selling and capping are two switches
+
+D-029 fused them, and the fusion was invisible until the product tried to
+launch. `BILLING_ENABLED` turned on the free cap AND the purchase path at the
+same time, and the checkout route refused to sell unless the cap was enforced,
+on the reasoning that a subscription buying an allowance nothing applies is a
+subscription buying nothing. That reasoning is sound and the conclusion was
+still wrong, because it left exactly two reachable postures: a closed product
+that sells, or an open product that cannot.
+
+The posture the product actually wanted is neither. Be open on day one, and let
+a player decide for themselves whether to go premium. Nobody is refused a rep,
+and anyone who wants the paid plan can take it.
+
+So there are two variables now:
+
+    BILLING_ENABLED    the purchase path exists at all
+    ENFORCE_FREE_CAP   the monthly allowance actually refuses a rep
+
+`billingOpen()` reads the first, `shouldEnforceFreeTier()` requires both plus an
+upgrade destination, and checkout gates on the first rather than the second. The
+D-029 trapdoor survives inside the second, where it belongs: a cap with nowhere
+to pay still never engages, because refusing a rep is only fair when the player
+can do something about it. `ENFORCE_FREE_CAP` unset parses to false, so the safe
+default is the open one and forgetting the variable can never be the thing that
+starts refusing work.
+
+What this cost, and it is the part worth being honest about: while the cap is
+off, Pro genuinely does not buy more analyses, because free is already
+unlimited. The plan card says that in as many words rather than implying a limit
+that is not there. Someone upgrading in this window is buying the plan early and
+keeping the product running, and the copy has to say so, or the first support
+question is why they were charged for something they already had.
+
+`lib/billing.test.ts` walks the whole two-by-two-by-two table and asserts the
+property that matters directly: a player is never refused a rep in a
+configuration where they could not have bought their way past it.

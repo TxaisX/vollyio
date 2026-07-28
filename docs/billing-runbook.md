@@ -38,7 +38,8 @@ anything.
 | `ANALYZE_MONTHLY_BUDGET_USD` | yes, `25` | you |
 | `STRIPE_SECRET_KEY` | **no, section 2** | only you |
 | `SUPABASE_SERVICE_ROLE_KEY` | **no, section 2** | only you |
-| `BILLING_ENABLED` | **no, deliberately, section 3** | you |
+| `BILLING_ENABLED` | **no, section 3** | you |
+| `ENFORCE_FREE_CAP` | **no, and it can stay that way, section 3.5** | you |
 
 ---
 
@@ -325,15 +326,31 @@ never printed, which is the point.
 This is a safe half step and worth taking. With the secrets present but
 `BILLING_ENABLED` still unset, nothing changes for any player: the plan card
 still reads `Monthly limits are not switched on yet, so nothing is counting
-against you.`, and the upgrade button still does not render, because the card
-requires metering to be on before it will show an offer. Redeploy (section 3.2
-has the command), then re-run the 1.5 probe and confirm `400`.
+against you.`, and no upgrade button renders. Redeploy (section 3.2 has the
+command), then re-run the 1.5 probe and confirm `400`.
 
 You have now proved the secrets are installed without exposing a purchase.
 
 ---
 
 ## 3. The flip
+
+**There are two flips, and they are independent (D-066).** Read this before
+setting anything.
+
+| Variable | What it does | Set it when |
+|---|---|---|
+| `BILLING_ENABLED=true` | Pro becomes purchasable. The upgrade button appears. Nobody is capped. | You want to be open with premium as a choice. **This is the launch posture.** |
+| `ENFORCE_FREE_CAP=true` | The 3 a month free allowance starts refusing reps with a 402. | Later, once you actually want the free tier metered. |
+
+Setting `BILLING_ENABLED` alone leaves every player unlimited and lets anyone
+who wants Pro take it. That is section 3.1. Section 3.5 covers the cap, and it
+is a separate decision you can defer indefinitely.
+
+Order matters in one direction only: never set `ENFORCE_FREE_CAP` without
+`BILLING_ENABLED` and the secret key already working. `shouldEnforceFreeTier()`
+refuses that combination on purpose, so it fails safe rather than capping
+players behind a button that cannot work, but do not lean on the guard.
 
 ### 3.1 Set the flag
 
@@ -347,9 +364,56 @@ Value: exactly `true`, lowercase. `lib/billing.ts` compares against the string
 Expected: `Added Environment Variable BILLING_ENABLED to Project vollyio`.
 
 `NEXT_PUBLIC_UPGRADE_URL` is the second key and is already set to
-`https://vollyio.com/settings#plan`. Both are required. Setting the flag alone
-would cap free accounts at 3 a month with nowhere to go, and the code refuses
-that combination on purpose.
+`https://vollyio.com/settings#plan`. Both are required for the upgrade button
+to render, because a button needs somewhere to send the player.
+
+This does NOT cap anyone. `ENFORCE_FREE_CAP` is what meters the free tier, it
+is a separate variable, and it stays unset until you decide otherwise (section
+3.5). After this step every player still has unlimited analyses and the plan
+card offers Pro as a choice, saying plainly that nothing is capped yet so the
+upgrade is early support rather than more reps today.
+
+### 3.5 Later: metering the free tier
+
+Only when you actually want the free plan limited. Everything above works
+without this and the product stays open.
+
+```sh
+vercel env add ENFORCE_FREE_CAP production
+```
+
+Value: exactly `true`, lowercase.
+
+Preconditions, all of them: `BILLING_ENABLED=true`, `STRIPE_SECRET_KEY` set and
+proven by a real upgrade, `NEXT_PUBLIC_UPGRADE_URL` set. If any is missing,
+`shouldEnforceFreeTier()` returns false and nothing is metered, which is the
+guard doing its job rather than the flag failing.
+
+What changes the moment it deploys:
+
+- Free accounts are refused their 4th analysis of the calendar month with a 402
+  carrying `reason: free_month_exhausted`, rendered as a calm upsell.
+- Pro accounts are refused their 19th, with the reset date instead of an offer.
+- The remaining counter appears on the dashboard, the analyze page and the plan
+  card. It is deliberately hidden while the cap is off, because "2 of 3 left"
+  is a lie when nothing is counting.
+- Anyone who already ran more than their allowance this month is immediately at
+  zero remaining until the 1st. Check before flipping:
+
+```sql
+select p.plan, count(a.id) as used_this_month
+from public.profiles p
+left join public.analyses a
+  on a.user_id = p.id
+ and a.created_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'
+group by p.id, p.plan
+order by used_this_month desc
+limit 20;
+```
+
+Rolling back is `vercel env rm ENFORCE_FREE_CAP production --yes` and a
+redeploy. That reopens the product immediately and cancels nothing, so
+subscribers keep their subscriptions and keep being charged.
 
 ### 3.2 Then redeploy
 

@@ -1,42 +1,63 @@
 import "server-only";
 
-// Free-tier enforcement (D-029).
+// Two switches, not one (D-066).
 //
-// The enforcement half of billing has been built and atomic since D-012:
-// `reserve_analysis_entitlement(p_enforce_free)` will hold a free account to a
-// single lifetime analysis and the route returns 402. The COMMERCE half does
-// not exist, there is no Stripe integration, no checkout, no webhook, and
-// nothing anywhere that can write `profiles.plan`, which is revoked from the
-// authenticated role and has no server-side writer.
+// "Can a player buy Pro" and "is the free allowance enforced" are different
+// product decisions, and fusing them forced a launch posture nobody wanted:
+// either the product was closed the day it started selling, or it could not
+// sell at all. The intended posture is open first, premium optional, and the
+// cap arriving later as its own decision.
 //
-// That combination makes `BILLING_ENABLED=true` a trapdoor rather than a
-// feature flag: flipping it hard-caps every user at one analysis for the rest
-// of time, behind a 402 that points at an upgrade with no destination, and
-// nothing in the request path notices. The gate below closes that trapdoor by
-// requiring the flag AND somewhere for the user to actually go. Turning on
-// billing is therefore a two-key operation, and the wrong single key is inert
-// instead of destructive.
+//   BILLING_ENABLED   the purchase path exists at all
+//   ENFORCE_FREE_CAP  the monthly allowance actually refuses a rep
 //
-// Deliberately NOT a "did someone remember to build Stripe" check, it is a
-// check that the upgrade destination the 402 promises exists. If a future
-// payment path is not a URL, extend this predicate rather than bypassing it.
+// The original trapdoor guard survives inside the second one. Enforcement still
+// requires a real place to pay, because a cap with no checkout behind it is a
+// one-env-var mistake that locks every account out from behind a 402 pointing
+// nowhere, with no runtime symptom other than users being unable to train.
 
 export const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
 
-// Where the 402 sends a player. Absent until a paid tier actually ships.
+// Off unless explicitly on. The safe default is the open one: an unset variable
+// must never be the thing that starts refusing work.
+export const FREE_CAP_ENFORCED = process.env.ENFORCE_FREE_CAP === "true";
+
+// Where the 402 and the upgrade button send a player.
 export const UPGRADE_URL = process.env.NEXT_PUBLIC_UPGRADE_URL?.trim() || null;
 
 export function hasUpgradePath(): boolean {
   return UPGRADE_URL !== null;
 }
 
-// The value handed to `reserve_analysis_entitlement(p_enforce_free)`.
-export function shouldEnforceFreeTier(): boolean {
+/**
+ * May the product take money right now?
+ *
+ * Deliberately independent of the cap. With this true and the cap off, Pro is
+ * an optional upgrade on an open product, which is the launch posture: nobody
+ * is blocked, and anyone who wants the paid tier can choose it.
+ *
+ * The caller must ALSO check `stripeConfigured()` from lib/stripe.ts, which
+ * owns the provider credentials. Splitting it that way keeps this module free
+ * of secrets and keeps the key check next to the keys.
+ */
+export function billingOpen(): boolean {
   return BILLING_ENABLED && hasUpgradePath();
 }
 
-// True when billing is switched on but there is nowhere to pay, a
+/**
+ * The value handed to `reserve_analysis_entitlement(p_enforce_free)`.
+ *
+ * All three: the cap is switched on, the purchase path exists, and there is
+ * somewhere to send a player who hits it. Any one missing and the answer is
+ * false, because refusing a rep is only fair when the player can do something
+ * about it.
+ */
+export function shouldEnforceFreeTier(): boolean {
+  return FREE_CAP_ENFORCED && BILLING_ENABLED && hasUpgradePath();
+}
+
+// True when the cap is switched on but there is nowhere to pay: a
 // misconfiguration worth surfacing rather than silently ignoring.
 export function isBillingMisconfigured(): boolean {
-  return BILLING_ENABLED && !hasUpgradePath();
+  return FREE_CAP_ENFORCED && !billingOpen();
 }

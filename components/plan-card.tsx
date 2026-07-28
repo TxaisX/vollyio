@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { shouldEnforceFreeTier } from "@/lib/billing";
+import { billingOpen, shouldEnforceFreeTier } from "@/lib/billing";
 import { stripeConfigured } from "@/lib/stripe";
 import { allowanceCopy, readAllowance, resetCopy } from "@/lib/allowance";
 import {
@@ -10,20 +10,18 @@ import {
 } from "@/lib/plans";
 import { PlanAction } from "@/components/plan-actions";
 
-// Which button, if any, the card is allowed to show (docs/billing.md 4.4).
+// Which button, if any, the card is allowed to show (docs/billing.md 4.4, D-066).
 //
-// A button that 503s is worse than no button, so an offer needs both halves to
-// be real: the cap has to actually be enforced, and the provider has to be
-// configured. Selling a bigger allowance while nothing is metered would be
-// selling nothing at all.
+// A button that 503s is worse than no button, so an offer needs the purchase
+// path to be real: billing switched on AND the provider configured. It does NOT
+// need the cap to be enforced. Those are separate decisions, and the launch
+// posture is an open product with Pro as a choice.
 //
-// The one case that ignores the cap is a live subscription. Someone who is
-// paying always gets a way to stop paying, even if the owner has since switched
-// enforcement back off, because the money keeps moving either way.
-function planAction(pro: boolean, metered: boolean, canPay: boolean) {
+// Someone already paying always gets a way to stop paying, whatever the cap is
+// doing, because the money keeps moving either way.
+function planAction(pro: boolean, sellable: boolean, canPay: boolean) {
   if (pro) return canPay ? "manage" : "unavailable";
-  if (!metered) return "none";
-  return canPay ? "upgrade" : "unavailable";
+  return sellable && canPay ? "upgrade" : "none";
 }
 
 // The plan surface, and the only place either payment action starts. The `id`
@@ -31,6 +29,7 @@ function planAction(pro: boolean, metered: boolean, canPay: boolean) {
 // and that is where NEXT_PUBLIC_UPGRADE_URL points as well.
 export async function PlanCard({ plan }: { plan: Plan }) {
   const metered = shouldEnforceFreeTier();
+  const sellable = billingOpen();
   const canPay = stripeConfigured();
   const pro = plan === "pro";
 
@@ -38,7 +37,7 @@ export async function PlanCard({ plan }: { plan: Plan }) {
   // nothing is being enforced would be a lie, and not making the call at all is
   // what makes that impossible rather than merely unlikely.
   const allowance = metered ? await readAllowance(await createClient()) : null;
-  const action = planAction(pro, metered, canPay);
+  const action = planAction(pro, sellable, canPay);
 
   return (
     <div id="plan" className="card scroll-mt-20 p-5">
@@ -53,9 +52,21 @@ export async function PlanCard({ plan }: { plan: Plan }) {
         )}
       </div>
 
+      {/* Three states, and the middle one is the launch posture: open, with Pro
+          available. It must not imply the free plan is limited when it is not.
+          A player who upgrades today is buying the plan early and keeping the
+          product running, not buying analyses they could not already have, and
+          saying otherwise would be selling something that does not exist. */}
       {metered ? (
         <p className="mt-1 text-xs text-chalk-dim">
           {MONTHLY_ALLOWANCE[plan]} analyses a month.
+        </p>
+      ) : sellable ? (
+        <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
+          Analyses are unlimited for everyone while we are early, so nothing is
+          counting against you today. {PLAN_LABEL.pro} sets your allowance at{" "}
+          {MONTHLY_ALLOWANCE.pro} a month for when limits do start, against{" "}
+          {MONTHLY_ALLOWANCE.free} on {PLAN_LABEL.free}.
         </p>
       ) : (
         <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
@@ -78,6 +89,8 @@ export async function PlanCard({ plan }: { plan: Plan }) {
           <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
             {PLAN_LABEL.pro} is {PRO_PRICE_LABEL} for {MONTHLY_ALLOWANCE.pro}{" "}
             analyses a month, on the same monthly reset.
+            {!metered &&
+              " Nothing is capped yet, so this is early support rather than more reps today. Cancel any time."}
           </p>
           <PlanAction
             endpoint="/api/stripe/checkout"

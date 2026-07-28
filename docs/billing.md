@@ -13,6 +13,27 @@ billing verification steps in `docs/security.md` first and run them on staging:
 they are what proves a player cannot write their own plan. The decisions behind
 this design, and an honest list of what is still missing, are D-064.
 
+## 0. Two switches (D-066)
+
+Selling Pro and capping the free tier are separate decisions, and separate
+variables:
+
+    BILLING_ENABLED    the purchase path exists. Pro becomes buyable.
+    ENFORCE_FREE_CAP   the monthly allowance actually refuses a rep.
+
+The launch posture is `BILLING_ENABLED` on and `ENFORCE_FREE_CAP` off: the
+product is open, nobody is metered, and anyone who wants the paid plan can
+choose it. The cap is a later decision that can be deferred indefinitely.
+
+While the cap is off, Pro does not buy more analyses, because free is already
+unlimited. The plan card says exactly that. Someone upgrading in that window is
+buying the plan early rather than buying capacity, and the copy must never imply
+otherwise.
+
+Enforcement still requires a payment path: `shouldEnforceFreeTier()` is all
+three of the cap flag, the billing flag and an upgrade destination, so a cap can
+never engage in a configuration where a player could not buy past it.
+
 ## 1. The model
 
 | Tier | Price | Analyses | Where it is managed |
