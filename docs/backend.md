@@ -69,6 +69,23 @@ security-definer functions): `api_rate_limits` (atomic fixed-window quotas, thre
 fixed scopes) and `analysis_entitlement_reservations` (an opaque five-minute
 reservation linked to its analysis by an AFTER INSERT trigger, migration `013`).
 
+**The folder names are the authorization, not a label.** The storage policies in
+migration 012 read `(storage.foldername(name))[1] = auth.uid()::text` for
+ownership and `(storage.foldername(name))[2] = analysis.id` to tie an object to
+its row, so `${user.id}/${analysisId}/` is a check rather than a naming
+convention. Renaming either segment to something human-readable, a display name
+for instance, does not relabel the folder; it deletes the check. `display_name`
+is also player-editable (012 grants UPDATE on it), so keying on it would let a
+player rename themselves into another player's folder, which is precisely the
+"player-editable metadata never decides authorization" rule in AGENTS.md.
+
+To find a person's film without renaming anything, use the operator index in
+migration 031: `select * from private.find_player_storage('name or email or id')`
+returns the display name, email, folder, declared and stored frame counts, and
+size per analysis. It lives in `private` because it joins `auth.users`, so it is
+readable from the SQL editor and from nothing else. Never grant it to a client
+role.
+
 Three storage buckets: `frames` and `clips` are private and owner-scoped by the
 first path segment (`${user.id}/${analysisId}/...`), create-only, MIME- and
 size-bounded. `models` is public-read, operator-write (pinned filenames). Account
