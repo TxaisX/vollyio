@@ -83,15 +83,27 @@ test("the one-argument quota refund is dropped and stays dropped", async () => {
   // definition, so a later migration cannot quietly restore the old shape.
   const dir = new URL("../supabase/migrations/", import.meta.url);
   const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
-  let sql = "";
-  for (const name of names) {
-    const body = await readFile(new URL(name, dir), "utf8");
-    if (/create or replace function public\.refund_api_quota/i.test(body)) sql = body;
+  const bodies = await Promise.all(names.map((n) => readFile(new URL(n, dir), "utf8")));
+  const all = bodies.join("\n");
+
+  let newest = "";
+  for (const body of bodies) {
+    if (/create or replace function public\.refund_api_quota/i.test(body)) newest = body;
   }
-  assert.notEqual(sql, "", "no migration defines refund_api_quota");
-  assert.match(sql, /drop function if exists public\.refund_api_quota\(text\)/i);
-  assert.match(sql, /refund_api_quota\(\s*p_scope text,\s*p_reservation_id uuid/i);
-  assert.doesNotMatch(sql, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
+  assert.notEqual(newest, "", "no migration defines refund_api_quota");
+
+  // The drop is a one-time event, recorded in the migration that performed it.
+  // A later `create or replace` of the same function neither repeats it nor
+  // needs to, so this looks across every migration rather than at the newest.
+  assert.match(all, /drop function if exists public\.refund_api_quota\(text\)/i);
+  // The shape, though, is whatever the NEWEST definition says it is, and the
+  // grant that goes with it must name the two-argument signature. Asserting the
+  // one-argument grant is absent from every migration would be asserting that
+  // history did not happen: 018 really did grant it, and 030 really did drop
+  // the function out from under that grant, which is what makes it moot.
+  assert.match(newest, /refund_api_quota\(\s*p_scope text,\s*p_reservation_id uuid/i);
+  assert.match(newest, /grant execute on function public\.refund_api_quota\(text, uuid\) to authenticated/i);
+  assert.doesNotMatch(newest, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
 });
 
 test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {
