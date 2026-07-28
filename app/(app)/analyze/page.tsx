@@ -46,7 +46,7 @@ export default async function Analyze({
           plan={allowance.plan}
           allowance={allowance.allowance}
           resetsOn={resetDate(allowance)}
-          upgradeHref={UPGRADE_URL}
+          canBuy={UPGRADE_URL !== null}
         />
       </section>
     );
