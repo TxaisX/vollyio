@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { DeleteAccount } from "@/components/delete-account";
+import { PlanCard } from "@/components/plan-card";
 import { Reveal } from "@/components/motion";
+import { isPlan, type Plan } from "@/lib/plans";
 import {
   ANALYZE_DISCIPLINES,
   DISCIPLINE_LABEL,
@@ -31,6 +33,7 @@ type ProfileRow = {
   position: Position | null;
   play_frequency: PlayFrequency | null;
   training_consent: boolean | null;
+  plan: string | null;
 };
 
 export default async function Settings() {
@@ -43,11 +46,18 @@ export default async function Settings() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, discipline, position, play_frequency, training_consent")
+    .select(
+      "display_name, discipline, position, play_frequency, training_consent, plan",
+    )
     .eq("id", userId!)
     .single();
   if (error) throw error;
   const profile = data as ProfileRow;
+
+  // A plan string this build cannot name falls back to the free card, the same
+  // direction lib/plans.ts fails: never show a player a larger entitlement than
+  // the reservation will actually honour.
+  const plan: Plan = isPlan(profile.plan) ? profile.plan : "free";
 
   // Legacy 'beach' profiles light up the "Grass & sand" chip: the two wire
   // values are one environment everywhere the player sees it (D-035).
@@ -103,6 +113,10 @@ export default async function Settings() {
           </div>
           <DeleteAccount />
         </div>
+      </Reveal>
+
+      <Reveal delay={120}>
+        <PlanCard plan={plan} />
       </Reveal>
 
       <Reveal delay={180}>

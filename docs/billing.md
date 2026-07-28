@@ -1,9 +1,17 @@
 # Billing, plans, and analysis allowances
 
-Status: **planned, not built.** Nothing in this file is live. `BILLING_ENABLED`
-is unset, `NEXT_PUBLIC_UPGRADE_URL` is unset, and no Stripe object exists for
-Vollyio yet. This is the spec the build follows, so the numbers and the failure
-behavior are settled before any money moves.
+Status: **built, switched off.** The code path is complete end to end, from the
+allowance in the database to the plan card, the checkout and portal routes, the
+signed webhook, and the 402 the client renders as a calm state. None of it is
+live: `BILLING_ENABLED` is unset, no provider keys are configured, and the
+provider account still holds no product, price, or webhook endpoint for Vollyio.
+So nothing is metered, no upgrade button renders, and no money can move. Each
+part of section 4 is marked with what landed.
+
+Turning it on is deliberately a several-step operation, not a flag. Read the
+billing verification steps in `docs/security.md` first and run them on staging:
+they are what proves a player cannot write their own plan. The decisions behind
+this design, and an honest list of what is still missing, are D-064.
 
 ## 1. The model
 
@@ -41,30 +49,44 @@ returns nothing, which is what section 6 is about.
 
 ## 3. What already exists and what is missing
 
-Built and atomic since D-012, needs one behavior change:
+Written before the build. Every item below is now closed except the provider
+account objects, which are owner work rather than code. The markers say how.
 
-- `reserve_analysis_entitlement(p_enforce_free)` (migration 011) currently
-  refuses a `free` plan if **any** analysis row exists, that is lifetime-one.
-  It must instead resolve the caller's plan to an allowance and compare against
-  their completed analyses inside the current UTC month. The advisory lock and
-  the five-minute reservation stay exactly as they are.
-- `lib/billing.ts` deliberately refuses to enforce the free cap unless
-  `BILLING_ENABLED=true` **and** an upgrade destination exists. Pointing
-  `NEXT_PUBLIC_UPGRADE_URL` at the Settings plan card satisfies it honestly.
-  Keep the predicate; do not bypass it.
+Built and atomic since D-012, needed one behavior change:
 
-Missing entirely:
+- **Done, migration 026.** `reserve_analysis_entitlement(p_enforce_free)`
+  (migration 011) refused a `free` plan if **any** analysis row existed, that
+  is lifetime-one. It now resolves the caller's plan to an allowance and
+  compares against their completed analyses inside the current UTC month. The
+  advisory lock and the five-minute reservation are unchanged.
+- **Unchanged, as intended.** `lib/billing.ts` deliberately refuses to enforce
+  the free cap unless `BILLING_ENABLED=true` **and** an upgrade destination
+  exists. Pointing `NEXT_PUBLIC_UPGRADE_URL` at the Settings plan card
+  satisfies it honestly. Keep the predicate; do not bypass it.
 
-- **A writer for `profiles.plan`.** Migration 012 revoked it from the
-  authenticated role and there is no server-side setter, so today nothing in
-  the codebase can make anyone a paying customer. This is the real gap.
-- Stripe: no products, no prices, no checkout, no webhook, no portal.
-- The remaining-count surface on the dashboard and the analyze page.
-- The 402 reason code and the client routing that reads it.
+Was missing entirely:
+
+- **Done, migration 027.** A writer for `profiles.plan`. Migration 012 revoked
+  it from the authenticated role and there was no server-side setter, so
+  nothing in the codebase could make anyone a paying customer. There is now
+  exactly one writer, `set_subscription_plan`, granted to `service_role` only
+  and called only by the signed webhook.
+- **Code done, account objects still missing.** Checkout, webhook, and portal
+  routes exist and are tested. No product, price, webhook endpoint, or key
+  exists in the provider account, so `stripeConfigured()` is false and every
+  paid path answers 503 by design. See 4.3.
+- **Done.** The remaining-count surface on the dashboard and the analyze page,
+  reading `analysis_allowance()`.
+- **Done.** The 402 reason code and the client routing that reads it. See 4.5.
 
 ## 4. Build order
 
 ### 4.1 Migration 026, the allowance
+
+**Built.** Shipped as written, plus `analysis_allowance()` for the read that
+4.6 needs and `private.allowance_window()` so the month boundary is derived
+from the server clock and can never be supplied by a caller. Not yet applied to
+production.
 
 ```
 plan_monthly_allowance(p_plan text) returns int   -- 'pro' -> 18, else 3
@@ -91,9 +113,20 @@ or requests.
 
 ### 4.2 Migration 027, the plan writer
 
+**Built.** Shipped with two more arguments than specified here, because the
+webhook has to record which subscription and which customer a plan came from
+or later events cannot be matched back to a player:
+
 ```
-set_subscription_plan(p_user_id uuid, p_plan text, p_renews_at timestamptz)
+set_subscription_plan(p_user_id uuid, p_plan text, p_renews_at timestamptz,
+                      p_subscription_id text, p_customer_id text)
+user_id_for_billing_customer(p_customer_id text) returns uuid
 ```
+
+Both are `service_role` only. The migration also adds
+`profiles.stripe_subscription_id` and a check constraint bounding `plan` to
+`free` or `pro`, so an unrecognized plan fails loudly rather than falling
+through to the free allowance. Not yet applied to production.
 
 `security definer`, `search_path = ''`, revoked from `public`, `anon`, and
 `authenticated`, granted to `service_role` only. The webhook is the sole
@@ -101,9 +134,17 @@ caller. Adds `profiles.plan_renews_at`; `stripe_customer_id` already exists.
 
 This is the first thing in the codebase to need the service-role key. It lives
 in the webhook route's environment and nowhere else, and it never reaches a
-client bundle.
+client bundle. That held: `lib/supabase/service.ts` is the only module that
+reads it, the webhook route is its only importer, and `docs/security.md` now
+records the rule that a second importer is a security change rather than a
+refactor.
 
-### 4.3 Stripe objects
+### 4.3 The provider account objects
+
+**Not built. This is the only part of section 4 that is still entirely
+outstanding, and it is owner work in the provider dashboard rather than code.**
+Everything the app needs to consume these objects exists and is dormant until
+the keys are set.
 
 Account `acct_1NMwN5JOFP4i3BqJ`, display name Vollyio. It currently holds only
 dormant products from a previous business, nothing for this app. Create:
@@ -119,19 +160,44 @@ dormant products from a previous business, nothing for this app. Create:
   `checkout.session.completed`, `customer.subscription.updated`,
   `customer.subscription.deleted`, `invoice.payment_failed`.
 
-Environment: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-`NEXT_PUBLIC_STRIPE_PRICE_ID`, and
-`NEXT_PUBLIC_UPGRADE_URL=https://vollyio.com/settings#plan`.
+Environment, corrected to the names the built code actually reads. Everything
+here is server-only except the last one, which is client-visible by definition
+and is the only billing value that may be:
 
-The webhook verifies the signature before reading the body, is the only route
-allowed to skip the same-origin check (Stripe is not same-origin), and maps
-`customer.subscription.deleted` to `plan='free'` at period end, not on the
+```
+STRIPE_SECRET_KEY            the API key
+STRIPE_WEBHOOK_SECRET        the endpoint signing secret
+STRIPE_PRICE_ID              the recurring price to charge
+SUPABASE_SERVICE_ROLE_KEY    so the webhook can call the plan writer
+NEXT_PUBLIC_UPGRADE_URL=https://vollyio.com/settings#plan
+```
+
+This document previously named the price `NEXT_PUBLIC_STRIPE_PRICE_ID`. It is
+`STRIPE_PRICE_ID` and server-only. The price is not a secret, but the browser
+has no use for it, and a client-visible price id is the shape of the bug where
+the caller gets to say what to charge. Provisioning from the old name leaves
+`stripeConfigured()` false forever, which fails closed and silently: no upgrade
+button, a 503 on any direct call, and nothing in the logs distinguishing that
+from billing simply not being switched on yet.
+
+**Built, on the app side.** The webhook verifies the signature over the raw
+bytes before parsing the body, is the only route allowed to skip the
+same-origin check (the provider is not same-origin, and `docs/security.md`
+records why the HMAC is the stronger substitute rather than a weaker one), and
+maps `customer.subscription.deleted` to `plan='free'` at period end, not on the
 cancel click. A cancelled player keeps Pro until the period they paid for runs
 out.
 
 ### 4.4 Settings plan card
 
-One card, one of two states:
+**Built,** as `components/plan-card.tsx` carrying the `#plan` anchor every
+return URL points at. It has four states rather than two, because the two
+written here both assume metering is on and a provider is reachable, and
+neither is true today: a not-metered state that names the plan and says limits
+are not switched on, and a provider-unavailable state that says so plainly
+instead of offering a button that would 503.
+
+One card, one of the two live states:
 
 - **Free:** "3 analyses a month. You've used 2." plus an upgrade button that
   opens Stripe Checkout.
@@ -139,6 +205,9 @@ One card, one of two states:
   the Stripe customer portal for cancel and payment method.
 
 ### 4.5 The 402 contract
+
+**Built.** Both buttons POST and then navigate to the returned URL, because a
+management or checkout link is minted per request and cannot be an `<a href>`.
 
 The route returns `402` with `{error, reason, resets_at}` where reason is
 `free_month_exhausted` or `plan_month_exhausted`. `analyzeFailureStatus` reads
@@ -148,6 +217,11 @@ the reset date and nothing to buy. Do not HTTP-redirect a `fetch`.
 
 ### 4.6 Show the count before the upload, not after
 
+**Built,** on both surfaces plus the plan card, reading `analysis_allowance()`
+(migration 026). The line renders only when the cap is genuinely enforced, so
+the read is not even issued in a build where nothing is metered, and a read
+that fails renders nothing rather than a wrong number.
+
 The dashboard and the analyze page both show remaining analyses. A player who
 films, uploads, marks a player, waits, and only then learns they are out has
 been made to do 90 seconds of work for a paywall. `/api/usage` cannot serve
@@ -155,6 +229,13 @@ this (it is dev-only owner spend reporting), so this is a small new per-user
 read.
 
 ## 5. The owner alert
+
+**Half built.** The spend-backstop half fires (`lib/owner-alert.ts`, wired into
+`lib/ai/budget.ts`, silent when `OWNER_ALERT_EMAIL` is unset). The half that
+fires when the provider reports credits exhausted does not exist. The claim is
+also held in process memory
+rather than in a row, so the bound is roughly one mail per serverless instance
+per interval rather than the once-per-trip written below.
 
 When the spend backstop trips, or the provider reports credits exhausted, email
 the owner through the existing Resend path (`lib/email.ts`). Fire **once per

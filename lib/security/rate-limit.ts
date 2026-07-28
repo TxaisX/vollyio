@@ -1,4 +1,12 @@
-export type ApiQuotaScope = "analyze" | "coach" | "coach_daily" | "account_delete";
+// Mirrors the scope check in the newest migration that redefines
+// consume_api_quota. An unknown scope raises in SQL rather than silently
+// passing, so adding one here without adding it there fails closed.
+export type ApiQuotaScope =
+  | "analyze"
+  | "coach"
+  | "coach_daily"
+  | "account_delete"
+  | "billing";
 
 type RpcClient = {
   rpc(

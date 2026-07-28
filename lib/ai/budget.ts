@@ -1,4 +1,5 @@
 import { estimateCostUsd, type UsageTokens } from "./pricing.ts";
+import { alertOwnerBudget, type BudgetAlert } from "../owner-alert.ts";
 
 // Self-imposed monthly spend ceiling for the analyze route (D-054). The
 // provider's account-level cap killed production on 2026-07-20 because local
@@ -54,7 +55,10 @@ function parseEntries(data: unknown): ModelUsage[] | null {
 
 export async function checkAnalyzeBudget(
   client: RpcClient,
-  opts: { now?: () => number } = {},
+  opts: {
+    now?: () => number;
+    alert?: (alert: BudgetAlert) => void | Promise<void>;
+  } = {},
 ): Promise<BudgetVerdict> {
   const capRaw = process.env.ANALYZE_MONTHLY_BUDGET_USD;
   if (capRaw === undefined || capRaw === "") return "ok";
@@ -71,6 +75,25 @@ export async function checkAnalyzeBudget(
   if (process.env.AI_MOCK === "true") return "ok";
 
   const now = (opts.now ?? Date.now)();
+
+  // The owner alert is a consequence of a verdict, never a cause of one. It is
+  // awaited because a serverless instance can be frozen the instant the
+  // response is written, which drops a fire-and-forget send, and every failure
+  // inside it is swallowed here: an unreachable mailbox must not turn a calm
+  // 503 into a thrown request. Only the first request of each alert interval
+  // pays the latency, because the alert claims its slot before it sends.
+  const alerted = async (
+    verdict: "tripped" | "unavailable",
+    estimatedUsd: number | null,
+  ): Promise<BudgetVerdict> => {
+    try {
+      await (opts.alert ?? alertOwnerBudget)({ verdict, capUsd, estimatedUsd, atMs: now });
+    } catch {
+      // an alert that cannot be delivered is still only an alert
+    }
+    return verdict;
+  };
+
   let entries: ModelUsage[] | null = null;
   if (cache && now - cache.fetchedAt < CACHE_TTL_MS) {
     entries = cache.entries;
@@ -87,17 +110,20 @@ export async function checkAnalyzeBudget(
     }
     if (!entries && cache) entries = cache.entries;
   }
-  if (!entries) return "unavailable";
+  if (!entries) return alerted("unavailable", null);
 
   let totalUsd = 0;
   for (const entry of entries) {
     try {
       totalUsd += estimateCostUsd(entry, entry.model);
     } catch {
-      return "unavailable";
+      // The running total is incomplete once one row cannot be priced, so the
+      // alert reports no estimate rather than an understated one.
+      return alerted("unavailable", null);
     }
   }
-  return evaluateBudget(totalUsd, capUsd);
+  const verdict = evaluateBudget(totalUsd, capUsd);
+  return verdict === "tripped" ? alerted("tripped", totalUsd) : verdict;
 }
 
 export function resetBudgetCacheForTests(): void {

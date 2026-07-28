@@ -16,7 +16,9 @@ import { awardXp, XP_AWARDS } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
   reserveAnalysisEntitlement,
+  type AllowanceDetail,
 } from "@/lib/entitlements";
+import { MONTHLY_ALLOWANCE, PLAN_LABEL, isPlan, type Plan } from "@/lib/plans";
 import { SKILL_LABEL } from "@/lib/skills";
 import { MAX_BODY_BYTES, type AnalysisResult } from "@/lib/analysis-types";
 import { analyzeRequestSchema } from "@/lib/analyze-request";
@@ -30,6 +32,50 @@ import { checkAnalyzeBudget } from "@/lib/ai/budget";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+// Which plan the reservation just enforced against. An unrecognized plan
+// string resolves to free exactly as `monthlyAllowance()` does: fail toward
+// the smaller entitlement, and toward still offering the player a way out.
+function planOf(detail: AllowanceDetail | null): Plan {
+  return detail && isPlan(detail.plan) ? detail.plan : "free";
+}
+
+// The instant the allowance rolls over, as a date a player can read. Rendered
+// in UTC because the window is the UTC calendar month (migration 026), so this
+// names the real boundary day wherever the server happens to run.
+function resetDateLabel(resetsAt: string | null | undefined): string | null {
+  if (!resetsAt) return null;
+  const at = new Date(resetsAt);
+  if (Number.isNaN(at.getTime())) return null;
+  return at.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// Why the player is out, and the one thing they can do about it. The counts
+// come from the reservation reply, which is the number the database just
+// enforced, so this message can never promise a rep the reservation would
+// refuse. The only figure read from lib/plans.ts is what the OTHER plan gives,
+// which has no local source. A reply without detail says less rather than
+// inventing a count.
+function exhaustedMessage(plan: Plan, detail: AllowanceDetail | null): string {
+  const reset = resetDateLabel(detail?.resetsAt);
+  const used = detail
+    ? `You've used all ${detail.allowance} of your ${PLAN_LABEL[plan]} analyses this month.`
+    : "You've used your analyses for this month.";
+  if (plan === "pro") {
+    if (!reset) return used;
+    return detail
+      ? `${used} Your next ${detail.allowance} unlock on ${reset}.`
+      : `${used} More unlock on ${reset}.`;
+  }
+  const upgrade = `Upgrade to ${PLAN_LABEL.pro} for ${MONTHLY_ALLOWANCE.pro} analyses a month`;
+  return reset
+    ? `${used} ${upgrade}, or they reset on ${reset}.`
+    : `${used} ${upgrade}.`;
+}
 
 export async function POST(req: NextRequest) {
   if (!hasTrustedMutationOrigin(req)) {
@@ -100,14 +146,27 @@ export async function POST(req: NextRequest) {
     );
   }
   if (!entitlement.allowed) {
-    const inProgress = entitlement.reason === "in_progress";
+    if (entitlement.reason === "in_progress") {
+      return NextResponse.json(
+        { error: "An analysis is already running." },
+        { status: 409 },
+      );
+    }
+    // Running out is a state, not a fault, so the 402 carries enough for the
+    // client to route on without guessing: which wall was hit, and when it
+    // lifts. The reason is what separates "there is something to buy" from
+    // "wait for the first of the month" (docs/billing.md 4.5); `resets_at`
+    // stays the raw instant so the client can render it in the player's own
+    // timezone.
+    const detail = entitlement.detail;
+    const plan = planOf(detail);
     return NextResponse.json(
       {
-        error: inProgress
-          ? "An analysis is already running."
-          : "Your free analysis is used. Upgrade to keep training.",
+        error: exhaustedMessage(plan, detail),
+        reason: plan === "pro" ? "plan_month_exhausted" : "free_month_exhausted",
+        resets_at: detail?.resetsAt ?? null,
       },
-      { status: inProgress ? 409 : 402 },
+      { status: 402 },
     );
   }
 
