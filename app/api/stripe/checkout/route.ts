@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { hasTrustedMutationOrigin } from "@/lib/security/request";
 import { createCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { shouldEnforceFreeTier } from "@/lib/billing";
+import { billingOpen } from "@/lib/billing";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
@@ -45,13 +45,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Never sell an allowance nothing is enforcing. With the free cap switched
-  // off, every player already has unlimited analyses, so a subscription would
-  // buy exactly nothing and the first honest support question would be why they
-  // were charged. `shouldEnforceFreeTier()` is the same two-key predicate the
-  // analyze route reserves against, so the thing being sold and the thing being
-  // enforced can never disagree.
-  if (!shouldEnforceFreeTier()) {
+  // Selling is gated on the purchase path existing, NOT on the cap being on
+  // (D-066). Those are separate product decisions: the launch posture is an
+  // open product where Pro is a choice, and requiring the cap first would have
+  // meant closing the product on the same day it started selling.
+  //
+  // What this route must still guarantee is that the plan card told the truth
+  // about what Pro gives. That lives in components/plan-card.tsx, which reads
+  // the same two predicates and describes the allowance as active or as coming.
+  if (!billingOpen()) {
     return NextResponse.json(
       { error: "Upgrades aren't available right now. Try again later." },
       { status: 503 },
