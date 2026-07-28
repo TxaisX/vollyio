@@ -249,6 +249,55 @@ been made to do 90 seconds of work for a paywall. `/api/usage` cannot serve
 this (it is dev-only owner spend reporting), so this is a small new per-user
 read.
 
+## 4A. Payment methods: a dashboard decision, not a code one
+
+`buildCheckoutBody` deliberately does NOT set `payment_method_types`. Omitting it
+means the hosted checkout page uses the account's automatic payment methods
+configuration, so which methods a player sees is a toggle in the provider
+dashboard and enabling one never needs a deploy. Pinning a list here would mean
+a code change every time we wanted to accept something new, and would silently
+exclude anything the list forgot.
+
+What that gives us today:
+
+| Method | How it appears | Notes |
+|---|---|---|
+| Card | Always | The baseline every other wallet rides on. |
+| Apple Pay | Automatically, on a supporting device | Not a separate method. It is a card in a wallet, so enabling card enables it. Hosted checkout is served from the provider's own domain, so the domain-verification step that self-hosted payment forms need does not apply. |
+| Google Pay | Automatically, on a supporting browser | Same as above. |
+| Link | Automatically when enabled | The provider's own saved-payment wallet. Supports subscriptions. |
+| Cash App Pay | Only after enabling it in the dashboard | Worth enabling for this audience. Confirm in the dashboard that it is active for recurring, not only one-time. |
+| Bank debit | Only after enabling it in the dashboard | Delayed settlement. Read section 4B before switching it on. |
+
+Nobody can enable these from code, and the API surface available to this repo
+does not expose the account's active set, so the enabled list must be read from
+the dashboard rather than inferred from here.
+
+## 4B. Delayed settlement, and why the async events exist
+
+A card settles while the player is still on the page. A bank debit, and some
+wallets and redirects, do not: the session closes, the player believes they have
+paid, and the money confirms minutes or days later.
+
+That is why `planChangeFromEvent` grants on `payment_status` rather than on the
+event name, and why the endpoint subscribes to all three checkout outcomes:
+
+    checkout.session.completed                 the player finished the page
+    checkout.session.async_payment_succeeded   the money actually arrived
+    checkout.session.async_payment_failed      it never did
+
+One rule covers all three: grant if and only if the session says the money
+settled. `completed` with `payment_status: unpaid` grants nothing, which is what
+stops a bank debit handing out a month of Pro before it clears. The success
+event is the other half of that decision, and without it a player who paid by a
+delayed method would sit on Free until some later subscription event happened to
+land.
+
+The useful property of keying on `payment_status` rather than on the event type:
+a method nobody here has ever tested behaves correctly the first time someone
+uses it. Since the enabled set is a dashboard toggle, that is the only way this
+stays true.
+
 ## 5. The owner alert
 
 **Half built.** The spend-backstop half fires (`lib/owner-alert.ts`, wired into
