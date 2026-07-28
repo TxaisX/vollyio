@@ -75,8 +75,15 @@ test("only the service role may write a plan", async () => {
   // A player writing their own plan would be player-editable metadata deciding
   // billing entitlement, which AGENTS.md forbids outright.
   assert.doesNotMatch(sql, /grant update \([^)]*plan[^)]*\) on table public\.profiles to authenticated/i);
-  // The constraint was added once, by the migration that introduced the column.
-  assert.match(await allMigrations(), /check \(plan in \('free', 'pro'\)\)/i);
+  // The rule that `plan` may only ever be free or pro. It began as a check
+  // constraint in 027 and became a real enum in 034, which is the same rule
+  // enforced by the type system instead of a predicate, and which is what makes
+  // the Table Editor render a dropdown rather than a box you can typo into.
+  const all = await allMigrations();
+  assert.match(all, /create type public\.plan_tier as enum \('free', 'pro'\)/i);
+  assert.match(all, /alter column plan type public\.plan_tier/i);
+  // The writer takes text and must cast on the way in, or every payment throws.
+  assert.match(sql, /p_plan::public\.plan_tier/i);
 });
 
 test("an unknown plan falls back to the free allowance rather than throwing", () => {
@@ -110,7 +117,9 @@ test("the plan writer refuses to move a plan backwards on an out-of-order event"
   assert.match(sql, /p_event_at timestamptz/i);
   assert.match(sql, /last_billing_event_at/i);
   assert.match(sql, /pg_advisory_xact_lock/i);
-  assert.match(sql, /plan = case when v_stale then plan else p_plan end/i);
+  // The cast is 034's enum; what matters is that a stale event keeps the
+  // CURRENT plan rather than writing the incoming one.
+  assert.match(sql, /plan = case when v_stale then plan else p_plan(::public\.plan_tier)? end/i);
   // The identifiers are still recorded on a stale event: dropping the customer
   // id because an event arrived out of order leaves a paying player unable to
   // reach the portal and cancel.

@@ -44,13 +44,13 @@ insert into smoke(check_name, status) select 'upgrade returns applied',
   then 'OK' else 'FAIL' end;
 
 insert into smoke(check_name, status) select 'the plan actually moved to pro',
-  case when (select plan from public.profiles
+  case when (select plan::text from public.profiles
              where id = '00000000-0000-4000-8000-00000000dead'::uuid) = 'pro'
   then 'OK' else 'FAIL' end;
 
 insert into smoke(check_name, status) select 'pro resolves to the larger allowance',
   case when public.plan_monthly_allowance(
-    (select plan from public.profiles
+    (select plan::text from public.profiles
      where id = '00000000-0000-4000-8000-00000000dead'::uuid)) = 18
   then 'OK' else 'FAIL' end;
 
@@ -68,7 +68,7 @@ insert into smoke(check_name, status) select 'a stale event is refused',
   then 'OK' else 'FAIL' end;
 
 insert into smoke(check_name, status) select 'and the stale event left pro intact',
-  case when (select plan from public.profiles
+  case when (select plan::text from public.profiles
              where id = '00000000-0000-4000-8000-00000000dead'::uuid) = 'pro'
   then 'OK' else 'FAIL' end;
 
@@ -78,7 +78,7 @@ insert into smoke(check_name, status) select 'a current cancellation applies',
   then 'OK' else 'FAIL' end;
 
 insert into smoke(check_name, status) select 'and the plan is back to free',
-  case when (select plan from public.profiles
+  case when (select plan::text from public.profiles
              where id = '00000000-0000-4000-8000-00000000dead'::uuid) = 'free'
   then 'OK' else 'FAIL' end;
 

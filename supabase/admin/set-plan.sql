@@ -29,7 +29,7 @@ select
   t.new_plan as will_become,
   p.plan_renews_at,
   p.stripe_subscription_id is not null as has_real_subscription,
-  public.plan_monthly_allowance(p.plan) as allowance_now,
+  public.plan_monthly_allowance(p.plan::text) as allowance_now,
   public.plan_monthly_allowance(t.new_plan) as allowance_after,
   (select count(*) from public.analyses a
      where a.user_id = p.id
@@ -83,12 +83,12 @@ select
   u.email,
   p.plan,
   p.plan_renews_at,
-  public.plan_monthly_allowance(p.plan) as allowance,
+  public.plan_monthly_allowance(p.plan::text) as allowance,
   (select count(*) from public.analyses a
      where a.user_id = p.id
        and a.created_at >= (date_trunc('month', now() at time zone 'utc')) at time zone 'utc'
   ) as used_this_month,
-  greatest(0, public.plan_monthly_allowance(p.plan) - (
+  greatest(0, public.plan_monthly_allowance(p.plan::text) - (
     select count(*) from public.analyses a
      where a.user_id = p.id
        and a.created_at >= (date_trunc('month', now() at time zone 'utc')) at time zone 'utc'
