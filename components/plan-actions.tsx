@@ -13,11 +13,15 @@ export function PlanAction({
   label,
   busyLabel,
   variant,
+  fullWidth = false,
 }: {
   endpoint: string;
   label: string;
   busyLabel: string;
   variant: "primary" | "ghost";
+  // The refusal surfaces give this the full width of their card; the plan card
+  // sits it inline under the terms.
+  fullWidth?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +63,7 @@ export function PlanAction({
         onClick={open}
         disabled={busy}
         aria-busy={busy}
-        className={`${variant === "primary" ? "btn-primary" : "btn-ghost"} mt-4 min-h-11 text-sm disabled:opacity-40`}
+        className={`${variant === "primary" ? "btn-primary" : "btn-ghost"} mt-4 min-h-11 text-sm disabled:opacity-40${fullWidth ? " w-full" : ""}`}
       >
         {busy ? busyLabel : label}
       </button>

@@ -57,11 +57,15 @@ type Status =
       resetsOn?: string | null;
     };
 
-// Where a player who has used their month goes. `lib/billing.ts` owns the
-// server-side view of this variable, but that module is server-only, so the
-// client reads the public var itself. Unset means no paid tier has shipped
-// yet: render no offer at all rather than an upgrade that leads nowhere.
-const UPGRADE_HREF = process.env.NEXT_PUBLIC_UPGRADE_URL?.trim() || null;
+// Whether there is anything to sell. `lib/billing.ts` owns the server-side view
+// of this variable, but that module is server-only, so the client reads the
+// public var itself. Unset means no paid tier has shipped: render no offer at
+// all rather than a button that leads nowhere.
+//
+// A signal, not a destination. The offer starts checkout directly through
+// /api/stripe/checkout; nothing in the product sends a player to the plan page
+// to press a second button.
+const CAN_BUY = (process.env.NEXT_PUBLIC_UPGRADE_URL?.trim() || null) !== null;
 
 // The tap that marks the athlete: a normalized point in the frame at a clip
 // time. Just a coordinate; nothing on the device interprets it (D-033).
@@ -1397,7 +1401,7 @@ export function AnalyzeFlow({
                   className="animate-fade-up font-sans"
                   plan={status.plan ?? null}
                   resetsOn={status.resetsOn ?? null}
-                  upgradeHref={UPGRADE_HREF}
+                  canBuy={CAN_BUY}
                 />
               )}
               {canRetry && (
