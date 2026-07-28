@@ -1,6 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allowanceCopy, readAllowance, resetCopy } from "./allowance.ts";
+import {
+  allowanceCopy,
+  allowanceLine,
+  allowanceTone,
+  limitOffer,
+  planFromReason,
+  readAllowance,
+  resetCopy,
+  resetDate,
+  resetDateOf,
+  type Allowance,
+} from "./allowance.ts";
+import { MONTHLY_ALLOWANCE, PRO_PRICE_LABEL } from "./plans.ts";
 
 const GOOD = {
   plan: "free",
@@ -128,4 +140,182 @@ test("the reset date is read in UTC, because the window is a UTC month", () => {
   // Greenwich. The player is told the month it belongs to, not the local clock.
   assert.equal(resetCopy(august), "Resets Aug 1");
   assert.equal(resetCopy({ ...august, resetsAt: "2027-01-01T00:00:00Z" }), "Resets Jan 1");
+  // The bare date, which is what the offer copy interpolates.
+  assert.equal(resetDate(august), "Aug 1");
+});
+
+test("a reset instant off the wire is formatted in UTC or dropped entirely", () => {
+  // Same UTC pinning as the validated path, because the 402 and the counter
+  // must never name two different days for the same reset.
+  assert.equal(resetDateOf("2026-08-01T00:00:00+00:00"), "Aug 1");
+  assert.equal(resetDateOf("2026-08-01T00:00:00Z"), "Aug 1");
+
+  // Anything unreadable drops the date rather than printing "Invalid Date" at
+  // a player who is already blocked. `limitOffer` still has something true to
+  // say without it.
+  for (const bad of [null, undefined, "", "   ", "the first", 1_785_000_000_000, {}, []]) {
+    assert.equal(resetDateOf(bad), null, `expected null for ${JSON.stringify(bad)}`);
+  }
+});
+
+const counter = (
+  used: number,
+  allowance = 3,
+  plan: "free" | "pro" = "free",
+): Allowance => ({
+  plan,
+  allowance,
+  used,
+  remaining: Math.max(0, allowance - used),
+  resetsAt: "2026-08-01T00:00:00+00:00",
+});
+
+test("the tone follows the remaining count and nothing else", () => {
+  assert.equal(allowanceTone(counter(0)), "steady");
+  assert.equal(allowanceTone(counter(1)), "steady");
+  assert.equal(allowanceTone(counter(2)), "last");
+  assert.equal(allowanceTone(counter(3)), "out");
+  // Over the allowance after a mid-month downgrade is still just "out".
+  assert.equal(allowanceTone(counter(4)), "out");
+  // A Pro player's last one is the same kind of moment as a free player's.
+  assert.equal(allowanceTone(counter(17, 18, "pro")), "last");
+  assert.equal(allowanceTone(counter(18, 18, "pro")), "out");
+});
+
+test("the counter warns at one left and reports everywhere else", () => {
+  // Two or more is a fact, stated the way the plan card states it.
+  assert.equal(allowanceLine(counter(0)), "3 of 3 left this month");
+  assert.equal(allowanceLine(counter(1)), "2 of 3 left this month");
+  // One left is the moment worth interrupting for: it is the last chance to
+  // learn this before filming, and the line carries its own answer.
+  assert.equal(
+    allowanceLine(counter(2)),
+    "Last analysis this month. More on Aug 1.",
+  );
+  assert.equal(
+    allowanceLine(counter(17, 18, "pro")),
+    "Last analysis this month. More on Aug 1.",
+  );
+  assert.equal(allowanceLine(counter(3)), "None left this month");
+});
+
+test("a 402 reason names the plan, and an absent one names nothing", () => {
+  assert.equal(planFromReason("free_month_exhausted"), "free");
+  assert.equal(planFromReason("plan_month_exhausted"), "pro");
+  // A body that lost its reason, a proxy error page, a future reason this
+  // build has no name for: all leave the plan unknown rather than guessed.
+  for (const bad of [null, undefined, "", "month_exhausted", "used", "pro"]) {
+    assert.equal(planFromReason(bad), null, `expected null for ${String(bad)}`);
+  }
+});
+
+test("a free player who is out gets the price, one action, and the date", () => {
+  const offer = limitOffer({
+    plan: "free",
+    allowance: 3,
+    resetsOn: "Aug 1",
+    canBuy: true,
+  });
+
+  assert.equal(
+    offer.headline,
+    "You've used all 3 of your Free analyses this month.",
+  );
+  assert.equal(offer.action, "Upgrade to Pro");
+  // What Pro gives and what it costs, both present, both from the pinned
+  // constants rather than a number typed into copy.
+  assert.match(offer.terms!, new RegExp(`${MONTHLY_ALLOWANCE.pro} analyses a month`));
+  assert.ok(offer.terms!.includes(PRO_PRICE_LABEL));
+  // Waiting is offered as the alternative, never hidden.
+  assert.equal(offer.wait, "Or wait, and your next 3 unlock on Aug 1.");
+});
+
+test("a Pro player who is out is told when, and is sold nothing", () => {
+  // The rule that overrides every conversion instinct: money buys this player
+  // nothing this month, so there is no button and no price.
+  const offer = limitOffer({
+    plan: "pro",
+    allowance: 18,
+    resetsOn: "Aug 1",
+    canBuy: true,
+  });
+
+  assert.equal(
+    offer.headline,
+    "You've used all 18 of your Pro analyses this month.",
+  );
+  assert.equal(offer.terms, null);
+  assert.equal(offer.action, null);
+  assert.equal(offer.wait, "Your next 18 unlock on Aug 1.");
+});
+
+test("no upgrade destination means no offer, only the wait", () => {
+  // The button would 503 or lead nowhere, which is worse than no button.
+  const offer = limitOffer({
+    plan: "free",
+    allowance: 3,
+    resetsOn: "Aug 1",
+    canBuy: false,
+  });
+
+  assert.equal(offer.terms, null);
+  assert.equal(offer.action, null);
+  assert.equal(offer.wait, "Your next 3 unlock on Aug 1.");
+});
+
+test("an unreadable 402 still says something true and still offers a way out", () => {
+  // No plan and no date: the headline drops the number, the wait falls back to
+  // the calendar month, which is true whatever the provider said, and the
+  // offer stays up rather than stranding a free player with nothing to do.
+  const offer = limitOffer({ plan: null, resetsOn: null, canBuy: true });
+
+  assert.equal(offer.headline, "You've used your analyses for this month.");
+  assert.equal(offer.action, "Upgrade to Pro");
+  assert.equal(offer.wait, "Or wait, and more unlock on the first of the month.");
+
+  const waiting = limitOffer({ plan: null, resetsOn: null, canBuy: false });
+  assert.equal(waiting.wait, "More unlock on the first of the month.");
+});
+
+test("the plan constant fills in when a surface did not read the count", () => {
+  // The 402 carries a reason but no numbers; the constants are pinned against
+  // the SQL that enforces them (lib/plans.test.ts), so this cannot promise an
+  // allowance the reservation would refuse.
+  const free = limitOffer({ plan: "free", resetsOn: "Aug 1", canBuy: true });
+  const pro = limitOffer({ plan: "pro", resetsOn: "Aug 1", canBuy: true });
+
+  assert.ok(free.headline.includes(`all ${MONTHLY_ALLOWANCE.free} of your Free`));
+  assert.ok(pro.headline.includes(`all ${MONTHLY_ALLOWANCE.pro} of your Pro`));
+});
+
+test("the offer is the same offer at every moment, and never manufactures urgency", () => {
+  // Same terms and same action whatever the player's situation, so nothing in
+  // this funnel can quietly become a different deal for someone more stuck.
+  const shapes = [
+    limitOffer({ plan: "free", allowance: 3, resetsOn: "Aug 1", canBuy: true }),
+    limitOffer({ plan: "free", allowance: 3, resetsOn: null, canBuy: true }),
+    limitOffer({ plan: null, resetsOn: "Sep 1", canBuy: true }),
+  ];
+  const terms = new Set(shapes.map((s) => s.terms));
+  const actions = new Set(shapes.map((s) => s.action));
+  assert.equal(terms.size, 1);
+  assert.equal(actions.size, 1);
+
+  const longDash = String.fromCharCode(0x2014);
+  const every = [
+    ...shapes,
+    limitOffer({ plan: "pro", allowance: 18, resetsOn: "Aug 1", canBuy: true }),
+    limitOffer({ plan: "free", allowance: 3, resetsOn: "Aug 1", canBuy: false }),
+  ];
+  for (const offer of every) {
+    for (const line of [offer.headline, offer.terms, offer.action, offer.wait]) {
+      if (line === null) continue;
+      // No shouting, no long dash, no vendor name, and no countdown language:
+      // the urgency belongs to the player's situation, not to the copy.
+      assert.equal(line.includes("!"), false, line);
+      assert.equal(line.includes(longDash), false, line);
+      assert.doesNotMatch(line, /stripe/i);
+      assert.doesNotMatch(line, /only today|hurry|last chance|expires|ends soon/i);
+    }
+  }
 });

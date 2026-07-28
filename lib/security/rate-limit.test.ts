@@ -68,25 +68,29 @@ test("refundApiQuota gives back one unit of the named scope's window", async () 
       return { data: null, error: null };
     },
   };
-  const reservationId = "9cecf88f-a582-47bf-a76c-e2514a2977c5";
-  assert.equal(await refundApiQuota(client, "analyze", reservationId), true);
+  const userId = "9cecf88f-a582-47bf-a76c-e2514a2977c5";
+  assert.equal(await refundApiQuota(client, userId, "analyze"), true);
   assert.equal(name, "refund_api_quota");
-  // The reservation id travels with every refund. It is generated in the
-  // database and never sent to a client, so it is what proves this call came
-  // from the route rather than from a player resetting their own window.
-  assert.deepEqual(args, { p_scope: "analyze", p_reservation_id: reservationId });
+  // The subject is passed explicitly because this runs as the SERVICE ROLE,
+  // where auth.uid() is null. That is the point: the boundary is the role, not
+  // a value a player could obtain and replay (migration 033).
+  assert.deepEqual(args, { p_user_id: userId, p_scope: "analyze" });
 });
 
 test("refundApiQuota reports failure without throwing (refund is best-effort)", async () => {
   const failing = {
     rpc: async () => ({ data: null, error: { message: "missing function" } }),
   };
-  assert.equal(await refundApiQuota(failing, "analyze", "res-1"), false);
+  assert.equal(await refundApiQuota(failing, "u-1", "analyze"), false);
 
   const throwing = {
     rpc: async (): Promise<never> => {
       throw new Error("network unavailable");
     },
   };
-  assert.equal(await refundApiQuota(throwing, "analyze", "res-1"), false);
+  assert.equal(await refundApiQuota(throwing, "u-1", "analyze"), false);
+
+  // No service client at all, which is every deploy without the service key.
+  // The slot is not returned, nothing is granted, and nothing throws.
+  assert.equal(await refundApiQuota(null, "u-1", "analyze"), false);
 });

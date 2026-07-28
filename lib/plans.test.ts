@@ -165,10 +165,12 @@ test("the quota refund cannot be driven by a player", async () => {
     if (/create or replace function public\.refund_api_quota/i.test(body)) sql = body;
   }
   assert.notEqual(sql, "", "no migration defines refund_api_quota");
-  // The reservation id is the proof of server origin: it is generated in the
-  // database, handed to the analyze route, and never sent to a client.
-  assert.match(sql, /p_reservation_id uuid/i);
-  assert.match(sql, /from private\.analysis_entitlement_reservations/i);
+  // Migration 033: the boundary is the ROLE, not a value. 030's reservation-id
+  // gate was unsound because reserve_analysis_entitlement is granted to
+  // `authenticated` and returns the id, so a player could fetch one.
+  assert.match(sql, /refund_api_quota\(\s*p_user_id uuid,\s*p_scope text/i);
+  assert.match(sql, /grant execute on function public\.refund_api_quota\(uuid, text\) to service_role/i);
+  assert.doesNotMatch(sql, /to authenticated/i);
   // Deleting the row was the escape: the next consume then started a fresh
   // window, so the hourly cap never fired.
   assert.doesNotMatch(sql, /delete from private\.api_rate_limits/i);

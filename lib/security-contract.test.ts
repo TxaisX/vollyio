@@ -101,9 +101,11 @@ test("the one-argument quota refund is dropped and stays dropped", async () => {
   // one-argument grant is absent from every migration would be asserting that
   // history did not happen: 018 really did grant it, and 030 really did drop
   // the function out from under that grant, which is what makes it moot.
-  assert.match(newest, /refund_api_quota\(\s*p_scope text,\s*p_reservation_id uuid/i);
-  assert.match(newest, /grant execute on function public\.refund_api_quota\(text, uuid\) to authenticated/i);
-  assert.doesNotMatch(newest, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
+  assert.match(newest, /refund_api_quota\(\s*p_user_id uuid,\s*p_scope text/i);
+  assert.match(newest, /grant execute on function public\.refund_api_quota\(uuid, text\) to service_role/i);
+  // No client role may reach it in ANY shape. This is the assertion that would
+  // have caught 030 shipping a gate that only looked like one.
+  assert.doesNotMatch(newest, /grant execute on function public\.refund_api_quota[^;]*to authenticated/i);
 });
 
 test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {

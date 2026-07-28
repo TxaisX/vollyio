@@ -37,28 +37,43 @@ export async function consumeApiQuota(
 // surfaced. Safe against rate-limit escape because the DB function only
 // decrements inside the active window and never below the floor (see
 // refund_api_quota); it cannot manufacture extra allowance.
+type ServiceRpcClient = {
+  rpc(
+    name: string,
+    args: { p_user_id: string; p_scope: ApiQuotaScope },
+  ): PromiseLike<{ data: unknown; error: unknown }>;
+};
+
 /**
  * Give back the hourly slot a request consumed before the paid work turned out
  * to be impossible (D-043).
  *
- * The reservation id is required and is the whole security property. This
- * function is SECURITY DEFINER and granted to `authenticated`, so PostgREST
- * publishes it and a player can call it with their own token. Before migration
- * 030 that was a quota escape: refund after every analysis and the fixed window
- * never advanced, so the 20 per hour cap never fired and each extra request
- * still paid for a coaching call before the insert trigger rejected it. The
- * reservation id is generated in the database, handed to this route, and never
- * sent to a client, so presenting it is proof the caller is the route.
+ * MUST be called with the SERVICE-ROLE client, not the player's. Refunding is
+ * the one quota operation a player must never be able to perform: call it after
+ * every analysis and the fixed window never advances, so the 20 per hour cap
+ * never fires and each extra request still pays for a coaching call before the
+ * insert trigger rejects it.
+ *
+ * Migration 030 tried to gate this on an entitlement reservation id, reasoning
+ * that only the server holds one. That was wrong:
+ * `reserve_analysis_entitlement` is granted to `authenticated` and returns the
+ * id, so a player could fetch one through the data API. Migration 033 made the
+ * function service_role only, which is a boundary rather than a secret.
+ *
+ * Returns false when the service client is unavailable, which is the state on
+ * any deploy without the service key. The slot is simply not returned; nothing
+ * is granted and nothing throws.
  */
 export async function refundApiQuota(
-  client: RpcClient,
+  client: ServiceRpcClient | null,
+  userId: string,
   scope: ApiQuotaScope,
-  reservationId: string,
 ): Promise<boolean> {
+  if (!client) return false;
   try {
     const { error } = await client.rpc("refund_api_quota", {
+      p_user_id: userId,
       p_scope: scope,
-      p_reservation_id: reservationId,
     });
     return !error;
   } catch {

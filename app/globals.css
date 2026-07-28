@@ -267,10 +267,13 @@ body {
   color: var(--color-navy);
 }
 
+/* The outline already follows whatever corner radius the element carries, so
+   this rule must not set one: the `border-radius: 4px` that used to live here
+   applied to the focused element itself, squaring off every pill, chip, and
+   card at the instant it took keyboard focus. */
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 @layer components {

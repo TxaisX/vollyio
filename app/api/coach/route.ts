@@ -76,6 +76,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
+  // Read and validate BEFORE spending the player's allowance. The two quotas
+  // below are a player's own hourly and daily budget, so a typo in a client
+  // build, or a retry that sent the wrong shape, used to cost them coaching
+  // they never received. Nothing below this point is free and nothing above it
+  // may charge them.
+  //
+  // The 16 KB cap still lands before any parse: readJsonRequest counts the
+  // bytes off the stream as they arrive and cancels the read the moment they
+  // exceed it, so moving this ahead of the quota does not widen what an
+  // authenticated caller can make the server buffer.
+  const json = await readJsonRequest(req, 16_384);
+  if (!json.ok) {
+    const status =
+      json.error === "payload_too_large"
+        ? 413
+        : json.error === "unsupported_media_type"
+          ? 415
+          : 400;
+    return NextResponse.json({ error: "Bad request." }, { status });
+  }
+  const parsed = bodySchema.safeParse(json.value);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Bad request." }, { status: 400 });
+  }
+  const { message, session_id } = parsed.data;
+
+  // Quota first among the things that cost something: the session insert below
+  // writes a row and everything after it can reach the coaching service, and an
+  // atomic consume is the only thing that bounds either.
   const quota = await consumeApiQuota(supabase, "coach");
   if (!quota.ok) {
     return NextResponse.json(
@@ -115,24 +144,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const json = await readJsonRequest(req, 16_384);
-  if (!json.ok) {
-    const status =
-      json.error === "payload_too_large"
-        ? 413
-        : json.error === "unsupported_media_type"
-          ? 415
-          : 400;
-    return NextResponse.json({ error: "Bad request." }, { status });
-  }
-  const parsed = bodySchema.safeParse(json.value);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Bad request." }, { status: 400 });
-  }
-  const { message, session_id } = parsed.data;
-
   // Resolve the conversation: verify ownership of an existing session, or
   // start a new one titled from this first message.
+  //
+  // A new session row is written before the answer exists because its id ships
+  // in a response header, and the header goes out ahead of the stream. A turn
+  // that never gets an answer therefore leaves an EMPTY session rather than a
+  // half-written one, and the client has already adopted the id, so the
+  // player's retry lands in the same thread and fills it.
   let sessionId: string;
   if (session_id) {
     const { data: owned } = await supabase
@@ -157,12 +176,9 @@ export async function POST(req: NextRequest) {
     sessionId = created.id;
   }
 
-  const { error: sendError } = await supabase
-    .from("chat_messages")
-    .insert({ user_id: user.id, session_id: sessionId, role: "user", content: message });
-  if (sendError) {
-    return NextResponse.json({ error: "Couldn't send your message." }, { status: 500 });
-  }
+  // When the question was asked. The turn is not written yet: see the insert in
+  // the stream's finally block for why both halves land together or not at all.
+  const askedAt = new Date();
 
   const [
     { data: profile },
@@ -264,7 +280,11 @@ export async function POST(req: NextRequest) {
 
   const history = (((historyData as HistoryRow[] | null) ?? [])).slice().reverse();
   // The Messages API requires the first turn to be from the user, and this
-  // model rejects a trailing assistant turn, so trim and re-anchor here.
+  // model rejects a trailing assistant turn, so trim and re-anchor here. The
+  // question being asked is never in the stored history any more (it is written
+  // with its answer, after the call), so the append below is the only thing
+  // that puts it in front of the model; the guard stays because a repeat of the
+  // stored last turn must not be sent twice.
   while (history.length > 0 && history[0].role !== "user") history.shift();
   const last = history[history.length - 1];
   if (!last || last.role !== "user" || last.content !== message) {
@@ -314,20 +334,46 @@ export async function POST(req: NextRequest) {
         }
       } catch {
       } finally {
+        // The question and the answer are written together, after the answer
+        // exists, as ONE insert. Writing the question up front left the
+        // conversation holding a question with no answer every time the
+        // coaching service failed, and nothing in the transcript told the
+        // player the difference between that and a coach who ignored them. A
+        // turn that produced no text now leaves the thread exactly as it was,
+        // which is what the client already shows: it raises "The coach didn't
+        // answer" on an empty stream and offers the same message again.
+        //
+        // The timestamps are set here rather than defaulted. Two rows written
+        // by one statement share the same transaction now(), which would leave
+        // the turn's order undefined for every read that sorts on created_at,
+        // including the history this route feeds back to the model, where an
+        // assistant turn arriving first is rejected outright.
         if (reply.length > 0) {
-          await supabase
-            .from("chat_messages")
-            .insert({
+          const answeredAt = new Date(
+            Math.max(Date.now(), askedAt.getTime() + 1),
+          ).toISOString();
+          await supabase.from("chat_messages").insert([
+            {
+              user_id: user.id,
+              session_id: sessionId,
+              role: "user",
+              content: message,
+              created_at: askedAt.toISOString(),
+            },
+            {
               user_id: user.id,
               session_id: sessionId,
               role: "assistant",
               content: reply,
-            });
+              created_at: answeredAt,
+            },
+          ]);
+          // Only a turn that stored something reorders the session list.
+          await supabase
+            .from("coach_sessions")
+            .update({ updated_at: answeredAt })
+            .eq("id", sessionId);
         }
-        await supabase
-          .from("coach_sessions")
-          .update({ updated_at: new Date().toISOString() })
-          .eq("id", sessionId);
         try {
           controller.close();
         } catch {}

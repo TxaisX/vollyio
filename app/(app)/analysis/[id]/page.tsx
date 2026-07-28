@@ -153,14 +153,19 @@ export default async function AnalysisDetail({
   const { data: signed } = await supabase.storage
     .from("frames")
     .createSignedUrls(row.frame_paths, 3600);
-  const urls = signed?.map((s) => s.signedUrl) ?? [];
-  // Signed-URL failure: any frame that could not be signed counts. Show a
-  // message instead of blank/broken images; scores and notes still render
-  // below. Guarding on a partial failure (not just an all-fail) avoids passing
-  // an empty-string img src to ClipViewer.
-  const framesFailed =
-    row.frame_paths.length > 0 &&
-    urls.filter(Boolean).length < row.frame_paths.length;
+  // One answer per path, in the order asked, and a path that could not be
+  // signed comes back with an empty url rather than dropping out of the array.
+  // Rebuild off frame_paths anyway so a short or absent answer still lines up:
+  // frame_times, the focus and contact tags, and the strip numbering are all
+  // keyed on a frame's ORIGINAL index, so compacting the list would move every
+  // label onto the wrong image.
+  const urls = row.frame_paths.map((_, i) => signed?.[i]?.signedUrl || "");
+  const signedCount = urls.filter(Boolean).length;
+  // One frame that would not sign used to hide all of them, so a single bad
+  // object cost the player the whole rep. The viewer already renders a slot
+  // with no url as an empty tile, so the frames that did sign are shown and the
+  // gap is named underneath.
+  const framesMissing = row.frame_paths.length - signedCount;
 
   let clipUrl: string | null = null;
   if (row.clip_path) {
@@ -179,12 +184,17 @@ export default async function AnalysisDetail({
     highlight.add(result.contact_frame_index);
 
   const playerFrames = urls.map((url, i) => ({
-    url: url ?? "",
+    url,
     // frame_times covers every sent frame on newer rows; older rows only
     // know the times the model cited (insights and the priority fix).
     time_s: result.frame_times?.[i] ?? timeByFrame.get(i) ?? null,
     highlighted: highlight.has(i),
   }));
+  // Frames that exist but none of which signed, and no clip, is the only case
+  // with nothing to show. A clip alone still plays, it just loses the seek
+  // strip, and a rep that stored no frames keeps the viewer's own empty state.
+  const nothingToShow =
+    row.frame_paths.length > 0 && signedCount === 0 && !clipUrl;
 
   const focusIndex = result.focus?.frame_index ?? null;
   const contactIndex =
@@ -301,7 +311,7 @@ export default async function AnalysisDetail({
         {/* Player: right column on desktop, first thing on mobile */}
         <div className="lg:order-2 lg:sticky lg:top-8">
           <Reveal delay={80}>
-            {framesFailed ? (
+            {nothingToShow ? (
               <div className="card p-6 text-center">
                 <p className="text-sm text-chalk-dim">
                   These frames couldn&rsquo;t load right now. Your scores and
@@ -309,12 +319,22 @@ export default async function AnalysisDetail({
                 </p>
               </div>
             ) : (
-              <ClipViewer
-                clipUrl={clipUrl}
-                frames={playerFrames}
-                focusIndex={focusIndex}
-                contactIndex={contactIndex}
-              />
+              <>
+                <ClipViewer
+                  clipUrl={clipUrl}
+                  frames={signedCount > 0 ? playerFrames : []}
+                  focusIndex={focusIndex}
+                  contactIndex={contactIndex}
+                />
+                {framesMissing > 0 && (
+                  <p className="mt-3 text-xs text-chalk-dim">
+                    {signedCount > 0
+                      ? `${framesMissing} of ${row.frame_paths.length} frames couldn’t load right now.`
+                      : "The frames couldn’t load right now."}{" "}
+                    Your scores and notes are unaffected.
+                  </p>
+                )}
+              </>
             )}
             {result.focus && (
               <div className="mt-3 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3">

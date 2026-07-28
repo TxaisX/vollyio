@@ -340,7 +340,9 @@ export async function POST(req: NextRequest) {
         // spend-cap outage), so the player was not charged: give the hourly slot
         // back (the free entitlement is released by the outer finally) and say so
         // plainly, distinctly from "your clip failed". Vendor stays unnamed.
-        await refundApiQuota(supabase, "analyze", reservationId);
+        // Service-role client, never the player's (migration 033). A refund a
+        // player can trigger is a rate limit that resets on demand.
+        await refundApiQuota(createServiceClient(), user.id, "analyze");
         return NextResponse.json(
           {
             error:

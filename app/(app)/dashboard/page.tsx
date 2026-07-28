@@ -10,9 +10,15 @@ import { Sparkline } from "@/components/sparkline";
 import { SkillIcon } from "@/components/skill-icons";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
+import { LimitNotice } from "@/components/limit-notice";
 import { overallScore } from "@/lib/ratings";
-import { shouldEnforceFreeTier } from "@/lib/billing";
-import { allowanceCopy, readAllowance } from "@/lib/allowance";
+import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
+import {
+  allowanceLine,
+  allowanceTone,
+  readAllowance,
+  resetDate,
+} from "@/lib/allowance";
 import {
   SKILLS,
   SKILL_LABEL,
@@ -59,8 +65,8 @@ type GoalRow = {
 
 type Challenge = ReturnType<typeof dailyChallenge>;
 
-// The challenge and goals cards render twice: beside the score stage below
-// xl, in the right rail at xl. One implementation, two responsive slots.
+// The focus, challenge and goals cards render twice: beside the score stage
+// below xl, in the right rail at xl. One implementation, two responsive slots.
 function ChallengeCard({
   challenge,
   challengeDone,
@@ -71,9 +77,9 @@ function ChallengeCard({
   return (
     <div className="challenge-card card card-lift spot p-5">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
           Daily challenge
-        </p>
+        </h2>
         <span className="font-mono text-[11px] text-chalk-dim">
           +{XP_AWARDS.challenge} XP
         </span>
@@ -107,7 +113,10 @@ function ChallengeCard({
         </p>
       ) : (
         <form action={completeChallenge} className="mt-3">
-          <button type="submit" className="btn-primary w-full min-h-11 py-2.5 text-sm">
+          {/* Ghost, not primary: the page's one gold button starts a rep, and
+              two of them above the fold made filming and ticking a drill off
+              read as the same size of decision. */}
+          <button type="submit" className="btn-ghost w-full min-h-11 py-2.5 text-sm">
             Mark complete
           </button>
         </form>
@@ -126,12 +135,15 @@ function GoalsCard({
   return (
     <div className="card card-lift p-5">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
           Goals
-        </p>
+        </h2>
+        {/* The padding buys a 44px tap target and the matching negative margin
+            gives it back to the layout, so an 11px label is still reachable
+            with a thumb without the card growing a fat header row. */}
         <Link
           href="/goals"
-          className="font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
+          className="-my-4 py-4 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
         >
           View all
         </Link>
@@ -189,9 +201,9 @@ function ThisWeekCard({
 }) {
   return (
     <div className="card p-5">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
         This week
-      </p>
+      </h2>
       <dl className="mt-2 space-y-2 text-sm">
         <div className="flex items-baseline justify-between">
           <dt className="text-chalk-dim">Reps analyzed</dt>
@@ -210,12 +222,16 @@ function ThisWeekCard({
               {progress.into}/{progress.span} XP
             </dd>
           </div>
+          {/* aria-valuetext, because a bare progressbar is announced as a
+              percentage and "50 percent" is not what the number beside it
+              says. */}
           <div
             className="mt-1.5 h-1 overflow-hidden rounded-full bg-line/60"
             role="progressbar"
             aria-valuenow={progress.into}
             aria-valuemin={0}
             aria-valuemax={progress.span}
+            aria-valuetext={`${progress.into} of ${progress.span} XP`}
             aria-label="XP to next level"
           >
             <div
@@ -232,9 +248,9 @@ function ThisWeekCard({
 function FocusNowCard({ analysis }: { analysis: AnalysisRow }) {
   return (
     <div className="card card-lift p-5">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
         Focus now
-      </p>
+      </h2>
       <Link
         href={`/analysis/${analysis.id}`}
         className="relative mt-2 block text-sm leading-snug text-chalk transition-colors hover:text-gold"
@@ -321,6 +337,11 @@ export default async function Dashboard({
   }
   const newestFix = analyses.find((a) => a.fix) ?? null;
 
+  // A spent month replaces the invitation rather than sitting under it: the
+  // notice below carries the only action left, and a gold "Film a rep" above it
+  // would be a button whose whole job is to walk the player into a 402.
+  const spent = allowance != null && allowanceTone(allowance) === "out";
+
   const overall = overallScore(SKILLS.map((s) => ratings[s] ?? null));
   const weekAgo = Date.now() - 7 * 86_400_000;
   const weekCount = analyses.filter(
@@ -358,7 +379,7 @@ export default async function Dashboard({
                   key={d}
                   href={d === "indoor" ? "/dashboard" : `/dashboard?discipline=${d}`}
                   aria-current={discipline === d ? "page" : undefined}
-                  className={`chip ${discipline === d ? "chip-active" : ""}`}
+                  className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
                 >
                   {DISCIPLINE_LABEL[d]}
                 </Link>
@@ -366,55 +387,95 @@ export default async function Dashboard({
             </div>
             {/* Before the drive to /analyze, not after the upload. A player who
                 films, marks and waits only to meet a paywall has done 90
-                seconds of work for nothing (docs/billing.md 4.6). */}
-            {allowance && (
-              <p className="mt-3 font-mono text-[11px] text-chalk-dim">
-                {allowanceCopy(allowance)}
+                seconds of work for nothing (docs/billing.md 4.6). Quiet while
+                there is room; the last one is called out in gold, and once they
+                are out the offer below takes over from the line entirely. */}
+            {allowance && allowanceTone(allowance) !== "out" && (
+              <p
+                className={`mt-3 font-mono text-[11px] ${
+                  allowanceTone(allowance) === "last"
+                    ? "text-gold"
+                    : "text-chalk-dim"
+                }`}
+              >
+                {allowanceLine(allowance)}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3 xl:hidden">
-            <div className="flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`h-4 w-4 ${progress.streak > 0 ? "text-gold" : "text-chalk-dim"}`}
-                aria-hidden
-              >
-                <path d="M12 3c.5 3-1.5 4.5-2.5 6C8.5 10.5 8 12 8 13.5A4.4 4.4 0 0 0 12.5 18a4.6 4.6 0 0 0 4.5-4.75c0-2.25-1.25-3.5-2-5.25-.5 1-1.5 1.5-1.5 3C12 8.5 12.5 5.5 12 3Z" />
-              </svg>
-              <span className="font-mono text-xs text-chalk">
-                {progress.streak} day{progress.streak === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-full border border-line px-3.5 py-1.5">
-              <span className="font-mono text-xs text-gold">
-                LV {progress.level}
-              </span>
-              <span
-                className="block h-1 w-16 overflow-hidden rounded-full bg-line/60"
-                role="progressbar"
-                aria-valuenow={progress.into}
-                aria-valuemin={0}
-                aria-valuemax={progress.span}
-                aria-label="XP to next level"
-              >
+          {/* The dashboard has to answer "what do I do next" before anything is
+              scrolled, and the answer is always another rep. Without this the
+              only route to /analyze from here was the nav. */}
+          <div className="flex flex-wrap items-center gap-3">
+            {!spent && (
+              <Link href="/analyze" className="btn-primary text-sm">
+                Film a rep
+              </Link>
+            )}
+            <div className="flex items-center gap-3 xl:hidden">
+              <div className="flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-4 w-4 ${progress.streak > 0 ? "text-gold" : "text-chalk-dim"}`}
+                  aria-hidden
+                >
+                  <path d="M12 3c.5 3-1.5 4.5-2.5 6C8.5 10.5 8 12 8 13.5A4.4 4.4 0 0 0 12.5 18a4.6 4.6 0 0 0 4.5-4.75c0-2.25-1.25-3.5-2-5.25-.5 1-1.5 1.5-1.5 3C12 8.5 12.5 5.5 12 3Z" />
+                </svg>
+                {/* The flame is decorative, so the word has to be in the text
+                    or this pill reads as a bare "3 days" with no subject. */}
+                <span className="font-mono text-xs text-chalk">
+                  <span className="sr-only">Streak: </span>
+                  {progress.streak} day{progress.streak === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5 rounded-full border border-line px-3.5 py-1.5">
+                <span className="font-mono text-xs text-gold">
+                  <span className="sr-only">Level </span>
+                  <span aria-hidden="true">LV</span> {progress.level}
+                </span>
                 <span
-                  className="block h-full rounded-full bg-gold transition-all duration-700"
-                  style={{ width: `${Math.round((progress.into / progress.span) * 100)}%` }}
-                />
-              </span>
-              <span className="font-mono text-[10px] text-chalk-dim">
-                {progress.into}/{progress.span}
-              </span>
+                  className="block h-1 w-16 overflow-hidden rounded-full bg-line/60"
+                  role="progressbar"
+                  aria-valuenow={progress.into}
+                  aria-valuemin={0}
+                  aria-valuemax={progress.span}
+                  aria-valuetext={`${progress.into} of ${progress.span} XP`}
+                  aria-label="XP to next level"
+                >
+                  <span
+                    className="block h-full rounded-full bg-gold transition-all duration-700"
+                    style={{ width: `${Math.round((progress.into / progress.span) * 100)}%` }}
+                  />
+                </span>
+                {/* The bar above already announces the same two numbers. */}
+                <span aria-hidden="true" className="font-mono text-[10px] text-chalk-dim">
+                  {progress.into}/{progress.span}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </Reveal>
+
+      {/* Out of analyses: the same offer the 402 shows, in the place a player
+          lands before they walk to /analyze and find out the hard way. Above
+          the fold and above the rest of the dashboard, because it is the only
+          thing on this page they can act on. */}
+      {allowance && allowanceTone(allowance) === "out" && (
+        <Reveal delay={40} className="mt-6">
+          <LimitNotice
+            className="max-w-xl"
+            plan={allowance.plan}
+            allowance={allowance.allowance}
+            resetsOn={resetDate(allowance)}
+            upgradeHref={UPGRADE_URL}
+          />
+        </Reveal>
+      )}
 
       <div className="mt-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-6">
         <div className="min-w-0">
@@ -429,13 +490,21 @@ export default async function Dashboard({
             </Reveal>
 
             <div className="flex flex-col gap-4 md:col-span-2 xl:hidden">
-              <Reveal delay={120}>
+              {/* The priority fix from the last rep is the most actionable
+                  thing on the page, and it used to be visible only at xl,
+                  which is the width this product is least often used at. */}
+              {newestFix && (
+                <Reveal delay={120}>
+                  <FocusNowCard analysis={newestFix} />
+                </Reveal>
+              )}
+              <Reveal delay={180}>
                 <ChallengeCard
                   challenge={challenge}
                   challengeDone={progress.challengeDone}
                 />
               </Reveal>
-              <Reveal delay={180}>
+              <Reveal delay={240}>
                 <GoalsCard goals={goals} ratings={ratings} />
               </Reveal>
             </div>
@@ -485,7 +554,7 @@ export default async function Dashboard({
           </Reveal>
 
           <Reveal delay={200}>
-            <div className="mt-8 flex items-baseline justify-between">
+            <div className="mt-8 flex items-baseline justify-between gap-4">
               <h2 className="font-display text-sm font-bold uppercase tracking-wide">
                 Recent
               </h2>
@@ -494,9 +563,11 @@ export default async function Dashboard({
                   <span className="font-mono text-[11px] text-chalk-dim">
                     {weekCount} this week
                   </span>
+                  {/* Padded for a 44px tap target, negative-margined so the
+                      row keeps the height it reads best at. */}
                   <Link
                     href="/history"
-                    className="font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
+                    className="-my-4 py-4 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
                   >
                     View all
                   </Link>
@@ -513,7 +584,10 @@ export default async function Dashboard({
                   <p className="mx-auto mt-1 max-w-xs text-sm text-chalk-dim">
                     Your rating starts with one rep. Ten seconds, any skill.
                   </p>
-                  <Link href="/analyze" className="btn-primary mt-5 inline-flex text-sm">
+                  {/* The gold button on this page lives in the heading, where
+                      it is above the fold on a phone; this repeats the same
+                      action for anyone who read their way down to it. */}
+                  <Link href="/analyze" className="btn-ghost mt-5 inline-flex text-sm">
                     Film your first rep
                   </Link>
                 </div>
@@ -572,23 +646,25 @@ export default async function Dashboard({
         </div>
 
         <aside className="hidden xl:flex xl:flex-col xl:gap-4">
-          <Reveal delay={120}>
+          {/* Same order as the stacked layout above: the fix to work on leads,
+              the standing state of play follows it. */}
+          {newestFix && (
+            <Reveal delay={120}>
+              <FocusNowCard analysis={newestFix} />
+            </Reveal>
+          )}
+          <Reveal delay={180}>
             <ChallengeCard
               challenge={challenge}
               challengeDone={progress.challengeDone}
             />
           </Reveal>
-          <Reveal delay={180}>
+          <Reveal delay={240}>
             <GoalsCard goals={goals} ratings={ratings} />
           </Reveal>
-          <Reveal delay={240}>
+          <Reveal delay={300}>
             <ThisWeekCard progress={progress} weekCount={weekCount} />
           </Reveal>
-          {newestFix && (
-            <Reveal delay={300}>
-              <FocusNowCard analysis={newestFix} />
-            </Reveal>
-          )}
         </aside>
       </div>
     </section>

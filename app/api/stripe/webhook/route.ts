@@ -91,6 +91,21 @@ export async function POST(req: NextRequest) {
   // Bare failure on purpose: an unverified caller learns that it was rejected
   // and nothing else, not which half (secret, replay window, or digest) said no,
   // and nothing about the payload reaches the logs.
+  //
+  // The digest covers the decoded string rather than the received Uint8Array,
+  // and that is sound HERE for one specific reason: this same string is what
+  // JSON.parse reads below. The rule about signing raw bytes exists because
+  // frameworks parse first and re-serialize to check, so the bytes that were
+  // signed and the bytes that get acted on are two different things; there is
+  // only ever one thing here. The round trip is lossless as well, since
+  // readRawBody decodes with `fatal: true` and anything that is not well-formed
+  // UTF-8 is rejected as unreadable before this line, while well-formed UTF-8
+  // and the scalar values Node re-encodes when hashing a string are a
+  // one-to-one mapping. The one divergence is a leading byte-order mark, which
+  // the decoder strips: an event carrying one would fail to verify, which is
+  // fail-closed and gains a forger nothing, because the digest still has to
+  // match a secret they do not hold. Do not "fix" this by hashing bytes and
+  // parsing a separately decoded string; that is how the two diverge.
   if (!verifyWebhookSignature(body.text, req.headers.get("stripe-signature"), secret)) {
     return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
