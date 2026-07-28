@@ -68,21 +68,25 @@ test("refundApiQuota gives back one unit of the named scope's window", async () 
       return { data: null, error: null };
     },
   };
-  assert.equal(await refundApiQuota(client, "analyze"), true);
+  const reservationId = "9cecf88f-a582-47bf-a76c-e2514a2977c5";
+  assert.equal(await refundApiQuota(client, "analyze", reservationId), true);
   assert.equal(name, "refund_api_quota");
-  assert.deepEqual(args, { p_scope: "analyze" });
+  // The reservation id travels with every refund. It is generated in the
+  // database and never sent to a client, so it is what proves this call came
+  // from the route rather than from a player resetting their own window.
+  assert.deepEqual(args, { p_scope: "analyze", p_reservation_id: reservationId });
 });
 
 test("refundApiQuota reports failure without throwing (refund is best-effort)", async () => {
   const failing = {
     rpc: async () => ({ data: null, error: { message: "missing function" } }),
   };
-  assert.equal(await refundApiQuota(failing, "analyze"), false);
+  assert.equal(await refundApiQuota(failing, "analyze", "res-1"), false);
 
   const throwing = {
     rpc: async (): Promise<never> => {
       throw new Error("network unavailable");
     },
   };
-  assert.equal(await refundApiQuota(throwing, "coach"), false);
+  assert.equal(await refundApiQuota(throwing, "analyze", "res-1"), false);
 });

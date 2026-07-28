@@ -120,6 +120,42 @@ export function buildPortalBody(input: PortalInput): string {
   return formEncode({ customer: input.customerId, return_url: input.returnUrl });
 }
 
+// No response body the provider sends is ever logged verbatim, and this is why.
+// The provider's error object carries a human `message`, and that message
+// quotes the value that was rejected back at you: "Invalid email address:
+// <what was sent>", "No such customer: 'cus_...'". The rejection most likely to
+// fire here is the one whose message holds the player's email address, so
+// logging the raw body would write that address into the server log on the
+// single most common failure. These three fields name WHAT failed and never
+// carry the value that failed, which is all diagnosis needs.
+const ERROR_FIELDS = ["type", "code", "param"] as const;
+
+// Even those three are the provider's strings, not ours, and an unbounded
+// field would let one bad response write an arbitrarily long log line.
+const ERROR_FIELD_MAX = 64;
+
+function describeProviderError(payload: string): string {
+  let error: unknown;
+  try {
+    error = (JSON.parse(payload) as { error?: unknown }).error;
+  } catch {
+    return "error body was not JSON";
+  }
+  if (typeof error !== "object" || error === null) {
+    return "error body carried no error object";
+  }
+
+  const fields = error as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const field of ERROR_FIELDS) {
+    const value = fields[field];
+    if (typeof value === "string" && value) {
+      parts.push(`${field}=${value.slice(0, ERROR_FIELD_MAX)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join(" ") : "error object named no type, code, or param";
+}
+
 // Every path out of here that is not a 2xx carrying a usable https URL returns
 // {ok:false}. An unreachable provider, a rejected request, an unparseable body,
 // and a 200 with no url all mean the same thing to the caller: there is no page
@@ -148,8 +184,9 @@ async function createSession(
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (cause) {
-    // Covers DNS, TLS, connection resets, and the abort above. `cause` carries
-    // the reason; the request body is never logged, it holds the player's email.
+    // Covers DNS, TLS, connection resets, and the abort above. `cause` is a
+    // transport failure; the request body is not passed to the logger here or
+    // anywhere else in this module, because it holds the player's email.
     console.error(`[billing] ${label} request failed`, cause);
     return { ok: false, error: playerMessage };
   }
@@ -163,9 +200,11 @@ async function createSession(
   }
 
   if (!response.ok) {
-    // Truncated because the provider's error object is unbounded and this line
-    // exists for diagnosis, not for archival.
-    console.error(`[billing] ${label} returned ${response.status}: ${payload.slice(0, 500)}`);
+    // Structured fields only, never the provider's prose. See
+    // `describeProviderError`: the raw body echoes the rejected value back, and
+    // on the likeliest rejection that value is the player's email address.
+    const detail = describeProviderError(payload);
+    console.error(`[billing] ${label} returned ${response.status}: ${detail}`);
     return { ok: false, error: playerMessage };
   }
 

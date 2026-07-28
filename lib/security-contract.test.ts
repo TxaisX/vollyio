@@ -71,7 +71,27 @@ test("coach quota migration pins the hardened limits (D-047)", async () => {
   // The refund floor survives: delete the would-be-zero row, never write zero.
   assert.match(sql, /request_count <= 1/i);
   assert.match(sql, /revoke all on function public\.consume_api_quota\(text\) from public/i);
-  assert.match(sql, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
+});
+
+test("the one-argument quota refund is dropped and stays dropped", async () => {
+  // 018 shipped `refund_api_quota(text)` granted to `authenticated`. Because
+  // PostgREST publishes every SECURITY DEFINER function, a player could call it
+  // with their own token, and the `request_count <= 1` branch DELETED the row
+  // so the next consume began a fresh window. The 20 per hour analyze cap
+  // therefore never fired, and each extra request still paid for a coaching
+  // call before the insert trigger refused the row. This pin reads the NEWEST
+  // definition, so a later migration cannot quietly restore the old shape.
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let sql = "";
+  for (const name of names) {
+    const body = await readFile(new URL(name, dir), "utf8");
+    if (/create or replace function public\.refund_api_quota/i.test(body)) sql = body;
+  }
+  assert.notEqual(sql, "", "no migration defines refund_api_quota");
+  assert.match(sql, /drop function if exists public\.refund_api_quota\(text\)/i);
+  assert.match(sql, /refund_api_quota\(\s*p_scope text,\s*p_reservation_id uuid/i);
+  assert.doesNotMatch(sql, /grant execute on function public\.refund_api_quota\(text\) to authenticated/i);
 });
 
 test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)", async () => {

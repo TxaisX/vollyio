@@ -117,6 +117,25 @@ export function planChangeFromEvent(event: unknown): PlanChange {
         // The only event that knows the player without a lookup, because the
         // session was created carrying their id. It is also the event that
         // records the customer id every later event is resolved through.
+        //
+        // "Completed" is not "paid". Delayed-notification methods (bank debits,
+        // and several redirects that automatic payment methods can switch on
+        // per country) complete the session with payment_status 'unpaid' and
+        // the subscription sitting in `incomplete`, hours before the money
+        // moves or fails. Granting Pro on completion alone is the classic
+        // fulfil-before-payment hole: the debit fails later, and because this
+        // endpoint does not subscribe to the async payment events, nothing
+        // corrects the grant until a subscription event happens to land.
+        const paymentStatus = asText(object.payment_status);
+        const sessionStatus = asText(object.status);
+        const settled =
+          paymentStatus === "paid" || paymentStatus === "no_payment_required";
+        // An absent payment_status is a shape we do not recognize. Refuse
+        // rather than assume: the subscription events still arrive and will
+        // grant Pro on their own once the money is real.
+        if (!settled) return null;
+        if (sessionStatus !== null && sessionStatus !== "complete") return null;
+
         return {
           userId: asText(object.client_reference_id) ?? metadataUserId(object),
           plan: "pro",

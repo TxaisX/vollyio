@@ -24,6 +24,8 @@ test("a completed checkout makes the player pro and carries the ids forward", ()
   const change = planChangeFromEvent(
     event("checkout.session.completed", {
       id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
       client_reference_id: USER,
       customer: "cus_1",
       subscription: "sub_1",
@@ -45,6 +47,8 @@ test("a completed checkout falls back to metadata and reads expanded references"
   const change = planChangeFromEvent(
     event("checkout.session.completed", {
       id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
       client_reference_id: null,
       metadata: { user_id: USER },
       customer: { id: "cus_1", object: "customer" },
@@ -61,7 +65,12 @@ test("a completed checkout with no identity at all still reports the customer", 
   // The caller resolves the player from the customer id, so an absent user id
   // must not be mistaken for an absent event.
   const change = planChangeFromEvent(
-    event("checkout.session.completed", { id: "cs_1", customer: "cus_1" }),
+    event("checkout.session.completed", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
+      customer: "cus_1",
+    }),
   );
 
   assert.equal(change?.userId, null);
@@ -255,7 +264,12 @@ test("a null or undefined payload returns null", () => {
 
 test("the customer id is readable off every event this endpoint receives", () => {
   const cases: unknown[] = [
-    event("checkout.session.completed", { id: "cs_1", customer: "cus_1" }),
+    event("checkout.session.completed", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
+      customer: "cus_1",
+    }),
     event("customer.subscription.updated", subscription({ status: "active" })),
     event("customer.subscription.deleted", subscription({ status: "canceled" })),
     event("invoice.payment_failed", { id: "in_1", customer: "cus_1" }),
@@ -279,4 +293,51 @@ test("the customer id is null when the event carries none, and never throws", ()
   ]) {
     assert.equal(customerIdFromEvent(payload), null);
   }
+});
+
+test("a checkout that completed without the money moving grants nothing", () => {
+  // Delayed-notification methods complete the session with payment_status
+  // 'unpaid' hours before the debit succeeds or fails. Granting Pro here is
+  // fulfilment before payment, and this endpoint does not subscribe to the
+  // async payment events, so nothing would correct it.
+  for (const payment_status of ["unpaid", "no_payment_required_typo", undefined, null]) {
+    const change = planChangeFromEvent(
+      event("checkout.session.completed", {
+        id: "cs_1",
+        status: "complete",
+        payment_status,
+        client_reference_id: USER,
+        customer: "cus_1",
+        subscription: "sub_1",
+      }),
+    );
+    assert.equal(change, null, String(payment_status));
+  }
+});
+
+test("a free trial checkout with nothing to charge is still honoured", () => {
+  const change = planChangeFromEvent(
+    event("checkout.session.completed", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "no_payment_required",
+      client_reference_id: USER,
+      customer: "cus_1",
+      subscription: "sub_1",
+    }),
+  );
+  assert.equal(change?.plan, "pro");
+});
+
+test("a paid session that is not complete grants nothing", () => {
+  const change = planChangeFromEvent(
+    event("checkout.session.completed", {
+      id: "cs_1",
+      status: "expired",
+      payment_status: "paid",
+      client_reference_id: USER,
+      customer: "cus_1",
+    }),
+  );
+  assert.equal(change, null);
 });

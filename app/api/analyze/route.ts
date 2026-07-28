@@ -29,6 +29,8 @@ import {
 } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 import { checkAnalyzeBudget } from "@/lib/ai/budget";
+import { recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -178,9 +180,14 @@ export async function POST(req: NextRequest) {
 
   let result: AnalysisResult;
   // Server-recorded, server-only measurement of the coaching call (D-043): real
-  // token counts, wall-clock, model, and effort. Stored on the analysis row so
-  // D-027's two open risks (cost per analysis, maxDuration vs real latency)
-  // become measured numbers after a handful of live runs. Null on mock runs.
+  // token counts, wall-clock, model, and effort. Recorded so D-027's two open
+  // risks (cost per analysis, maxDuration vs real latency) become measured
+  // numbers after a handful of live runs. Null on mock runs.
+  //
+  // It is deliberately NOT part of the insert below any more. The player's own
+  // credentials write the analysis row; this is written afterwards with the
+  // service role (D-065, migration 029), because a column the player can write
+  // is a column that can 503 the product for everyone.
   let telemetry: Record<string, unknown> | null = null;
 
   if (process.env.AI_MOCK === "true") {
@@ -333,7 +340,7 @@ export async function POST(req: NextRequest) {
         // spend-cap outage), so the player was not charged: give the hourly slot
         // back (the free entitlement is released by the outer finally) and say so
         // plainly, distinctly from "your clip failed". Vendor stays unnamed.
-        await refundApiQuota(supabase, "analyze");
+        await refundApiQuota(supabase, "analyze", reservationId);
         return NextResponse.json(
           {
             error:
@@ -395,7 +402,6 @@ export async function POST(req: NextRequest) {
     overall_score: result.overall_score,
     result,
     model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
-    telemetry,
   });
   if (insertError) {
     if (insertError.message.includes("analysis rate limit exceeded")) {
@@ -437,6 +443,30 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  // The cost measurement, written with credentials the player does not hold
+  // (D-065, migration 029). The row above went in as the player because RLS and
+  // the insert trigger both require that; this one call is the only part of the
+  // request that does not run as them.
+  //
+  // Placed after the media is committed rather than straight after the insert,
+  // because the discard path above deletes the row this would write to, and a
+  // write racing that delete is work with nowhere to land.
+  //
+  // It cannot fail the analysis. The player has a scored rep either way, so
+  // every failure inside is logged and swallowed, the outcome is read by nothing
+  // below, and no branch here can change what this route returns. The call
+  // carries its own timeout, and it is awaited rather than left running because
+  // a serverless instance can be frozen the instant the response is written,
+  // which drops a fire-and-forget write (the same reason lib/ai/budget.ts awaits
+  // the owner alert). One regional round trip, against a request that just spent
+  // tens of seconds inside the coaching call.
+  //
+  // SUPABASE_SERVICE_ROLE_KEY is not set in the production deployment as this
+  // ships, so createServiceClient() returns null and telemetry stays null on
+  // every row until the key is configured. That is a measurement gap, not a
+  // failure: the analysis returns exactly as it does today.
+  await recordAnalysisTelemetry(createServiceClient(), analysisId, telemetry);
 
   const { data: prev } = await supabase
     .from("skill_ratings")

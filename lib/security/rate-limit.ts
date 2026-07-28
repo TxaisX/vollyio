@@ -11,7 +11,7 @@ export type ApiQuotaScope =
 type RpcClient = {
   rpc(
     name: string,
-    args: { p_scope: ApiQuotaScope },
+    args: { p_scope: ApiQuotaScope; p_reservation_id?: string },
   ): PromiseLike<{ data: unknown; error: unknown }>;
 };
 
@@ -37,12 +37,29 @@ export async function consumeApiQuota(
 // surfaced. Safe against rate-limit escape because the DB function only
 // decrements inside the active window and never below the floor (see
 // refund_api_quota); it cannot manufacture extra allowance.
+/**
+ * Give back the hourly slot a request consumed before the paid work turned out
+ * to be impossible (D-043).
+ *
+ * The reservation id is required and is the whole security property. This
+ * function is SECURITY DEFINER and granted to `authenticated`, so PostgREST
+ * publishes it and a player can call it with their own token. Before migration
+ * 030 that was a quota escape: refund after every analysis and the fixed window
+ * never advanced, so the 20 per hour cap never fired and each extra request
+ * still paid for a coaching call before the insert trigger rejected it. The
+ * reservation id is generated in the database, handed to this route, and never
+ * sent to a client, so presenting it is proof the caller is the route.
+ */
 export async function refundApiQuota(
   client: RpcClient,
   scope: ApiQuotaScope,
+  reservationId: string,
 ): Promise<boolean> {
   try {
-    const { error } = await client.rpc("refund_api_quota", { p_scope: scope });
+    const { error } = await client.rpc("refund_api_quota", {
+      p_scope: scope,
+      p_reservation_id: reservationId,
+    });
     return !error;
   } catch {
     return false;
