@@ -35,11 +35,29 @@ export async function POST(request: NextRequest) {
   // and it is worse: a cancellation is a billing decision, and making one on
   // someone's behalf inside a delete request they may have half-meant is not a
   // decision to take for them.
-  const { data: billing } = await supabase
+  // The read itself has to fail closed, and it did not. Discarding `error` here
+  // meant an unreadable profile produced `billing = null`, which made the `pro`
+  // check below false, which waved the request straight past the guard the
+  // comment above calls the one thing standing between a deletion and an
+  // unstoppable charge. A transient RLS or network failure was enough to do the
+  // exact damage this block exists to prevent, and it would look like a normal
+  // successful deletion in the logs. `maybeSingle` reports a genuinely absent
+  // row as null data with a null error, so a missing profile still proceeds:
+  // there is no subscription to orphan in that case.
+  const { data: billing, error: billingError } = await supabase
     .from("profiles")
     .select("plan, stripe_subscription_id")
     .eq("id", user.id)
     .maybeSingle();
+  if (billingError) {
+    return NextResponse.json(
+      {
+        error:
+          "We couldn't check your plan just now, so we didn't delete anything. Try again in a moment.",
+      },
+      { status: 503 },
+    );
+  }
   if (billing?.plan === "pro" && billing?.stripe_subscription_id) {
     return NextResponse.json(
       {

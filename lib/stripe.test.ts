@@ -399,3 +399,38 @@ test("with no key configured, nothing is sent at all", async () => {
     },
   );
 });
+
+// The hosted page is where the money is actually taken, and until D-069 it was
+// the one surface that disclosed neither that the charge recurs nor how to stop
+// it. A parent could complete an auto-renewing purchase having been shown
+// neither fact on either surface. These pin the disclosure to the same
+// constants the charge is built from, so it cannot drift from the real price.
+test("the checkout page discloses recurrence, cancellation and the terms", () => {
+  const f = fields(buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE));
+  const message = f.get("custom_text[submit][message]") ?? "";
+  assert.match(message, /renews automatically/i, "no renewal disclosure");
+  assert.match(message, /cancel any time/i, "no cancellation route");
+  assert.match(message, /not refunded/i, "no refund posture");
+  assert.match(message, /\/terms/, "no link to the terms");
+});
+
+test("the disclosed price and allowance are the ones actually charged", async () => {
+  const { PRO_PRICE_LABEL, MONTHLY_ALLOWANCE } = await import("./plans.ts");
+  const f = fields(buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE));
+  const message = f.get("custom_text[submit][message]") ?? "";
+  assert.ok(
+    message.includes(PRO_PRICE_LABEL),
+    "the page quotes a price that is not the plan constant",
+  );
+  assert.ok(
+    message.includes(String(MONTHLY_ALLOWANCE.pro)),
+    "the page quotes an allowance that is not the plan constant",
+  );
+});
+
+// The provider's limit on this field is 1200 characters; exceeding it fails the
+// session creation, which would take checkout down rather than degrade it.
+test("the disclosure fits inside the provider's field limit", () => {
+  const f = fields(buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE));
+  assert.ok((f.get("custom_text[submit][message]") ?? "").length <= 1200);
+});
