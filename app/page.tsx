@@ -12,6 +12,17 @@ import { SkillIcon } from "@/components/skill-icons";
 import { AnalyticsShowcase } from "@/components/analytics-showcase";
 import { SKILLS, SKILL_LABEL, SKILL_BLURB } from "@/lib/skills";
 import { SUPPORT_EMAIL } from "@/lib/site";
+// Quoted from the same constants the plan card, the limit offer and the terms
+// read, never retyped. A price on the marketing page that disagrees with the
+// one at checkout is a false statement about money, and this page carried one
+// for weeks: it said "if we introduce paid plans" while billing was live.
+import { MONTHLY_ALLOWANCE, PLAN_LABEL, PRO_PRICE_LABEL } from "@/lib/plans";
+import { DRILLS } from "@/content/drills";
+
+// The bare amount, for sentences that already say "a month" and would otherwise
+// read "18 a month for $14.99/mo". Same derivation the terms page uses, so both
+// still quote the one constant rather than a retyped number.
+const PRO_PRICE = PRO_PRICE_LABEL.replace("/mo", "");
 
 const STEPS = [
   {
@@ -48,12 +59,26 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "What does it cost?",
     a: (
-      <p>
-        Your first breakdown is free and we don&rsquo;t ask for a card. If we
-        introduce paid plans, the price is shown in the app before you&rsquo;re
-        asked to pay anything, and you will never be charged without explicitly
-        choosing a plan.
-      </p>
+      <>
+        <p>
+          {PLAN_LABEL.free} is {MONTHLY_ALLOWANCE.free} breakdowns a month, at
+          no cost and with no card. {PLAN_LABEL.pro} is{" "}
+          {MONTHLY_ALLOWANCE.pro} a month for {PRO_PRICE}, and it renews on the
+          day you subscribed rather than on the 1st.
+        </p>
+        <p>
+          You are never charged without choosing {PLAN_LABEL.pro} yourself, and
+          you can cancel from Settings at any time and keep it until the end of
+          the period you paid for. Full detail is in the{" "}
+          <Link
+            href="/terms"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          >
+            terms
+          </Link>
+          .
+        </p>
+      </>
     ),
   },
   {
@@ -265,7 +290,14 @@ export default function Landing() {
               {SKILLS.map((skill, i) => (
                 <Reveal key={skill} delay={i * 60} className="reveal-3d h-full">
                   <Tilt className="h-full">
-                    <div className="card card-lift spot h-full p-6">
+                    {/* Each card is the entry to that skill's technique page.
+                        Those pages were already public and already carried real
+                        titles and descriptions, but nothing on this site linked
+                        to them, so the only way in was to already know the URL. */}
+                    <Link
+                      href={`/learn/${skill}`}
+                      className="card card-lift spot h-full p-6"
+                    >
                       <div className="flex items-center gap-3">
                         <span className="text-gold">
                           <SkillIcon skill={skill} />
@@ -277,11 +309,39 @@ export default function Landing() {
                       <p className="mt-3 text-body text-chalk-dim">
                         {SKILL_BLURB[skill]}
                       </p>
-                    </div>
+                      <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wide text-gold">
+                        Read the technique
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        >
+                          <path d="M6 3l5 5-5 5" />
+                        </svg>
+                      </span>
+                    </Link>
                   </Tilt>
                 </Reveal>
               ))}
             </SpotlightGroup>
+            <Reveal delay={120}>
+              <p className="mt-8 text-center text-body text-chalk-dim">
+                Or go straight to the{" "}
+                <Link
+                  href="/drills"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                >
+                  drill library
+                </Link>
+                : {DRILLS.length} drills across every skill, free to read
+                without an account.
+              </p>
+            </Reveal>
           </div>
         </section>
 
@@ -507,9 +567,21 @@ export default function Landing() {
                   Analyze your first rep
                 </Link>
               </div>
-              <p className="mx-auto mt-5 max-w-md text-body text-chalk-dim">
-                No card required, and your first breakdown is free. Your film stays
-                private to your account:{" "}
+              {/* The offer, in the open. This page used to say only "your
+                  first breakdown is free" and put the real numbers behind a
+                  collapsed FAQ, which asked a stranger to commit before they
+                  could see what they were committing to. */}
+              <p className="mx-auto mt-6 max-w-md text-body">
+                <span className="text-chalk">
+                  {MONTHLY_ALLOWANCE.free} breakdowns a month free, no card.
+                </span>{" "}
+                <span className="text-chalk-dim">
+                  {PLAN_LABEL.pro} is {MONTHLY_ALLOWANCE.pro} a month for{" "}
+                  {PRO_PRICE}, cancel any time.
+                </span>
+              </p>
+              <p className="mx-auto mt-3 max-w-md text-body text-chalk-dim">
+                Your film stays private to your account:{" "}
                 <Link
                   href="/privacy"
                   className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"

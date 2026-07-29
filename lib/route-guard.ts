@@ -6,12 +6,22 @@
 // closed, because a protected path with no verified user is always sent to
 // /login. The proxy never needs a separate "unconfigured" branch that could
 // accidentally wave requests through.
+// Everything here reads or writes a player's own data, so it fails closed to
+// /login. Content that belongs to nobody does NOT belong on this list.
+//
+// `/drills` used to sit here and should not have. It renders `content/drills.ts`
+// and touches no session, no profile and no analysis; it was gated because it
+// lives in the (app) route group and inherited the group's posture rather than
+// because anything on it was private. `/learn` is the same kind of page and was
+// always public, which is what made the inconsistency visible. The drills page
+// has declared `robots: { index: true, follow: true }` in its own metadata the
+// whole time, so it was asking to be indexed while the guard sent crawlers to a
+// login redirect.
 export const PROTECTED = [
   "/dashboard",
   "/analyze",
   "/analysis",
   "/history",
-  "/drills",
   "/coach",
   "/scoreboard",
   "/goals",
