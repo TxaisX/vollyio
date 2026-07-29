@@ -7,14 +7,19 @@
 //   node scripts/label-case.mjs              # walk every unlabeled active case
 //   node scripts/label-case.mjs <case-id>    # label one case
 //   node scripts/label-case.mjs --list       # just list what needs labeling
+//   node scripts/label-case.mjs --scratch    # operate on local ingest scratch instead
 
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { METRICS } from "../lib/ai/metrics.ts";
+import { resolveCasesDir } from "./eval-cases-dir.mjs";
 
-const CASES_DIR = "evals/cases";
+// Defaults to the TRACKED set, not local scratch. Labels typed into a
+// gitignored directory are lost to everyone but this machine, which is the
+// opposite of the reviewer provenance this script exists to record.
+const CASES_DIR = resolveCasesDir();
 const argv = process.argv.slice(2);
 const listOnly = argv.includes("--list");
 const target = argv.find((a) => !a.startsWith("--"));

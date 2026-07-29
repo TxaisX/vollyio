@@ -22,8 +22,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { resolveCasesDir } from "./eval-cases-dir.mjs";
 
-const CASES = path.join(process.cwd(), "evals", "cases");
+// The TRACKED set by default. This planner originally read `evals/cases/`,
+// which is gitignored ingest scratch, and so proposed a 28-hour job over
+// hundreds of cases nobody intended to hand-label. The reviewed set is small on
+// purpose.
+const CASES = path.join(process.cwd(), resolveCasesDir());
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => {
   const i = argv.indexOf(`--${name}`);
