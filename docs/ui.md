@@ -21,6 +21,10 @@ Tokens: navy ground (`--color-navy*`), chalk text (`--color-chalk*`), gold
 accent (`--color-gold*`), teal for strengths, coral for fixes. Do not invent
 new colors per feature; add a token if one is genuinely missing.
 
+Borders carry meaning: `--color-line-control` on anything you press or type
+into, `--color-line` on dividers and static labels. If a new control's edge is
+the only thing marking it, it uses the control token (D-067).
+
 ## Ease-of-use rules
 
 - Tap targets at least 44px tall. Chips, nav items, and buttons all qualify.

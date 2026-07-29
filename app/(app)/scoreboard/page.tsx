@@ -39,7 +39,7 @@ export default async function ScoreboardPage() {
   return (
     <section className="max-w-4xl">
       <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">Scoreboard</p>
-      <h1 className="mt-1 font-display text-2xl font-bold">Track a match</h1>
+      <h1 className="mt-1 font-display text-3xl font-bold tracking-tight">Track a match</h1>
 
       <div className="mt-6">
         <Scoreboard />
