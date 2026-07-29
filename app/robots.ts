@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         "/analyze",
         "/analysis",
         "/history",
+        "/progress",
         "/coach",
         "/scoreboard",
         "/goals",

@@ -55,6 +55,13 @@ const ICONS = {
       <circle cx="12" cy="12" r="1" fill="currentColor" />
     </>,
   ),
+  progress: icon(
+    <>
+      <path d="M4 19V5" />
+      <path d="M4 19h16" />
+      <path d="M7.5 15.5 11 11l3 2.5 4.5-6" />
+    </>,
+  ),
   history: icon(
     <>
       <circle cx="12" cy="12" r="8" />
@@ -88,6 +95,7 @@ const SIDE_NAV: NavItem[] = [
   { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Scoreboard", icon: ICONS.scoreboard },
   { href: "/goals", label: "Goals", icon: ICONS.goals },
+  { href: "/progress", label: "Progress", icon: ICONS.progress },
   { href: "/history", label: "History", icon: ICONS.history },
   { href: "/drills", label: "Drills", icon: ICONS.drills },
   { href: "/settings", label: "Settings", icon: ICONS.settings },
@@ -100,6 +108,7 @@ const TAB_NAV: NavItem[] = [
   { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Games", icon: ICONS.scoreboard },
   { href: "/goals", label: "Goals", icon: ICONS.goals },
+  { href: "/progress", label: "Progress", icon: ICONS.progress },
   { href: "/history", label: "History", icon: ICONS.history },
   { href: "/drills", label: "Drills", icon: ICONS.drills },
   { href: "/settings", label: "Settings", icon: ICONS.settings },
