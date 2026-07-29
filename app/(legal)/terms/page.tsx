@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
 };
 
-const EFFECTIVE = "July 28, 2026";
+const EFFECTIVE = "July 29, 2026";
 
 // The price as a bare amount, for the sentences where "$14.99/mo every month"
 // would read wrong. Derived from the same constant the plan card and the limit
@@ -149,8 +149,9 @@ export default function TermsPage() {
         </p>
         <p>
           <strong className="text-chalk">{PLAN_LABEL.pro}.</strong>{" "}
-          {MONTHLY_ALLOWANCE.pro} completed analyses per calendar month, for{" "}
-          {PRO_PRICE_LABEL}.
+          {MONTHLY_ALLOWANCE.pro} completed analyses per subscription month, for{" "}
+          {PRO_PRICE_LABEL}. Your month starts on the day you subscribe and
+          refills on that date, not on the 1st.
         </p>
         <p>
           <strong className="text-chalk">
@@ -188,11 +189,10 @@ export default function TermsPage() {
         </p>
         <p>
           The first charge is taken at checkout. After that you are charged on
-          that same date each month. That date is not the 1st. The 1st is when
-          your analyses reset, which is a separate thing on a separate clock.
-          Your subscription details, including the date of your next charge,
-          are on the payment provider&rsquo;s billing page, which Settings
-          opens.
+          that same date each month, and that is also the date your analyses
+          reset: one clock, not two. Your subscription details, including the
+          date of your next charge, are on the payment provider&rsquo;s billing
+          page, which Settings opens.
         </p>
         <p>
           If you are under 18, the parent or guardian who agreed to these terms
@@ -239,11 +239,11 @@ export default function TermsPage() {
           not use.
         </p>
         <p>
-          Cancelling does not reset the month&rsquo;s usage. Once monthly
-          limits are counting, analyses you already ran in that calendar month
-          still count, so if you ran more than {MONTHLY_ALLOWANCE.free} of them
-          before landing back on {PLAN_LABEL.free}, you will have none left
-          until the 1st.
+          Cancelling does not reset the period&rsquo;s usage. Once monthly
+          limits are counting, analyses you already ran still count, so if you
+          ran more than {MONTHLY_ALLOWANCE.free} of them before landing back on{" "}
+          {PLAN_LABEL.free}, you will have none left until that count next
+          resets. On {PLAN_LABEL.free} that is the 1st.
         </p>
       </Section>
 
@@ -267,18 +267,29 @@ export default function TermsPage() {
           limits are switched on.
         </p>
         <p>
-          Your allowance runs on the calendar month, in UTC. It resets on the
-          1st, for everyone, and not on the anniversary of the day you
-          subscribed. If you subscribe on the 20th, you still get a fresh count
-          on the 1st.
+          <strong className="text-chalk">
+            On {PLAN_LABEL.pro}, your allowance runs on the month you paid for.
+          </strong>{" "}
+          It resets on your renewal date, the same date you are charged, not on
+          the 1st. Subscribe on the 20th and your count refills on the 20th of
+          each month. Your renewal date is on the payment provider&rsquo;s
+          billing page, which Settings opens.
         </p>
         <p>
-          Changing plan does not reset the count, in either direction. So
-          upgrading part-way through a month does not wipe what you have
-          already used: in the month you upgrade you get{" "}
-          {MONTHLY_ALLOWANCE.pro} minus whatever you had already run before
-          upgrading. The full {MONTHLY_ALLOWANCE.pro} starts on the 1st.
-          Cancelling works the same way, as described above.
+          <strong className="text-chalk">
+            On {PLAN_LABEL.free}, there is no purchase to date it from,
+          </strong>{" "}
+          so the allowance runs on the calendar month in UTC and resets on the
+          1st. If you cancel {PLAN_LABEL.pro} and later land back on{" "}
+          {PLAN_LABEL.free}, your count goes back to the 1st with it.
+        </p>
+        <p>
+          Changing plan does not reset the count, in either direction. Upgrading
+          part-way through a period does not wipe what you have already used: in
+          that first period you get {MONTHLY_ALLOWANCE.pro} minus whatever you
+          had already run before upgrading, and the full{" "}
+          {MONTHLY_ALLOWANCE.pro} starts on your first renewal date. Cancelling
+          works the same way, as described above.
         </p>
         <p>
           Only completed analyses count. A clip that fails, times out, or hits
@@ -300,11 +311,21 @@ export default function TermsPage() {
 
       <Section title="Refunds">
         <p>
-          If a charge is clearly a mistake, we refund it in full when you ask.
-          That covers a duplicate charge, a charge taken after you had already
-          confirmed a cancellation, a charge on an account that never got
-          access, and a subscription started by someone under 18 on an
+          <strong className="text-chalk">
+            Payments are not refundable, and we do not refund unused time.
+          </strong>{" "}
+          If you decide {PLAN_LABEL.pro} is not for you, cancel: you keep it
+          until the end of the period you already paid for, and you are not
+          charged again. We do not refund a period you have started, whether or
+          not you used the analyses in it.
+        </p>
+        <p>
+          The exception is a charge that should never have been taken, which we
+          correct in full: a duplicate charge, a charge taken after you had
+          already confirmed a cancellation, a charge on an account that never
+          got access, and a subscription started by someone under 18 on an
           adult&rsquo;s payment method without that adult&rsquo;s permission.
+          That is us fixing our own billing error, not a change-of-mind refund.
         </p>
         <p>
           Write to{" "}
@@ -318,10 +339,6 @@ export default function TermsPage() {
           business days. If you think a charge is wrong, write to us before
           disputing it with your bank, because we can usually fix it faster
           than a dispute can.
-        </p>
-        <p>
-          We do not give prorated refunds for part of a month. Cancelling is
-          covered above.
         </p>
         <p>
           None of this removes any right you have under the law where you live.
@@ -387,7 +404,9 @@ export default function TermsPage() {
         <p>
           If we close a paid account, we cancel the subscription as part of
           that, so nothing keeps charging you, and we refund the unused part of
-          the period you had already paid for.
+          the period you had already paid for. That is the one case where
+          unused time is refunded, and it exists because ending the plan was
+          our decision rather than yours.
         </p>
       </Section>
 
