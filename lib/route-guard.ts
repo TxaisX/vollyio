@@ -22,6 +22,7 @@ export const PROTECTED = [
   "/analyze",
   "/analysis",
   "/history",
+  "/progress",
   "/coach",
   "/scoreboard",
   "/goals",
