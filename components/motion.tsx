@@ -24,6 +24,12 @@ export function useReducedMotion() {
   return reduced;
 }
 
+// How long a reveal may stay hidden waiting for the observer before the content
+// is shown regardless. Long enough that the staggered entrance still reads as
+// an entrance on a normal load, short enough that a broken one is a blink
+// rather than a blank page.
+const REVEAL_FAILSAFE_MS = 1200;
+
 export function useInView<T extends Element>(margin = "-40px") {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
@@ -47,7 +53,32 @@ export function useInView<T extends Element>(margin = "-40px") {
       { rootMargin: margin, threshold: 0 },
     );
     io.observe(el);
-    return () => io.disconnect();
+
+    // FAIL OPEN. `:root.js .reveal:not(.in)` holds content at opacity 0, so
+    // anything that stops the observer from ever firing does not degrade the
+    // animation, it deletes the page. That happened in production: a view
+    // transition aborted with "InvalidStateError: Transition was aborted
+    // because of invalid state", the observer never fired for the incoming
+    // document, and a signed-in player got a fully rendered dashboard they
+    // could not see. The content was in the DOM the whole time.
+    //
+    // Reduced-motion users were never affected, because the global reduce block
+    // already forces opacity 1, which is exactly the shape of a bug that looks
+    // intermittent and machine-specific.
+    //
+    // A decorative entrance must never be able to hide content permanently, so
+    // this bounds the hidden state for every failure mode at once: aborted
+    // transitions, an element observed inside a detached subtree, a throttled
+    // background tab, an observer that simply never gets a frame.
+    const failsafe = setTimeout(() => {
+      setInView(true);
+      io.disconnect();
+    }, REVEAL_FAILSAFE_MS);
+
+    return () => {
+      clearTimeout(failsafe);
+      io.disconnect();
+    };
   }, [margin]);
 
   return { ref, inView };
