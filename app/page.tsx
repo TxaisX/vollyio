@@ -212,7 +212,7 @@ export default function Landing() {
                     <h3 className="mt-3 font-display text-xl font-bold">
                       {step.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
+                    <p className="mt-2 text-body leading-relaxed text-chalk-dim">
                       {step.body}
                     </p>
                   </div>
@@ -274,7 +274,7 @@ export default function Landing() {
                           {SKILL_LABEL[skill]}
                         </h3>
                       </div>
-                      <p className="mt-3 text-sm text-chalk-dim">
+                      <p className="mt-3 text-body text-chalk-dim">
                         {SKILL_BLURB[skill]}
                       </p>
                     </div>
@@ -323,7 +323,7 @@ export default function Landing() {
                         <span className="font-mono text-[11px] uppercase text-chalk-dim">
                           {t}
                         </span>
-                        <p className="text-sm text-chalk">{text}</p>
+                        <p className="text-body text-chalk">{text}</p>
                       </div>
                     </div>
                   ))}
@@ -386,7 +386,7 @@ export default function Landing() {
                       <CountUp to={12} />
                     </span>
                     <p className="mt-2 font-display font-bold">day streak</p>
-                    <p className="mt-1 text-sm text-chalk-dim">
+                    <p className="mt-1 text-body text-chalk-dim">
                       Saved on the server. A phone restart can&rsquo;t take it
                       from you.
                     </p>
@@ -402,7 +402,7 @@ export default function Landing() {
                     <div className="mt-3 h-1.5 rounded-full bg-line/60">
                       <div className="h-full w-3/5 rounded-full bg-gold" />
                     </div>
-                    <p className="mt-3 text-sm text-chalk-dim">
+                    <p className="mt-3 text-body text-chalk-dim">
                       XP for every rep, challenge, and finished goal.
                     </p>
                   </div>
@@ -480,7 +480,7 @@ export default function Landing() {
                         <path d="M12 5v14M5 12h14" />
                       </svg>
                     </summary>
-                    <div className="space-y-3 px-5 pb-5 text-sm leading-relaxed text-chalk-dim">
+                    <div className="space-y-3 px-5 pb-5 text-body leading-relaxed text-chalk-dim">
                       {a}
                     </div>
                   </details>
@@ -507,7 +507,7 @@ export default function Landing() {
                   Analyze your first rep
                 </Link>
               </div>
-              <p className="mx-auto mt-5 max-w-md text-sm text-chalk-dim">
+              <p className="mx-auto mt-5 max-w-md text-body text-chalk-dim">
                 No card required, and your first breakdown is free. Your film stays
                 private to your account:{" "}
                 <Link
@@ -528,7 +528,7 @@ export default function Landing() {
           <div className="flex flex-col justify-between gap-10 md:flex-row">
             <div>
               <p className="font-display text-lg font-bold">Vollyio</p>
-              <p className="mt-1 max-w-xs text-sm text-chalk-dim">
+              <p className="mt-1 max-w-xs text-body text-chalk-dim">
                 Built for players who watch their own film.
               </p>
             </div>

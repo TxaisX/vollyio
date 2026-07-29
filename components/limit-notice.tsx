@@ -52,7 +52,7 @@ export function LimitNotice({
       </Heading>
 
       {offer.terms && (
-        <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
+        <p className="mt-2 text-body leading-relaxed text-chalk-dim">
           {offer.terms}
         </p>
       )}

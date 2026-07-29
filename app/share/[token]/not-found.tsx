@@ -22,7 +22,7 @@ export default function SharedBreakdownNotFound() {
         <h1 className="font-display text-2xl font-bold tracking-tight">
           This link is off or expired.
         </h1>
-        <p className="mt-2 max-w-md text-sm text-chalk-dim">
+        <p className="mt-2 max-w-md text-body text-chalk-dim">
           The player turned sharing off, or the link ran out of time.
           Breakdowns stay private unless someone chooses to share them.
         </p>

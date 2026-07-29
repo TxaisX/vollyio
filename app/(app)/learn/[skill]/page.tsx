@@ -92,7 +92,7 @@ export default async function LearnSkill({
           <SkillIcon skill={skill} className="h-4 w-4" />
           {SKILL_LABEL[skill]}
         </p>
-        <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-3xl font-bold tracking-tight">
+        <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-page-title">
           <span>What makes a good</span>
           <ViewTransition
             name={`learn-${skill}`}
@@ -123,7 +123,7 @@ export default async function LearnSkill({
           <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-teal">
             Highest leverage · {metricLabel(skill, t.highest_leverage_metric)}
           </p>
-          <p className="mt-1 text-sm leading-relaxed">{t.highest_leverage_note}</p>
+          <p className="mt-1 text-body leading-relaxed">{t.highest_leverage_note}</p>
         </div>
       </Reveal>
 
@@ -159,14 +159,14 @@ export default async function LearnSkill({
               <Reveal key={m.key} delay={Math.min(metricIndex, 3) * 65}>
               <div className="card card-lift p-5">
                 <h3 className="font-display text-lg font-bold">{m.label}</h3>
-                <p className="mt-1 text-sm text-chalk-dim">
+                <p className="mt-1 text-body text-chalk-dim">
                   {k.what} {k.why}
                 </p>
 
                 <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-teal">
                   Elite marker
                 </p>
-                <p className="mt-1 text-sm leading-relaxed">{k.elite_marker}</p>
+                <p className="mt-1 text-body leading-relaxed">{k.elite_marker}</p>
                 {k.exemplars && k.exemplars.length > 0 && (
                   <p className="mt-1 font-mono text-[11px] text-chalk-dim">
                     Watch: {k.exemplars.join(", ")}
@@ -191,7 +191,7 @@ export default async function LearnSkill({
                       <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-chalk-dim">
                         {label}
                       </span>
-                      <p className="mt-0.5 text-sm leading-relaxed">
+                      <p className="mt-0.5 text-body leading-relaxed">
                         {k.anchors[band]}
                       </p>
                     </div>

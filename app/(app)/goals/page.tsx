@@ -63,8 +63,8 @@ export default async function Goals() {
       <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
         Goals
       </p>
-      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Set the target</h1>
-      <p className="mt-2 text-sm text-chalk-dim">
+      <h1 className="mt-2 font-display text-page-title">Set the target</h1>
+      <p className="mt-2 text-body text-chalk-dim">
         Aim each training block at one number instead of vague reps.
       </p>
 

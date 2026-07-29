@@ -75,7 +75,7 @@ export function AnalysisFeedback({
     return (
       <div className="card mt-8 p-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">Your call</p>
-        <p className="mt-2 text-sm text-chalk">
+        <p className="mt-2 text-body text-chalk">
           {saved.wasRight ? (
             <>You marked this breakdown <span className="font-semibold text-teal">helpful</span>.</>
           ) : (

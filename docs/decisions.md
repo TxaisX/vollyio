@@ -2294,3 +2294,44 @@ Also removed here: `--color-gold-dim`, declared since the palette landed and
 referenced by nothing. Every dimmed gold in the codebase goes through the
 `color-mix` idiom instead, which is what this doc already required, so the
 token was an invitation to do the thing the token-purity rule forbids.
+
+## D-068 - Reading text and label text were the same size, so the app read like a control panel
+
+The root font-size is already tuned up to 106.25% specifically so type and
+spacing scale together, and the comment on it says to bump that one number to
+scale everything. That lever was doing its job. The problem was underneath it:
+`text-sm` was the app's most-used size at 155 call sites against 8 for
+`text-base`, and it was carrying both the labels and the prose. At the tuned
+root it renders 14.88px, which is under the mobile body floor and, worse,
+identical to the chrome sitting next to it. A coaching note read like a field
+label because it was set like one.
+
+`docs/ui.md` promises a 13-year-old can operate this without instructions. The
+sentences that do the actual teaching were the ones set smallest.
+
+So there are two semantic sizes now, and only two, because those were the two
+strings that kept getting retyped:
+
+`text-body` is prose a player reads. 1rem, 17px at the current root, with the
+line height set to exactly `leading-relaxed` so the sites that already carried
+that class are byte-identical and the ones that did not simply gain it. It went
+on 47 places: coaching notes, drill steps, page descriptions, empty states,
+consent copy, and the coach's own chat answers, which were the single most-read
+surface in the product and were the size of a caption.
+
+`text-page-title` is the h1 of a top-level destination. Its values are exactly
+`text-3xl font-bold tracking-tight`, so adopting it on all 14 page titles moved
+no pixels at all. That is the point. D-067 had just finished repairing coach,
+goals and scoreboard by hand after they drifted to `text-2xl`; a four-class
+string retyped per page will drift again, and a single token cannot.
+
+Everything else stays on the stock scale. `text-sm` and `text-xs` are still
+right for labels, counts, meta, and the deliberately dense analytics widget,
+and they were left alone there on purpose. The rule is about the job the text
+does, not about banning a class.
+
+Two things were deliberately not touched. The legal pages set their prose at
+0.9375rem (15.94px); that is a rounding-level gap rather than the defect here,
+and both files were mid-edit in another session. And the root font-size was
+left at 106.25%, since raising it would have inflated the chrome along with the
+prose, which is the exact conflation this decision is trying to undo.

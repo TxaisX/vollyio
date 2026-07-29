@@ -149,7 +149,7 @@ function GoalsCard({
         </Link>
       </div>
       {goals.length === 0 ? (
-        <p className="mt-2 text-sm text-chalk-dim">
+        <p className="mt-2 text-body text-chalk-dim">
           Nothing on the board.{" "}
           <Link href="/goals" className="text-gold">
             Set a target.
@@ -370,7 +370,7 @@ export default async function Dashboard({
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
               Dashboard
             </p>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+            <h1 className="mt-2 font-display text-page-title">
               {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
             </h1>
             <div className="mt-3 flex items-center gap-2">
@@ -581,7 +581,7 @@ export default async function Dashboard({
                   <p className="font-display text-lg font-bold">
                     No film yet.
                   </p>
-                  <p className="mx-auto mt-1 max-w-xs text-sm text-chalk-dim">
+                  <p className="mx-auto mt-1 max-w-xs text-body text-chalk-dim">
                     Your rating starts with one rep. Ten seconds, any skill.
                   </p>
                   {/* The gold button on this page lives in the heading, where

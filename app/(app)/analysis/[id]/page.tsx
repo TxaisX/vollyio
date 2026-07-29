@@ -231,7 +231,7 @@ export default async function AnalysisDetail({
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
               {SKILL_LABEL[row.skill]} · {dateLabel}
             </p>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+            <h1 className="mt-2 font-display text-page-title">
               Breakdown
             </h1>
             {valueChips.length > 0 && (
@@ -313,7 +313,7 @@ export default async function AnalysisDetail({
           <Reveal delay={80}>
             {nothingToShow ? (
               <div className="card p-6 text-center">
-                <p className="text-sm text-chalk-dim">
+                <p className="text-body text-chalk-dim">
                   These frames couldn&rsquo;t load right now. Your scores and
                   notes are still below.
                 </p>
@@ -341,7 +341,7 @@ export default async function AnalysisDetail({
                 <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
                   Focus · {result.focus.label}
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-chalk-dim">
+                <p className="mt-1 text-body leading-relaxed text-chalk-dim">
                   {result.focus.why}
                 </p>
               </div>

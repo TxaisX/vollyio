@@ -118,7 +118,7 @@ export function OnboardingFlow({
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             {name ? `${name}, where` : "Where"} do you play?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             Indoor and outdoor are scored on their own standards; your ratings
             never blend.
           </p>
@@ -155,7 +155,7 @@ export function OnboardingFlow({
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             Where are you right now?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             Honest beats impressive. This sets the standard your breakdowns
             are judged against: Pro reads like a pro coach.
           </p>
@@ -188,7 +188,7 @@ export function OnboardingFlow({
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             Where do you line up?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             The coach reads your reps through your role.
           </p>
           <div className="mt-6 space-y-3">
@@ -219,7 +219,7 @@ export function OnboardingFlow({
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             How often are you on a court?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             Fixes are paced to the reps you can actually put in.
           </p>
           <div className="mt-6 space-y-3">
@@ -254,7 +254,7 @@ export function OnboardingFlow({
           >
             What are you working on?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             Pick the skill you want to fix first. The rest stay a tap away.
           </p>
           <div className="mt-6">
@@ -278,7 +278,7 @@ export function OnboardingFlow({
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             Where&rsquo;s this going?
           </h1>
-          <p className="mt-2 text-sm text-chalk-dim">
+          <p className="mt-2 text-body text-chalk-dim">
             Your {SKILL_LABEL[skill].toLowerCase()} rating starts at your first
             breakdown. Set where it should be, and by when, and it becomes a
             goal on your dashboard.

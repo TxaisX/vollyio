@@ -1442,7 +1442,7 @@ export function AnalyzeFlow({
             <h2 id="training-consent-title" className="mt-2 font-display text-xl font-bold">
               Help improve future analysis?
             </h2>
-            <p className="mt-3 text-sm text-chalk-dim">
+            <p className="mt-3 text-body text-chalk-dim">
               Allow your uploaded clips and extracted frames to help train future
               analysis features. Your footage stays private to your account
               either way, and you can change this any time from your dashboard.
