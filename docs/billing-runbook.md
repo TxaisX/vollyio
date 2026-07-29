@@ -481,6 +481,42 @@ mid-session, and it is not a number you can undo by switching back off.
 
 ---
 
+## 3b. Recorded terms consent (STRIPE_TOS_CONSENT)
+
+Off by default, and it must stay off until the prerequisite below is done.
+
+**What it does.** With it on, the hosted checkout renders a tick-box the player
+must accept before the provider will take the payment, and the completed session
+carries `consent.terms_of_service = "accepted"`. That turns the sentence on
+/terms, "you agreed to this when you checked out", from an assertion into a
+record. With it off, the renewal terms and the /terms link are still shown on
+the page; only the recorded tick-box is absent.
+
+**Why it is a switch and not just code.** The provider refuses
+`consent_collection[terms_of_service]` unless a Terms of Service URL is set in
+its dashboard. That setting is dashboard-only: there is no API to write it and
+none to read it back, so nothing in this repo can check the prerequisite before
+deploying. If the URL is missing, session creation FAILS, which means nobody can
+pay. Recovery therefore has to be an env change rather than a revert and
+redeploy.
+
+**Enable, in this order.**
+
+1. Set the Terms of Service URL at <https://dashboard.stripe.com/settings/public>
+   to `https://vollyio.com/terms`. Setting the privacy policy URL there too is
+   optional and makes checkout link it as well.
+2. Set `STRIPE_TOS_CONSENT=true` in the Vercel project env, production scope.
+3. Redeploy.
+4. Open the upgrade button and confirm the hosted page shows the checkbox and
+   that the pay button refuses until it is ticked.
+5. Complete one real purchase and confirm the session carries
+   `consent.terms_of_service = "accepted"`.
+
+**If step 4 shows an error instead of a checkbox**, the URL from step 1 is not
+set or has not propagated. Unset `STRIPE_TOS_CONSENT` and redeploy; checkout
+returns to the working posture immediately. Nothing else in the body changes
+when the flag is off, so there is no partial state to clean up.
+
 ## 4. Verification, end to end, with a real card
 
 Live mode, your own card, your own account. Roughly ten minutes plus one $14.99

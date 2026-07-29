@@ -12,6 +12,28 @@ const SUBSCRIPTION_TERMS_MESSAGE =
   `Cancel any time in Settings; you keep ${PLAN_LABEL.pro} until the end of the period you ` +
   `paid for, and unused time is not refunded. Full terms: ${SITE_URL}/terms`;
 
+// Recorded assent: a checkbox the player must tick before the provider will
+// take the payment, which turns the terms page's "you agreed to this when you
+// checked out" from an assertion into a record. After checkout the session
+// carries `consent.terms_of_service = "accepted"`.
+//
+// It is a SWITCH and not a hardcoded parameter for one reason. The provider
+// requires a Terms of Service URL configured in its own dashboard before it
+// will accept this field, that setting is dashboard-only with no API to write
+// or even read it, and if the URL is absent the session creation FAILS. A
+// hardcoded flip would therefore take checkout down for everyone the moment it
+// deployed, on a prerequisite nothing in this repo can verify.
+//
+// So: set the URL at dashboard.stripe.com/settings/public, set
+// STRIPE_TOS_CONSENT=true, and if sessions start failing, unset it. Recovery is
+// an env change rather than a revert-and-redeploy, which matters because the
+// failure mode is "nobody can pay".
+const TOS_CONSENT_ENABLED = process.env.STRIPE_TOS_CONSENT === "true";
+
+// Shown beside the checkbox. The markdown link is the provider's own supported
+// syntax for pointing at your real terms rather than its generic wording.
+const TOS_ACCEPTANCE_MESSAGE = `I agree to the [Terms of Service](${SITE_URL}/terms)`;
+
 // The network half of the payment provider integration: the two POSTs that mint
 // a hosted page, and the only place in the codebase that reads the API key.
 // Built on `fetch` plus the pure encoder in lib/stripe-sign.ts rather than a
@@ -131,6 +153,14 @@ export function buildCheckoutBody(input: CheckoutInput, price: string): string {
     // now, and switch to recorded consent once the dashboard URL is set. See
     // docs/billing-runbook.md.
     "custom_text[submit][message]": SUBSCRIPTION_TERMS_MESSAGE,
+    // Both null when the switch is off, and `formEncode` drops null, so the
+    // shipped body is byte-identical to the pre-toggle one until it is turned
+    // on. The disclosure above is unconditional either way: the checkbox
+    // upgrades assent from stated to recorded, it does not carry the terms.
+    "consent_collection[terms_of_service]": TOS_CONSENT_ENABLED ? "required" : null,
+    "custom_text[terms_of_service_acceptance][message]": TOS_CONSENT_ENABLED
+      ? TOS_ACCEPTANCE_MESSAGE
+      : null,
     // Subscription events (updated, deleted, payment failed) arrive carrying a
     // subscription, not the session that created it. Stamping the user id onto
     // the subscription itself gives the webhook a second way to resolve the

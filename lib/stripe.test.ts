@@ -434,3 +434,42 @@ test("the disclosure fits inside the provider's field limit", () => {
   const f = fields(buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE));
   assert.ok((f.get("custom_text[submit][message]") ?? "").length <= 1200);
 });
+
+// The recorded-consent checkbox is behind STRIPE_TOS_CONSENT because the
+// provider rejects the field unless a Terms of Service URL is set in its
+// dashboard, that setting has no API, and a rejected session means nobody can
+// pay. These pin both postures so the switch cannot silently invert.
+test("without the switch, no consent field is sent at all", () => {
+  const f = fields(buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE));
+  assert.equal(f.has("consent_collection[terms_of_service]"), false);
+  assert.equal(f.has("custom_text[terms_of_service_acceptance][message]"), false);
+  // The disclosure is unconditional and must survive the switch being off.
+  assert.match(f.get("custom_text[submit][message]") ?? "", /renews automatically/i);
+});
+
+test("with the switch on, the checkbox is required and points at our own terms", async () => {
+  const previous = process.env.STRIPE_TOS_CONSENT;
+  process.env.STRIPE_TOS_CONSENT = "true";
+  try {
+    // Fresh module instance: the flag is read once at load, and the ESM cache
+    // would otherwise hand back the copy loaded with the flag unset. The
+    // specifier is built as a variable rather than written inline because a
+    // literal query suffix is not a path the type checker can resolve.
+    const freshSpecifier = "./stripe.ts" + "?tos-consent-on";
+    const mod = (await import(freshSpecifier)) as {
+      buildCheckoutBody: typeof buildCheckoutBody;
+    };
+    const f = fields(
+      mod.buildCheckoutBody({ ...BASE, email: "player@example.test" }, PRICE),
+    );
+    assert.equal(f.get("consent_collection[terms_of_service]"), "required");
+    const label = f.get("custom_text[terms_of_service_acceptance][message]") ?? "";
+    // Scheme-agnostic: SITE_URL is http://localhost in test and https in prod.
+    assert.match(label, /\[Terms of Service\]\(https?:\/\/[^)]+\/terms\)/, "no markdown terms link");
+    // Turning the checkbox on must not drop the renewal disclosure.
+    assert.match(f.get("custom_text[submit][message]") ?? "", /renews automatically/i);
+  } finally {
+    if (previous === undefined) delete process.env.STRIPE_TOS_CONSENT;
+    else process.env.STRIPE_TOS_CONSENT = previous;
+  }
+});
