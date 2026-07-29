@@ -21,7 +21,7 @@ export default function CoachLoading() {
     >
       <div>
         <Sk className="h-3 w-16" />
-        <Sk className="mt-2 h-7 w-48" />
+        <Sk className="mt-2 h-9 w-48" />
       </div>
 
       <div className="flex flex-1 flex-col gap-4 py-6">

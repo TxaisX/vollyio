@@ -83,7 +83,7 @@ export function DeleteAccount() {
             <h2 id="delete-account-title" className="mt-2 font-display text-xl font-bold">
               Delete your account?
             </h2>
-            <p className="mt-3 text-sm text-chalk-dim">
+            <p className="mt-3 text-body text-chalk-dim">
               Your footage, breakdowns, ratings, goals, coach chats, and the
               account itself are permanently deleted, right now, not in 30
               days. Type <span className="font-mono text-chalk">DELETE</span>{" "}

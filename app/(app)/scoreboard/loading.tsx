@@ -6,7 +6,7 @@ export default function ScoreboardLoading() {
   return (
     <section className="max-w-4xl" aria-busy>
       <Sk className="h-3 w-24" />
-      <Sk className="mt-1 h-7 w-40" />
+      <Sk className="mt-1 h-9 w-40" />
 
       <div className="mt-6">
         <div className="grid grid-cols-2 gap-3">

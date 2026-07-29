@@ -66,7 +66,7 @@ export default async function Coach({
       <section className="mx-auto w-full max-w-5xl lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-8 xl:max-w-6xl xl:grid-cols-[15rem_minmax(0,1fr)_15rem]">
         <div className="lg:col-start-2">
           <p className="font-mono text-xs uppercase tracking-[0.1em] text-gold">Coach</p>
-          <h1 className="font-display text-2xl font-bold">Ask your coach</h1>
+          <h1 className="font-display text-page-title">Ask your coach</h1>
         </div>
         <CoachSessions sessions={sessions} activeId={active?.id ?? null} />
         <div className="flex min-h-[calc(100dvh-11rem)] w-full max-w-2xl flex-col md:min-h-[calc(100dvh-7rem)] lg:col-start-2 lg:mx-auto">

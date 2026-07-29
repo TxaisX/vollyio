@@ -71,7 +71,7 @@ export default async function SharedBreakdown({
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
               {SKILL_LABEL[shared.skill]} · {dateLabel}
             </p>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+            <h1 className="mt-2 font-display text-page-title">
               Breakdown
             </h1>
           </div>

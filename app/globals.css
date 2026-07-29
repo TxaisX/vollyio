@@ -7,15 +7,48 @@
   --color-chalk: #f2efe6;
   --color-chalk-dim: #b9c4c9;
   --color-gold: #e8b93b;
-  --color-gold-dim: #c79c2e;
   --color-teal: #6fbfae;
   --color-coral: #e2604f;
   --color-court-blue: #4f9de2;
   --color-line: rgb(242 239 230 / 0.12);
+  /* Boundary for anything you can press or type into. 12% chalk reads as a
+     1.40:1 edge, under the 3:1 WCAG 1.4.11 floor for a control whose border is
+     the only thing identifying it (.btn-ghost and .input-field carry no fill of
+     their own). 41% is the lowest value that clears 3:1 on all three surfaces
+     the app puts controls on: navy 3.54, navy-light 3.32, navy-lighter 3.03
+     (navy-lighter is the binding one; below 41% it drops under the floor).
+     Static labels (.tag) deliberately keep --color-line, so the heavier edge
+     now means "this does something". */
+  --color-line-control: rgb(242 239 230 / 0.41);
 
   --font-sans: var(--font-instrument), system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
+
+  /* Two semantic sizes, because those were the two that kept getting retyped.
+     Everything else stays on the stock scale.
+
+     text-body is prose the player is meant to READ: coaching notes, drill
+     steps, page descriptions. text-sm renders 14.88px at the 106.25% root and
+     was doing this job in 55 places, which is under the 16px mobile floor and
+     the same size as the chrome around it. 1rem lands at 17px and reads as
+     content rather than as a label. Line height matches leading-relaxed
+     exactly, so sites that already carried it are unchanged and sites that did
+     not now gain it.
+
+     text-page-title is the h1 of a top-level destination. It bundles the size,
+     weight and tracking that were previously four classes retyped per page,
+     which is how coach, goals and scoreboard drifted to text-2xl while their
+     nav peers used text-3xl (D-067). Values are identical to the old
+     `text-3xl font-bold tracking-tight` string, so adopting it changes no
+     pixels; it just makes the next drift impossible. */
+  --text-body: 1rem;
+  --text-body--line-height: 1.625;
+
+  --text-page-title: 1.875rem;
+  --text-page-title--line-height: 1.2;
+  --text-page-title--letter-spacing: -0.025em;
+  --text-page-title--font-weight: 700;
 
   --radius-card: 1rem;
   --radius-control: 0.625rem;
@@ -369,7 +402,7 @@ body {
     justify-content: center;
     gap: 0.5rem;
     border-radius: var(--radius-control);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-control);
     color: var(--color-chalk);
     font-family: var(--font-display);
     font-weight: 700;
@@ -381,7 +414,7 @@ body {
       transform 0.2s var(--ease-court);
   }
   .btn-ghost:hover {
-    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line));
+    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line-control));
     background: color-mix(in oklab, var(--color-chalk) 4%, transparent);
   }
   .btn-ghost:active {
@@ -436,7 +469,7 @@ body {
     align-items: center;
     gap: 0.375rem;
     border-radius: 9999px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-control);
     padding: 0.375rem 0.875rem;
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -450,7 +483,7 @@ body {
   }
   .chip:hover {
     color: var(--color-chalk);
-    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line));
+    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line-control));
   }
   .chip:active {
     transform: scale(0.97);
@@ -468,7 +501,7 @@ body {
   .input-field {
     width: 100%;
     border-radius: var(--radius-control);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-control);
     background: color-mix(in oklab, var(--color-navy) 60%, transparent);
     padding: 0.75rem 1rem;
     color: var(--color-chalk);
@@ -904,7 +937,7 @@ body {
   .analytics-rep-tab {
     min-height: 2.75rem;
     min-width: 2.75rem;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-control);
     border-radius: 9999px;
     padding: 0.55rem 0.85rem;
     color: var(--color-chalk-dim);
@@ -922,7 +955,7 @@ body {
 
   .analytics-rep-tab:hover {
     color: var(--color-chalk);
-    border-color: color-mix(in oklab, var(--color-gold) 48%, var(--color-line));
+    border-color: color-mix(in oklab, var(--color-gold) 48%, var(--color-line-control));
   }
 
   .analytics-rep-tab:active {

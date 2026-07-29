@@ -86,11 +86,11 @@ export default async function DrillDetail({
           {SKILL_LABEL[drill.skill]} · {drill.level}
         </p>
         <ViewTransition name={`drill-${slug}`} share="morph" default="none">
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+          <h1 className="mt-2 font-display text-page-title">
             {drill.name}
           </h1>
         </ViewTransition>
-        <p className="mt-2 text-sm text-chalk-dim">{drill.summary}</p>
+        <p className="mt-2 text-body text-chalk-dim">{drill.summary}</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full border border-line px-3 py-1 font-mono text-[11px] text-chalk-dim">
@@ -140,7 +140,7 @@ export default async function DrillDetail({
             <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
               Improves
             </p>
-            <p className="mt-1 text-sm">
+            <p className="mt-1 text-body">
               {drill.focus_metrics
                 .map((k) => metricLabel(drill.skill, k))
                 .join(" · ")}

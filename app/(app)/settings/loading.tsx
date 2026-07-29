@@ -6,7 +6,7 @@ export default function SettingsLoading() {
   return (
     <section className="max-w-5xl" aria-busy>
       <Sk className="h-3 w-16" />
-      <Sk className="mt-2 h-7 w-52" />
+      <Sk className="mt-2 h-9 w-52" />
 
       <div className="card mt-8 space-y-4 p-5">
         <Sk className="h-5 w-24" />

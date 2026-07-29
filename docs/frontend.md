@@ -4,9 +4,11 @@ How to build UI in this repo correctly. This is Next 16: APIs, conventions, and 
 
 ## Design tokens
 
-All tokens live in `app/globals.css` `@theme`: ten color tokens and three font tokens. Never introduce a new color or font.
+All tokens live in `app/globals.css` `@theme`: nine palette colors, two line tokens, and three font tokens. Never introduce a new color or font. ("Ten colors" here previously counted `--color-line`, and `--color-gold-dim` was declared but never referenced; D-067 removed it and split the line token.)
 
 - Palette families: navy, chalk, gold, teal. Coral is reserved for destructive actions.
+- **Two line tokens, and the difference is semantic.** `--color-line` (chalk 12%) is for dividers, seams, and container edges. `--color-line-control` (chalk 41%) is for anything you can press or type into: `.btn-ghost`, `.chip`, `.input-field`, `.analytics-rep-tab`. A control whose border is the only thing identifying it needs 3:1 (WCAG 1.4.11) and 12% gives 1.40:1. Static labels like `.tag` keep `--color-line` on purpose, so the heavier edge means "this does something".
+- **Two semantic type sizes (D-068), everything else stays on the stock scale.** `text-body` (1rem, 17px at the 106.25% root, line-height matching `leading-relaxed`) is prose the player READS: coaching notes, drill steps, page descriptions, chat answers. Do not use `text-sm` for a sentence someone has to read; it renders 14.88px, under the mobile floor and the same size as the chrome around it. `text-page-title` is the h1 of a top-level destination and bundles size, weight and tracking so the four-class string cannot drift per page. `text-sm` and `text-xs` remain correct for labels, meta, counts, and dense widget chrome.
 - Fonts: Space Grotesk (display), Instrument Sans (body), IBM Plex Mono (labels).
 - Token-purity idiom: express opacity/lighten variants against the token, never as a raw hex/rgb of the same color: `color-mix(in oklab, var(--color-gold|chalk|navy|coral) N%, transparent | var(--color-chalk))`. Example: `.text-sheen` mid-stops use `color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk))` (no eleventh color).
 - Sanctioned literal-color surfaces only: `app/manifest.ts` JSON, `viewport.themeColor`, and `app/opengraph-image.tsx` inline styles (these cannot resolve CSS custom properties).

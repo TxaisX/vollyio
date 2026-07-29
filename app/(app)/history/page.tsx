@@ -56,7 +56,7 @@ export default async function History({
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
             History
           </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+          <h1 className="mt-2 font-display text-page-title">
             The film room
           </h1>
 
@@ -99,7 +99,7 @@ export default async function History({
           {rows.length === 0 ? (
             <div className="card mt-6 p-8 text-center">
               <p className="font-display text-lg font-bold">Nothing here yet.</p>
-              <p className="mx-auto mt-1 max-w-xs text-sm text-chalk-dim">
+              <p className="mx-auto mt-1 max-w-xs text-body text-chalk-dim">
                 {activeSkill
                   ? `No ${SKILL_LABEL[activeSkill].toLowerCase()} reps logged.`
                   : "No reps logged yet."}
@@ -143,7 +143,7 @@ export default async function History({
                       </ViewTransition>
                     </div>
                     {r.result?.priority_fix?.title && (
-                      <p className="mt-1 text-sm text-chalk">
+                      <p className="mt-1 text-body text-chalk">
                         {r.result.priority_fix.title}
                       </p>
                     )}

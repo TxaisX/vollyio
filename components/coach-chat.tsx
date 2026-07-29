@@ -69,7 +69,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
 function AssistantContent({ text }: { text: string }) {
   const blocks = text.split(/\n{2,}/).filter((b) => b.trim() !== "");
   return (
-    <div className="flex flex-col gap-2 text-sm leading-relaxed break-words">
+    <div className="flex flex-col gap-2 text-body leading-relaxed break-words">
       {blocks.map((block, bi) => {
         const lines = block.split("\n");
         const isUL = lines.every((l) => /^\s*[-*]\s+/.test(l));
@@ -270,7 +270,7 @@ export function CoachChat({
               <p className="font-display font-bold">
                 Your coach knows your game.
               </p>
-              <p className="mt-1 text-sm text-chalk-dim">
+              <p className="mt-1 text-body text-chalk-dim">
                 Ask about your scores, your priority fixes, or what to train
                 next. Every answer comes from your own analyses.
               </p>

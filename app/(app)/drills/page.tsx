@@ -36,10 +36,10 @@ export default function Drills() {
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
           Drills
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+        <h1 className="mt-2 font-display text-page-title">
           The library
         </h1>
-        <p className="mt-2 text-sm text-chalk-dim">
+        <p className="mt-2 text-body text-chalk-dim">
           Step-by-step work for every skill, beginner to elite.
         </p>
       </Reveal>

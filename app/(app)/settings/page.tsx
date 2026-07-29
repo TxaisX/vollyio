@@ -71,7 +71,7 @@ export default async function Settings() {
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
             Settings
           </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+          <h1 className="mt-2 font-display text-page-title">
             Your game, your way.
           </h1>
         </div>

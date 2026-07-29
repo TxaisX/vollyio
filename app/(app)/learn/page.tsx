@@ -37,10 +37,10 @@ export default async function Learn({
         <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
           Learn
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+        <h1 className="mt-2 font-display text-page-title">
           What good looks like
         </h1>
-        <p className="mt-2 text-sm text-chalk-dim">
+        <p className="mt-2 text-body text-chalk-dim">
           The whole game, broken down: the cues, the phases, and how the score
           reads each skill.
         </p>
@@ -92,7 +92,7 @@ export default async function Learn({
                       </span>
                     </ViewTransition>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-chalk-dim">
+                  <p className="mt-2 text-body leading-relaxed text-chalk-dim">
                     {t.overview}
                   </p>
                   <svg
