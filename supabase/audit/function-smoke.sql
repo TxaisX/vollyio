@@ -59,6 +59,24 @@ insert into smoke(check_name, status) select 'the customer id was recorded',
        = '00000000-0000-4000-8000-00000000dead'::uuid
   then 'OK' else 'FAIL' end;
 
+-- 035. The upgrade above set a renewal 30 days out, so this account is now the
+-- deterministic anchored case: its window must BE the paid period and must not
+-- be the calendar month. Placed here on purpose, while the subscription is
+-- still live; the cancellation further down takes the anchor away again.
+insert into smoke(check_name, status) select 'a live subscription anchors the window to its own period',
+  case when (select w.starts_at = p.plan_renews_at - interval '1 month'
+                and w.resets_at = p.plan_renews_at
+             from public.profiles p
+             cross join lateral private.allowance_window(p.id, now()) w
+             where p.id = '00000000-0000-4000-8000-00000000dead'::uuid)
+  then 'OK' else 'FAIL' end;
+
+insert into smoke(check_name, status) select 'and that window is NOT the calendar month',
+  case when (select w.starts_at <> (date_trunc('month', now() at time zone 'utc')) at time zone 'utc'
+             from private.allowance_window(
+               '00000000-0000-4000-8000-00000000dead'::uuid, now()) w)
+  then 'OK' else 'FAIL' end;
+
 -- Webhook delivery is not ordered. A cancellation raised before the upgrade
 -- must not take Pro away.
 insert into smoke(check_name, status) select 'a stale event is refused',
@@ -86,10 +104,22 @@ insert into smoke(check_name, status) select 'unknown customer resolves to nobod
   case when public.user_id_for_billing_customer('cus_nobody_at_all') is null
   then 'OK' else 'FAIL' end;
 
-insert into smoke(check_name, status) select 'allowance window is one UTC month',
-  case when (select resets_at - starts_at from private.allowance_window(now()))
+insert into smoke(check_name, status) select 'allowance window is one month',
+  case when (select resets_at - starts_at
+             from private.allowance_window(
+               '00000000-0000-4000-8000-00000000dead'::uuid, now()))
             between interval '28 days' and interval '31 days'
   then 'OK' else 'FAIL' end;
+
+-- A player with no usable renewal anchor (every free player, and any lapsed
+-- subscription) must still get the exact UTC calendar month 026 gave them.
+insert into smoke(check_name, status) select 'no anchor falls back to the UTC calendar month',
+  case when (select starts_at
+             from private.allowance_window(
+               '00000000-0000-4000-8000-00000000dead'::uuid, now()))
+            = (date_trunc('month', now() at time zone 'utc')) at time zone 'utc'
+  then 'OK' else 'FAIL' end;
+
 
 -- Returns false rather than raising when no row matches, which is what keeps a
 -- missed measurement from failing a player's analysis.
