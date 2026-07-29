@@ -2258,3 +2258,80 @@ question is why they were charged for something they already had.
 `lib/billing.test.ts` walks the whole two-by-two-by-two table and asserts the
 property that matters directly: a player is never refused a rep in a
 configuration where they could not have bought their way past it.
+
+## D-067 - A border can be decoration or it can be the affordance, and 12% chalk cannot be both
+
+`--color-line` was one token doing two unrelated jobs. As a divider or a card
+edge it is exactly right: chalk at 12% is a hairline that catches light without
+drawing attention, and the whole navy surface depends on that restraint.
+
+The trouble is that `.btn-ghost` and `.input-field` have no fill of their own.
+Their background is the surface behind them, so that same hairline is the only
+thing on screen saying a control is there. Measured against the three surfaces
+the app puts controls on, it lands at 1.40:1 on navy, 1.41 on navy-light and
+1.38 on navy-lighter, against the 3:1 that WCAG 1.4.11 asks of a component
+boundary you need in order to identify the component. Text contrast was never
+the problem here and still passes everywhere; this is the non-text rule, which
+a contrast pass that only samples text will not catch.
+
+`docs/ui.md` opens by promising the app works for a first-time smartphone user
+without instructions. A secondary button that is invisible on a bright phone at
+a sunlit court fails that promise before any copy is read.
+
+So the token splits by job rather than by shade. `--color-line-control` is
+chalk at 41%, the lowest value clearing 3:1 on all three surfaces (3.54 on
+navy, 3.32 on navy-light, 3.03 on navy-lighter, which is the binding one), and
+it is applied only to things you press or type into. Everything
+decorative keeps `--color-line` untouched, so the restraint survives where it
+was doing real work.
+
+The split turned out to say something the single token could not. `.tag` and
+`.chip` were near-identical rings, one a static label and one a button; they
+now differ, and the heavier edge reads as "this does something". That is a
+better system than the one that was replaced, not just a compliant one.
+
+Also removed here: `--color-gold-dim`, declared since the palette landed and
+referenced by nothing. Every dimmed gold in the codebase goes through the
+`color-mix` idiom instead, which is what this doc already required, so the
+token was an invitation to do the thing the token-purity rule forbids.
+
+## D-068 - Reading text and label text were the same size, so the app read like a control panel
+
+The root font-size is already tuned up to 106.25% specifically so type and
+spacing scale together, and the comment on it says to bump that one number to
+scale everything. That lever was doing its job. The problem was underneath it:
+`text-sm` was the app's most-used size at 155 call sites against 8 for
+`text-base`, and it was carrying both the labels and the prose. At the tuned
+root it renders 14.88px, which is under the mobile body floor and, worse,
+identical to the chrome sitting next to it. A coaching note read like a field
+label because it was set like one.
+
+`docs/ui.md` promises a 13-year-old can operate this without instructions. The
+sentences that do the actual teaching were the ones set smallest.
+
+So there are two semantic sizes now, and only two, because those were the two
+strings that kept getting retyped:
+
+`text-body` is prose a player reads. 1rem, 17px at the current root, with the
+line height set to exactly `leading-relaxed` so the sites that already carried
+that class are byte-identical and the ones that did not simply gain it. It went
+on 47 places: coaching notes, drill steps, page descriptions, empty states,
+consent copy, and the coach's own chat answers, which were the single most-read
+surface in the product and were the size of a caption.
+
+`text-page-title` is the h1 of a top-level destination. Its values are exactly
+`text-3xl font-bold tracking-tight`, so adopting it on all 14 page titles moved
+no pixels at all. That is the point. D-067 had just finished repairing coach,
+goals and scoreboard by hand after they drifted to `text-2xl`; a four-class
+string retyped per page will drift again, and a single token cannot.
+
+Everything else stays on the stock scale. `text-sm` and `text-xs` are still
+right for labels, counts, meta, and the deliberately dense analytics widget,
+and they were left alone there on purpose. The rule is about the job the text
+does, not about banning a class.
+
+Two things were deliberately not touched. The legal pages set their prose at
+0.9375rem (15.94px); that is a rounding-level gap rather than the defect here,
+and both files were mid-edit in another session. And the root font-size was
+left at 106.25%, since raising it would have inflated the chrome along with the
+prose, which is the exact conflation this decision is trying to undo.

@@ -39,7 +39,7 @@ export default async function ScoreboardPage() {
   return (
     <section className="max-w-4xl">
       <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">Scoreboard</p>
-      <h1 className="mt-1 font-display text-2xl font-bold">Track a match</h1>
+      <h1 className="mt-1 font-display text-page-title">Track a match</h1>
 
       <div className="mt-6">
         <Scoreboard />
@@ -50,7 +50,7 @@ export default async function ScoreboardPage() {
         {games.length === 0 ? (
           <div className="card p-6 text-center">
             <p className="font-display font-bold">No matches yet</p>
-            <p className="mt-1 text-sm text-chalk-dim">
+            <p className="mt-1 text-body text-chalk-dim">
               Start a match above and your results will land here.
             </p>
           </div>

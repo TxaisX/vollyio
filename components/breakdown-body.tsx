@@ -151,7 +151,7 @@ export function BreakdownBody({
                     +{c.expected_gain} pts
                   </span>
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-chalk-dim">
+                <p className="mt-1 text-body leading-relaxed text-chalk-dim">
                   {c.detail}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
@@ -173,7 +173,7 @@ export function BreakdownBody({
             <p className="mt-1 font-display text-lg font-bold">
               {result.priority_fix.title}
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-chalk-dim">
+            <p className="mt-1 text-body leading-relaxed text-chalk-dim">
               {result.priority_fix.detail}
             </p>
           </div>

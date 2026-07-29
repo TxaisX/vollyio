@@ -6,7 +6,7 @@ export default function GoalsLoading() {
   return (
     <section className="max-w-4xl" aria-busy>
       <Sk className="h-3 w-16" />
-      <Sk className="mt-2 h-7 w-44" />
+      <Sk className="mt-2 h-9 w-44" />
       <Sk className="mt-3 h-4 w-80 max-w-full" />
 
       <div className="card mt-8 space-y-4 p-5">

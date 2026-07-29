@@ -257,7 +257,7 @@ export function GoalsEmptyState() {
           <circle cx="12" cy="12" r="5.5" />
           <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
         </svg>
-        <p className="mt-4 text-sm text-chalk-dim">
+        <p className="mt-4 text-body text-chalk-dim">
           One number to chase gives every session a direction.
         </p>
       </div>

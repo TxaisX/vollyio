@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-const EFFECTIVE = "July 12, 2026";
+const EFFECTIVE = "July 28, 2026";
 
 function Section({
   title,
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
       <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
         Effective {EFFECTIVE}
       </p>
-      <h1 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h1 className="mt-3 font-display text-page-title md:text-4xl">
         Privacy Policy
       </h1>
       <p className="mt-4 max-w-xl leading-relaxed text-chalk-dim">
@@ -57,13 +57,23 @@ export default function PrivacyPage() {
         </p>
         <p>
           <strong className="text-chalk">Your training record.</strong> Scores,
-          breakdowns, insights, goals, streaks, XP, and your conversations with
-          the coach chat.
+          breakdowns, insights, goals, streaks, XP, and, if we turn on coach
+          chat, your conversations with it.
+        </p>
+        <p>
+          <strong className="text-chalk">Billing details.</strong> If you
+          upgrade to Pro, we store a few things about your subscription: which
+          plan you are on, the date your plan renews, when the last billing
+          update reached us, and two code numbers the payment provider uses to
+          find your account and your subscription. Your card details never
+          reach Vollyio&rsquo;s servers. Checkout happens on a page hosted by
+          the payment provider, and that is where you enter them.
         </p>
         <p>
           <strong className="text-chalk">Technical basics.</strong> Cookies
-          used to keep you signed in. We do not use advertising trackers or
-          third-party analytics on Vollyio.
+          used to keep you signed in, and basic page-view counts from our
+          hosting provider so we can see which pages get used. We do not use
+          advertising trackers, and we do not build a profile of you.
         </p>
       </Section>
 
@@ -94,11 +104,19 @@ export default function PrivacyPage() {
       <Section title="Who we share data with">
         <p>
           We share data only with the service providers we use to run Vollyio
-          (hosting, storage, and the coaching service that generates your
-          breakdown), and only as needed to provide the product. They process
-          it on our behalf and are not permitted to use it for their own
-          advertising. We never sell your personal information. We may disclose
-          information if the law requires it.
+          (hosting, storage, the coaching service that generates your
+          breakdown, the payment provider that handles subscriptions, and the
+          provider that delivers our email), and only as needed to provide the
+          product. They process it on our behalf and are not permitted to use
+          it for their own advertising. We never sell your personal
+          information. We may disclose information if the law requires it.
+        </p>
+        <p>
+          The payment provider receives your email address, so it can attach
+          the subscription to you on its side, and the payment details you
+          enter on its own checkout page. It does not receive your film, your
+          frames, or your analysis history. The email provider receives your
+          email address and the message we are sending you, and nothing else.
         </p>
       </Section>
 
@@ -106,9 +124,9 @@ export default function PrivacyPage() {
         <p>
           We keep your data for as long as your account is active so your
           history and rating stay intact. You can delete your entire account
-          and everything attached to it yourself, immediately: Dashboard,
-          Settings, Delete account. To delete specific footage only, or if you
-          prefer email, contact{" "}
+          and everything attached to it yourself: Dashboard, Settings, Delete
+          account. To delete specific footage only, or if you prefer email,
+          contact{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
@@ -117,6 +135,19 @@ export default function PrivacyPage() {
           </a>{" "}
           from your account address and we will complete the deletion within 30
           days.
+        </p>
+        <p>
+          Billing records work a little differently. While a Pro subscription is
+          on file, deleting your account is refused, because deleting it here
+          would not stop the subscription and you would keep being charged for
+          an account you can no longer sign into. That block stays in place
+          through the run-out period after you cancel, when your plan is still
+          Pro. Cancel in Settings first, then delete once your plan returns to
+          Free, or write to support and we will delete it for you sooner. When
+          the account goes, the billing details listed above go with it. The
+          payment provider still keeps its own record of the payments you made,
+          because the law requires it to keep financial records, and that record
+          is not ours to erase.
         </p>
       </Section>
 
@@ -152,8 +183,8 @@ export default function PrivacyPage() {
       <Section title="Changes and contact">
         <p>
           If we change this policy in a way that matters, we will post the new
-          version here with a new effective date and note the change in the
-          app. Questions or requests:{" "}
+          version here with a new effective date and email the address on your
+          account. Questions or requests:{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"

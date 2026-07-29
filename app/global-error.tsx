@@ -23,7 +23,7 @@ export default function GlobalError({
             <h1 className="mt-2 font-display text-2xl font-bold">
               Something broke.
             </h1>
-            <p className="mt-3 text-sm text-chalk-dim">
+            <p className="mt-3 text-body text-chalk-dim">
               The app hit an error it couldn&apos;t recover from. Reload to keep
               going.
             </p>
