@@ -3,7 +3,7 @@
 // run: a pass rate over an unlabeled suite is meaningless, and this prints why.
 //
 // Usage:
-//   node scripts/eval-coverage.mjs [--json] [--strict]
+//   node scripts/eval-coverage.mjs [--json] [--strict] [--scratch|--cases <dir>]
 //
 // --strict exits 1 when there is at least one blocking coverage gap.
 
@@ -15,9 +15,13 @@ import {
   coverageGaps,
   coverageSummaryLine,
 } from "../lib/eval-coverage.ts";
+import { resolveCasesDir } from "./eval-cases-dir.mjs";
 
 const args = new Set(process.argv.slice(2));
-const CASES_DIR = "evals/cases";
+// Defaults to the TRACKED set, not local scratch. Pointing this at
+// `evals/cases/` is what produced a coverage report about an uncommitted ingest
+// dump. See scripts/eval-cases-dir.mjs.
+const CASES_DIR = resolveCasesDir();
 
 export function loadCoverageCases(dir = CASES_DIR) {
   return readdirSync(dir)
