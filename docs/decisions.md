@@ -2335,3 +2335,73 @@ Two things were deliberately not touched. The legal pages set their prose at
 and both files were mid-edit in another session. And the root font-size was
 left at 106.25%, since raising it would have inflated the chrome along with the
 prose, which is the exact conflation this decision is trying to undo.
+
+## D-069 - Six things the site told a buyer that the code did not do
+
+An adversarial review of the whole product went looking for the reason nobody
+has bought it and found, on the way, that the paid surface was making claims
+the code contradicted. These are not conversion problems. They are a live
+subscription describing itself incorrectly to the person paying for it, and
+they are fixed here as a group because they share one cause: the paid path was
+built in a hurry after the free one, and each surface was written against the
+posture its author had in mind rather than the one the code was in.
+
+**The structured data said the product was free.** `app/page.tsx` published a
+single `Offer` at `price: "0"` to every search and answer engine while a $14.99
+auto-renewing subscription was on sale. That is the claim that reaches a parent
+before any page does. It is now an `AggregateOffer` carrying both tiers, priced
+from `lib/plans`. The same block advertised "Coach chat" in `featureList` while
+the feature is gated behind `COACH_ENABLED` and its route 404s when that flag is
+off, so it has been removed rather than promised conditionally.
+
+**The paying state was the one state that disclosed nothing.** In
+`components/plan-card.tsx` the renewal and cancellation sentence sat inside
+`{!metered && ...}`, so the moment a player was actually going to be charged on
+a recurring basis was the moment the card stopped mentioning that it recurred or
+how to stop it. California's ARL asks for that disclosure before the purchase.
+It is now unconditional, and only the genuinely posture-dependent sentence
+("limits are not switched on yet") remains behind the flag.
+
+**Nothing recorded assent.** Neither purchase surface linked the terms and the
+checkout collected no consent, while the terms page asserted "you agreed to this
+when you checked out." The hosted page now carries the renewal terms and a link
+via `custom_text`, and the plan card links the terms above the button. The
+stronger form, `consent_collection[terms_of_service]`, is deliberately NOT used
+yet: it requires a Terms of Service URL configured in the provider dashboard,
+which cannot be written through the API, and a missing URL makes session
+creation ERROR rather than degrade. Set that URL, then switch, in one line.
+
+**Deleting an account could leave the subscription charging.** This is the
+serious one. `app/api/account/delete/route.ts` guards against deleting a live
+subscriber, and a twenty-line comment above the guard explains that it is "the
+one thing standing between 'I deleted my account' and a recurring charge with no
+way to stop it from inside the app." The read under that comment discarded its
+`error`. An unreadable profile therefore produced `billing = null`, which made
+the `pro` check false, which waved the request past the guard and deleted the
+account while the card kept being charged, logging a clean success. A transient
+failure was sufficient. The read now fails closed with a 503; a genuinely absent
+profile still proceeds, because `maybeSingle` reports that as null data with a
+null error and there is no subscription to orphan in that case.
+
+**A promise about minors that nothing asked about.** The terms require a parent
+or guardian to be the one who starts an under-18 subscription. No surface asked.
+`PlanAction` now takes an `attestation` and the upgrade button is disabled until
+it is ticked. A checkbox is not identity verification and does not pretend to
+be; it is the difference between a promise nobody is ever asked to make and one
+they are.
+
+**Nobody was named.** The terms had no counterparty, no governing law and no
+forum. There is now a section stating that the service is operated as a sole
+proprietorship based in California, that California law governs, and that
+undisputed matters belong in Sacramento County, with small-claims rights
+preserved. The operator's personal address and phone are deliberately NOT
+published here: they are being removed from the payment provider's public
+profile for the same reason, and a business address is the right answer rather
+than a home one.
+
+Also here: `scripts/eval-label-plan.mjs`. Coverage reports 852 unlabeled cases,
+and `label-case.mjs` with no argument walks all of them, which at the two
+minutes a case that LABELING.md budgets is a 28-hour job. That is why it has sat
+at 0 rather than because it is hard. The planner proposes a stratified 18, about
+36 minutes, balanced across all six skills, deterministic so a half-finished
+session resumes cleanly. The accuracy gate never needed 852 labels.

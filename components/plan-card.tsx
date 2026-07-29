@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { billingOpen, shouldEnforceFreeTier } from "@/lib/billing";
 import { stripeConfigured } from "@/lib/stripe";
@@ -96,32 +97,56 @@ export async function PlanCard({ plan }: { plan: Plan }) {
 
       {action === "upgrade" && (
         <>
+          {/* Auto-renewal, price, and how to stop must all be here, in the
+              metered state too. They used to sit inside `!metered`, so the
+              PAYING state, the only one where a charge actually recurs, was
+              the one state that disclosed neither renewal nor cancellation.
+              California's ARL asks for that disclosure before the purchase,
+              not after it. The "nothing is capped yet" sentence is the only
+              part that is genuinely posture-dependent, so it is the only part
+              still behind the flag. */}
           <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
             {PLAN_LABEL.pro} is {PRO_PRICE_LABEL} for {MONTHLY_ALLOWANCE.pro}{" "}
-            analyses a month, on the same monthly reset.
+            analyses a month. It renews automatically at {PRO_PRICE_LABEL} on
+            the day you subscribe, each month, until you cancel. Cancel any
+            time from this page; you keep {PLAN_LABEL.pro} until the end of the
+            period you already paid for, and unused time is not refunded.
             {!metered &&
-              " Nothing is capped yet, so this is early support rather than more reps today. Cancel any time."}
+              " Monthly limits are not switched on yet, so this is early support rather than more reps today."}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-chalk-dim">
+            By subscribing you agree to the{" "}
+            <Link
+              href="/terms"
+              className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            >
+              Terms of Service
+            </Link>
+            .
           </p>
           <PlanAction
             endpoint="/api/stripe/checkout"
             label={`Upgrade to ${PLAN_LABEL.pro}`}
             busyLabel="Opening…"
             variant="primary"
+            attestation="I am 18 or older, or a parent or guardian is starting this subscription and authorizing the payment."
           />
         </>
       )}
 
       {action === "manage" && (
         <>
-          {/* The cancel terms are stated here rather than discovered later
-              (docs/billing.md section 7): the window is the calendar month, so
-              a cancelled month's Pro analyses are already spent against the
-              smaller allowance the player lands on. */}
+          {/* The cancel terms are stated here rather than discovered later.
+              D-067 moved the Pro window to the purchase anniversary, so the
+              old "the window is the calendar month" reasoning that used to sit
+              in this comment no longer describes Pro; Free is the plan still
+              on the 1st, which is what a cancelling player lands on. */}
           <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
-            Update your payment details or cancel. Cancelling keeps{" "}
-            {PLAN_LABEL.pro} to the end of the period you already paid for, then
-            the allowance drops to {MONTHLY_ALLOWANCE.free} a month, counting
-            anything you already ran that month.
+            Update your payment details or cancel. Cancelling stops the next
+            charge and keeps {PLAN_LABEL.pro} to the end of the period you
+            already paid for; unused time is not refunded. After that the
+            allowance drops to {MONTHLY_ALLOWANCE.free} a month, counting
+            anything you already ran, and resets on the 1st.
           </p>
           <PlanAction
             endpoint="/api/stripe/portal"

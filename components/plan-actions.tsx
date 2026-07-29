@@ -14,6 +14,7 @@ export function PlanAction({
   busyLabel,
   variant,
   fullWidth = false,
+  attestation,
 }: {
   endpoint: string;
   label: string;
@@ -22,9 +23,17 @@ export function PlanAction({
   // The refusal surfaces give this the full width of their card; the plan card
   // sits it inline under the terms.
   fullWidth?: boolean;
+  // Text for a required tick-box that gates the button. The terms state that
+  // for an under-18 player the parent or guardian has to be the one who starts
+  // the subscription, and until this existed nothing in the code asked. A
+  // checkbox is not identity verification and does not pretend to be; it is the
+  // difference between a promise nobody is ever asked to make and one they are.
+  attestation?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attested, setAttested] = useState(false);
+  const blocked = attestation ? !attested : false;
 
   async function open() {
     setBusy(true);
@@ -58,10 +67,21 @@ export function PlanAction({
 
   return (
     <>
+      {attestation && (
+        <label className="mt-4 flex items-start gap-2.5 text-xs leading-relaxed text-chalk-dim">
+          <input
+            type="checkbox"
+            checked={attested}
+            onChange={(e) => setAttested(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-gold"
+          />
+          <span>{attestation}</span>
+        </label>
+      )}
       <button
         type="button"
         onClick={open}
-        disabled={busy}
+        disabled={busy || blocked}
         aria-busy={busy}
         className={`${variant === "primary" ? "btn-primary" : "btn-ghost"} mt-4 min-h-11 text-sm disabled:opacity-40${fullWidth ? " w-full" : ""}`}
       >
