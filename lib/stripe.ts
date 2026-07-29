@@ -1,5 +1,16 @@
 import "server-only";
 import { formEncode } from "./stripe-sign.ts";
+import { MONTHLY_ALLOWANCE, PLAN_LABEL, PRO_PRICE_LABEL } from "./plans.ts";
+import { SITE_URL } from "./site.ts";
+
+// Shown next to the pay button on the hosted page. Quoted from the plan
+// constants so it can never drift from what is actually charged, and kept
+// inside the provider's 1200-character limit for this field.
+const SUBSCRIPTION_TERMS_MESSAGE =
+  `${PLAN_LABEL.pro} is ${PRO_PRICE_LABEL} for ${MONTHLY_ALLOWANCE.pro} analyses a month. ` +
+  `It renews automatically at ${PRO_PRICE_LABEL} on this date each month until you cancel. ` +
+  `Cancel any time in Settings; you keep ${PLAN_LABEL.pro} until the end of the period you ` +
+  `paid for, and unused time is not refunded. Full terms: ${SITE_URL}/terms`;
 
 // The network half of the payment provider integration: the two POSTs that mint
 // a hosted page, and the only place in the codebase that reads the API key.
@@ -106,6 +117,20 @@ export function buildCheckoutBody(input: CheckoutInput, price: string): string {
     customer,
     customer_email: email,
     metadata: { user_id: input.userId },
+    // The renewal terms, stated on the page where the money is actually taken.
+    // Until this existed, neither purchase surface disclosed recurrence or
+    // linked the terms, so a parent could complete an auto-renewing charge
+    // having been shown neither.
+    //
+    // This is `custom_text` and not `consent_collection[terms_of_service]`
+    // deliberately. The recorded-checkbox version is stronger and is the thing
+    // to move to, but it requires a Terms of Service URL configured in the
+    // provider's own dashboard, and if that URL is absent the session creation
+    // ERRORS, which would take checkout down entirely rather than degrade. That
+    // setting cannot be written through the API. So: disclose unconditionally
+    // now, and switch to recorded consent once the dashboard URL is set. See
+    // docs/billing-runbook.md.
+    "custom_text[submit][message]": SUBSCRIPTION_TERMS_MESSAGE,
     // Subscription events (updated, deleted, payment failed) arrive carrying a
     // subscription, not the session that created it. Stamping the user id onto
     // the subscription itself gives the webhook a second way to resolve the

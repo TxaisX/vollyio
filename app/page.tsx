@@ -24,6 +24,9 @@ import { DRILLS } from "@/content/drills";
 // still quote the one constant rather than a retyped number.
 const PRO_PRICE = PRO_PRICE_LABEL.replace("/mo", "");
 
+// The bare numeric amount, for schema.org, which wants "14.99" and not "$14.99".
+const PRO_PRICE_AMOUNT = PRO_PRICE.replace(/[^0-9.]/g, "");
+
 const STEPS = [
   {
     n: "01",
@@ -139,14 +142,43 @@ export default function Landing() {
     operatingSystem: "Web, iOS, Android",
     description:
       "Upload a rep, get frame-by-frame form analysis for every volleyball skill.",
+    // Both tiers, because a single price "0" told every search and answer
+    // engine the product was free while a $14.99 auto-renewing subscription
+    // was on sale. Structured data is the claim that reaches a parent before
+    // any page does, so it is the one that has to be right first. Prices are
+    // quoted from lib/plans, never retyped.
     featureList: [
       "Frame-by-frame breakdown",
       "Six skills scored 0-100",
       "One priority fix per rep",
       "Rolling skill rating",
-      "Coach chat",
+      // Coach chat is deliberately absent: it is gated behind COACH_ENABLED
+      // and its route 404s while that flag is off, so advertising it in
+      // structured data promises a feature the product may not serve.
     ],
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "USD",
+      lowPrice: "0",
+      highPrice: PRO_PRICE_AMOUNT,
+      offerCount: 2,
+      offers: [
+        {
+          "@type": "Offer",
+          name: `${PLAN_LABEL.free} plan`,
+          price: "0",
+          priceCurrency: "USD",
+          description: `${MONTHLY_ALLOWANCE.free} analyses a month, no card required.`,
+        },
+        {
+          "@type": "Offer",
+          name: `${PLAN_LABEL.pro} plan`,
+          price: PRO_PRICE_AMOUNT,
+          priceCurrency: "USD",
+          description: `${MONTHLY_ALLOWANCE.pro} analyses a month, billed monthly and renewing on the day you subscribe until cancelled.`,
+        },
+      ],
+    },
   };
   return (
     <div className="relative overflow-x-clip">

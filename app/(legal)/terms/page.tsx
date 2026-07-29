@@ -441,16 +441,35 @@ export default function TermsPage() {
         </p>
       </Section>
 
+      <Section title="Who you are agreeing with, and whose law applies">
+        <p>
+          Vollyio is operated as a sole proprietorship based in California,
+          United States. That means the counterparty to this agreement is a
+          person rather than a company, and the service is provided by that
+          person directly.
+        </p>
+        <p>
+          These terms are governed by the laws of the State of California,
+          without regard to its conflict-of-laws rules. Any dispute that is not
+          resolved by writing to us first belongs in the state or federal courts
+          located in Sacramento County, California, and you and we each agree to
+          that venue. Nothing here takes away a right you have under the law
+          where you live, including any right to bring a claim in your local
+          small-claims court.
+        </p>
+      </Section>
+
       <Section title="Contact">
         <p>
-          Questions about these terms:{" "}
+          Questions about these terms, cancellations, deletion requests, or
+          anything about a charge:{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
           >
             {SUPPORT_EMAIL}
           </a>
-          .
+          . We answer within two business days.
         </p>
       </Section>
     </article>
