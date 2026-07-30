@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseLoginInput, parseSignupInput } from "@/lib/auth-input";
+import { SITE_URL } from "@/lib/site";
 
 export async function login(formData: FormData) {
   const parsed = parseLoginInput(formData);
@@ -50,6 +51,19 @@ export async function signup(formData: FormData) {
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
+      // Without this the confirmation link's redirect_to falls back to the
+      // project's Site URL, which is the LANDING PAGE. The player clicks the
+      // link, the token is verified, and they are dropped on the marketing page
+      // with the code never exchanged for a session: confirmed, and apparently
+      // signed out, with no way to tell they have an account. That is a silent
+      // total blocker on signup and it is why nobody ever finished one.
+      //
+      // /auth/callback is the route that actually exchanges the code. It must
+      // also be listed under Authentication -> URL Configuration -> Redirect
+      // URLs, because an unlisted target is silently rewritten back to Site URL,
+      // which reproduces the same bug with the fix apparently in place.
+      // scripts/auth-preflight.mjs checks all of this against the live project.
+      emailRedirectTo: `${SITE_URL}/auth/callback`,
       data: {
         display_name: parsed.data.display_name,
         terms_accepted_at: new Date().toISOString(),
