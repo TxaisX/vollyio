@@ -23,11 +23,11 @@ export function PlanAction({
   // The refusal surfaces give this the full width of their card; the plan card
   // sits it inline under the terms.
   fullWidth?: boolean;
-  // Text for a required tick-box that gates the button. The terms state that
-  // for an under-18 player the parent or guardian has to be the one who starts
-  // the subscription, and until this existed nothing in the code asked. A
-  // checkbox is not identity verification and does not pretend to be; it is the
-  // difference between a promise nobody is ever asked to make and one they are.
+  // Text for a required tick-box that gates the button. It asks the thing that
+  // actually matters at a card transaction: that the person pressing it is
+  // entitled to use the card and knows the charge recurs. A checkbox is not
+  // identity verification and does not pretend to be; it is the difference
+  // between a promise nobody is ever asked to make and one they are (D-073).
   attestation?: string;
 }) {
   const [busy, setBusy] = useState(false);

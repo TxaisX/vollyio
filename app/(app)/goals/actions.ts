@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
-import { awardXp, todayKey, XP_AWARDS } from "@/lib/progression";
+import { awardXp, todayKey } from "@/lib/progression";
 import { SKILLS } from "@/lib/skills";
 
 const FIELDS = ["title", "skill", "target_rating", "deadline"] as const;
@@ -110,7 +110,10 @@ export async function completeGoal(id: string) {
     .maybeSingle();
 
   if (data) {
-    await awardXp(supabase, userId, XP_AWARDS.goal, `goal:${id}`);
+    // The status is already 'done' above, which is exactly what award_xp
+    // re-checks before paying: the goal has to be finished and owned by the
+    // caller, so a bare reason string cannot buy 150 XP (D-071).
+    await awardXp(supabase, `goal:${id}`);
   }
   revalidatePath("/goals");
 }

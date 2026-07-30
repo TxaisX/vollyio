@@ -135,7 +135,7 @@ export default async function Signup({
                 >
                   Privacy Policy
                 </Link>
-                . If I am under 18, a parent or guardian consents.
+                .
               </span>
             </label>
             <SubmitButton

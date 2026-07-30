@@ -129,7 +129,7 @@ export async function PlanCard({ plan }: { plan: Plan }) {
             label={`Upgrade to ${PLAN_LABEL.pro}`}
             busyLabel="Opening…"
             variant="primary"
-            attestation="I am 18 or older, or a parent or guardian is starting this subscription and authorizing the payment."
+            attestation="I am authorized to use this payment method and I understand this subscription renews until I cancel it."
           />
         </>
       )}

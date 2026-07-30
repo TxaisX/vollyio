@@ -12,7 +12,7 @@ import { mockResult } from "@/lib/ai/mock";
 import { drillSlugs } from "@/content/drills";
 import { updateRating } from "@/lib/ratings";
 import { deriveResult } from "@/lib/ai/derive";
-import { awardXp, XP_AWARDS } from "@/lib/progression";
+import { awardXp } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
   reserveAnalysisEntitlement,
@@ -221,8 +221,10 @@ export async function POST(req: NextRequest) {
       const response = await coach().messages.parse({
         model: ANALYZE_MODEL,
         max_tokens: 4096,
-        // Opus 4.8 runs with no reasoning at all when `thinking` is absent, so this
-        // is required for ANALYZE_EFFORT to control anything (D-027).
+        // Stated, not inherited. Opus 4.8 ran with no reasoning at all when
+        // `thinking` was absent (D-027); Opus 5 thinks by default (D-070). Naming
+        // it keeps this call's reasoning independent of whichever default the
+        // pinned model happens to carry.
         thinking: { type: "adaptive" },
         system: [
           {
@@ -490,18 +492,15 @@ export async function POST(req: NextRequest) {
     { onConflict: "user_id,skill,discipline" },
   );
 
-  const awarded = await awardXp(
-    supabase,
-    user.id,
-    XP_AWARDS.analysis,
-    `analysis:${analysisId}`,
-  );
+  // The row was inserted above, which is what award_xp re-checks before paying
+  // (D-071). Returns the amount, or 0 when this analysis already paid.
+  const xpAwarded = await awardXp(supabase, `analysis:${analysisId}`);
 
   return NextResponse.json({
     analysisId,
     clipPath,
     storedFramePaths,
-    xpAwarded: awarded ? XP_AWARDS.analysis : 0,
+    xpAwarded,
   });
   };
 

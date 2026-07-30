@@ -1,5 +1,6 @@
 // ESTIMATE ONLY. Rates are hand-copied from the provider's public pricing,
-// checked 2026-07-21: claude-opus-4-8 $5 in / $25 out per MTok, claude-sonnet-5
+// checked 2026-07-29: claude-opus-5 and claude-opus-4-8 both $5 in / $25 out per
+// MTok (Opus 5 is a drop-in at 4.8's rate), claude-sonnet-5
 // $3 / $15 sticker (an intro discount runs through 2026-08-31; the sticker rate
 // is used here so estimates stay conservative). Cache reads bill at 0.1x the
 // input rate, 5-minute cache writes at 1.25x. Verify in the billing console
@@ -11,7 +12,12 @@ export type UsageTokens = {
   cache_creation_input_tokens: number;
 };
 
+// claude-opus-4-8 stays priced after the D-070 switch: telemetry rows written
+// before it carry that model string, and estimateCostUsd throws on a model with
+// no row, so dropping it would make the month-to-date spend read throw on
+// history rather than price it.
 const PER_MTOK: Record<string, { input: number; output: number }> = {
+  "claude-opus-5": { input: 5, output: 25 },
   "claude-opus-4-8": { input: 5, output: 25 },
   "claude-sonnet-5": { input: 3, output: 15 },
 };
