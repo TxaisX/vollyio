@@ -95,6 +95,42 @@ Two things about that list do matter:
 - `set_subscription_plan` and `user_id_for_billing_customer` are **`service_role` only**. Execute is revoked from `public`, `anon`, and `authenticated`. If the advisor ever shows either of those as callable by `authenticated`, the billing boundary is open and that is an incident, not a warning. `docs/security.md` step `B3` is the live check.
 - **Leaked-password protection is still disabled** in the auth dashboard. The advisor flags it, it checks new passwords against a breach corpus, and it is one toggle from the owner. It matters more now than it did: the monthly reset replaced the lifetime-one free rule, so a farmed account is worth 3 analyses a month forever rather than one ever (`docs/billing.md` section 6). Managed bot protection and the hosting-firewall rules belong in the same pass.
 
+### Auth email configuration, and the signup bug it hid (D-075)
+
+Signup shipped, was never exercised end to end, and was broken the whole time in
+a way that produces no error anywhere. `signUp()` did not pass `emailRedirectTo`,
+so the confirmation link's `redirect_to` fell back to the project's **Site URL**,
+which is the landing page. A new player clicked the link, Supabase verified the
+token, and dropped them on `/` with the code never exchanged for a session. Their
+account was confirmed and they appeared signed out, with nothing to tell them
+otherwise. Five people reached `/signup` and none finished; this is why.
+
+Three settings have to agree, and only one of them lives in the repo:
+
+| Where | Setting | Required value |
+|---|---|---|
+| `app/(auth)/actions.ts` | `emailRedirectTo` | `${SITE_URL}/auth/callback` |
+| Supabase, Authentication, URL Configuration | Site URL | `https://vollyio.com` |
+| Supabase, Authentication, URL Configuration | Redirect URLs | must include `https://vollyio.com/auth/callback` |
+
+The allow-list entry is not optional and its failure is silent: a `redirect_to`
+that is not on the list is **rewritten back to Site URL**, which reproduces the
+original bug with the fix apparently in place.
+
+**`node scripts/auth-preflight.mjs` checks all three against the live project.**
+It uses `auth.admin.generateLink`, so it reads the exact URL a new player would
+receive without sending anyone an email, and deletes the probe user it creates.
+Run it after any auth or domain change. It is the only way to see this class of
+bug, because the broken state looks identical to nobody signing up.
+
+Still owner-only in the dashboard, and both matter before recruiting:
+
+- **Custom SMTP.** The default sender is rate limited to a handful of emails per
+  hour for the whole project. `friendlySignupError` already handles
+  `over_email_send_rate_limit`, which is what onboarding ten players courtside
+  in one evening will hit.
+- **Leaked-password protection**, below.
+
 ### Production deploy record (2026-07-08)
 - Core mission deployed and verified live (middot title, on-page mark, OG image, zero user-facing em dashes).
 - After merging the parallel `master` stream (beach discipline, knowledge-core/Learn, frame sampling, eval harness, ball-tracking) into the polish branch and fast-forwarding `master` to the mission tip, the merged tree was redeployed to production (`vollyio-5utsbctv0`). Verified live: landing, middot title, and `/learn` (master's new route) all return 200. Both workstreams are live together.

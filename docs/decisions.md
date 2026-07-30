@@ -2587,3 +2587,43 @@ written by a Windows editor and carries one, which lands on the first key only,
 so `startsWith` silently fails for that single variable and reports it missing
 while every other key in the same file resolves. `scripts/purge-orphaned-media.mjs`
 has the same bug and has not been fixed here.
+## D-075 - Signup was broken the entire time, and the failure looked like disinterest
+
+`supabase.auth.signUp()` was called without `emailRedirectTo`. The confirmation
+link's `redirect_to` therefore fell back to the project's Site URL, which is the
+landing page. A new player clicked the link, Supabase verified the token and
+redirected them to `/`, and the code was never exchanged for a session by
+`/auth/callback`. Their account was confirmed. They appeared signed out. Nothing
+told them otherwise.
+
+Five people reached `/signup` and zero completed, and that number was read for
+weeks as a conversion problem. It was not. The front door confirmed you and then
+put you back on the street.
+
+**Why it survived so long.** Every symptom of this bug is also a symptom of
+nobody bothering. There is no error, no failed request, no log line, and no
+metric that separates "signup is broken" from "signup is unpopular". The owner's
+own account was created in the dashboard (`confirmation_sent_at` is null on it),
+so the one person who could have caught it never walked the path.
+
+**The fix is one line and the guard matters more than the fix.**
+`scripts/auth-preflight.mjs` uses `auth.admin.generateLink` to read the exact URL
+a new player would receive without sending an email, checks it points at
+`/auth/callback` rather than at Site URL, and deletes the probe user it creates.
+It also reports what the link would be with no `emailRedirectTo`, so the specific
+regression that happened here is visible rather than inferred.
+
+**Three settings have to agree and only one is in the repo.** `emailRedirectTo`
+in the code, Site URL in the Supabase dashboard, and the redirect allow-list. The
+allow-list is the trap: a `redirect_to` that is not on it is silently rewritten
+back to Site URL, which reproduces the original bug with the fix apparently in
+place. Verified against production: the allow-list already permits
+`https://vollyio.com/auth/callback`, so the code change alone closes this.
+
+**The general lesson, which is the reason this entry is long.** A path nobody has
+ever walked is not shipped, it is written. This one had tests, a well-built
+callback route that correctly handles both the `code` and `token_hash` flows,
+and a friendly error for the rate limit someone clearly anticipated. All of that
+was true while the path did not work. Coverage of the parts is not evidence about
+the whole, and the only check that would have caught it is a human completing a
+signup with an email they can open.
