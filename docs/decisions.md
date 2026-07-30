@@ -2587,7 +2587,54 @@ written by a Windows editor and carries one, which lands on the first key only,
 so `startsWith` silently fails for that single variable and reports it missing
 while every other key in the same file resolves. `scripts/purge-orphaned-media.mjs`
 has the same bug and has not been fixed here.
-## D-075 - Signup was broken the entire time, and the failure looked like disinterest
+## D-075 - Signup was NOT broken, and the diagnosis below was wrong
+
+**CORRECTED 2026-07-30, same day, by actually walking the path.** Everything
+after this block is the original entry and it is kept because being wrong in a
+ledger is worth more than a tidy one. The claim it makes is false.
+
+Signup worked. It was proven end to end for the first time in the product's
+history on 2026-07-30: an account was created through the auth API, the
+confirmation email arrived from `noreply@send.vollyio.com`, the link in it
+resolved `307 -> /dashboard` with valid session cookies, and the resulting JWT
+carried `email_confirmed_at` and `last_sign_in_at`. The new user then loaded the
+dashboard, `/plan` and `/learn` at 200 with the honest zero-data copy rendering
+correctly. The probe account was deleted afterwards.
+
+**Why the diagnosis was wrong.** The project uses a CUSTOM confirmation email
+template that builds the link as
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup`. That
+targets the callback route directly and is verified by `verifyOtp`, so it never
+touched `redirect_to` and never depended on `emailRedirectTo` at all. The missing
+parameter only affects the DEFAULT template's `{{ .ConfirmationURL }}`, which
+this project does not use.
+
+**The reasoning error, which is the part worth keeping.** A configuration gap was
+found, a plausible mechanism was constructed from it, and the mechanism was then
+reported as the cause of an observed number without ever testing the actual path.
+It was persuasive because it explained the data. It was wrong because the data
+did not need explaining: the "five reached /signup and zero completed" figure was
+the owner's own testing traffic, which he had already said, not five strangers
+who failed. A cause was invented for a symptom that was never real.
+
+Both errors are the same error. Do not infer a root cause from a config
+inspection when the path can be executed. Executing it took one command and
+settled in seconds what inspection got backwards.
+
+**What survives.** The `emailRedirectTo` change is kept: it is correct defensive
+practice and makes the code work even if the custom template is ever reverted to
+the default, which is a real risk since the template lives in a dashboard nobody
+version-controls. `scripts/auth-preflight.mjs` is kept and is the more valuable
+artifact, though its framing should be read with this correction in mind. The
+genuinely useful finding from that work was the opposite of the headline: the
+Site URL, the redirect allow-list, the custom template and the delivery path were
+all already correct.
+
+---
+
+*Original entry, retained as written:*
+
+### Signup was broken the entire time, and the failure looked like disinterest (SUPERSEDED)
 
 `supabase.auth.signUp()` was called without `emailRedirectTo`. The confirmation
 link's `redirect_to` therefore fell back to the project's Site URL, which is the
