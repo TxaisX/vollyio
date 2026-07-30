@@ -2405,3 +2405,185 @@ minutes a case that LABELING.md budgets is a 28-hour job. That is why it has sat
 at 0 rather than because it is hard. The planner proposes a stratified 18, about
 36 minutes, balanced across all six skills, deterministic so a half-finished
 session resumes cleanly. The accuracy gate never needed 852 labels.
+
+## D-070 - The analyze tier moves to Opus 5, and the default it stopped inheriting
+
+`ANALYZE_MODEL` is now `claude-opus-5`, up from `claude-opus-4-8`. `ANALYZE_EFFORT`
+stays `low`. `COACH_MODEL` and `COACH_EFFORT` are untouched.
+
+**The price per token does not move.** Opus 5 bills $5 in / $25 out per MTok, the
+same as the 4.8 it replaces, so the ~$0.21-per-analysis unit economics and the
+$25 spend backstop keep their arithmetic. `lib/ai/pricing.ts` gains a row rather
+than swapping one: telemetry written before this change carries the 4.8 model
+string, and `estimateCostUsd` throws on a model with no row, so deleting 4.8
+would turn the month-to-date spend read into an exception over history instead of
+a number.
+
+**The reason to keep stating `thinking` explicitly inverted.** On Opus 4.8 the
+parameter was load-bearing because the tier ran with no reasoning at all when it
+was absent, which is what D-027 recorded. On Opus 5 the default is the opposite:
+omitting `thinking` runs adaptive. `app/api/analyze` and `app/api/players` both
+name it, so neither changes behaviour here — but the comment justifying it did,
+and a comment that states a false reason is worse than none, because the next
+person deletes the line when they find the reason no longer holds.
+
+**`app/api/eval/route.ts` silently gains reasoning.** D-027 left that route
+inheriting no `thinking` and no `effort` deliberately, on the argument that
+judging is where more reasoning helps. Under 4.8 that inheritance meant no
+reasoning and effort `high`; under Opus 5 it means adaptive reasoning and effort
+`high`. The route now spends more per case than it did, and it moves toward — not
+away from — the production call shape it claims in its own comment to be
+measuring. Left as-is because it is the direction D-027 wanted, but it is a
+behaviour change nobody typed, which is the kind that goes unnoticed.
+
+**Carried forward unmeasured, and named as such.** Two things are asserted rather
+than measured. `ANALYZE_EFFORT = "low"` comes from a 2026-07-20 grid run against
+Opus 4.8; the flat-to-inverted cost ladder that justified it has not been
+re-measured on Opus 5. And `max_tokens: 4096` on the analyze call caps thinking
+plus response text together, against a model that writes longer than its
+predecessor — a truncated response returns a null `parsed_output` and the route
+answers 502. The structured-output schema bounds the text, which is why this
+ships without raising the ceiling, but the first real analyses on this model are
+the measurement, and a 502 rate that appears now has an obvious first suspect.
+
+## D-071 - The daily loop was a button, and the XP behind it was a text field
+
+Two problems that only look separate. The daily challenge picked a drill by
+hashing the whole catalog against the player and the date, so it was real
+content chosen at random rather than chosen for them; and completing it was a
+bare button that inserted an `xp_events` row the client itself was granted
+permission to write. A product that refuses to claim a trend without four reps
+and two days of movement was handing out 75 XP for a click.
+
+**What today is now chosen against.** `lib/daily-assignment.ts` targets, in
+order of authority: the checkpoint the last breakdown actually named, then the
+lowest rating on the board, then a stable rotation. Only the last of those is
+not evidence, and the card says so rather than implying a diagnosis, which is
+why `Assignment.targeted` exists as a field instead of a vibe. Drills are then
+narrowed to ones that train that exact checkpoint via `drillsForMetric`, and
+the pick inside the narrowed pool stays FNV-1a on (user, day) so a refresh
+never reshuffles work already started.
+
+**The metric it targets is not where you would look for it.** `priority_fix`
+has a `target_metric` field and it is NULL on all 19 stored rows; the real key
+lives at `changes[0].target_metric`. Selecting the obvious one would have
+compiled, passed review, and silently targeted nothing forever.
+
+**Court-free is not a nicety.** Roughly half a teenager’s days have no gym in
+them, and a streak that only survives on court days is a streak designed to
+break. Both variants are computed server-side because both are pure functions
+of state already in hand, so offering the alternative costs nothing and needs
+no round trip.
+
+**XP is now earned.** `public.award_xp` (036) takes a reason and NEVER an
+amount: the price is decided server-side, and then the work behind the reason
+is verified to exist and belong to the caller. Without that second half,
+`award_xp('goal:' || gen_random_uuid())` in a loop is unlimited XP. The day key
+is checked against the server clock and accepts only today or yesterday,
+because the streak walk only looks at which calendar days carry events, so a
+backfilled key is indistinguishable from a day actually trained.
+
+Shipped expand/contract: 036 only adds, 037 carries the revoke and goes on
+after the deploy. Neither plain order is safe on its own.
+
+## D-072 - One plan per week, claimed before it is paid for
+
+The weekly development plan is the first feature with a real marginal token
+cost (~/usr/bin/bash.02), so the failure mode to design against is not a bad plan, it is a
+plan generated on page view. That turns one call a week into one per visit and
+silently rewrites the week under a player trying to follow it.
+
+The week is therefore the primary key, and generation is a RESERVATION rather
+than a write-when-finished: `reserve_weekly_plan` claims the row BEFORE the
+model is called, so two clicks or two tabs spend once between them. A claim
+that is never filled expires after ten minutes, because a crashed generation
+must not lock a player out of their own week until Monday, and
+`release_weekly_plan` hands it back immediately on a caught failure.
+
+The prompt carries four constraints that are not stylistic: no calorie, macro
+or supplement advice, at least one rest or mobility day, no loaded barbell work
+or one-rep maxes, and no hard jump-loading on consecutive days. The users are
+13 to 18 and skeletally immature. `lib/weekly-plan.test.ts` asserts all four
+are present in the generated prompt, so a refactor that drops them fails the
+suite rather than shipping.
+
+Generated slugs are validated against the catalog and nulled when unknown: an
+invented slug renders as a dead card forever, and losing a link is better than
+losing the day.
+
+## D-073 - One age floor, no guardian clause
+
+The product now states a single minimum age of 13 and nothing else. Signup asks
+the player to confirm it, the terms state it, and the sentence that used to read
+"if I am under 18, a parent or guardian consents" is gone from both.
+
+Thirteen is not arbitrary. COPPA attaches below it, and this product collects
+video OF the user, which is about as identifying as personal data gets. A floor
+at 13 keeps that regime out of scope. No floor at all would leave the product
+with no answer whatsoever when a twelve-year-old uploads footage.
+
+The guardian clause went because it was friction that bought nothing. A checkbox
+promising an adult is present is unverifiable, and the surface where the question
+actually mattered was the payment, not the account. So the upgrade attestation in
+`components/plan-card.tsx` now asks what is genuinely relevant at a card
+transaction: that the person pressing the button is entitled to use the card and
+knows the charge recurs.
+
+Briefly considered and rejected: 18+. It would have removed the nutrition and
+loading caveats, but it also removes high school and club players, which is most
+of the sport, and takes the recruiting wedge with them, since NCAA recruiting is
+largely a 14 to 17 activity. The audience is anyone who plays.
+
+The training content keeps its conservative register regardless. The plan prompt
+still refuses calorie, macro and supplement advice, still demands a rest day, and
+still will not prescribe a one-rep max, because the audience starts at 13 and
+trains without a coach watching. `lib/weekly-plan.test.ts` pins all four, so a
+refactor that drops one fails the suite rather than shipping.
+
+## D-074 - An injury library, and why it is allowed to exist
+
+34 entries across shoulder, knee, ankle, back, hip, calf, hand and head, reached
+from a second tab in Learn with a search box that follows the player between the
+two libraries.
+
+**Education, not treatment, enforced in three places rather than promised.** The
+schema in `content/rehab-types.ts` has no field for a daily protocol: `phases`
+describe what a recovery LOOKS like so a player can tell where they are and have
+a better conversation with a clinician, and `prevention` is the only section that
+prescribes, because prehab is ordinary training. `content/rehab.test.ts` fails
+the build if any phase grows sets, reps or a load, if any entry names a drug or a
+supplement, or if concussion, an Achilles rupture, an ACL or a pars stress
+fracture is ever filed as something a player manages alone. Migration 039 makes
+the two-red-flag minimum a check constraint, so the database refuses an
+unfinished entry rather than trusting review to catch it.
+
+**The safety review earned its place.** The library was drafted by eight parallel
+domain passes and then reviewed, and the review returned two blocking problems,
+both real. One-sided extension-based low back pain had been filed self-manage
+when it is also the exact presentation of a pars stress reaction, which the
+library files separately at get_assessed; the two cannot be told apart by a
+player, so the safe default is assessment. And its copy asserted "nothing is torn
+or broken", which is a negative diagnosis this product cannot make and which
+actively talks a growing player out of getting imaged. Both are fixed. Four
+further problems were corrected too: a splinting protocol written as
+instructions, a contradictory MCL timeline whose third phase was shorter than the
+two before it, an unexplained referred-pain red flag, and a mis-filed region.
+
+**In a table, not only a module.** `content/rehab.ts` is the authored source and
+`scripts/seed-rehab.mjs` reconciles it into `rehab_entries`. The app reads the
+table and falls back to the module if the read fails, because public reference
+content should not disappear when the database blinks. A wrong entry can
+therefore be corrected in seconds without a deploy, which matters more here than
+anywhere else in the product. No search index: the library is tens of rows, the
+page loads it and filters in the browser, and an index with no call site is the
+dead weight this repo has deleted before.
+
+Triage sits first on every entry page, and red flags sit ABOVE the recovery
+phases. A player who reads "here is what recovery looks like" first is a player
+who has already decided to manage it alone.
+
+Also here: the `fromEnvFile` helper in the seed strips a BOM. `.env.local` is
+written by a Windows editor and carries one, which lands on the first key only,
+so `startsWith` silently fails for that single variable and reports it missing
+while every other key in the same file resolves. `scripts/purge-orphaned-media.mjs`
+has the same bug and has not been fixed here.

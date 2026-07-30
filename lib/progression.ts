@@ -1,11 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-// Relative with the extension, not the "@/" alias: the streak arithmetic below
-// is unit-tested under `node --test`, which resolves this file's imports itself
-// and knows nothing about the bundler's path mapping.
-import { DRILLS } from "../content/drills.ts";
-import type { Drill } from "@/content/drills-types";
-import type { Level } from "@/lib/skills";
 
+// These amounts are DISPLAY ONLY. The authority is `public.award_xp` (migration
+// 036), which derives the amount from the reason server-side; a number here can
+// promise a reward the database will not pay, never grant one. Keep the two in
+// step: lib/progression.test.ts pins them together.
 export const XP_AWARDS = {
   analysis: 50,
   challenge: 75,
@@ -104,50 +102,32 @@ export async function getProgress(
   };
 }
 
+/**
+ * Award XP for work already done. Returns the amount awarded, or 0.
+ *
+ * The AMOUNT is not passed. `public.award_xp` (migration 036) decides it from
+ * the reason and then verifies the work behind that reason exists and belongs
+ * to the caller, because a client that can name a price is a client that can
+ * mint XP (D-071). It is also idempotent per reason, so a retry returns 0
+ * rather than paying twice, and `userId` is no longer an argument because the
+ * function reads `auth.uid()` instead of trusting one.
+ */
 export async function awardXp(
   supabase: SupabaseClient,
-  userId: string,
-  amount: number,
   reason: string,
-): Promise<boolean> {
-  const { data: existing } = await supabase
-    .from("xp_events")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("reason", reason)
-    .maybeSingle();
-  if (existing) return false;
-
-  const { error } = await supabase
-    .from("xp_events")
-    .insert({ user_id: userId, amount, reason });
-  return !error;
+): Promise<number> {
+  const { data, error } = await supabase.rpc("award_xp", { p_reason: reason });
+  if (error) {
+    // Never fail the action that earned it: the goal is still completed and the
+    // analysis is still saved. A missing award is an operator problem.
+    console.error("[xp] award failed", { reason, message: error.message });
+    return 0;
+  }
+  return typeof data === "number" ? data : 0;
 }
 
 export const challengeReason = (dateKey: string) => `challenge:${dateKey}`;
 
-const CHALLENGE_POOL: Record<Level, Level[]> = {
-  beginner: ["beginner"],
-  intermediate: ["beginner", "intermediate"],
-  expert: ["intermediate", "expert"],
-  pro: ["expert", "pro"],
-};
-
-function fnv1a(input: string) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-export function dailyChallenge(
-  userId: string,
-  level: Level,
-  dateKey: string,
-): Drill {
-  const allowed = CHALLENGE_POOL[level] ?? CHALLENGE_POOL.beginner;
-  const pool = DRILLS.filter((d) => allowed.includes(d.level));
-  return pool[fnv1a(`${userId}:${dateKey}`) % pool.length];
-}
+// What today's work actually IS now lives in lib/daily-assignment.ts, which
+// picks against the player's own weakest checkpoint instead of hashing the
+// whole catalog. This file is XP and streak arithmetic only.

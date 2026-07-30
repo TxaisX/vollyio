@@ -498,6 +498,21 @@ body {
     border-color: var(--color-gold);
   }
 
+  /* A radio rendered as a chip. The input stays a real radio for keyboard and
+     assistive tech and is only visually hidden; the chip next to it carries
+     the state. Written here rather than as `peer-checked:chip-active` because
+     .chip-active is a component class, not a registered utility, so a variant
+     would silently generate nothing. */
+  input.sr-only:checked + .chip {
+    color: var(--color-navy);
+    background: var(--color-gold);
+    border-color: var(--color-gold);
+  }
+  input.sr-only:focus-visible + .chip {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
   .input-field {
     width: 100%;
     border-radius: var(--radius-control);

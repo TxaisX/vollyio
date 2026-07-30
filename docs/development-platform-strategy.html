@@ -1,0 +1,1104 @@
+<title>vollyio — From Analysis Tool to Development Platform</title>
+<style>
+  :root {
+    color-scheme: light dark;
+
+    /* Ivory ground, navy ink, gold accent. Neutrals carry a warm bias
+       toward the gold so nothing reads as inherited grey. */
+    --ground:      #f6f2e8;
+    --ground-2:    #efe9db;
+    --raised:      #fffdf7;
+    --ink:         #0f212c;
+    --ink-dim:     #4e6270;
+    --ink-faint:   #7d8d97;
+    --gold:        #9a6f0d;
+    --gold-soft:   rgb(154 111 13 / 0.10);
+    --teal:        #14675a;
+    --teal-soft:   rgb(20 103 90 / 0.10);
+    --coral:       #a8341f;
+    --coral-soft:  rgb(168 52 31 / 0.09);
+    --line:        rgb(15 33 44 / 0.14);
+    --line-soft:   rgb(15 33 44 / 0.07);
+    --glow:        rgb(154 111 13 / 0.07);
+
+    --display: "Iowan Old Style", "Source Serif 4", Charter, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:     #0f212c;
+      --ground-2:   #16303f;
+      --raised:     #16303f;
+      --ink:        #f2efe6;
+      --ink-dim:    #b9c4c9;
+      --ink-faint:  #8a9aa3;
+      --gold:       #e8b93b;
+      --gold-soft:  rgb(232 185 59 / 0.12);
+      --teal:       #6fbfae;
+      --teal-soft:  rgb(111 191 174 / 0.12);
+      --coral:      #e2604f;
+      --coral-soft: rgb(226 96 79 / 0.13);
+      --line:       rgb(242 239 230 / 0.14);
+      --line-soft:  rgb(242 239 230 / 0.07);
+      --glow:       rgb(232 185 59 / 0.06);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:     #0f212c;
+    --ground-2:   #16303f;
+    --raised:     #16303f;
+    --ink:        #f2efe6;
+    --ink-dim:    #b9c4c9;
+    --ink-faint:  #8a9aa3;
+    --gold:       #e8b93b;
+    --gold-soft:  rgb(232 185 59 / 0.12);
+    --teal:       #6fbfae;
+    --teal-soft:  rgb(111 191 174 / 0.12);
+    --coral:      #e2604f;
+    --coral-soft: rgb(226 96 79 / 0.13);
+    --line:       rgb(242 239 230 / 0.14);
+    --line-soft:  rgb(242 239 230 / 0.07);
+    --glow:       rgb(232 185 59 / 0.06);
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #f6f2e8;
+    --ground-2:    #efe9db;
+    --raised:      #fffdf7;
+    --ink:         #0f212c;
+    --ink-dim:     #4e6270;
+    --ink-faint:   #7d8d97;
+    --gold:        #9a6f0d;
+    --gold-soft:   rgb(154 111 13 / 0.10);
+    --teal:        #14675a;
+    --teal-soft:   rgb(20 103 90 / 0.10);
+    --coral:       #a8341f;
+    --coral-soft:  rgb(168 52 31 / 0.09);
+    --line:        rgb(15 33 44 / 0.14);
+    --line-soft:   rgb(15 33 44 / 0.07);
+    --glow:        rgb(154 111 13 / 0.07);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    background-image: radial-gradient(1200px 560px at 72% -10%, var(--glow), transparent 62%);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 26px 110px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+
+  @media (min-width: 1040px) {
+    .shell { grid-template-columns: 200px minmax(0, 1fr); }
+    .toc { display: block; }
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    grid-column: 1 / -1;
+    padding: 68px 0 34px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 44px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 18px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(32px, 5.4vw, 54px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+
+  h1 em { font-style: italic; color: var(--gold); }
+
+  .standfirst {
+    margin: 22px 0 0;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    max-width: 62ch;
+  }
+
+  .meta {
+    margin-top: 26px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  /* ---------- table of contents rail ---------- */
+
+  .toc { display: none; }
+
+  .toc nav {
+    position: sticky;
+    top: 34px;
+    padding-top: 4px;
+  }
+
+  .toc p {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+
+  .toc a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    font-size: 13.5px;
+    line-height: 1.35;
+    display: block;
+    border-left: 2px solid transparent;
+    padding-left: 12px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .toc a:hover, .toc a:focus-visible {
+    color: var(--gold);
+    border-left-color: var(--gold);
+  }
+
+  /* ---------- body copy ---------- */
+
+  main { min-width: 0; }
+
+  section { margin-bottom: 68px; scroll-margin-top: 28px; }
+
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(23px, 3vw, 30px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 10px;
+  }
+
+  .lede {
+    font-size: 17.5px;
+    color: var(--ink-dim);
+    margin: 0 0 26px;
+    max-width: 66ch;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    margin: 32px 0 8px;
+    color: var(--ink);
+  }
+
+  h4 {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 26px 0 8px;
+    font-weight: 500;
+  }
+
+  p { margin: 0 0 14px; max-width: 68ch; }
+
+  ul, ol.body-list { margin: 0 0 16px; padding-left: 20px; max-width: 66ch; }
+  li { margin-bottom: 7px; }
+
+  strong { font-weight: 650; }
+  em { font-style: italic; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--gold-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  a { color: var(--gold); }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* ---------- callouts ---------- */
+
+  .note {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+    background: var(--raised);
+    padding: 20px 24px;
+    margin: 26px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .note.risk { border-left-color: var(--coral); }
+  .note.good { border-left-color: var(--teal); }
+  .note > :last-child { margin-bottom: 0; }
+
+  .note .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .note.risk .tag { color: var(--coral); }
+  .note.good .tag { color: var(--teal); }
+
+  .pullquote {
+    font-family: var(--display);
+    font-size: clamp(20px, 2.6vw, 25px);
+    line-height: 1.36;
+    color: var(--ink);
+    margin: 34px 0;
+    padding: 0 0 0 26px;
+    border-left: 3px solid var(--gold);
+    max-width: 46ch;
+    text-wrap: balance;
+  }
+
+  /* ---------- data ---------- */
+
+  .scroller { overflow-x: auto; margin: 20px 0 24px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    min-width: 540px;
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+    font-weight: 500;
+    padding: 0 16px 10px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: bottom;
+  }
+
+  td {
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+    color: var(--ink-dim);
+  }
+
+  td:first-child { color: var(--ink); font-weight: 550; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+  td.num { font-family: var(--mono); font-size: 13.5px; color: var(--ink); }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 99px;
+    white-space: nowrap;
+    display: inline-block;
+    border: 1px solid;
+  }
+  .p-now  { color: var(--teal);  background: var(--teal-soft);  border-color: rgb(20 103 90 / 0.3); }
+  .p-next { color: var(--gold);  background: var(--gold-soft);  border-color: rgb(154 111 13 / 0.3); }
+  .p-late { color: var(--ink-faint); background: transparent; border-color: var(--line); }
+  .p-stop { color: var(--coral); background: var(--coral-soft); border-color: rgb(168 52 31 / 0.3); }
+
+  @media (prefers-color-scheme: dark) {
+    .p-now  { border-color: rgb(111 191 174 / 0.35); }
+    .p-next { border-color: rgb(232 185 59 / 0.35); }
+    .p-stop { border-color: rgb(226 96 79 / 0.35); }
+  }
+  :root[data-theme="dark"] .p-now  { border-color: rgb(111 191 174 / 0.35); }
+  :root[data-theme="dark"] .p-next { border-color: rgb(232 185 59 / 0.35); }
+  :root[data-theme="dark"] .p-stop { border-color: rgb(226 96 79 / 0.35); }
+
+  /* ---------- phase cards: the one genuinely sequential structure ---------- */
+
+  .phases { display: flex; flex-direction: column; gap: 18px; margin: 26px 0 8px; }
+
+  .phase {
+    border: 1px solid var(--line);
+    background: var(--raised);
+    border-radius: 10px;
+    padding: 22px 26px 24px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  @media (min-width: 720px) {
+    .phase { grid-template-columns: 128px minmax(0, 1fr); gap: 0 28px; }
+  }
+
+  .phase-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding-top: 3px;
+  }
+  .phase-num span { display: block; color: var(--ink-faint); margin-top: 5px; letter-spacing: 0.08em; }
+
+  .phase h3 { margin: 0 0 8px; font-size: 17px; font-family: var(--display); font-weight: 600; letter-spacing: -0.005em; }
+  .phase p { margin-bottom: 12px; }
+  .phase ul { margin-bottom: 0; }
+  .phase .gate {
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+    color: var(--ink-dim);
+  }
+  .phase .gate b { color: var(--ink); font-weight: 650; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    grid-column: 1 / -1;
+    margin-top: 24px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    max-width: 68ch;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <p class="eyebrow">Strategy · vollyio · 29 July 2026</p>
+    <h1>From a scorecard to a <em>practice habit</em></h1>
+    <p class="standfirst">
+      Turning vollyio from video-analysis software into a development platform is the right
+      call. The hard part is not the nine pillars. It is that the promise underneath all of
+      them — <em>here is what to work on next</em> — is the single least-validated output in
+      the current system, and the people being promised it are minors.
+    </p>
+    <div class="meta">
+      <span>19 analyses to date</span>
+      <span>0 external users</span>
+      <span>$0.206 per analysis, measured</span>
+      <span>Repo age: 23 days</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <nav aria-label="Contents">
+      <p>Contents</p>
+      <ol>
+        <li><a href="#thesis">The thesis</a></li>
+        <li><a href="#roadmap">Product roadmap</a></li>
+        <li><a href="#priorities">Feature priorities</a></li>
+        <li><a href="#ux">UX redesign</a></li>
+        <li><a href="#engagement">Engagement systems</a></li>
+        <li><a href="#retention">Retention</a></li>
+        <li><a href="#revenue">Revenue expansion</a></li>
+        <li><a href="#recruiting">Recruiting</a></li>
+        <li><a href="#moat">Differentiation</a></li>
+        <li><a href="#minors">The minors problem</a></li>
+      </ol>
+    </nav>
+  </div>
+
+  <main>
+
+    <!-- ============ THESIS ============ -->
+    <section id="thesis">
+      <p class="sec-label">Orientation</p>
+      <h2>The thesis, and the three things that fight it</h2>
+      <p class="lede">
+        The repositioning is correct. Nobody has ever wanted analytics; they want to be better
+        by August. But three measured facts in the repo constrain how fast this can be built,
+        and every recommendation below is shaped by them.
+      </p>
+
+      <h3>1. The new promise rests on the one number nobody has checked</h3>
+      <p>
+        "What should I work on next?" is, mechanically, the <code>weakest_metric</code> field —
+        the limiting fault the model names in each analysis. In the eval harness that field is
+        labelled on <strong>0 of 18</strong> active cases, so the check that would test it has
+        <em>never executed once</em>. Not failed. Never ran.
+      </p>
+      <p>
+        The rest of the baseline is not reassuring either: 2 of 18 cases pass overall, the score
+        lands inside its expected band 7 times in 18, and every case in the suite is professional
+        footage while the product sells to 13-to-18-year-olds. Zero cases at the target population.
+      </p>
+      <p class="pullquote">
+        Every pillar in the brief stacks a stronger claim on top of a score that has never been
+        validated against the people paying for it.
+      </p>
+      <p>
+        This does not mean stop. It means <strong>order the pillars by how much unvalidated model
+        judgment each one requires</strong>. Authored content (drills, learning, nutrition
+        education) carries almost none. A weekly plan carries some. "NCAA D2 Readiness: 72%"
+        carries all of it, which is why it is sequenced last and reshaped on arrival.
+      </p>
+
+      <h3>2. Nine pillars, zero users, and a February deadline</h3>
+      <p>
+        There is no external user. Not a low number — the <code>auth.users</code> table has one
+        row and it is yours. Nineteen analyses exist, all yours, none since 23 July. A
+        nine-pillar platform built before user number one is how six months of runway
+        disappears into a product nobody has yet asked for.
+      </p>
+      <p>
+        The roadmap below is therefore ordered by <em>what can be tested against ten to
+        twenty-five real players you can recruit in person</em>, not by what makes the feature
+        grid look complete.
+      </p>
+
+      <h3>3. The users are children</h3>
+      <p>
+        Thirteen to eighteen is the difference between a product decision and a liability
+        decision. Nutrition and strength pillars aimed at adolescents are not the same product
+        as the same pillars aimed at adults, and the difference is not a disclaimer. This gets
+        its own section at the end because it changes what those two pillars are allowed to be.
+      </p>
+
+      <div class="note good">
+        <span class="tag">Already true, and better than the brief assumes</span>
+        <p>
+          Much of the habit machinery exists: XP with a quadratic level curve, streaks pinned to
+          Pacific with correct daylight-saving arithmetic, a daily challenge, 30 drills, six
+          learning tracks, goals, a scoreboard, and a progression view that refuses to claim a
+          trend without four reps and two days of movement. The engine is built. What is missing
+          is that the daily challenge is a button that awards 75 XP for being pressed.
+        </p>
+      </div>
+
+      <div class="note risk">
+        <span class="tag">Correction to the brief</span>
+        <p>
+          Coach chat is listed as a current feature. It is dark in production — gated behind
+          <code>COACH_ENABLED</code>, which is off, with the route returning 404. Pillar 1 is the
+          centrepiece of the new positioning and its surface is currently disabled. That is a
+          build item, not an existing asset.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ ROADMAP ============ -->
+    <section id="roadmap">
+      <p class="sec-label">Deliverable 1</p>
+      <h2>Product roadmap</h2>
+      <p class="lede">
+        Four phases, each with an exit gate that must clear before the next begins. The gates
+        are the point. Without them this becomes nine half-built pillars.
+      </p>
+
+      <div class="phases">
+
+        <div class="phase">
+          <div class="phase-num">Phase 0<span>Weeks 1–2</span></div>
+          <div>
+            <h3>Make the daily loop real and honest</h3>
+            <p>
+              Zero new AI cost. Everything here runs off content and data already in the repo.
+            </p>
+            <ul>
+              <li><strong>Real daily challenge.</strong> Replace the honour-system button with a specific drill pulled from <code>content/drills.ts</code>, selected by the player's weakest skill rating, requiring a concrete input (reps completed, a self-rated outcome) before XP is awarded.</li>
+              <li><strong>Analyses end on one action.</strong> The scorecard becomes evidence; the product is the single next step and the drill attached to it. <em>No new generation required</em> — all 19 stored analyses already carry <code>priority_fix</code> and <code>drill_slugs</code>. This is a reordering of the page.</li>
+              <li><strong>Move XP awards server-side.</strong> <code>xp_events</code> is client-writable. That was vanity while XP was decorative; it stops being vanity the moment badges, milestones and the daily loop hang off it.</li>
+              <li><strong>Weekly plan v1.</strong> Generated once per week from stored <code>skill_ratings</code> plus the last analysis, written to the database. Never regenerated on page view.</li>
+              <li><strong>Recruit the cohort.</strong> Ten to twenty-five players from the Sacramento circle, onboarded in person, courtside, on their first upload.</li>
+            </ul>
+            <p class="gate"><b>Exit gate:</b> ten players onboarded and the daily loop is usable by someone who cannot get to a court today.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-num">Phase 1<span>Weeks 3–8</span></div>
+          <div>
+            <h3>Authored depth, and the first honest retention number</h3>
+            <p>
+              Every item is authored content with a rules-based selector. Marginal token cost is
+              approximately zero, and authored content is also the liability-safe form for the
+              nutrition and training pillars.
+            </p>
+            <ul>
+              <li><strong>Learning Hub by position.</strong> Setter tempo and decision-making, libero serve receive and defensive positioning, outside approach and shot selection, middle blocking and transition. Ordered as a path, not a browsable library.</li>
+              <li><strong>Training modules.</strong> Mobility, jump mechanics, injury prevention. Written as education with named sourcing, not as individualised prescription.</li>
+              <li><strong>Nutrition modules.</strong> Match day, tournament day, hydration, recovery. Same constraint, harder: see the final section.</li>
+              <li><strong>Parent digest.</strong> A fortnightly email showing what the athlete did and where they moved. Costs nothing, and the parent is the payer.</li>
+            </ul>
+            <p class="gate"><b>Exit gate:</b> roughly 40% of the cohort films a second session within two weeks of their first, unprompted. This is the charge trigger from the original validation plan, and it is the only number that matters in this phase.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-num">Phase 2<span>Months 3–4</span></div>
+          <div>
+            <h3>The parent's reason to pay, and a distribution experiment</h3>
+            <ul>
+              <li><strong>Recruiting readiness as a checklist</strong>, not a percentage. Reshaped in the recruiting section below.</li>
+              <li><strong>Highlight film assembly</strong> from clips already uploaded. The highest willingness-to-pay item in the whole product.</li>
+              <li><strong>Club pilot.</strong> A free coach dashboard for one club director. Not a team product — a channel that reaches forty athletes in one conversation.</li>
+              <li><strong>Eval repair.</strong> Capture and label intermediate and expert cases so the constraint-diagnosis check runs for the first time.</li>
+            </ul>
+            <p class="gate"><b>Exit gate:</b> the <code>weakest_metric</code> check executes against target-population footage and clears a stated bar. Nothing in Phase 3 ships before this.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-num">Phase 3<span>Months 5–6</span></div>
+          <div>
+            <h3>The claims that need the evidence to already exist</h3>
+            <ul>
+              <li>Position ratings and an overall rating, once per-skill scores are validated at the target level.</li>
+              <li>Milestones and improvement badges, awarded on measured movement rather than activity.</li>
+              <li>AI coach with real memory: seeded from stored ratings and plan history rather than by re-sending past analyses.</li>
+              <li>Recruiting readiness scoring, if and only if the underlying scores earned it in Phase 2.</li>
+            </ul>
+            <p class="gate"><b>Exit gate:</b> paying subscribers who renew a second month at a rate you would be willing to publish.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ PRIORITIES ============ -->
+    <section id="priorities">
+      <p class="sec-label">Deliverable 2</p>
+      <h2>Feature priorities</h2>
+      <p class="lede">
+        Ranked by retention impact divided by the sum of build cost, marginal token cost, and
+        claim risk. Claim risk is the term most feature lists omit and the one that decides
+        whether a feature can ship at all.
+      </p>
+
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Retention impact</th>
+              <th class="num">Tokens/use</th>
+              <th>Claim risk</th>
+              <th>Call</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Real daily challenge</td>
+              <td>Highest — it is the only surface a free user touches daily</td>
+              <td class="num">0</td>
+              <td>None</td>
+              <td><span class="pill p-now">Build now</span></td>
+            </tr>
+            <tr>
+              <td>One next action per analysis</td>
+              <td>High — converts a scorecard into a product</td>
+              <td class="num">0</td>
+              <td>Low, already generated</td>
+              <td><span class="pill p-now">Build now</span></td>
+            </tr>
+            <tr>
+              <td>Position selection</td>
+              <td>Structural — unblocks four other features</td>
+              <td class="num">0</td>
+              <td>None</td>
+              <td><span class="pill p-now">Already shipped</span></td>
+            </tr>
+            <tr>
+              <td>Server-side XP awards</td>
+              <td>Protects every progression claim built on top</td>
+              <td class="num">0</td>
+              <td>None</td>
+              <td><span class="pill p-now">Build now</span></td>
+            </tr>
+            <tr>
+              <td>Weekly development plan</td>
+              <td>High — the core of the new positioning</td>
+              <td class="num">~3k / week</td>
+              <td>Medium</td>
+              <td><span class="pill p-now">Build now</span></td>
+            </tr>
+            <tr>
+              <td>Learning Hub by position</td>
+              <td>Medium — depth, and a reason to browse</td>
+              <td class="num">0</td>
+              <td>None if authored</td>
+              <td><span class="pill p-next">Phase 1</span></td>
+            </tr>
+            <tr>
+              <td>Parent progress digest</td>
+              <td>High on <em>renewal</em>, not on athlete use</td>
+              <td class="num">0</td>
+              <td>Low</td>
+              <td><span class="pill p-next">Phase 1</span></td>
+            </tr>
+            <tr>
+              <td>Training and nutrition modules</td>
+              <td>Medium — expands perceived scope</td>
+              <td class="num">0</td>
+              <td><strong>High — minors</strong></td>
+              <td><span class="pill p-next">Phase 1, authored only</span></td>
+            </tr>
+            <tr>
+              <td>Highlight film assembly</td>
+              <td>Low on habit, highest on willingness-to-pay</td>
+              <td class="num">0</td>
+              <td>None</td>
+              <td><span class="pill p-next">Phase 2</span></td>
+            </tr>
+            <tr>
+              <td>Coach chat (currently dark)</td>
+              <td>Medium</td>
+              <td class="num">High, uncapped</td>
+              <td>Medium</td>
+              <td><span class="pill p-late">Phase 3, Pro-gated, turn-capped</span></td>
+            </tr>
+            <tr>
+              <td>Overall / position rating</td>
+              <td>Medium</td>
+              <td class="num">0</td>
+              <td><strong>High — unvalidated</strong></td>
+              <td><span class="pill p-late">Phase 3, after eval</span></td>
+            </tr>
+            <tr>
+              <td>Recruiting readiness percentage</td>
+              <td>High on parent perception</td>
+              <td class="num">0</td>
+              <td><strong>Severe</strong></td>
+              <td><span class="pill p-stop">Reshape — see below</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Token discipline, since you asked for it explicitly</h3>
+      <p>
+        The measured analysis is 21,253 input and 2,257 output tokens, 44 seconds, $0.206. That
+        is the expensive surface, and the platform expansion must not multiply it.
+      </p>
+      <ul>
+        <li><strong>Generate the weekly plan once per week and store it.</strong> A plan regenerated on page view is the single fastest way to turn a $0.21 product into a $3 one.</li>
+        <li><strong>Nutrition, training, learning and drills are authored files</strong>, selected by rules from stored ratings. Zero marginal tokens, and — not coincidentally — the only defensible form for advice to minors.</li>
+        <li><strong>Seed the coach from stored state</strong>, not from re-sent analyses. The ratings table already holds the summary.</li>
+        <li><strong>Cache TTL.</strong> Only 1 of 11 measured runs ever read from cache; the 7k-token system prompt is written at a 1.25x premium and expires unread on a five-minute window. Irrelevant at current volume, worth switching to the one-hour TTL the moment usage clusters.</li>
+      </ul>
+    </section>
+
+    <!-- ============ UX ============ -->
+    <section id="ux">
+      <p class="sec-label">Deliverable 3</p>
+      <h2>UX redesign</h2>
+      <p class="lede">
+        One structural move carries most of the repositioning: the app must stop opening on a
+        camera.
+      </p>
+
+      <p>
+        Duolingo does not open on a microphone. It opens on your path, with today's thing already
+        chosen. vollyio currently opens on the most expensive, highest-friction action in the
+        product — one that needs a court, a tripod, a partner, and good light. That is the
+        analytics-tool posture expressed as navigation.
+      </p>
+
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr><th>Surface</th><th>Today</th><th>After</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Home</td>
+              <td>Dashboard of scores and recent analyses</td>
+              <td><strong>Today.</strong> Streak, the one assigned action, this week's plan progress. Scores move below the fold.</td>
+            </tr>
+            <tr>
+              <td>Analyze</td>
+              <td>Primary navigation, the implied main action</td>
+              <td>A contextual call to action: "Film this week's focus." Still one tap, no longer the front door.</td>
+            </tr>
+            <tr>
+              <td>Analysis result</td>
+              <td>Scorecard with metrics and timestamps</td>
+              <td>Headline is the limiting fault and the drill that fixes it. Metrics become the supporting evidence, collapsed by default.</td>
+            </tr>
+            <tr>
+              <td>Progress</td>
+              <td>Charts for the athlete</td>
+              <td>The parent-shareable artefact. Same honesty rules, plus an export.</td>
+            </tr>
+            <tr>
+              <td>Drills</td>
+              <td>A library of 30</td>
+              <td>A path per position, with the next one already surfaced.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="tag">Keep this</span>
+        <p>
+          The progression view's refusal to claim a trend without four reps, two days, and three
+          points of movement is the most trustworthy thing in the product. As pillars are added,
+          apply that same standard to every new claim. A platform that tells a teenager the truth
+          about a plateau is worth more than one that manufactures a rising line, and it is the
+          only defensible answer when a parent asks whether the number means anything.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ ENGAGEMENT ============ -->
+    <section id="engagement">
+      <p class="sec-label">Deliverable 4</p>
+      <h2>Athlete engagement systems</h2>
+      <p class="lede">
+        The engine exists. It needs content behind the button and a reason to open the app on a
+        day with no volleyball in it.
+      </p>
+
+      <h4>Fix first</h4>
+      <p>
+        <code>completeChallenge()</code> awards 75 XP for a click. No content, no answer, no
+        evidence. Meanwhile <code>xp_events</code> is client-writable and row-scoped, so the level
+        number is unearned twice over. This sits badly beside a progression chart engineered to
+        refuse unsupported claims — the same product currently holds two opposite standards of
+        proof, and the generous one is attached to the number athletes actually show people.
+      </p>
+
+      <h4>What the daily loop should be</h4>
+      <ol class="body-list">
+        <li><strong>A specific assignment</strong>, chosen by rule from the drill library against the player's weakest rated skill.</li>
+        <li><strong>A required input</strong> — reps done, a self-rating, a one-line note. Small, but it makes the XP mean something.</li>
+        <li><strong>Court-optional alternatives</strong> on days the athlete cannot train: a film-study question, a mobility routine, a learning module. Roughly half of a teenager's days have no gym in them, and a streak that only survives on court days is a streak designed to break.</li>
+        <li><strong>Weekly reconciliation:</strong> the plan says five things; Sunday shows which happened.</li>
+      </ol>
+
+      <h4>Progression that stays honest</h4>
+      <p>
+        Keep XP for activity, because activity is what a habit needs. Keep ratings for ability,
+        and never let one convert into the other. Badges should award <em>measured movement</em>
+        ("toss consistency improved across five reps") rather than participation ("filmed ten
+        clips"). An athlete who cannot tell which is which will stop trusting both.
+      </p>
+    </section>
+
+    <!-- ============ RETENTION ============ -->
+    <section id="retention">
+      <p class="sec-label">Deliverable 5</p>
+      <h2>Retention strategy</h2>
+      <p class="lede">
+        The free tier is capped at three analyses a month. That cap is not a retention risk,
+        because analyses were never the daily loop. The retention risk is that nothing else is
+        compelling enough to open.
+      </p>
+
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr><th>Lever</th><th>Mechanism</th><th>Cost per use</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Daily assignment</td><td>The streak survives on court-free days</td><td class="num">$0</td></tr>
+            <tr><td>Notifications</td><td>Currently none exist. This is most of Duolingo's actual retention engine and the cheapest item on the list.</td><td class="num">$0</td></tr>
+            <tr><td>Parent digest</td><td>The payer sees value between renewals</td><td class="num">$0</td></tr>
+            <tr><td>Weekly plan</td><td>A standing reason to return on a fixed day</td><td class="num">~$0.02</td></tr>
+            <tr><td>Season arcs</td><td>Club season, high school season, off-season each get a different plan shape</td><td class="num">$0</td></tr>
+            <tr><td>Cohort or team leaderboard</td><td>Social pressure, once more than one player exists</td><td class="num">$0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The measurement to build before any of them: <strong>unprompted return within fourteen
+        days</strong>, answerable with a single query against the <code>analyses</code> and
+        <code>xp_events</code> tables. That number, not signups and not praise, decides whether
+        this platform is working.
+      </p>
+    </section>
+
+    <!-- ============ REVENUE ============ -->
+    <section id="revenue">
+      <p class="sec-label">Deliverable 6</p>
+      <h2>Revenue expansion</h2>
+
+      <h3>On the proposed price change</h3>
+      <p>
+        The brief proposes $9.99 for 20 analyses. Live today is $14.99 for 18. That change cuts
+        gross margin per subscriber roughly in half while raising the ceiling on cost.
+      </p>
+
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th class="num">Price</th>
+              <th class="num">Cap</th>
+              <th class="num">COGS at cap</th>
+              <th class="num">Stripe</th>
+              <th class="num">Net margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Live today</td>
+              <td class="num">$14.99</td>
+              <td class="num">18</td>
+              <td class="num">$3.71</td>
+              <td class="num">$0.73</td>
+              <td class="num">$10.55 · 70%</td>
+            </tr>
+            <tr>
+              <td>Proposed</td>
+              <td class="num">$9.99</td>
+              <td class="num">20</td>
+              <td class="num">$4.12</td>
+              <td class="num">$0.59</td>
+              <td class="num">$5.28 · 53%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Recommendation: hold $14.99.</strong> You have no customers, which means no price
+        resistance data — cutting price now optimises a variable you have never observed. A parent
+        weighing this against a private lesson at $60 to $100 an hour is not deciding on five
+        dollars. And realistic usage will be two to five analyses a month, not twenty, so the
+        higher cap mostly buys the appearance of generosity while raising your worst-case exposure
+        in exactly the month something goes right.
+      </p>
+      <p>
+        Add the annual plan, but at <strong>$149/year</strong> rather than $89.99. The annual's job
+        here is cash today against a February deadline, and $89.99 sets a $7.50 monthly anchor that
+        will be very hard to climb back from. If an entry price is needed, add a cheaper tier
+        rather than discounting the flagship.
+      </p>
+
+      <h3>Expansion, in order of expected value</h3>
+      <ol class="body-list">
+        <li><strong>Annual plan.</strong> Cash now, and annual subscribers churn far less by construction.</li>
+        <li><strong>Recruiting film and profile.</strong> One-time $49–99, or a Pro tier above. This is the item parents are most willing to pay for, and it requires no new model claims.</li>
+        <li><strong>Club tier.</strong> Priced per athlete per season. The revenue matters less than the distribution: one director conversation reaches forty athletes.</li>
+        <li><strong>Camp and clinic partnerships.</strong> A clinic hands out codes; vollyio becomes the homework after the weekend. This is how a product with no ad budget gets its first hundred users.</li>
+      </ol>
+    </section>
+
+    <!-- ============ RECRUITING ============ -->
+    <section id="recruiting">
+      <p class="sec-label">Deliverable 7</p>
+      <h2>Recruiting readiness, reshaped</h2>
+      <p class="lede">
+        This is the strongest wedge with parents and the most dangerous thing in the brief. Both
+        for the same reason: it is a numeric claim about a child's future.
+      </p>
+
+      <div class="note risk">
+        <span class="tag">Do not ship as specified</span>
+        <p>
+          "NCAA D2 Outside Hitter — Readiness 72%" is a prediction about a teenager's college
+          prospects, derived from a skill score that has never been validated against a single
+          intermediate or expert athlete. If a sixteen-year-old shows that number to a parent and
+          it is wrong in either direction — false hope or a child talked out of a sport — that is
+          the screenshot that defines the product. There is no version of the eval suite that
+          makes this defensible in the next six months.
+        </p>
+      </div>
+
+      <h3>Ship this instead</h3>
+      <p>
+        A readiness <em>checklist</em> built from observable, verifiable facts. It is more useful
+        than a percentage, it is actionable this week, and every line is defensible.
+      </p>
+      <ul>
+        <li><strong>Verified measurables.</strong> Approach touch, block touch, standing reach — measured from film. This is the one thing the vision model can establish with genuine confidence, unlike "shot selection."</li>
+        <li><strong>Film completeness.</strong> Does the athlete have three to five minutes of clean, tagged, current footage? Most do not, and this is the item vollyio uniquely fixes.</li>
+        <li><strong>Academic eligibility.</strong> NCAA Eligibility Center registration, GPA, core-course tracking. Nothing to do with volleyball, and a top-three reason recruits fall out.</li>
+        <li><strong>Exposure.</strong> Which qualifiers and camps are on the calendar.</li>
+        <li><strong>Contact activity.</strong> Coaches emailed, replies received, follow-ups due.</li>
+      </ul>
+      <p>
+        Show completion against that list. Say plainly that it measures preparation, not the
+        likelihood of an offer. A parent can act on every line of it on a Tuesday evening, which
+        is more than a percentage has ever given anyone.
+      </p>
+    </section>
+
+    <!-- ============ MOAT ============ -->
+    <section id="moat">
+      <p class="sec-label">Deliverable 8</p>
+      <h2>Competitive differentiation</h2>
+
+      <p>
+        Hudl and its volleyball properties own team film: what happened in the match, for the
+        coaching staff. That is a different job. Nobody in that stack answers "what should this
+        one player do on Tuesday." The gap is real.
+      </p>
+      <p>
+        The competitive threat is not Hudl. It is that the athlete already has a club coach and
+        does not perceive a gap at all. The differentiation has to be against <em>the status
+        quo of having a coach</em>, and there the honest pitch is narrow and strong: a club coach
+        sees twelve players twice a week and cannot review your toss frame by frame or remember
+        what you were working on in March. vollyio does both. It is not a replacement, and
+        positioning it as one will lose to the coach every time.
+      </p>
+
+      <div class="note">
+        <span class="tag">The unresolved strategic question</span>
+        <p>
+          Your own advisory review found a competitor that reached 125,000 athletes through 12,000
+          <em>teams</em> and exited to Hudl, while a near-identical direct-to-athlete product
+          reached roughly one to three thousand installs in five months. That is the strongest
+          available evidence that the buying unit is the team, and it sits against the 29 July
+          decision to target individual players.
+        </p>
+        <p>
+          The reconciliation worth testing in Phase 2: <strong>the athlete is the user, the club is
+          the channel.</strong> Sell to the individual, acquire through the director. That keeps
+          the product you want to build while borrowing the distribution that actually worked.
+        </p>
+      </div>
+
+      <h3>What is genuinely defensible</h3>
+      <ol class="body-list">
+        <li><strong>Longitudinal memory.</strong> "The coach that knows your history" is real only if the history is stored, structured, and referenced. Two seasons of a player's rated reps is a moat a new entrant cannot copy on day one.</li>
+        <li><strong>Volleyball-specific rubrics.</strong> Six skills, per-discipline anchors, weighted checkpoints. Generic sports-AI cannot express this and generic AI wrappers will not build it.</li>
+        <li><strong>Calibrated honesty.</strong> Everyone else's demo shows a number going up. A product that says "this is flat, and here is why" is differentiated in a market full of flattery — and it is the only version a parent trusts twice.</li>
+      </ol>
+    </section>
+
+    <!-- ============ MINORS ============ -->
+    <section id="minors">
+      <p class="sec-label">Constraint</p>
+      <h2>The minors problem, and what it changes</h2>
+      <p class="lede">
+        Two of the seven pillars are aimed at children's bodies. That is not a reason to drop
+        them. It is a reason to build them as something other than personalised prescription.
+      </p>
+
+      <h3>Nutrition</h3>
+      <p>
+        Individualised calorie and macro targets delivered to a thirteen-to-eighteen-year-old
+        athlete by software intersect directly with disordered eating risk, which is elevated in
+        volleyball and elevated again in the recruiting-pressure population this product targets.
+        The safe and still-valuable form is <strong>education, not prescription</strong>: what to
+        eat before a tournament, how to hydrate across a three-match day, why recovery timing
+        matters. Named authorship, no individual targets, no supplements at any point, and a
+        visible route to a registered dietitian for anything individual.
+      </p>
+
+      <h3>Strength and plyometrics</h3>
+      <p>
+        Unsupervised jump-training prescriptions to a thirteen-year-old carry real injury exposure,
+        and skeletally immature athletes are not a scaled-down version of adults. The same
+        resolution applies: publish structured, progressive, <em>authored</em> routines with
+        explicit form standards and volume ceilings, framed as education, with a clear statement
+        that a coach or physio owns individual programming.
+      </p>
+
+      <h3>Consent and the payer</h3>
+      <p>
+        A guardian attestation checkbox exists on the upgrade path. That is a start and not a
+        shield. If minors are the stated primary user, the parent should be a first-class account
+        holder rather than an implied one — visible progress, control of the subscription, and a
+        real record of consent. This is also, conveniently, the same build that makes the parent
+        digest and the renewal case work.
+      </p>
+
+      <div class="note risk">
+        <span class="tag">Still open from earlier work</span>
+        <p>
+          The payment provider's public support address is a home address and the support number is
+          a personal mobile, on a product now explicitly marketed to children and their parents.
+          That should be resolved before any acquisition push, not after.
+        </p>
+      </div>
+    </section>
+
+    <section id="close">
+      <p class="sec-label">In one line</p>
+      <h2>What to do on Monday</h2>
+      <p>
+        Give the daily challenge real content, put position in onboarding, make every analysis end
+        on one action, and get ten real players using it. Everything else in this document is
+        downstream of whether those ten come back without being asked.
+      </p>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>
+      Prepared 29 July 2026 against commit <code>1854616</code>. Figures for cost, tokens and
+      duration are measured from the eleven analyses carrying telemetry, not estimated. Eval
+      figures are from <code>evals/BASELINE.md</code>, recorded 22 July at <code>4c3bebf</code>
+      and marked provisional. User and traffic counts are from the production database.
+    </p>
+  </footer>
+
+</div>

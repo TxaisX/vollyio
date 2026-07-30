@@ -29,6 +29,13 @@ const icon = (paths: React.ReactNode) => (
 );
 
 const ICONS = {
+  plan: icon(
+    <>
+      <rect x="3.5" y="5" width="17" height="15" rx="1.5" />
+      <path d="M3.5 9.5h17M8 3.5V6M16 3.5V6" />
+      <path d="M9 14.5l2 2 4-4" />
+    </>,
+  ),
   dashboard: icon(
     <path d="M3 11.5 12 4l9 7.5M5.5 9.5V19a1 1 0 0 0 1 1H10v-5.5h4V20h3.5a1 1 0 0 0 1-1V9.5" />,
   ),
@@ -91,6 +98,7 @@ const ICONS = {
 const SIDE_NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: ICONS.dashboard },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze },
+  { href: "/plan", label: "Plan", icon: ICONS.plan },
   { href: "/coach", label: "Coach", icon: ICONS.coach },
   { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Scoreboard", icon: ICONS.scoreboard },
@@ -104,6 +112,7 @@ const SIDE_NAV: NavItem[] = [
 const TAB_NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: ICONS.dashboard },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze },
+  { href: "/plan", label: "Plan", icon: ICONS.plan },
   { href: "/coach", label: "Coach", icon: ICONS.coach },
   { href: "/learn", label: "Learn", icon: ICONS.learn },
   { href: "/scoreboard", label: "Games", icon: ICONS.scoreboard },

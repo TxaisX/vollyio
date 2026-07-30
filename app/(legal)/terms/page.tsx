@@ -93,9 +93,11 @@ export default function TermsPage() {
 
       <Section title="Who can use Vollyio">
         <p>
-          You must be at least 13 years old to create an account. If you are
-          under 18, you may only use Vollyio with the permission of a parent or
-          guardian, who agrees to these terms on your behalf.
+          Vollyio is for anyone who plays volleyball. You must be at least 13
+          years old to create an account, and you confirm that you are when you
+          sign up. We do not knowingly accept accounts from anyone under 13, and
+          if we learn an account belongs to someone younger we will close it and
+          delete its footage.
         </p>
       </Section>
 

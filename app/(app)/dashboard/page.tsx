@@ -31,14 +31,9 @@ import {
   type Level,
   type Discipline,
 } from "@/lib/skills";
-import {
-  getProgress,
-  dailyChallenge,
-  todayKey,
-  XP_AWARDS,
-  type Progress,
-} from "@/lib/progression";
-import { completeChallenge } from "./actions";
+import { getProgress, todayKey, XP_AWARDS, type Progress } from "@/lib/progression";
+import { assignmentFor, type WeakPoint } from "@/lib/daily-assignment";
+import { DailyAssignmentCard } from "@/components/daily-assignment-card";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +50,7 @@ type AnalysisRow = {
   overall_score: number;
   created_at: string;
   fix: string | null;
+  metric: string | null;
 };
 type GoalRow = {
   id: string;
@@ -62,68 +58,6 @@ type GoalRow = {
   skill: Skill | null;
   target_rating: number | null;
 };
-
-type Challenge = ReturnType<typeof dailyChallenge>;
-
-// The focus, challenge and goals cards render twice: beside the score stage
-// below xl, in the right rail at xl. One implementation, two responsive slots.
-function ChallengeCard({
-  challenge,
-  challengeDone,
-}: {
-  challenge: Challenge;
-  challengeDone: boolean;
-}) {
-  return (
-    <div className="challenge-card card card-lift spot p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
-          Daily challenge
-        </h2>
-        <span className="font-mono text-[11px] text-chalk-dim">
-          +{XP_AWARDS.challenge} XP
-        </span>
-      </div>
-      <Link
-        href={`/drills/${challenge.slug}`}
-        transitionTypes={["nav-forward"]}
-        className="relative mt-2 block font-display text-lg font-bold leading-snug transition-colors hover:text-gold"
-      >
-        {challenge.name}
-        <LinkPending />
-      </Link>
-      <p className="mt-1 font-mono text-[11px] uppercase text-chalk-dim">
-        {SKILL_LABEL[challenge.skill]} · {challenge.duration_min} min
-      </p>
-      {challengeDone ? (
-        <p className="reward-earned mt-3 flex items-center gap-2 text-sm text-teal">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="reward-check h-4 w-4"
-            aria-hidden
-          >
-            <path d="M5 12.5l4.5 4.5L19 7.5" />
-          </svg>
-          Done for today
-        </p>
-      ) : (
-        <form action={completeChallenge} className="mt-3">
-          {/* Ghost, not primary: the page's one gold button starts a rep, and
-              two of them above the fold made filming and ticking a drill off
-              read as the same size of decision. */}
-          <button type="submit" className="btn-ghost w-full min-h-11 py-2.5 text-sm">
-            Mark complete
-          </button>
-        </form>
-      )}
-    </div>
-  );
-}
 
 function GoalsCard({
   goals,
@@ -300,7 +234,14 @@ export default async function Dashboard({
       // fix: the priority-fix title lifted straight from the stored result JSON
       // (D-044), so the skill card can show a one-line fix history without
       // pulling every full result blob.
-      .select("id, skill, overall_score, created_at, fix:result->priority_fix->>title")
+      //
+      // metric: the checkpoint that fix targets, which is what today's
+      // assignment is chosen against. Read from changes[0], NOT from
+      // priority_fix.target_metric -- that field is null on every stored row,
+      // so selecting it would silently target nothing forever.
+      .select(
+        "id, skill, overall_score, created_at, fix:result->priority_fix->>title, metric:result->changes->0->>target_metric",
+      )
       .eq("user_id", userId!)
       .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]])
       .order("created_at", { ascending: false })
@@ -349,11 +290,23 @@ export default async function Dashboard({
   ).length;
 
   const firstName = profile?.display_name?.split(" ")[0];
-  const challenge = dailyChallenge(
-    userId!,
-    (profile?.level ?? "beginner") as Level,
-    todayKey(),
-  );
+
+  // Today's work, chosen against the player's own state rather than hashed out
+  // of the whole catalog. Both variants are computed because they are pure
+  // functions of data already in hand: offering the court-free alternative
+  // costs nothing and saves a round trip when the player taps for it.
+  const weak: WeakPoint | null = newestFix
+    ? { skill: newestFix.skill, metricKey: newestFix.metric }
+    : null;
+  const assignmentArgs = {
+    userId: userId!,
+    dayKey: todayKey(),
+    level: (profile?.level ?? "beginner") as Level,
+    ratings,
+    weak,
+  };
+  const assignment = assignmentFor(assignmentArgs);
+  const courtFreeAssignment = assignmentFor({ ...assignmentArgs, courtFree: true });
 
   const seriesFor = (skill: Skill) =>
     analyses
@@ -479,35 +432,51 @@ export default async function Dashboard({
 
       <div className="mt-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-6">
         <div className="min-w-0">
-          <div className="grid gap-4 md:grid-cols-5 xl:block">
-            <Reveal delay={60} className="md:col-span-3">
-              <div className="score-stage card spot flex h-full flex-wrap items-center justify-center gap-6 p-6">
-                <ScoreRing score={overall} size={150} label="Overall" />
-                <div className="min-w-0">
-                  <Radar ratings={ratings} size={196} />
-                </div>
-              </div>
+          {/* Today leads, at every width. The rating is evidence of what has
+              happened; the assignment is the only thing on this page a player
+              can act on right now, and a development product that opens on a
+              score is still an analytics product wearing a different word. */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Reveal delay={60}>
+              <DailyAssignmentCard
+                assignment={assignment}
+                courtFree={courtFreeAssignment}
+                done={progress.challengeDone}
+                xpAward={XP_AWARDS.challenge}
+              />
             </Reveal>
+            {newestFix && (
+              <Reveal delay={120}>
+                <FocusNowCard analysis={newestFix} />
+              </Reveal>
+            )}
+          </div>
 
-            <div className="flex flex-col gap-4 md:col-span-2 xl:hidden">
-              {/* The priority fix from the last rep is the most actionable
-                  thing on the page, and it used to be visible only at xl,
-                  which is the width this product is least often used at. */}
-              {newestFix && (
-                <Reveal delay={120}>
-                  <FocusNowCard analysis={newestFix} />
-                </Reveal>
-              )}
-              <Reveal delay={180}>
-                <ChallengeCard
-                  challenge={challenge}
-                  challengeDone={progress.challengeDone}
-                />
-              </Reveal>
-              <Reveal delay={240}>
-                <GoalsCard goals={goals} ratings={ratings} />
-              </Reveal>
+          <Reveal delay={140}>
+            <p className="mt-3">
+              <Link
+                href="/plan"
+                className="relative font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim transition-colors hover:text-gold"
+              >
+                See this week&rsquo;s plan
+                <LinkPending />
+              </Link>
+            </p>
+          </Reveal>
+
+          <Reveal delay={160}>
+            <div className="score-stage card spot mt-4 flex flex-wrap items-center justify-center gap-6 p-6">
+              <ScoreRing score={overall} size={150} label="Overall" />
+              <div className="min-w-0">
+                <Radar ratings={ratings} size={196} />
+              </div>
             </div>
+          </Reveal>
+
+          <div className="mt-4 xl:hidden">
+            <Reveal delay={240}>
+              <GoalsCard goals={goals} ratings={ratings} />
+            </Reveal>
           </div>
 
           <Reveal delay={140}>
@@ -645,20 +614,10 @@ export default async function Dashboard({
           </Reveal>
         </div>
 
+        {/* The rail no longer repeats today's work: the assignment and the fix
+            lead the main column at every width now, so duplicating them here
+            would give the same card two live copies of one form. */}
         <aside className="hidden xl:flex xl:flex-col xl:gap-4">
-          {/* Same order as the stacked layout above: the fix to work on leads,
-              the standing state of play follows it. */}
-          {newestFix && (
-            <Reveal delay={120}>
-              <FocusNowCard analysis={newestFix} />
-            </Reveal>
-          )}
-          <Reveal delay={180}>
-            <ChallengeCard
-              challenge={challenge}
-              challengeDone={progress.challengeDone}
-            />
-          </Reveal>
           <Reveal delay={240}>
             <GoalsCard goals={goals} ratings={ratings} />
           </Reveal>
