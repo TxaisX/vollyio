@@ -95,15 +95,20 @@ Two things about that list do matter:
 - `set_subscription_plan` and `user_id_for_billing_customer` are **`service_role` only**. Execute is revoked from `public`, `anon`, and `authenticated`. If the advisor ever shows either of those as callable by `authenticated`, the billing boundary is open and that is an incident, not a warning. `docs/security.md` step `B3` is the live check.
 - **Leaked-password protection is still disabled** in the auth dashboard. The advisor flags it, it checks new passwords against a breach corpus, and it is one toggle from the owner. It matters more now than it did: the monthly reset replaced the lifetime-one free rule, so a farmed account is worth 3 analyses a month forever rather than one ever (`docs/billing.md` section 6). Managed bot protection and the hosting-firewall rules belong in the same pass.
 
-### Auth email configuration, and the signup bug it hid (D-075)
+### Auth email configuration (D-075)
 
-Signup shipped, was never exercised end to end, and was broken the whole time in
-a way that produces no error anywhere. `signUp()` did not pass `emailRedirectTo`,
-so the confirmation link's `redirect_to` fell back to the project's **Site URL**,
-which is the landing page. A new player clicked the link, Supabase verified the
-token, and dropped them on `/` with the code never exchanged for a session. Their
-account was confirmed and they appeared signed out, with nothing to tell them
-otherwise. Five people reached `/signup` and none finished; this is why.
+**Signup works. It was proven end to end on 2026-07-30** and the earlier claim in
+this section that it was broken was wrong; see D-075 for the correction and the
+reasoning error behind it.
+
+The confirmation email uses a **custom template** that builds the link as
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup`. That
+targets the callback route directly and is verified by `verifyOtp`, so it does
+not depend on `redirect_to` or on `emailRedirectTo`. **That template lives in the
+Supabase dashboard and is not version-controlled**, which is the actual fragility
+here: if it is ever reset to the default, delivery silently falls back to the
+`{{ .ConfirmationURL }}` path and `emailRedirectTo` becomes load-bearing. The
+code now passes it for exactly that reason.
 
 Three settings have to agree, and only one of them lives in the repo:
 
