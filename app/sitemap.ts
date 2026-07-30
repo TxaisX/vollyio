@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { SKILLS } from "@/lib/skills";
 import { DRILLS } from "@/content/drills";
+import { REHAB } from "@/content/rehab";
 
 // The technique and drill pages are the only surfaces on this site a stranger
 // can find by searching for their actual problem, and they were the only ones
@@ -31,6 +32,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const drill of DRILLS) {
     entries.push({
       url: `${SITE_URL}/drills/${drill.slug}`,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  // The injury library, generated from the same authored source the seed reads,
+  // so a new entry is discoverable the day it ships. These are the pages most
+  // likely to be found by someone searching their actual problem at 11pm:
+  // "jumper's knee" and "rolled ankle volleyball" are things people search in a
+  // way that "setting drills" is not.
+  for (const entry of REHAB) {
+    entries.push({
+      url: `${SITE_URL}/learn/rehab/${entry.slug}`,
       changeFrequency: "monthly",
       priority: 0.7,
     });

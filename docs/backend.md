@@ -117,9 +117,10 @@ server-side token.
 
 One lazily-cached SDK client (`lib/ai/client.ts`), server-only.
 
-- **Model + effort (D-004 / D-027).** `ANALYZE_MODEL` runs the vision read at
-  `ANALYZE_EFFORT = "low"` with adaptive thinking set explicitly (the top tier
-  runs with no reasoning if the parameter is absent). `COACH_MODEL` runs chat at
+- **Model + effort (D-004 / D-027 / D-070).** `ANALYZE_MODEL` runs the vision read
+  at `ANALYZE_EFFORT = "low"` with adaptive thinking set explicitly rather than
+  inherited: the tier's default flipped between Opus 4.8 (no reasoning when the
+  parameter is absent) and Opus 5 (reasoning on), so the call names it. `COACH_MODEL` runs chat at
   `COACH_EFFORT = "medium"`, a cap because the conversational tier defaults to high
   and fabricated detail above medium. Both are checked-in constants; the run is
   recorded in `analyses.model` (or `"mock"`).

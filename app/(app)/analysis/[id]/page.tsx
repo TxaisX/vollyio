@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
@@ -10,6 +11,8 @@ import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareLink } from "@/components/share-link";
 import { AnalysisFeedback } from "@/components/analysis-feedback";
+import { LinkPending } from "@/components/link-pending";
+import { drillBySlug } from "@/content/drills";
 import { XpToast } from "@/components/xp-toast";
 import { ClipViewer } from "@/components/clip-viewer";
 import { SKILL_LABEL, type Skill, type Discipline } from "@/lib/skills";
@@ -212,6 +215,10 @@ export default async function AnalysisDetail({
   const strengthCount = result.insights.filter((i) => i.type === "strength").length;
   const fixCount = changes.length > 0 ? changes.length : 1;
   const drillCount = result.drill_slugs.length;
+  // The model already ranked these, so the first one is the drill for the
+  // priority fix. Resolved against the catalog because a slug that no longer
+  // exists must not render an empty card.
+  const startHere = result.drill_slugs.map(drillBySlug).find(Boolean) ?? null;
   const valueChips = [
     { count: strengthCount, label: strengthCount === 1 ? "strength" : "strengths", href: "#timeline" },
     { count: fixCount, label: fixCount === 1 ? "fix" : "fixes", href: "#changes" },
@@ -227,13 +234,20 @@ export default async function AnalysisDetail({
 
       <Reveal>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-              {SKILL_LABEL[row.skill]} · {dateLabel}
+              {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
             </p>
-            <h1 className="mt-2 font-display text-page-title">
-              Breakdown
+            {/* The page leads with the fix, not the word "Breakdown". The
+                scorecard is the evidence; the one thing to change is the
+                product, and burying it under a heading that named the document
+                type was the analytics-tool posture written as a headline. */}
+            <h1 className="mt-2 max-w-[22ch] text-balance font-display text-page-title">
+              {result.priority_fix.title}
             </h1>
+            <p className="mt-2 max-w-prose text-body leading-relaxed text-chalk-dim">
+              {result.priority_fix.detail}
+            </p>
             {valueChips.length > 0 && (
               <p className="mt-3 flex flex-wrap gap-2">
                 {valueChips.map((c) => (
@@ -281,6 +295,38 @@ export default async function AnalysisDetail({
           </p>
         )}
       </Reveal>
+
+      {/* One action, above everything. The drill was already chosen by the
+          model and stored on the row (drill_slugs), so this costs nothing to
+          generate -- it was simply sitting three sections down the page. */}
+      {startHere && (
+        <Reveal delay={60}>
+          <div className="card card-lift mt-5 flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-gold">
+                Start here
+              </p>
+              <p className="mt-1 font-display text-lg font-bold">
+                {startHere.name}
+              </p>
+              <p className="mt-1 max-w-prose text-body leading-relaxed text-chalk-dim">
+                {startHere.summary}
+              </p>
+              <p className="mt-1.5 font-mono text-[11px] uppercase text-chalk-dim">
+                {startHere.duration_min} min · {startHere.equipment.join(", ")}
+              </p>
+            </div>
+            <Link
+              href={`/drills/${startHere.slug}`}
+              transitionTypes={["nav-forward"]}
+              className="btn-primary relative shrink-0 text-sm"
+            >
+              Open the drill
+              <LinkPending />
+            </Link>
+          </div>
+        </Reveal>
+      )}
 
       {lastTime && lastTimeCopy && (
         <Reveal delay={90}>
