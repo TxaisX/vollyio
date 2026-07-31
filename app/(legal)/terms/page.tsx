@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 const EFFECTIVE = "July 29, 2026";
 
-// The price as a bare amount, for the sentences where "$14.99/mo every month"
+// The price as a bare amount, for the sentences where "$9.99/mo every month"
 // would read wrong. Derived from the same constant the plan card and the limit
 // offer quote, rather than retyped here, because a stale number on this page is
 // a false statement about money in the document that governs the charge.

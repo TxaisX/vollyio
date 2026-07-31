@@ -2735,3 +2735,77 @@ subscribers at full use. The free tier is no longer the thing most likely to
 exhaust it, but the platform backstop still is, and its failure mode is a paying
 player getting a 503 caused by someone else. Raising it is a prerequisite for
 marketing, not for this change.
+
+## D-077 - Pro drops to $9.99, and the spend backstop comes off
+
+Two owner decisions, taken together on 2026-07-31, both overriding a
+recommendation recorded here so the reasoning is not lost.
+
+### Pro is $9.99, still 18 analyses
+
+Live price object is `price_1TzKG5JOFP4i3BqJC2z0xklp`, which now holds the
+`vollyio_pro_monthly` lookup key transferred off the $14.99 one. **Stripe prices
+are immutable, so a price change is always a new object plus a lookup-key
+transfer, never an edit.** The superseded `price_1TxzWVJOFP4i3BqJ9th7pH9v` is
+left ACTIVE on purpose: a live subscription is attached to it, and archiving a
+price does not migrate the subscriptions on it, it only stops new checkouts.
+
+**It is profitable, and the arithmetic is not close.** At the measured $0.234 an
+analysis and Stripe's 2.9% plus 30 cents, $9.99 nets $9.40, costs $4.21 at FULL
+use, and clears $5.19, a 52% gross margin. At the worst per-analysis cost ever
+recorded, $0.262, it is still 47%. Full utilization is the worst case rather than
+the norm; at half use it is 76%. There is no utilization level at which a Pro
+subscriber loses money.
+
+**Analyses stay at 18, deliberately.** Cutting them to buy margin back would make
+the product worse in two ways at once, and 18 at $9.99 is 55 cents a coached rep,
+which is the number worth saying out loud. The $9.99/20 shape from the original
+strategy brief is the one to avoid: it cuts price 33% and raises cost 11% in the
+same move, landing at 48%.
+
+**D-076 is the reason this works.** The binding constraint on a price was never
+the price, it was how many free accounts each subscriber has to carry. At the old
+3-a-month free tier a free account cost $0.69 a month, so $9.99 carried 7.5 of
+them and needed 11.8% conversion, which is not a real number for freemium. At
+$0.23 it carries 22.5 and needs **4.3%**, inside the 2 to 5% band. **Reverting
+the free tier without also reverting the price would put the funnel underwater**,
+and that dependency is the single most important thing in this entry.
+
+For contrast, $14.99 carried 44 accounts at 2.2%. The trade is real: this halves
+the margin per subscriber and doubles the conversion rate required. It buys a
+price point that does not need defending, on a product with no price-resistance
+data in either direction, and that was the owner's call to make.
+
+**A $89.99 annual is now coherent** at 25% off, where against $14.99 it was 50%
+off and incoherent. It nets $87.08 and clears $36.54 even at full annual
+utilization, a 41% margin, with twelve months of cash up front. Still not built.
+
+**One live-money consequence.** The existing subscription is pinned to the
+$14.99 price object and keeps billing $14.99 until somebody moves it. A price
+change in the dashboard does not reach existing subscribers, which is the same
+property that makes the old price safe to leave active. Migrating it is a
+proration event on a real card and was left to the owner.
+
+### The $25 monthly spend backstop is removed
+
+`ANALYZE_MONTHLY_BUDGET_USD` is now unset in Vercel Production. At $0.234 an
+analysis, 25 dollars was **107 analyses a month across every user combined**,
+which is six Pro subscribers at full use. The guard fails CLOSED, so the failure
+mode was a calm 503 for the entire product, triggered by ordinary paid usage, and
+reaching it would have looked exactly like an outage to the customer who caused
+it least.
+
+**The guard code stays in `lib/ai/budget.ts`.** Unset means disabled by design,
+`lib/ai/budget.test.ts` already pins that path, and restoring a ceiling is one
+environment variable with no code change. Deleting the mechanism to disable it
+would have thrown away D-054's answer to the incident that killed production on
+2026-07-20, when the provider's account-level cap was shared with local dev.
+
+**What is now genuinely unbounded**, and is the honest cost of this decision: a
+runaway loop, an abuse case, or an unexpectedly good week produces an unbounded
+provider bill with nothing in the product to stop it. The remaining walls are
+per-user, not platform-wide: the monthly allowance (1 free, 18 Pro) and the
+hourly abuse quota of 20. Those bound what any ONE account can spend; nothing
+bounds the sum. If a ceiling is ever restored, set it above
+`18 x 0.234 x expected_subscribers` with real headroom rather than at a round
+number, because the round number is what made 25 dangerous.

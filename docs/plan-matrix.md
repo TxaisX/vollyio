@@ -113,7 +113,7 @@ Nothing in this table exists. None of it may appear in copy.
 | Coach or multi-athlete tier | **Not built** | Roster view over several players. A new product, not a perk | Yes | Probably not, but it is a schema change |
 | Priority processing | **Not built** | There is no queue. Analysis is synchronous inside a 120 s route | n/a | n/a |
 | Better model or higher effort for Pro | **Not built and measured against** | D-027 benchmarked the ladder: the analysis model is correct at every effort level and the cost curve is flat to inverted, so higher effort buys wall clock and nothing else | Yes, and buys nothing | No |
-| Top-up packs and rollover | **Rejected**, see `docs/billing.md` sections 1 and 7 | Selling analyses by the pack anchors $14.99 against a marginal cost near 19 cents; rollover is a credit balance wearing a hat | n/a | n/a |
+| Top-up packs and rollover | **Rejected**, see `docs/billing.md` sections 1 and 7 | Selling analyses by the pack anchors $9.99 against a marginal cost of 23 cents; rollover is a credit balance wearing a hat | n/a | n/a |
 
 ## 4. What to build first
 
@@ -206,7 +206,7 @@ taking longer is a claim we know to be false.
 
 ## 6. What copy may say today
 
-May say: Pro is $14.99 a month for 18 analyses a month against 1 on Free, on a
+May say: Pro is $9.99 a month for 18 analyses a month against 1 on Free, on a
 UTC calendar month reset, cancellable any time with access to the end of the
 period already paid for. Free may be described as 3 analyses to start and 1 a
 month after that, provided both halves appear together: "3 free analyses" alone

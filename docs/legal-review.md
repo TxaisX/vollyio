@@ -32,7 +32,7 @@ any disclosure obligation requires naming them.
 |---|---|
 | Free is 3 completed analyses per UTC calendar month, no card | `MONTHLY_ALLOWANCE.free`, migration 026 |
 | Pro is 18 completed analyses per UTC calendar month | `MONTHLY_ALLOWANCE.pro`, migration 026 |
-| Pro costs $14.99 a month, in US dollars | `PRO_PRICE_LABEL`; the authority is the provider price object |
+| Pro costs $9.99 a month, in US dollars | `PRO_PRICE_LABEL`; the authority is the provider price object |
 | Nothing is added on top of that amount at checkout | `buildCheckoutBody` in `lib/stripe.ts` sets no `automatic_tax` |
 | The allowance window resets on the 1st, UTC, for everyone | `private.allowance_window`, migration 026 |
 | The charge falls on the subscription's own monthly date, not the 1st | Provider behaviour; the two clocks are now stated side by side |
