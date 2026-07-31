@@ -26,11 +26,11 @@ import {
 import { DRILLS } from "@/content/drills";
 
 // The bare amount, for sentences that already say "a month" and would otherwise
-// read "18 a month for $14.99/mo". Same derivation the terms page uses, so both
+// read "18 a month for $9.99/mo". Same derivation the terms page uses, so both
 // still quote the one constant rather than a retyped number.
 const PRO_PRICE = PRO_PRICE_LABEL.replace("/mo", "");
 
-// The bare numeric amount, for schema.org, which wants "14.99" and not "$14.99".
+// The bare numeric amount, for schema.org, which wants "9.99" and not "$9.99".
 const PRO_PRICE_AMOUNT = PRO_PRICE.replace(/[^0-9.]/g, "");
 
 const STEPS = [
@@ -152,7 +152,7 @@ export default function Landing() {
     description:
       "Upload a rep, get frame-by-frame form analysis for every volleyball skill.",
     // Both tiers, because a single price "0" told every search and answer
-    // engine the product was free while a $14.99 auto-renewing subscription
+    // engine the product was free while a paid auto-renewing subscription
     // was on sale. Structured data is the claim that reaches a parent before
     // any page does, so it is the one that has to be right first. Prices are
     // quoted from lib/plans, never retyped.

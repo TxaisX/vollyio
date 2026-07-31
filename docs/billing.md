@@ -39,7 +39,7 @@ never engage in a configuration where a player could not buy past it.
 | Tier | Price | Analyses | Where it is managed |
 |---|---|---|---|
 | Free | $0 | 3 at signup, once, then 1 completed analysis per calendar month | nothing to manage |
-| Pro | $14.99/mo | 18 completed analyses per calendar month | Settings, plan card |
+| Pro | $9.99/mo | 18 completed analyses per calendar month | Settings, plan card |
 
 - **Free is two numbers and has to be described as both** (D-076, migration
   040). The 3 are a one-time grant spent against LIFETIME rows in `analyses`,
@@ -65,13 +65,21 @@ $0.15 to $0.20 this section used to quote predates that switch and every margin
 figure resting on it was optimistic; `docs/post-cap-validation.md` carries the
 same stale range and is not owned by this change.
 
-At $0.234 and Stripe's 2.9% plus 30 cents, Pro at full use costs $4.14 against
-$14.26 net, roughly **68% gross margin**, not 77%. A free account costs about
-**$0.23** a month once its signup grant is spent, against $0.69 under the old
-3-a-month rule, which is the whole point of D-076: break-even conversion moves
-from 6.4% to 2.2%, and 2 to 5% is what freemium actually converts at. The
-one-time grant costs $0.69 per account, once, and buys the progression demo that
-converts. Section 6 is about the accounts that never do.
+At $0.234 and Stripe's 2.9% plus 30 cents, **Pro at $9.99 nets $9.40, costs
+$4.21 at full use, and clears $5.19: roughly 52% gross margin** (D-077). At the
+worst per-analysis cost ever observed, $0.262, it is still 47%. Full utilization
+is the worst case and not the norm; at half use it is 76%.
+
+A free account costs about **$0.23** a month once its signup grant is spent,
+against $0.69 under the old 3-a-month rule. That is what makes $9.99 work at all:
+one Pro subscriber carries **22.5 free accounts**, so break-even conversion is
+**4.3%**, inside the 2 to 5% band freemium actually converts at. Under the old
+free tier the same $9.99 carried 7.5 accounts and needed 11.8%, which is not a
+real number. **D-076 is the reason D-077 is survivable, and reverting the free
+tier without also reverting the price would put the funnel underwater.**
+
+The one-time grant costs $0.69 per account, once, and buys the progression demo
+that converts. Section 6 is about the accounts that never do.
 
 ## 2. Three separate walls. Do not merge them.
 
@@ -189,7 +197,13 @@ dormant products from a previous business, nothing for this app. Create:
 
 - **Product** `Vollyio Pro`, type service, metadata `plan=pro`,
   `monthly_analyses=18`.
-- **Price** $14.99 USD, recurring monthly, lookup key `vollyio_pro_monthly`.
+- **Price** $9.99 USD, recurring monthly, lookup key `vollyio_pro_monthly`.
+  Live object is `price_1TzKG5JOFP4i3BqJC2z0xklp` (D-077). The superseded $14.99
+  price `price_1TxzWVJOFP4i3BqJ9th7pH9v` is deliberately left ACTIVE: a live
+  subscription is attached to it, and archiving a price does not migrate the
+  subscriptions on it, it only stops new checkouts. **Prices are immutable in
+  Stripe, so a price change is always a NEW object plus a lookup-key transfer,
+  never an edit.**
 - Optional and recommended later, not v1: $99/yr, lookup key
   `vollyio_pro_annual`, which is where a 30-day trial belongs if one ships.
 - **Customer portal**: allow cancellation at period end, allow payment method

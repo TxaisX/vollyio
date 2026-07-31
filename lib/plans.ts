@@ -42,7 +42,13 @@ export const PLAN_LABEL: Record<Plan, string> = {
 
 // What the player is charged, for display only. The authority on price is the
 // payment provider; this string never decides anything.
-export const PRO_PRICE_LABEL = "$14.99/mo";
+//
+// $9.99 since D-077 (was $14.99). Provider price object
+// `price_1TzKG5JOFP4i3BqJC2z0xklp`, which now carries the `vollyio_pro_monthly`
+// lookup key transferred off the old one. The old $14.99 price stays ACTIVE
+// because a live subscription is still attached to it: archiving a price does
+// not move the subscriptions on it, it only stops new checkouts.
+export const PRO_PRICE_LABEL = "$9.99/mo";
 
 /**
  * What a plan gives, as one sentence, built from the constants above rather
