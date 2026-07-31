@@ -2809,3 +2809,99 @@ hourly abuse quota of 20. Those bound what any ONE account can spend; nothing
 bounds the sum. If a ceiling is ever restored, set it above
 `18 x 0.234 x expected_subscribers` with real headroom rather than at a round
 number, because the round number is what made 25 dangerous.
+
+## D-078 - Repo hygiene: what was removed, what was kept, and why the difference
+
+A cleanup pass on 2026-07-31. The rule applied throughout: **delete only what is
+provably redundant, archive what is merely stale, and keep anything holding work
+that exists nowhere else.** The three are different problems and deleting is the
+right answer to only one of them.
+
+### The near-miss that set the rule
+
+`eval-harness-calibration` had four commits from 2026-07-16 that had **never been
+pushed to any remote**: `evals/labels.json` (351 lines of labelled eval data),
+`lib/ai/anchors.ts`, `evals/TECHNIQUE-REFERENCE.md`, and three Python ingest
+scripts. Roughly a thousand lines existing on exactly one disk, in the middle of
+a branch list that looked entirely like dead scratch. It was pushed to origin
+before anything else in this pass was touched.
+
+It is deliberately NOT merged. It carries a `D-023` entry against a log already
+at D-077, and its `lib/ai/output-spec.ts` changes predate five rewrites of that
+file (D-037, D-038, D-039, D-053, and the feedback change). Merging it would drag
+back scoring behaviour that was replaced on purpose. The data and the ingest
+tooling may still be worth harvesting; the scoring changes are not.
+
+### Branches
+
+Every branch was checked with `git rev-list --count master..<branch>` BEFORE any
+deletion, not after. Sixteen fully-merged local branches were removed with
+`git branch -d`, which refuses an unmerged branch and so cannot silently destroy
+work even if the count were wrong.
+
+Five branches carry commits that are not in master and are all KEPT:
+
+- **`claude/last-update-timing-ohn65b`** is the one that matters. It adds 57
+  lines of security headers to `next.config.ts`, plus an origin check on account
+  deletion and a fence on coach-prompt data. **Master has no security headers at
+  all**, verified during this pass. That is a real gap wearing the costume of an
+  abandoned agent branch, and deleting the branch list on appearance would have
+  thrown it away.
+- **`eval-harness-calibration`** - see above.
+- **`vercel/install-vercel-speed-insights-iynziq`** - Speed Insights is genuinely
+  not installed. The branch is two weeks stale and its lockfile diff drops 84
+  lines, so if this is ever wanted, run `npm i @vercel/speed-insights` fresh
+  rather than merging it.
+- **`claude/project-bottlenecks-jyeuue`** - largely superseded. Its migration
+  fold (`004_xp_events_index.sql` into `004_discipline.sql`) is actively unsafe
+  now that 040 is applied, since renaming an applied migration desynchronises the
+  repo from what actually ran.
+- **`claude/sideout-end-to-end-fo3hm6`** - a 115-line directive document, history
+  rather than code.
+
+Nine remote branches are redundant and are queued for deletion but were NOT
+removed: eight have zero commits outside master, and
+`vercel/install-vercel-web-analytics-jssp7o` is superseded because
+`@vercel/analytics` is already in `package.json` and wired into `app/layout.tsx`.
+Deleting remote refs needs an approval this session did not have, so the list is
+recorded here rather than half-applied.
+
+### Files
+
+Two documents sat loose at the repo root and were moved into `archive/` with
+`git mv`, following the convention `archive/README.md` already sets: retired text
+stays tracked, so history is preserved and it stays greppable.
+
+- `vollyio-breakdown.md` -> `archive/docs-history/`. Accurate on 2026-07-21,
+  wrong now in ways that matter: 40 frames at 6fps against the current 64,
+  "billing is deliberately inert" against a live charged subscription, a decision
+  log stopping at D-041.
+- `vollyio-improvement-prompt.md` -> `archive/orchestration/`. It instructs its
+  reader that "D-027 through D-041 is the ONLY accurate description of the
+  current system", which was true when written and is 36 decisions out of date,
+  so running it as written would brief an agent on a system that no longer
+  exists.
+
+`archive/` itself was left intact. It is 4,880 lines of deliberate history with
+its own README explaining every subfolder, not clutter, and the material it holds
+is the background to D-033 among others.
+
+### HANDOFF.md
+
+Root `HANDOFF.md` last described the system at D-064 and asserted billing was
+"BUILT and INERT" with free at 3 a month and Pro at $14.99. All three statements
+were false by 2026-07-31. Corrected **inline**, marked as corrections, with the
+original text kept immediately below each one, rather than by rewriting the
+surrounding prose. A handoff that quietly re-describes itself as always having
+been right teaches nothing; one that shows its own drift teaches how fast a
+session log goes stale. The header now says outright that `docs/decisions.md`
+wins wherever the two disagree.
+
+### The general point
+
+A branch list, like a metric, is read by shape rather than by content, and both
+lie the same way. Nine of these branches genuinely were dead scratch, which made
+the tenth look like dead scratch too. The only thing separating a throwaway
+research branch from the repo's only copy of the security headers was one
+`rev-list` per branch, which cost seconds. Check before deleting, always, and
+prefer `git branch -d` over `-D` so the tool enforces it when the check does not.

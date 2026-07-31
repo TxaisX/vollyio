@@ -1,9 +1,11 @@
 # Handoff - vollyio
 
-_Last updated 2026-07-27. Persistent in-repo project handoff; rewritten each
-session. Older session-log entries (pre-D-027) live in
-`archive/handoff-history.md`. The authoritative account of the current system is
-`docs/decisions.md` D-027 onward._
+_Body last rewritten 2026-07-27; billing facts corrected 2026-07-31 (D-078).
+Persistent in-repo project handoff. Older session-log entries (pre-D-027) live in
+`archive/handoff-history.md`. **The authoritative account of the current system
+is `docs/decisions.md`, now D-027 through D-077.** This file trails it: where the
+two disagree, the decision log wins. Corrections below are marked inline rather
+than by rewriting the surrounding prose, so the drift stays visible._
 
 ## Goal
 Vollyio - volleyball skill-analysis and coaching web app. Next.js 16 (App Router,
@@ -118,6 +120,13 @@ production. Live at https://vollyio.com.
   the analyze route behind `ANALYZE_MONTHLY_BUDGET_USD` (unset = disabled;
   tripped/unknown = the calm capacity 503, fail closed). 429/402 now render
   calm on the client instead of coral (`lib/analyze-status.ts`).
+- **CORRECTED 2026-07-31 (D-078): billing is BUILT and LIVE, and both numbers
+  below have changed.** A real card was charged on 2026-07-31 and the webhook
+  fired, so "inert" is false. Free is now **3 completed analyses at signup, once,
+  then 1 per calendar month** (D-076, migration 040; `signup_grant()` sits beside
+  `plan_monthly_allowance()`), and Pro is **$9.99/mo** for 18 (D-077). The
+  mechanics described in the rest of this bullet did not change. Original text:
+
 - **Billing is BUILT and INERT** (2026-07-27, D-064, `docs/billing.md`). A paid
   plan exists in code: free is 3 completed analyses per UTC calendar month, Pro is
   $14.99/mo for 18 (`lib/plans.ts` pinned against migration 026's SQL). The window
@@ -193,7 +202,8 @@ beneath the provider cap. The key split below is what remains of that item.
    already wants before a public push. It matters more now than it did: the
    monthly reset replaced the lifetime-one free rule, so a farmed account is
    worth 3 analyses a month forever rather than one ever (`docs/billing.md`
-   section 6). While in the advisor: the `SECURITY DEFINER` functions it reports
+   section 6). **D-076 narrowed this: a farmed account is now worth 3 once plus
+   1 a month, so the yield is a third of what this line assumed.** While in the advisor: the `SECURITY DEFINER` functions it reports
    as callable by `authenticated` are **expected and correct** for this project.
    Each derives `auth.uid()` itself and acts only on the caller, which is the
    mechanism that scopes a player to their own rows. The two that would be an
@@ -219,7 +229,8 @@ beneath the provider cap. The key split below is what remains of that item.
     endpoint. A passing typecheck is not a denied write.
 12. **Confirm the customer portal settings** in the provider dashboard: cancel at
     period end, payment method updates, plan switching disabled (there is only one
-    plan). The product, the $14.99 monthly price, and the webhook endpoint exist;
+    plan). The product, the monthly price (now $9.99, `price_1TzKG5JOFP4i3BqJC2z0xklp`,
+    D-077), and the webhook endpoint exist;
     the portal configuration cannot be read from the repo, and the portal route is
     a subscriber's only route to cancelling.
 13. **Managed bot protection and the hosting-firewall rules** before arming the

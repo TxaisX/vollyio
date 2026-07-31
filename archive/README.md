@@ -23,12 +23,22 @@ methodology that reproduces them lives in `scripts/benchmark/`.
   `ledger.md`, `reportcards.md`, `acceptance.md`, `quality-floor.md`, `qa.md`,
   `qa-learn-eval.md`, `animation-library-pool.md`, `pro-technique-study.html`, two
   report-card HTMLs, and the `superpowers/` plans. The on-device pose engine they
-  describe was removed in **D-033**.
+  describe was removed in **D-033**. Also `vollyio-breakdown.md`, a full repo
+  read written 2026-07-21 and moved here by **D-078**: it was accurate when
+  written and is now wrong in ways that matter (40 frames at 6fps against the
+  current 64, "billing is deliberately inert" against a live subscription, a
+  decision log stopping at D-041). Kept because a dated snapshot of how the
+  system was understood is worth more than a deleted one, and harmful only if
+  read as current.
 - **reports/** - Historical HTML report cards and next-steps notes
   (`agent-setup-report-card.html`, `pose-engine-investigation-report.html`,
   `sideout-next-steps.html`). The pose-engine investigation is background to **D-033**.
 - **orchestration/** - The old `sideout-perfection-orchestration-prompt.md`,
-  superseded by the road-to-100 playbook.
+  superseded by the road-to-100 playbook, and `vollyio-improvement-prompt.md`, a
+  one-off session prompt moved here by **D-078**. The latter pins its reader to
+  "D-027 through D-041 is the ONLY accurate description of the current system",
+  which was true when written and is now 36 decisions out of date, so running it
+  as written would brief an agent on a system that no longer exists.
 - **misc/** - One-off scratch (`.mcp.json.bak`, an old restart note).
 - **handoff-history.md** - Session-log entries from before D-027, moved out of
   `HANDOFF.md` when it was rewritten to the current system on 2026-07-20.
