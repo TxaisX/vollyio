@@ -2859,12 +2859,28 @@ Five branches carry commits that are not in master and are all KEPT:
 - **`claude/sideout-end-to-end-fo3hm6`** - a 115-line directive document, history
   rather than code.
 
-Nine remote branches are redundant and are queued for deletion but were NOT
-removed: eight have zero commits outside master, and
-`vercel/install-vercel-web-analytics-jssp7o` is superseded because
-`@vercel/analytics` is already in `package.json` and wired into `app/layout.tsx`.
-Deleting remote refs needs an approval this session did not have, so the list is
-recorded here rather than half-applied.
+Nine remote branches were redundant and are now **deleted**, owner-approved, with
+the counts re-run immediately before the push rather than trusted from earlier in
+the session: `claude/3d-animations-research-2oyxnw`, `claude/app-overview-6oh5c8`,
+`claude/front-page-ux-review-t568dt`, `claude/my-handoff-review-cohy3d`,
+`claude/volleyball-app-ui-redesign-wdn3wv`, `claude/vollyio-work-recap-uykzpr`,
+`feat/pinpoint-motion`, `polish/multiagent-burst`, and
+`vercel/install-vercel-web-analytics-jssp7o`.
+
+Eight had zero commits outside master. The ninth is named separately because it
+is the counter-example to this entry's own rule: it **did** carry a commit not in
+master, so a purely mechanical `rev-list` gate would have preserved it forever.
+Its content was redundant anyway, because `@vercel/analytics` is already in
+`package.json` and `<Analytics />` is already rendered in `app/layout.tsx`; the
+feature arrived by another route. All that was genuinely unique to the branch was
+a two-week-old `package-lock.json` diff dropping 84 lines, which merging would
+have regressed. **A commit count is a cheap first filter, not the verdict. Zero
+means safe to delete; non-zero means read the diff.**
+
+What remains on origin, all deliberately: `master`, `eval-harness-calibration`,
+`claude/last-update-timing-ohn65b` (the security headers),
+`claude/project-bottlenecks-jyeuue`, `claude/sideout-end-to-end-fo3hm6`, and
+`vercel/install-vercel-speed-insights-iynziq`.
 
 ### Files
 
