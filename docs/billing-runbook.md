@@ -12,7 +12,7 @@ Two things here are not reversible by unsetting a variable: a charge, and a
 subscription. Read section 6 before section 3 if you are switching on for the
 first time.
 
-**Budget:** about 30 minutes, plus one real charge of $14.99 on a card you own.
+**Budget:** about 30 minutes, plus one real charge of $9.99 on a card you own.
 
 ## Consoles you will need
 
@@ -159,18 +159,18 @@ file.
 ### 1.2 The product and price exist
 
 Dashboard: Products, `Vollyio Pro` (`prod_UxvNH2y52Rmz5o`). Confirm the price
-`price_1TxzWVJOFP4i3BqJ9th7pH9v` is active, $14.99 USD, recurring monthly,
+`price_1TzKG5JOFP4i3BqJC2z0xklp` is active, $9.99 USD, recurring monthly,
 lookup key `vollyio_pro_monthly`.
 
 Once you hold the secret key (section 2), the exact check is:
 
 ```sh
-curl -s https://api.stripe.com/v1/prices/price_1TxzWVJOFP4i3BqJ9th7pH9v \
+curl -s https://api.stripe.com/v1/prices/price_1TzKG5JOFP4i3BqJC2z0xklp \
   -u "$STRIPE_SECRET_KEY:"
 ```
 
 Expected in the JSON: `"active": true`, `"livemode": true`,
-`"currency": "usd"`, `"unit_amount": 1499`, `"recurring": {"interval": "month"`,
+`"currency": "usd"`, `"unit_amount": 999`, `"recurring": {"interval": "month"`,
 `"lookup_key": "vollyio_pro_monthly"`, `"product": "prod_UxvNH2y52Rmz5o"`.
 
 Then confirm `STRIPE_PRICE_ID` in Vercel Production is exactly that price id.
@@ -300,7 +300,7 @@ Expected: `Added Environment Variable SUPABASE_SERVICE_ROLE_KEY to Project volly
 **What breaks without it:** `createServiceClient()` returns null, so the webhook
 logs `[billing] service credentials unavailable; plan change not applied` and
 returns 500. The provider retries for about three days and then gives up. Meanwhile
-`profiles.plan` is never written: a player who has paid $14.99 sits on the free
+`profiles.plan` is never written: a player who has paid sits on the free
 allowance of 3, and because `stripe_customer_id` is also never recorded they
 cannot even open the management page to cancel. This is the worst state in the
 whole system and nothing in the app detects it.
@@ -519,7 +519,7 @@ when the flag is off, so there is no partial state to clean up.
 
 ## 4. Verification, end to end, with a real card
 
-Live mode, your own card, your own account. Roughly ten minutes plus one $14.99
+Live mode, your own card, your own account. Roughly ten minutes plus one $9.99
 charge you can refund afterwards.
 
 Get your user id once and reuse it:
@@ -608,7 +608,7 @@ explicitly.
 ### 4.5 The portal opens
 
 Press `Manage plan`. Expected: the provider's hosted management page, showing the
-$14.99 per month subscription with a cancel option.
+$9.99 per month subscription with a cancel option.
 
 - `409 There's nothing to manage yet. Upgrade to Pro first.` means
   `stripe_customer_id` is null, which means the webhook never landed. Go back to
@@ -685,7 +685,7 @@ same reason as 3.3.
 **What this does not undo:**
 
 - Money already taken. Refunds are a separate action at the provider.
-- Subscriptions already created. They keep charging $14.99 every month until they
+- Subscriptions already created. They keep charging whatever price they signed up on, every month, until they
   are cancelled at the provider, one at a time. The flag lives in your app; the
   recurring charge lives at the provider. **Rollback is not refund.**
 - `profiles.plan` rows already written. Anyone the webhook made `pro` stays `pro`,

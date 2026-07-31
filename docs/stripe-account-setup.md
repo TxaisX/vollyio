@@ -48,7 +48,7 @@ gain a better understanding of how Instagram works."* Replace with:
 
 > Vollyio scores a volleyball player's technique from a short clip filmed on
 > their phone, against a per-skill coaching checklist, and returns the single
-> highest-leverage correction. Subscription: $14.99 per month for 18 analyses.
+> highest-leverage correction. Subscription: $9.99 per month for 18 analyses.
 > Free tier: 3 analyses per month.
 
 The website field is not cosmetic. The provider compares the registered site
