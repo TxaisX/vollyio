@@ -5,8 +5,10 @@ import { stripeConfigured } from "@/lib/stripe";
 import { allowanceCopy, readAllowance, resetCopy } from "@/lib/allowance";
 import {
   MONTHLY_ALLOWANCE,
+  SIGNUP_GRANT,
   PLAN_LABEL,
   PRO_PRICE_LABEL,
+  allowanceSentence,
   type Plan,
 } from "@/lib/plans";
 import { PlanAction } from "@/components/plan-actions";
@@ -69,15 +71,28 @@ export async function PlanCard({ plan }: { plan: Plan }) {
           product running, not buying analyses they could not already have, and
           saying otherwise would be selling something that does not exist. */}
       {metered ? (
-        <p className="mt-1 text-xs text-chalk-dim">
-          {MONTHLY_ALLOWANCE[plan]} analyses a month.
+        <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
+          {allowanceSentence(plan)}.
+          {/* While the starter analyses are unspent, say so and say what
+              follows them. A player who is shown "3 left" and nothing else
+              learns the rate is 1 by being refused, which is the one place
+              this product must never spring a number on somebody. */}
+          {plan === "free" &&
+            allowance?.grantRemaining != null &&
+            allowance.grantRemaining > 0 && (
+              <>
+                {" "}
+                You have {allowance.grantRemaining} of your {SIGNUP_GRANT}{" "}
+                starter analyses left.
+              </>
+            )}
         </p>
       ) : sellable ? (
         <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
           Analyses are unlimited for everyone while we are early, so nothing is
           counting against you today. {PLAN_LABEL.pro} sets your allowance at{" "}
           {MONTHLY_ALLOWANCE.pro} a month for when limits do start, against{" "}
-          {MONTHLY_ALLOWANCE.free} on {PLAN_LABEL.free}.
+          {allowanceSentence("free")} on {PLAN_LABEL.free}.
         </p>
       ) : (
         <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
@@ -146,7 +161,8 @@ export async function PlanCard({ plan }: { plan: Plan }) {
             charge and keeps {PLAN_LABEL.pro} to the end of the period you
             already paid for; unused time is not refunded. After that the
             allowance drops to {MONTHLY_ALLOWANCE.free} a month, counting
-            anything you already ran, and resets on the 1st.
+            anything you already ran, and resets on the 1st. The{" "}
+            {SIGNUP_GRANT} starter analyses are one time and do not come back.
           </p>
           <PlanAction
             endpoint="/api/stripe/portal"

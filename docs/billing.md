@@ -38,9 +38,16 @@ never engage in a configuration where a player could not buy past it.
 
 | Tier | Price | Analyses | Where it is managed |
 |---|---|---|---|
-| Free | $0 | 3 completed analyses per calendar month | nothing to manage |
+| Free | $0 | 3 at signup, once, then 1 completed analysis per calendar month | nothing to manage |
 | Pro | $14.99/mo | 18 completed analyses per calendar month | Settings, plan card |
 
+- **Free is two numbers and has to be described as both** (D-076, migration
+  040). The 3 are a one-time grant spent against LIFETIME rows in `analyses`,
+  not a monthly figure: three completed analyses close it permanently, whichever
+  months they land in. `signup_grant()` holds the grant,
+  `plan_monthly_allowance()` holds the rate, and `allowanceSentence()` in
+  `lib/plans.ts` is the single place the sentence is built, so no surface can
+  quote half of it.
 - The window is the **UTC calendar month**, resetting on the 1st, not the
   subscription anniversary. It matches `analyze_usage_month()` and it means the
   answer to "how many do I have left" never depends on Stripe being reachable.
@@ -51,10 +58,20 @@ never engage in a configuration where a player could not buy past it.
 - Settings holds exactly two actions: upgrade to Pro, and cancel Pro. There is
   no separate upgrade tab.
 
-Economics at these numbers: measured cost is about $0.15 to $0.20 per analysis
-(`docs/post-cap-validation.md`). Pro at 18 costs about $3.42 against $14.99,
-roughly 77% gross margin. A free account costs up to about $0.57 a month and
-returns nothing, which is what section 6 is about.
+Economics at these numbers, measured rather than derived. The 12
+telemetry-carrying rows in production average **$0.209** per analysis, and
+**$0.234** on Opus 5 since D-070, which raised input tokens 23%. The
+$0.15 to $0.20 this section used to quote predates that switch and every margin
+figure resting on it was optimistic; `docs/post-cap-validation.md` carries the
+same stale range and is not owned by this change.
+
+At $0.234 and Stripe's 2.9% plus 30 cents, Pro at full use costs $4.14 against
+$14.26 net, roughly **68% gross margin**, not 77%. A free account costs about
+**$0.23** a month once its signup grant is spent, against $0.69 under the old
+3-a-month rule, which is the whole point of D-076: break-even conversion moves
+from 6.4% to 2.2%, and 2 to 5% is what freemium actually converts at. The
+one-time grant costs $0.69 per account, once, and buys the progression demo that
+converts. Section 6 is about the accounts that never do.
 
 ## 2. Three separate walls. Do not merge them.
 

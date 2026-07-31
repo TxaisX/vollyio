@@ -16,7 +16,13 @@ import { SUPPORT_EMAIL } from "@/lib/site";
 // read, never retyped. A price on the marketing page that disagrees with the
 // one at checkout is a false statement about money, and this page carried one
 // for weeks: it said "if we introduce paid plans" while billing was live.
-import { MONTHLY_ALLOWANCE, PLAN_LABEL, PRO_PRICE_LABEL } from "@/lib/plans";
+import {
+  MONTHLY_ALLOWANCE,
+  SIGNUP_GRANT,
+  PLAN_LABEL,
+  PRO_PRICE_LABEL,
+  allowanceSentence,
+} from "@/lib/plans";
 import { DRILLS } from "@/content/drills";
 
 // The bare amount, for sentences that already say "a month" and would otherwise
@@ -64,10 +70,13 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         <p>
-          {PLAN_LABEL.free} is {MONTHLY_ALLOWANCE.free} breakdowns a month, at
-          no cost and with no card. {PLAN_LABEL.pro} is{" "}
-          {MONTHLY_ALLOWANCE.pro} a month for {PRO_PRICE}, and it renews on the
-          day you subscribed rather than on the 1st.
+          {PLAN_LABEL.free} gives you {SIGNUP_GRANT} breakdowns to start and{" "}
+          {MONTHLY_ALLOWANCE.free} a month after that, at no cost and with no
+          card. The {SIGNUP_GRANT} are one time, and they are there so you can
+          analyze a rep, work the fix and film it again while it is still fresh,
+          which is the only way to watch a rating actually move.{" "}
+          {PLAN_LABEL.pro} is {MONTHLY_ALLOWANCE.pro} a month for {PRO_PRICE},
+          and it renews on the day you subscribed rather than on the 1st.
         </p>
         <p>
           You are never charged without choosing {PLAN_LABEL.pro} yourself, and
@@ -168,7 +177,7 @@ export default function Landing() {
           name: `${PLAN_LABEL.free} plan`,
           price: "0",
           priceCurrency: "USD",
-          description: `${MONTHLY_ALLOWANCE.free} analyses a month, no card required.`,
+          description: `${allowanceSentence("free")}, no card required.`,
         },
         {
           "@type": "Offer",
@@ -605,7 +614,8 @@ export default function Landing() {
                   could see what they were committing to. */}
               <p className="mx-auto mt-6 max-w-md text-body">
                 <span className="text-chalk">
-                  {MONTHLY_ALLOWANCE.free} breakdowns a month free, no card.
+                  {SIGNUP_GRANT} breakdowns free to start, then{" "}
+                  {MONTHLY_ALLOWANCE.free} a month. No card.
                 </span>{" "}
                 <span className="text-chalk-dim">
                   {PLAN_LABEL.pro} is {MONTHLY_ALLOWANCE.pro} a month for{" "}
