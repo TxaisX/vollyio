@@ -2674,3 +2674,64 @@ and a friendly error for the rate limit someone clearly anticipated. All of that
 was true while the path did not work. Coverage of the parts is not evidence about
 the whole, and the only check that would have caught it is a human completing a
 signup with an email they can open.
+
+## D-076 - The trial and the rate are two different numbers
+
+Free was 3 completed analyses every month, forever. Migration 040 splits that
+into a one-time signup grant of 3 and a recurring rate of 1.
+
+**Both halves fix a real problem, in opposite directions.**
+
+The rate was too expensive at the tail. Measured cost is $0.209 per analysis
+across the 12 telemetry-carrying rows in production, and $0.234 on Opus 5 since
+D-070 raised input tokens by 23%. `docs/billing.md` claimed $0.15 to $0.20; that
+was derived before the switch and every margin figure resting on it was
+optimistic. At 3 a month a dormant free account costs $0.69 every month for as
+long as it exists and returns nothing, which put break-even conversion at 6.4%
+against a freemium norm of 2 to 5%. At 1 a month it is $0.23 and 2.2%. That
+single number is the difference between a funnel that pays for itself and one
+that does not.
+
+**The grant is not generosity, it is the demo.** `updateRating` seeds on the
+first score and has no prior to move toward, so a rating only MOVES on the second
+read of a skill. A player capped at one a month from signup waits 31 days for
+their second data point, and the moment that sells Pro, watching a number move
+because you worked the fix, never arrives inside the window where they still
+care. Cutting to a flat 1 would have saved money by deleting the only thing that
+converts. Three at signup buys the whole loop in week one, once, for $0.69.
+
+**Spent against lifetime rows, never stored.** `greatest(0, 3 - lifetime_count)`
+where lifetime is an unwindowed `count(*)` on `analyses`. There is no counter to
+decrement, nothing that can drift from the table it describes, and no way to farm
+it: three completed analyses close it permanently, whichever months they land in.
+It also inherits D-064 for free, because a failed clip writes no row and so
+spends neither wall. `lib/plans.test.ts` pins the absence of a `created_at`
+clause on that query, since adding one would silently turn the grant back into a
+second monthly allowance and restore the exact cost shape this removes.
+
+**The gate needs BOTH walls up.** `if v_grant_left <= 0 and v_used >= v_rate`.
+An `or` there refuses a new player their second analysis. Pinned.
+
+**Two copy bugs found by making the change, both worse than the change.**
+`limitOffer` and the 402 both built "your next N unlock on Aug 1" out of the
+window ceiling that was just spent. With a grant in play those are different
+numbers, so a player who burned 3 would have been promised 3 and given 1: a
+false statement about entitlement, in the message whose entire job is telling
+them when they can train again. Both now read the recurring rate, which is always
+correct at that moment because a refusal requires the grant to be empty already.
+Separately, every "all N of your Free analyses" string renders "all 1 of" at the
+new rate, and `allowanceTone` returned "last" for an untouched window whose whole
+size is one, opening every free month on a scarcity warning about nothing spent.
+Both carve out the singular case.
+
+**What this does not change.** Pro stays 18 and $14.99. Nothing else in the
+product asks what plan you are on. The $89.99 annual in the strategy brief was
+priced against a $9.99 monthly that was never built and is 50% off the real
+price; if an annual ships it belongs nearer $129.
+
+**The ceiling that binds first.** `ANALYZE_MONTHLY_BUDGET_USD=25` is 107
+analyses a month across all users at the measured cost, which is six Pro
+subscribers at full use. The free tier is no longer the thing most likely to
+exhaust it, but the platform backstop still is, and its failure mode is a paying
+player getting a 503 caused by someone else. Raising it is a prerequisite for
+marketing, not for this change.

@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SUPPORT_EMAIL } from "@/lib/site";
-import { MONTHLY_ALLOWANCE, PLAN_LABEL, PRO_PRICE_LABEL } from "@/lib/plans";
+import {
+  MONTHLY_ALLOWANCE,
+  SIGNUP_GRANT,
+  PLAN_LABEL,
+  PRO_PRICE_LABEL,
+} from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -146,8 +151,13 @@ export default function TermsPage() {
         </p>
         <p>
           <strong className="text-chalk">{PLAN_LABEL.free}.</strong>{" "}
-          {MONTHLY_ALLOWANCE.free} completed analyses per calendar month, at no
-          cost and with no payment card.
+          {SIGNUP_GRANT} completed analyses when the account is created, then{" "}
+          {MONTHLY_ALLOWANCE.free} completed analysis per calendar month, at no
+          cost and with no payment card. The {SIGNUP_GRANT} are granted once
+          against the life of the account rather than once per month: whichever
+          months you use them in, the account settles at{" "}
+          {MONTHLY_ALLOWANCE.free} a month once {SIGNUP_GRANT} completed
+          analyses exist on it, and deleting analyses does not restore them.
         </p>
         <p>
           <strong className="text-chalk">{PLAN_LABEL.pro}.</strong>{" "}
@@ -163,7 +173,8 @@ export default function TermsPage() {
           {PLAN_LABEL.pro} does not buy you extra analyses for that period. What
           it does is set your allowance at {MONTHLY_ALLOWANCE.pro} a month for
           when counting starts, against {MONTHLY_ALLOWANCE.free} on{" "}
-          {PLAN_LABEL.free}, and support the product early. The Plan card in
+          {PLAN_LABEL.free} once the starter analyses are gone, and support the
+          product early. The Plan card in
           Settings always says which of the two is true today, and limits
           starting to count is a change we make under the notice section below.
         </p>
@@ -245,7 +256,9 @@ export default function TermsPage() {
           limits are counting, analyses you already ran still count, so if you
           ran more than {MONTHLY_ALLOWANCE.free} of them before landing back on{" "}
           {PLAN_LABEL.free}, you will have none left until that count next
-          resets. On {PLAN_LABEL.free} that is the 1st.
+          resets. On {PLAN_LABEL.free} that is the 1st. The starter analyses do
+          not return on cancellation: an account that has ever completed{" "}
+          {SIGNUP_GRANT} of them is past that grant permanently.
         </p>
       </Section>
 

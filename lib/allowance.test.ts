@@ -43,9 +43,40 @@ test("a good reply becomes the counter, and asks for nothing but its own row", a
     used: 1,
     remaining: 2,
     resetsAt: "2026-08-01T00:00:00+00:00",
+    // GOOD predates migration 040 and carries neither field, which is exactly
+    // the deploy window this has to survive: null, not an invented grant.
+    grantRemaining: null,
+    monthlyRate: null,
   });
   assert.equal(name, "analysis_allowance");
   assert.equal(args, undefined);
+});
+
+test("the grant and the rate come through when the database sends them", async () => {
+  const supabase = client({
+    data: { ...GOOD, grant_remaining: 2, monthly_rate: 1 },
+    error: null,
+  });
+  const read = await readAllowance(supabase);
+  assert.equal(read!.grantRemaining, 2);
+  assert.equal(read!.monthlyRate, 1);
+
+  // A grant of zero is a real state and must not read as "absent". This is the
+  // difference between a player whose trial is spent and a database that has
+  // not been migrated yet, and the two want opposite copy.
+  const spent = await readAllowance(
+    client({ data: { ...GOOD, grant_remaining: 0, monthly_rate: 1 }, error: null }),
+  );
+  assert.equal(spent!.grantRemaining, 0);
+
+  // Garbage in either field falls back to null rather than poisoning a counter
+  // whose other three numbers are fine.
+  const junk = await readAllowance(
+    client({ data: { ...GOOD, grant_remaining: -1, monthly_rate: "1" }, error: null }),
+  );
+  assert.equal(junk!.grantRemaining, null);
+  assert.equal(junk!.monthlyRate, null);
+  assert.equal(junk!.remaining, 2);
 });
 
 test("remaining is derived, so the line cannot contradict its own numbers", async () => {
@@ -108,6 +139,8 @@ test("the counter line reports plainly at three, one, and none", () => {
     used,
     remaining: Math.max(0, allowance - used),
     resetsAt: GOOD.resets_at,
+    grantRemaining: null,
+    monthlyRate: null,
   });
 
   assert.equal(allowanceCopy(at(1)), "2 of 3 left this month");
@@ -135,6 +168,8 @@ test("the reset date is read in UTC, because the window is a UTC month", () => {
     used: 7,
     remaining: 11,
     resetsAt: "2026-08-01T00:00:00+00:00",
+    grantRemaining: null,
+    monthlyRate: null,
   };
   // Midnight UTC on the 1st is still the previous evening in every zone west of
   // Greenwich. The player is told the month it belongs to, not the local clock.
@@ -168,6 +203,8 @@ const counter = (
   used,
   remaining: Math.max(0, allowance - used),
   resetsAt: "2026-08-01T00:00:00+00:00",
+  grantRemaining: null,
+  monthlyRate: null,
 });
 
 test("the tone follows the remaining count and nothing else", () => {
@@ -226,8 +263,43 @@ test("a free player who is out gets the price, one action, and the date", () => 
   // constants rather than a number typed into copy.
   assert.match(offer.terms!, new RegExp(`${MONTHLY_ALLOWANCE.pro} analyses a month`));
   assert.ok(offer.terms!.includes(PRO_PRICE_LABEL));
-  // Waiting is offered as the alternative, never hidden.
-  assert.equal(offer.wait, "Or wait, and your next 3 unlock on Aug 1.");
+  // Waiting is offered as the alternative, never hidden. The count here is the
+  // RECURRING rate, not the 3 they just spent: those 3 were the one-time signup
+  // grant (migration 040), and "your next 3 unlock" would be a promise the gate
+  // refuses on Aug 1.
+  assert.equal(offer.wait, "Or wait, and your next one unlocks on Aug 1.");
+});
+
+test("what unlocks at the reset is the rate, never the ceiling just spent", () => {
+  // The exact shape of a player who has just burned the signup grant: the
+  // window ceiling was 3, what arrives next month is 1.
+  const grant = limitOffer({
+    plan: "free",
+    allowance: 3,
+    nextWindow: 1,
+    resetsOn: "Aug 1",
+    canBuy: true,
+  });
+  assert.equal(
+    grant.headline,
+    "You've used all 3 of your Free analyses this month.",
+  );
+  assert.equal(grant.wait, "Or wait, and your next one unlocks on Aug 1.");
+
+  // And the month after, where the ceiling and the rate agree at one. The
+  // headline has to stop saying "all 1 of your Free analyses".
+  const steady = limitOffer({
+    plan: "free",
+    allowance: 1,
+    nextWindow: 1,
+    resetsOn: "Sep 1",
+    canBuy: true,
+  });
+  assert.equal(
+    steady.headline,
+    "You've used your Free analysis for this month.",
+  );
+  assert.equal(steady.wait, "Or wait, and your next one unlocks on Sep 1.");
 });
 
 test("a Pro player who is out is told when, and is sold nothing", () => {
@@ -260,7 +332,7 @@ test("no upgrade destination means no offer, only the wait", () => {
 
   assert.equal(offer.terms, null);
   assert.equal(offer.action, null);
-  assert.equal(offer.wait, "Your next 3 unlock on Aug 1.");
+  assert.equal(offer.wait, "Your next one unlocks on Aug 1.");
 });
 
 test("an unreadable 402 still says something true and still offers a way out", () => {
@@ -284,7 +356,10 @@ test("the plan constant fills in when a surface did not read the count", () => {
   const free = limitOffer({ plan: "free", resetsOn: "Aug 1", canBuy: true });
   const pro = limitOffer({ plan: "pro", resetsOn: "Aug 1", canBuy: true });
 
-  assert.ok(free.headline.includes(`all ${MONTHLY_ALLOWANCE.free} of your Free`));
+  // The free rate is one, so the headline says so in words rather than
+  // rendering "all 1 of your Free analyses".
+  assert.equal(free.headline, "You've used your Free analysis for this month.");
+  assert.equal(free.wait, "Or wait, and your next one unlocks on Aug 1.");
   assert.ok(pro.headline.includes(`all ${MONTHLY_ALLOWANCE.pro} of your Pro`));
 });
 

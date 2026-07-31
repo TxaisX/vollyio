@@ -56,26 +56,29 @@ function resetDateLabel(resetsAt: string | null | undefined): string | null {
   });
 }
 
-// Why the player is out, and the one thing they can do about it. The counts
-// come from the reservation reply, which is the number the database just
-// enforced, so this message can never promise a rep the reservation would
-// refuse. The only figure read from lib/plans.ts is what the OTHER plan gives,
-// which has no local source. A reply without detail says less rather than
-// inventing a count.
+// Why the player is out, and the one thing they can do about it. What was SPENT
+// comes from the reservation reply, which is the number the database just
+// enforced, so this message can never claim more was used than was. What
+// ARRIVES next is the plan's recurring rate: a refusal only happens once the
+// signup grant is empty (migration 040), so at this moment the two are the same
+// question and `detail.allowance` would overpromise by the size of the grant.
+// A reply without detail says less rather than inventing a count.
 function exhaustedMessage(plan: Plan, detail: AllowanceDetail | null): string {
   const reset = resetDateLabel(detail?.resetsAt);
   const used = detail
-    ? `You've used all ${detail.allowance} of your ${PLAN_LABEL[plan]} analyses this month.`
+    ? detail.allowance === 1
+      ? `You've used your ${PLAN_LABEL[plan]} analysis for this month.`
+      : `You've used all ${detail.allowance} of your ${PLAN_LABEL[plan]} analyses this month.`
     : "You've used your analyses for this month.";
+  const next = MONTHLY_ALLOWANCE[plan];
   if (plan === "pro") {
     if (!reset) return used;
-    return detail
-      ? `${used} Your next ${detail.allowance} unlock on ${reset}.`
-      : `${used} More unlock on ${reset}.`;
+    return `${used} Your next ${next} unlock on ${reset}.`;
   }
   const upgrade = `Upgrade to ${PLAN_LABEL.pro} for ${MONTHLY_ALLOWANCE.pro} analyses a month`;
+  const later = next === 1 ? "or your next one unlocks" : "or they reset";
   return reset
-    ? `${used} ${upgrade}, or they reset on ${reset}.`
+    ? `${used} ${upgrade}, ${later} on ${reset}.`
     : `${used} ${upgrade}.`;
 }
 
