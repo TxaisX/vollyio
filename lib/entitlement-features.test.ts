@@ -144,7 +144,11 @@ test("Pro is never worse off than Free, over the whole matrix", () => {
 });
 
 test("the monthly allowance is the one thing Pro actually buys", () => {
-  assert.equal(allowanceFor("free"), 3);
+  // The RECURRING rate. A new free account also holds a one-time signup grant
+  // of SIGNUP_GRANT (migration 040), which this function knows nothing about on
+  // purpose: it answers "what does this plan give every month", and the grant
+  // is neither monthly nor a property of the plan.
+  assert.equal(allowanceFor("free"), 1);
   assert.equal(allowanceFor("pro"), 18);
   assert.ok(allowanceFor("pro") > allowanceFor("free"));
 });

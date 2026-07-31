@@ -12,7 +12,12 @@ decisions behind the shape are D-064, D-065, and D-066.
 ## 0. The one-line answer
 
 **Pro differs from Free in exactly one way: the monthly analysis allowance, 18
-against 3. Nothing else in the product asks what plan you are on.**
+against 1. Nothing else in the product asks what plan you are on.**
+
+Free also carries a one-time signup grant of 3 analyses, spent against the
+account's lifetime rather than per month (D-076, migration 040). It is a trial,
+not a plan line: it is gone after three completed analyses and never returns, so
+it belongs in onboarding copy and not in any sentence comparing the two plans.
 
 And that one difference is not in force right now. `shouldEnforceFreeTier()`
 requires the cap flag, billing open, an upgrade destination, and a configured
@@ -33,7 +38,7 @@ Build for the armed state. "The cap is on" is the near-future default.
 
 | Dimension | Free | Pro | Where it is decided |
 |---|---|---|---|
-| Monthly analyses | 3 completed per UTC calendar month | 18 completed per UTC calendar month | `MONTHLY_ALLOWANCE` in `lib/plans.ts`, mirrored in migration 026, pinned by `lib/plans.test.ts` |
+| Monthly analyses | 3 at signup once, then 1 completed per UTC calendar month | 18 completed per UTC calendar month | `MONTHLY_ALLOWANCE` and `SIGNUP_GRANT` in `lib/plans.ts`, mirrored in migration 040, pinned by `lib/plans.test.ts` |
 | Is that allowance in force | No | No | `shouldEnforceFreeTier()` in `lib/billing.ts` |
 | What counts against it | Completed analyses only. A clip that fails, times out, or hits a capacity outage costs nothing | Same | Insert ordering in `app/api/analyze/route.ts`, D-064 |
 | When it resets | 1st of the UTC calendar month | Same | `private.allowance_window()`, migration 026 |
@@ -201,9 +206,12 @@ taking longer is a claim we know to be false.
 
 ## 6. What copy may say today
 
-May say: Pro is $14.99 a month for 18 analyses a month against 3 on Free, on a
+May say: Pro is $14.99 a month for 18 analyses a month against 1 on Free, on a
 UTC calendar month reset, cancellable any time with access to the end of the
-period already paid for.
+period already paid for. Free may be described as 3 analyses to start and 1 a
+month after that, provided both halves appear together: "3 free analyses" alone
+is a number that stops being true in month two, and "1 a month" alone hides the
+trial. `allowanceSentence()` builds the sentence so this is hard to get wrong.
 
 Must also say, while the cap is off: nothing is being counted today, and
 upgrading now is early support rather than more reps. That is D-066's

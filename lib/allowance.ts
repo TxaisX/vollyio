@@ -22,6 +22,13 @@ export type Allowance = {
   used: number;
   remaining: number;
   resetsAt: string;
+  // The unspent part of the one-time signup grant, and the recurring rate the
+  // player drops to once it is gone (migration 040). Both are optional and both
+  // default to null rather than to a number: between a deploy and its migration
+  // the database returns neither, and a counter that invented a grant of 3 for
+  // an account that no longer has one would promise reps the gate refuses.
+  grantRemaining: number | null;
+  monthlyRate: number | null;
 };
 
 // Fail soft, and deliberately so. Everything else on the analyze path fails
@@ -42,7 +49,15 @@ export async function readAllowance(
   if (error || !data || typeof data !== "object") return null;
 
   const row = data as Record<string, unknown>;
-  const { plan, allowance, used, remaining, resets_at: resetsAt } = row;
+  const {
+    plan,
+    allowance,
+    used,
+    remaining,
+    resets_at: resetsAt,
+    grant_remaining: grantRemaining,
+    monthly_rate: monthlyRate,
+  } = row;
 
   // A plan string this build has no name for means the database is ahead of the
   // deploy. Hiding the counter is the only honest answer: naming an allowance
@@ -66,6 +81,11 @@ export async function readAllowance(
     // downgrade mid-month (docs/billing.md section 7), hence the floor.
     remaining: Math.max(0, allowance - used),
     resetsAt,
+    // Absent on a database that predates migration 040, and absent is the only
+    // honest reading of "this build cannot tell". Never inferred from the
+    // allowance: a first-window player and a downgraded one can both show 3.
+    grantRemaining: isCount(grantRemaining) ? grantRemaining : null,
+    monthlyRate: isCount(monthlyRate) ? monthlyRate : null,
   };
 }
 
@@ -77,6 +97,11 @@ function isCount(value: unknown): value is number {
 // reporting: the plan card does the selling, this only says where they stand.
 export function allowanceCopy(a: Allowance): string {
   if (a.remaining === 0) return "None left this month";
+  // "1 of 1 left" is the free rate's normal untouched state and reads as though
+  // something was already taken. Name the whole window instead.
+  if (a.remaining === a.allowance && a.allowance === 1) {
+    return "1 analysis this month";
+  }
   return `${a.remaining} of ${a.allowance} left this month`;
 }
 
@@ -88,7 +113,11 @@ export type AllowanceTone = "steady" | "last" | "out";
 
 export function allowanceTone(a: Allowance): AllowanceTone {
   if (a.remaining === 0) return "out";
-  if (a.remaining === 1) return "last";
+  // One left is only a warning if some were spent to get there. On the free
+  // rate the whole window IS one, so an untouched month would otherwise open on
+  // "last analysis" and read as scarcity invented out of nothing, which is the
+  // exact tone this type exists to prevent.
+  if (a.remaining === 1 && a.used > 0) return "last";
   return "steady";
 }
 
@@ -175,18 +204,28 @@ export type LimitOffer = {
 export function limitOffer({
   plan,
   allowance = null,
+  nextWindow = null,
   resetsOn,
   canBuy,
 }: {
   plan: Plan | null;
   allowance?: number | null;
+  // What lands at the reset, which is NOT what was just spent. A player who
+  // burned the 3 of their signup grant has an allowance of 3 and a next window
+  // of 1, and telling them "your next 3 unlock on Sep 1" is a promise the gate
+  // refuses on Sep 1. Defaults to the plan rate, which is right for everyone
+  // whose grant is already gone.
+  nextWindow?: number | null;
   resetsOn: string | null;
   canBuy: boolean;
 }): LimitOffer {
   const count = allowance ?? (plan ? MONTHLY_ALLOWANCE[plan] : null);
+  const next = nextWindow ?? (plan ? MONTHLY_ALLOWANCE[plan] : null);
   const headline =
     plan && count != null
-      ? `You've used all ${count} of your ${PLAN_LABEL[plan]} analyses this month.`
+      ? count === 1
+        ? `You've used your ${PLAN_LABEL[plan]} analysis for this month.`
+        : `You've used all ${count} of your ${PLAN_LABEL[plan]} analyses this month.`
       : "You've used your analyses for this month.";
 
   // Never sell to somebody who already pays. Money buys a Pro player nothing
@@ -205,12 +244,16 @@ export function limitOffer({
   // lifts, and the wait is never left open-ended.
   const when = resetsOn ? `on ${resetsOn}` : "on the first of the month";
   let wait: string;
-  if (count == null) {
+  if (next == null) {
     wait = sell ? `Or wait, and more unlock ${when}.` : `More unlock ${when}.`;
+  } else if (next === 1) {
+    wait = sell
+      ? `Or wait, and your next one unlocks ${when}.`
+      : `Your next one unlocks ${when}.`;
   } else {
     wait = sell
-      ? `Or wait, and your next ${count} unlock ${when}.`
-      : `Your next ${count} unlock ${when}.`;
+      ? `Or wait, and your next ${next} unlock ${when}.`
+      : `Your next ${next} unlock ${when}.`;
   }
 
   return { headline, terms, action, wait };

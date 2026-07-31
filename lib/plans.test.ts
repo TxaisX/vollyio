@@ -1,7 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
-import { MONTHLY_ALLOWANCE, monthlyAllowance, isPlan, PLANS } from "./plans.ts";
+import {
+  MONTHLY_ALLOWANCE,
+  SIGNUP_GRANT,
+  monthlyAllowance,
+  isPlan,
+  PLANS,
+} from "./plans.ts";
 
 
 // "Did this ever happen" is a different question from "what is the shape now".
@@ -39,6 +45,36 @@ test("the TypeScript allowance matches the database allowance", async () => {
   // be the same number, or the counter promises reps the reservation refuses.
   assert.match(sql, new RegExp(`when 'pro' then ${MONTHLY_ALLOWANCE.pro}\\b`, "i"));
   assert.match(sql, new RegExp(`else ${MONTHLY_ALLOWANCE.free}\\b`, "i"));
+});
+
+test("the signup grant is one number, in SQL and TypeScript alike", async () => {
+  const sql = await allowanceSql();
+  assert.match(
+    sql,
+    new RegExp(
+      `create or replace function public\\.signup_grant\\(\\)[\\s\\S]{0,400}select ${SIGNUP_GRANT}\\b`,
+      "i",
+    ),
+  );
+  // The grant has to be strictly larger than the rate or it is not a trial, it
+  // is a rounding error. This is the whole reason both numbers exist.
+  assert.ok(SIGNUP_GRANT > MONTHLY_ALLOWANCE.free);
+});
+
+test("the grant is spent against lifetime rows, not against the window", async () => {
+  const sql = await allowanceSql();
+  // An unwindowed count is what makes the grant one-time. If this ever grows a
+  // `created_at >=` clause the grant silently becomes a second monthly
+  // allowance and every free account gets 3 a month again, which is the exact
+  // cost shape migration 040 exists to end.
+  assert.match(
+    sql,
+    /select pg_catalog\.count\(\*\) into v_lifetime\s+from public\.analyses\s+where user_id = v_user_id;/i,
+  );
+  assert.match(sql, /v_grant_left := greatest\(0, v_grant - v_lifetime\)/i);
+  // Refusal needs BOTH walls to be up. An `or` here would refuse a brand new
+  // player on their second analysis.
+  assert.match(sql, /if v_grant_left <= 0 and v_used >= v_rate then/i);
 });
 
 test("the allowance window is the UTC calendar month, derived server side", async () => {
@@ -87,7 +123,7 @@ test("only the service role may write a plan", async () => {
 });
 
 test("an unknown plan falls back to the free allowance rather than throwing", () => {
-  assert.equal(monthlyAllowance("free"), 3);
+  assert.equal(monthlyAllowance("free"), 1);
   assert.equal(monthlyAllowance("pro"), 18);
   assert.equal(monthlyAllowance("enterprise"), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance(null), MONTHLY_ALLOWANCE.free);
