@@ -2877,10 +2877,42 @@ a two-week-old `package-lock.json` diff dropping 84 lines, which merging would
 have regressed. **A commit count is a cheap first filter, not the verdict. Zero
 means safe to delete; non-zero means read the diff.**
 
-What remains on origin, all deliberately: `master`, `eval-harness-calibration`,
-`claude/last-update-timing-ohn65b` (the security headers),
-`claude/project-bottlenecks-jyeuue`, `claude/sideout-end-to-end-fo3hm6`, and
-`vercel/install-vercel-speed-insights-iynziq`.
+**Origin now holds exactly two refs: `master` and `eval-harness-calibration`.**
+The four survivors named in the first draft of this entry were each resolved the
+same day, and how they were resolved is the point.
+
+`claude/last-update-timing-ohn65b` was **harvested, then deleted**. Its security
+headers shipped as PR #21 and its prompt-injection fence as PR #22, both rewritten
+against current files rather than merged; its other two changes were regressions
+(master's account-delete already had `hasTrustedMutationOrigin` plus
+`consumeApiQuota`, and its `coach-prompt.ts` still carried the per-level
+`CHAT_VOICE` record D-053 deleted on purpose). A branch can be worth more than
+its diff and still be wrong to merge.
+
+The other three were deleted after reading them, not after counting them:
+
+- **`claude/project-bottlenecks-jyeuue`** was the one worth reading, because
+  merging it would have been actively harmful rather than merely redundant. Its
+  `app/api/coach/route.ts` predates D-047: no `COACH_ENABLED` gate, no
+  `hasTrustedMutationOrigin`, no `consumeApiQuota`, and a 2000-character message
+  cap that D-047 tightened to 600. Merging would have stripped the spend
+  containment that closed coach chat in the first place. Its migration fold
+  (`004_xp_events_index.sql` into `004_discipline.sql`) is also unsafe now that
+  040 is applied, since renaming an applied migration desynchronises the repo
+  from what actually ran. Its one unique artifact, `docs/bottlenecks.md`, was
+  read before deleting: every item on its critical path is dead. API credits
+  restored, domain and SMTP and support address all done, legal gates shipped in
+  D-069, and item 4 is device-testing for the D-021 ONNX engine that **D-033
+  deleted**. It still calls the deployment `sideout-jet.vercel.app`.
+- **`claude/sideout-end-to-end-fo3hm6`** was a 115-line directive document for a
+  since-renamed product, sibling to the one already in
+  `archive/orchestration/`.
+- **`vercel/install-vercel-speed-insights-iynziq`** genuinely added something
+  master lacks, but two weeks stale with a lockfile diff dropping 84 lines.
+  `npm i @vercel/speed-insights` is the correct way to get it, not a merge.
+
+`eval-harness-calibration` survives alone, on the same rule that saved it in the
+first place: it is the only copy of `evals/labels.json` and the ingest scripts.
 
 ### Files
 
