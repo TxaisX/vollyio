@@ -490,13 +490,14 @@ export function AnalyzeFlow({
     setTrim({ startS: snap(startS), endS: snap(endS) });
   }
 
-  async function spotPlayers(frameB64: string, atT: number) {
+  async function spotPlayers(frameB64: string, atT: number, signal?: AbortSignal) {
     setSpotting(true);
     try {
       const res = await fetch("/api/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ frame: frameB64 }),
+        signal,
       });
       if (res.ok) {
         const { players } = await res.json();
@@ -506,7 +507,8 @@ export function AnalyzeFlow({
         }
       }
     } catch {
-      // Spotting is an assist; the tap path is unaffected.
+      // Spotting is an assist; the tap path is unaffected. An abort lands
+      // here too, which is the point: an aborted call may never write state.
     } finally {
       setSpotting(false);
     }
@@ -528,13 +530,20 @@ export function AnalyzeFlow({
     return canvas.toDataURL("image/jpeg", 0.72).split(",")[1];
   }
 
-  // Spot on the opening frame as soon as the card is up.
+  // Spot on the opening frame as soon as the card is up. The abort in the
+  // cleanup does two jobs: a response for a clip the user has already replaced
+  // can never land in `spotted` (the fetch rejects before the state writes),
+  // and dev strict-mode's doubled effect cancels its first call instead of
+  // paying for two coaching-service reads per clip pick.
   useEffect(() => {
     setSpotted([]);
     spotTRef.current = null;
     if (!openingPick) return;
     const b64 = openingPick.dataUrl.split(",")[1];
-    if (b64) void spotPlayers(b64, openingPick.timeS);
+    if (!b64) return;
+    const controller = new AbortController();
+    void spotPlayers(b64, openingPick.timeS, controller.signal);
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openingPick]);
 

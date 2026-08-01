@@ -80,56 +80,67 @@ export default async function AnalysisDetail({
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
 
-  const { data } = await supabase
-    .from("analyses")
-    .select(
-      "id, skill, discipline, frame_paths, clip_path, overall_score, created_at, result",
-    )
-    .eq("id", id)
-    .eq("user_id", userId!)
-    .maybeSingle();
+  // Two waves, not six awaits: everything keyed on the route param rides with
+  // the main row, and everything keyed on the row's own fields follows in one
+  // more round trip. Sequential, these five independent reads each added a
+  // full region round trip to TTFB. Every read is still owner-scoped by RLS
+  // plus its explicit filter; nothing about the security surface changes.
+  const [{ data }, { data: liveLinks }, { data: fb }] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select(
+        "id, skill, discipline, frame_paths, clip_path, overall_score, created_at, result",
+      )
+      .eq("id", id)
+      .eq("user_id", userId!)
+      .maybeSingle(),
+    // Whether any live share link exists, for the owner's control state. RLS
+    // scopes the read to the owner; anonymous readers never touch this table.
+    supabase
+      .from("share_links")
+      .select("id")
+      .eq("analysis_id", id)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1),
+    // The player's standing decision on this breakdown (flywheel signal), if
+    // any. Owner-scoped by RLS + the explicit filter.
+    supabase
+      .from("analysis_feedback")
+      .select("was_right, reasons, note")
+      .eq("analysis_id", id)
+      .maybeSingle(),
+  ]);
 
   if (!data) notFound();
   const row = data as Row;
   const result = row.result;
 
-  // Priority-fix loop (D-044): the previous rep of this same skill and
-  // discipline, if any, so the breakdown opens with what the player was told to
-  // work on and whether the checkpoint behind it moved. RLS plus the explicit
-  // owner filter scope this to the player; it is a read within the existing
-  // select grant, so no security surface changes.
-  const { data: prevRow } = await supabase
-    .from("analyses")
-    .select("result")
-    .eq("user_id", userId!)
-    .eq("skill", row.skill)
-    .eq("discipline", row.discipline)
-    .lt("created_at", row.created_at)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Wave two: the previous rep for the priority-fix loop (D-044) plus both
+  // storage signings, all keyed on the row just read and independent of one
+  // another. The prev read is RLS plus the explicit owner filter, a read
+  // within the existing select grant, so no security surface changes.
+  const [{ data: prevRow }, { data: signed }, signedClip] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select("result")
+      .eq("user_id", userId!)
+      .eq("skill", row.skill)
+      .eq("discipline", row.discipline)
+      .lt("created_at", row.created_at)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.storage.from("frames").createSignedUrls(row.frame_paths, 3600),
+    row.clip_path
+      ? supabase.storage.from("clips").createSignedUrl(row.clip_path, 3600)
+      : Promise.resolve(null),
+  ]);
   const lastTime = lastTimeFix(
     (prevRow?.result as AnalysisResult | undefined) ?? null,
     result,
   );
-  // Whether any live share link exists, for the owner's control state. RLS
-  // scopes the read to the owner; anonymous readers never touch this table.
-  const { data: liveLinks } = await supabase
-    .from("share_links")
-    .select("id")
-    .eq("analysis_id", row.id)
-    .is("revoked_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .limit(1);
   const sharingActive = (liveLinks?.length ?? 0) > 0;
-
-  // The player's standing decision on this breakdown (flywheel signal), if any.
-  // Owner-scoped by RLS + the explicit filter; a read within the select grant.
-  const { data: fb } = await supabase
-    .from("analysis_feedback")
-    .select("was_right, reasons, note")
-    .eq("analysis_id", row.id)
-    .maybeSingle();
   const initialFeedback = fb
     ? {
         wasRight: fb.was_right as boolean,
@@ -153,9 +164,6 @@ export default async function AnalysisDetail({
               : `${lastTimeLabel}: not visible in this rep.`
       : null;
 
-  const { data: signed } = await supabase.storage
-    .from("frames")
-    .createSignedUrls(row.frame_paths, 3600);
   // One answer per path, in the order asked, and a path that could not be
   // signed comes back with an empty url rather than dropping out of the array.
   // Rebuild off frame_paths anyway so a short or absent answer still lines up:
@@ -170,13 +178,7 @@ export default async function AnalysisDetail({
   // gap is named underneath.
   const framesMissing = row.frame_paths.length - signedCount;
 
-  let clipUrl: string | null = null;
-  if (row.clip_path) {
-    const { data: signedClip } = await supabase.storage
-      .from("clips")
-      .createSignedUrl(row.clip_path, 3600);
-    clipUrl = signedClip?.signedUrl ?? null;
-  }
+  const clipUrl: string | null = signedClip?.data?.signedUrl ?? null;
 
   const timeByFrame = new Map<number, number | null>();
   for (const i of result.insights) timeByFrame.set(i.frame_index, i.time_s);

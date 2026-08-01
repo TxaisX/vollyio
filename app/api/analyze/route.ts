@@ -259,9 +259,17 @@ export async function POST(req: NextRequest) {
           format: zodOutputFormat(analysisSchema(skill)),
         },
       },
-      // Exponential backoff on 429/5xx from the coaching service (CS-7);
-      // the SDK honors Retry-After and jitters between attempts.
-      { maxRetries: 4 },
+      // Exponential backoff on 429/5xx from the coaching service (CS-7); the
+      // SDK honors Retry-After and jitters between attempts. Both numbers are
+      // bounded by `maxDuration = 120`: the SDK's default per-attempt timeout
+      // is ~10 minutes, so a hung provider connection used to end with the
+      // platform killing the function, which skips the refund below and the
+      // entitlement release in the outer finally, silently costing the player
+      // an hourly slot. 90s per attempt never cuts a legitimately slow call
+      // (the read runs 30-60s), and one retry keeps the common failure (a
+      // fast 429/529, then success) inside the platform budget where five
+      // attempts could not be.
+      { maxRetries: 1, timeout: 90_000 },
     );
 
       const usage = response.usage;
@@ -340,27 +348,32 @@ export async function POST(req: NextRequest) {
         message,
       });
       const kind = classifyCoachingError({ status: apiErr?.status ?? null, message });
-      if (kind === "capacity") {
-        // The coaching service refused before doing any billable work (credit or
-        // spend-cap outage), so the player was not charged: give the hourly slot
-        // back (the free entitlement is released by the outer finally) and say so
-        // plainly, distinctly from "your clip failed". Vendor stays unnamed.
-        // Service-role client, never the player's (migration 033). A refund a
-        // player can trigger is a rate limit that resets on demand.
+      if (kind === "capacity" || kind === "busy") {
+        // The coaching service refused before doing any billable work: a
+        // credit or spend-cap outage (capacity), or a 429/529 that survived
+        // the retry (busy). The player was not charged either way, so give
+        // the hourly slot back (the free entitlement is released by the outer
+        // finally) and say so plainly, distinctly from "your clip failed".
+        // Vendor stays unnamed. Service-role client, never the player's
+        // (migration 033). A refund a player can trigger is a rate limit that
+        // resets on demand. Both return 503, which the client renders as the
+        // calm chalk state (D-054): the player did nothing wrong here, and
+        // the coral error state used to blame them for a busy signal.
         await refundApiQuota(createServiceClient(), user.id, "analyze");
+        const capacity = kind === "capacity";
         return NextResponse.json(
           {
-            error:
-              "The coaching service is temporarily out of capacity, so your clip wasn't counted against your limit. Please try again later.",
+            error: capacity
+              ? "The coaching service is temporarily out of capacity, so your clip wasn't counted against your limit. Please try again later."
+              : "The coaching service is busy right now, so your clip wasn't counted against your limit. Try again in a moment.",
           },
-          { status: 503, headers: { "Retry-After": "1800" } },
+          { status: 503, headers: { "Retry-After": capacity ? "1800" : "60" } },
         );
       }
-      const clientMessage =
-        kind === "busy"
-          ? "The coaching service is busy right now. Try again in a moment."
-          : "The coaching service is unavailable. Try again.";
-      return NextResponse.json({ error: clientMessage }, { status: 502 });
+      return NextResponse.json(
+        { error: "The coaching service is unavailable. Try again." },
+        { status: 502 },
+      );
     }
   }
 
@@ -420,22 +433,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Couldn't save your analysis." }, { status: 500 });
   }
 
+  // Batched, not one-at-a-time: up to 64 sequential storage round trips added
+  // seconds to a response the player is already tens of seconds into. Bounded
+  // concurrency keeps the discard semantics: every path that made it into
+  // storage lands in uploadedFramePaths, so the failure branch below removes
+  // exactly what exists, including successes from a partially failed batch.
   const uploadedFramePaths: string[] = [];
   let frameUploadFailed = false;
-  for (let i = 0; i < frames.length; i++) {
-    const bytes = Buffer.from(frames[i].data, "base64");
-    const { error } = await supabase.storage
-      .from("frames")
-      .upload(framePaths[i], bytes, { contentType: "image/jpeg", upsert: false });
-    if (error) {
-      console.error("[analyze] required frame upload failed", {
-        analysisId,
-        frameIndex: i,
-      });
-      frameUploadFailed = true;
-      break;
+  const UPLOAD_CONCURRENCY = 6;
+  for (let i = 0; i < frames.length && !frameUploadFailed; i += UPLOAD_CONCURRENCY) {
+    const results = await Promise.all(
+      frames.slice(i, i + UPLOAD_CONCURRENCY).map(async (frame, j) => {
+        const index = i + j;
+        const bytes = Buffer.from(frame.data, "base64");
+        const { error } = await supabase.storage
+          .from("frames")
+          .upload(framePaths[index], bytes, { contentType: "image/jpeg", upsert: false });
+        if (error) {
+          console.error("[analyze] required frame upload failed", {
+            analysisId,
+            frameIndex: index,
+          });
+          return null;
+        }
+        return framePaths[index];
+      }),
+    );
+    for (const path of results) {
+      if (path === null) frameUploadFailed = true;
+      else uploadedFramePaths.push(path);
     }
-    uploadedFramePaths.push(framePaths[i]);
   }
   if (frameUploadFailed) {
     if (uploadedFramePaths.length > 0) {

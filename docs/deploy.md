@@ -52,7 +52,7 @@ Where they run:
 - **CI** - `.github/workflows/ci.yml` runs all four on every push to `master` and every pull request, with `AI_MOCK=true` and placeholder public Supabase vars so the build never needs real secrets or a paid call. A newer push cancels an in-flight run on the same ref.
 - **Vercel** - `next build` runs again on the platform during deploy.
 
-Last full-tree green (2026-07-27, commit `9de3f2b`): policy lint pass · `tsc` 0 errors · `next build` clean · `node --test` 236 tests.
+Last full-tree green (2026-08-01, this session): policy lint pass · `tsc` 0 errors · `next build` clean · `node --test` 360 tests.
 
 ## Deploy
 

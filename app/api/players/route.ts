@@ -67,6 +67,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ players: [] }, { status: quota.ok ? 429 : 503 });
   }
 
+  // Same mock switch analyze and coach honor; this route lacked it, so
+  // mock-mode development still spent a real coaching-service read on every
+  // framing-card open whenever a key was present. One canned candidate keeps
+  // the picker list exercisable.
+  if (process.env.AI_MOCK === "true") {
+    return NextResponse.json({
+      players: [{ label: "Athlete mid-court in a dark kit", x: 0.5, y: 0.55 }],
+    });
+  }
+
   try {
     const response = await coach().messages.parse(
       {
