@@ -25,6 +25,12 @@ import {
 } from "@/lib/plans";
 import { DRILLS } from "@/content/drills";
 
+// The homepage owns "/" as its canonical; the root layout deliberately sets
+// none, because a layout-level canonical leaks onto every page beneath it.
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 // The bare amount, for sentences that already say "a month" and would otherwise
 // read "18 a month for $9.99/mo". Same derivation the terms page uses, so both
 // still quote the one constant rather than a retyped number.

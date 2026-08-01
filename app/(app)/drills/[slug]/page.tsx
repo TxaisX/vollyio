@@ -25,6 +25,7 @@ export async function generateMetadata({
   return {
     title: drill.name,
     description: drill.summary,
+    alternates: { canonical: `/drills/${slug}` },
     openGraph: { title: `${drill.name} · Vollyio`, description: drill.summary },
     robots: { index: true, follow: true },
   };

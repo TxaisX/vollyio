@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   title: "Learn",
   description:
     "Two libraries: what good technique looks like for every skill, and what volleyball's common injuries are, how the sport causes them, and what recovery looks like.",
+  alternates: { canonical: "/learn" },
 };
 
 const TONE: Record<string, LibraryItem["tone"]> = {

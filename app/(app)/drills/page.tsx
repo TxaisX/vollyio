@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Drills",
   description:
     "Step-by-step drills for every volleyball skill, beginner to pro.",
+  alternates: { canonical: "/drills" },
   robots: { index: true, follow: true },
 };
 

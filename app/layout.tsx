@@ -30,7 +30,10 @@ export const metadata: Metadata = {
   description,
   applicationName: "Vollyio",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Vollyio" },
-  alternates: { canonical: "/" },
+  // NO canonical here. A canonical in the root layout is inherited by every
+  // page that does not override it, which told crawlers that /learn, /drills,
+  // and every drill and skill page were duplicates of the homepage. Each
+  // indexable page declares its own canonical instead.
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",

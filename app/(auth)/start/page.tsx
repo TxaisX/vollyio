@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Start",
   description:
     "Tell the coaching service where your game is and where it should be. Your account gets built around the answers.",
+  alternates: { canonical: "/start" },
 };
 
 export default function Start() {

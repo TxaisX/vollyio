@@ -45,6 +45,7 @@ export async function generateMetadata({
   return {
     title: `${entry.name} in volleyball`,
     description: entry.summary,
+    alternates: { canonical: `/learn/rehab/${slug}` },
   };
 }
 

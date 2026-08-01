@@ -9,6 +9,7 @@ import { SubmitButton } from "../submit-button";
 export const metadata: Metadata = {
   title: "Sign up",
   description: "Create your Vollyio account and get your first breakdown free.",
+  alternates: { canonical: "/signup" },
 };
 
 export default async function Signup({
