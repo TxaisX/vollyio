@@ -261,6 +261,15 @@ marks each item pass/fail with a date (commit as
 7. The number is blunt and uncurved; notes name faults by pointer without softening.
 
 ## Next step
+
+_CORRECTED 2026-08-01: the push below happened long ago; master is pushed and
+production serves it. Billing is LIVE (D-078), migrations through 040 are
+applied, and the free tier is 3-at-signup-then-1-a-month (D-076). What remains
+of this section's list: eval labeling and the baseline re-run (Open items 6, 9),
+the dev/prod key split (Open item 1), leaked-password protection and bot
+protection (Open items 8, 13), and coach re-enable with 018 (Open item 7).
+Original text kept below per this file's convention:_
+
 Push `master`. The middleware fix (D-060) is already live, but the billing commit
 `9de3f2b` is unpushed, so production is serving code that predates it against a
 database that already carries 026-028. The gap is benign today: billing is inert

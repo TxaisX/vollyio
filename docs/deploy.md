@@ -8,7 +8,7 @@ How vollyio is gated, built, and shipped. Written to close the Phase 3 documenta
 |---|---|
 | Vercel project | `vollyio` (`prj_Trry0xeajBupSXSXruQoFIk0VKLr`, team `team_4ik4RqLW0j3baDcg95uols99`) |
 | Production URL | https://vollyio.com |
-| Framework | Next.js 16.2.10 (App Router, React 19.2) |
+| Framework | Next.js 16.2.12 (App Router, React 19.2) |
 | Runtime | Node 22+ (Vercel default 24; CI pins 22) |
 | Supabase project | `vollyio` - ref `tbbievneojaxkkjvcwjp`, us-west-2, Postgres 17 |
 
@@ -21,7 +21,7 @@ Set in `.env.local` for dev and mirrored to Vercel (`vercel env add <NAME> produ
 | `NEXT_PUBLIC_SUPABASE_URL` | public | no | read client + build time |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | no | anon/publishable key; RLS enforces access |
 | `ANTHROPIC_API_KEY` | server only | **yes** | the coaching service; never prefix `NEXT_PUBLIC` |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only | **yes** | bypasses row security on every table. `lib/supabase/service.ts` is the only reader and `app/api/stripe/webhook/route.ts` the only importer; a second importer is a security change, not a refactor (`docs/security.md` rule 10). Absent, the webhook fails closed |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only | **yes** | bypasses row security on every table. `lib/supabase/service.ts` is the only reader; its two importers are the payment webhook and the analyze route's telemetry/refund calls (D-065), each recorded with its reason in `docs/security.md` rule 10. A third importer is a security change, not a refactor. Absent, the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | server only | **yes** | payment provider API key. Read only by `lib/stripe.ts` |
 | `STRIPE_WEBHOOK_SECRET` | server only | **yes** | endpoint signing secret. Absent, the webhook returns 500 and applies nothing; there is deliberately no unverified branch |
 | `STRIPE_PRICE_ID` | server only | no | the recurring price to charge. Not a secret, deliberately not `NEXT_PUBLIC_`: the browser has no use for it, and a client-visible price id is the shape of the bug where the caller decides what to charge |
@@ -69,16 +69,13 @@ Use an expand, deploy, contract rollout. First apply `011_security_hardening.sql
 
 ### Migration state
 
-Applied to production: everything through `028`, except `018_coach_quota.sql`. `026_monthly_allowance.sql` (per-plan monthly allowance), `027_subscription_plan.sql` (the plan writer and the customer reverse lookup), and `028_billing_quota_and_telemetry_bounds.sql` (a `billing` quota scope plus bounds on `analyses.telemetry`) are live. They are applied and must not be rewritten; any further change is a new file numbered `029` and up.
+Applied to production: everything through `040`, except `018_coach_quota.sql` (superseded in practice: `028` carries its `consume_api_quota` body, and `030`/`033` rewrote `refund_api_quota` past what `018` held; apply or retire it with any coach re-enable). `041_rls_auto_enable_is_not_callable.sql` is committed and **not yet applied**: it adopts the platform's RLS auto-enable event trigger into the migration history and revokes the pointless client EXECUTE grant the linter flags. Applied migrations must not be rewritten; any further change is a new file numbered `042` and up.
 
-Two consequences of `028` landing ahead of the application code that shipped with it:
-
-- It recreates `consume_api_quota` with the same body `018` carries, so the `coach_daily` scope and the tightened 20-per-hour `coach` limit are live now. `/api/players` shares the `coach` scope, so candidate spotting is bounded at 20 an hour rather than 60 in production today. What `018` still holds that `028` does not is the `refund_api_quota` rewrite, which is why it stays an open item rather than a closed one.
-- The telemetry check constraint bounds what `analyses.telemetry` may hold. It is a bound, not a fix: the analyze route still writes telemetry with the player's own credentials, and the real fix is a server-side write the player cannot forge.
+The telemetry gap `028` used to leave is closed: since `029` (D-065) the analyze route writes `analyses.telemetry` through the service-role client, so a player's own credentials can no longer shape their cost record, and `028`'s check constraint bounds what the column may hold.
 
 ### Billing rollout
 
-The paid path is built and inert. `docs/billing.md` is the model, `docs/security.md` is the proof obligation, and this is the order.
+The paid path is built and LIVE (D-078: a real card was charged 2026-07-31 and the webhook applied the plan). `docs/billing.md` is the model, `docs/security.md` is the proof obligation, and this was the order followed; it stands as the record and as the template for any future re-arm.
 
 1. Migrations `026`, `027`, `028`: applied.
 2. Provider account objects: the live product (`prod_UxvNH2y52Rmz5o`), the $9.99 monthly price (`price_1TzKG5JOFP4i3BqJC2z0xklp`, lookup key `vollyio_pro_monthly`, D-077; the superseded $14.99 `price_1TxzWVJOFP4i3BqJ9th7pH9v` is left ACTIVE on purpose because a live subscription is attached to it, and archiving a price stops new checkouts without migrating the old ones), and the webhook endpoint (`we_1TxzXyJOFP4i3BqJ00R4qHTm`) at `https://vollyio.com/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. None of these is a secret. The customer portal settings cannot be read from the repo and want confirming in the dashboard: cancel at period end, payment method updates, no plan switching.

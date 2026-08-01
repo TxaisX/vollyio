@@ -13,10 +13,11 @@ Live: https://vollyio.com
 
 - Next.js 16 (App Router, React 19). Middleware is `proxy.ts`, not `middleware.ts`.
 - Supabase (auth + Postgres 17, row-level security on every table). Exactly one
-  code path can bypass row security: `lib/supabase/service.ts` reads
-  `SUPABASE_SERVICE_ROLE_KEY` and the payment webhook is its only importer, so
-  every other request runs as the signed-in player. That key is not set in
-  production yet, and the webhook fails closed without it.
+  module can bypass row security: `lib/supabase/service.ts` reads
+  `SUPABASE_SERVICE_ROLE_KEY`, and its two importers (the payment webhook; the
+  analyze route's telemetry and quota-refund calls) are each recorded with
+  their reason in `docs/security.md` rule 10. Every other request runs as the
+  signed-in player.
 - The coaching service (a vision model) runs server-side only; the browser never
   sees its key. It is never vendor-named in the UI or docs; the vendor-named
   strings in the repo are env var names and code paths (`ANTHROPIC_API_KEY`, the
@@ -38,18 +39,18 @@ whole trim window at uniform dense coverage rather than a few picked frames (D-0
 
 ## Plans
 
-Free is 3 completed analyses per UTC calendar month, resetting on the 1st. Pro
-is $9.99 a month for 18. The count reads stored analysis rows, so a clip that
-fails, times out, or hits a capacity outage costs the player nothing and needs no
-refund path.
+Free is 3 completed analyses at signup, once, then 1 per UTC calendar month,
+resetting on the 1st (D-076). Pro is $9.99 a month for 18. The count reads
+stored analysis rows, so a clip that fails, times out, or hits a capacity
+outage costs the player nothing and needs no refund path.
 
-The paid path is built end to end and is switched off. Metering arms only when
-both `BILLING_ENABLED=true` and `NEXT_PUBLIC_UPGRADE_URL` are set. Checkout needs
-those same two plus the provider key, price, and endpoint secret, and answers 503
-otherwise rather than selling an allowance nothing is enforcing. Today none of
-that is configured, so nothing is metered, no upgrade button renders, and no
-money can move. `docs/billing.md` is the authority on the model; `SETUP.md` lists
-the environment variables and says which are secret.
+The paid path is built end to end and is LIVE (D-078): `BILLING_ENABLED`,
+`ENFORCE_FREE_CAP`, and all three provider values are set in production, so
+metering is on, the upgrade button renders, and money moves. Checkout still
+answers 503 in any environment missing the provider key, price, or endpoint
+secret, rather than selling an allowance nothing is enforcing.
+`docs/billing.md` is the authority on the model; `SETUP.md` lists the
+environment variables and says which are secret.
 
 ## Quickstart
 

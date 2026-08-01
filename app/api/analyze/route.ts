@@ -469,10 +469,10 @@ export async function POST(req: NextRequest) {
   // the owner alert). One regional round trip, against a request that just spent
   // tens of seconds inside the coaching call.
   //
-  // SUPABASE_SERVICE_ROLE_KEY is not set in the production deployment as this
-  // ships, so createServiceClient() returns null and telemetry stays null on
-  // every row until the key is configured. That is a measurement gap, not a
-  // failure: the analysis returns exactly as it does today.
+  // SUPABASE_SERVICE_ROLE_KEY is set in production (docs/deploy.md), so this
+  // records on every live analysis. In an environment without the key,
+  // createServiceClient() returns null and telemetry stays null on the row: a
+  // measurement gap, not a failure, and the analysis returns exactly the same.
   await recordAnalysisTelemetry(createServiceClient(), analysisId, telemetry);
 
   const { data: prev } = await supabase

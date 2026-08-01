@@ -1,17 +1,18 @@
 # Billing, plans, and analysis allowances
 
-Status: **built, switched off.** The code path is complete end to end, from the
+Status: **built and LIVE** (D-078, corrected 2026-07-31; the "switched off"
+this header used to claim ended when a real card was charged on 2026-07-31 and
+the webhook applied the plan). The code path is complete end to end, from the
 allowance in the database to the plan card, the checkout and portal routes, the
-signed webhook, and the 402 the client renders as a calm state. None of it is
-live: `BILLING_ENABLED` is unset, no provider keys are configured, and the
-provider account still holds no product, price, or webhook endpoint for Vollyio.
-So nothing is metered, no upgrade button renders, and no money can move. Each
-part of section 4 is marked with what landed.
+signed webhook, and the 402 the client renders as a calm state. In production
+today: `BILLING_ENABLED=true`, `ENFORCE_FREE_CAP=true`, all three provider
+values set, and the live product, price, and webhook endpoint exist
+(`docs/deploy.md` records the full environment). Metering is on, the upgrade
+button renders, and money moves.
 
-Turning it on is deliberately a several-step operation, not a flag. Read the
-billing verification steps in `docs/security.md` first and run them on staging:
-they are what proves a player cannot write their own plan. The decisions behind
-this design, and an honest list of what is still missing, are D-064.
+The decisions behind this design are D-064; the arming sequence that was
+followed is `docs/deploy.md` "Billing rollout" plus the verification steps in
+`docs/security.md`.
 
 ## 0. Two switches (D-066)
 
@@ -21,14 +22,17 @@ variables:
     BILLING_ENABLED    the purchase path exists. Pro becomes buyable.
     ENFORCE_FREE_CAP   the monthly allowance actually refuses a rep.
 
-The launch posture is `BILLING_ENABLED` on and `ENFORCE_FREE_CAP` off: the
-product is open, nobody is metered, and anyone who wants the paid plan can
-choose it. The cap is a later decision that can be deferred indefinitely.
+The launch posture as originally recorded was `BILLING_ENABLED` on and
+`ENFORCE_FREE_CAP` off: an open product where Pro is a choice. That window has
+closed: **production today runs both flags on** (D-076/D-077, `docs/deploy.md`),
+so the monthly allowance genuinely refuses a rep and Pro genuinely buys
+capacity. The two variables stay separate because they are separate decisions,
+and turning the cap back off remains a one-variable change.
 
-While the cap is off, Pro does not buy more analyses, because free is already
-unlimited. The plan card says exactly that. Someone upgrading in that window is
-buying the plan early rather than buying capacity, and the copy must never imply
-otherwise.
+While the cap was off, Pro did not buy more analyses, because free was
+unlimited; the plan card said exactly that. The copy discipline survives the
+flip: every surface describes the allowance from the same predicates, so what
+the card promises is always what the reservation enforces.
 
 Enforcement still requires a payment path: `shouldEnforceFreeTier()` is all
 three of the cap flag, the billing flag and an upgrade destination, so a cap can
@@ -129,10 +133,9 @@ Was missing entirely:
 
 ### 4.1 Migration 026, the allowance
 
-**Built.** Shipped as written, plus `analysis_allowance()` for the read that
-4.6 needs and `private.allowance_window()` so the month boundary is derived
-from the server clock and can never be supplied by a caller. Not yet applied to
-production.
+**Built and applied to production**, plus `analysis_allowance()` for the read
+that 4.6 needs and `private.allowance_window()` so the month boundary is
+derived from the server clock and can never be supplied by a caller.
 
 ```
 plan_monthly_allowance(p_plan text) returns int   -- 'pro' -> 18, else 3
@@ -172,7 +175,7 @@ user_id_for_billing_customer(p_customer_id text) returns uuid
 Both are `service_role` only. The migration also adds
 `profiles.stripe_subscription_id` and a check constraint bounding `plan` to
 `free` or `pro`, so an unrecognized plan fails loudly rather than falling
-through to the free allowance. Not yet applied to production.
+through to the free allowance. Applied to production.
 
 `security definer`, `search_path = ''`, revoked from `public`, `anon`, and
 `authenticated`, granted to `service_role` only. The webhook is the sole
@@ -187,13 +190,13 @@ refactor.
 
 ### 4.3 The provider account objects
 
-**Not built. This is the only part of section 4 that is still entirely
-outstanding, and it is owner work in the provider dashboard rather than code.**
-Everything the app needs to consume these objects exists and is dormant until
-the keys are set.
+**Built, in the provider dashboard.** The product (`prod_UxvNH2y52Rmz5o`), the
+$9.99 price, and the webhook endpoint all exist and the keys are set in
+production (`docs/deploy.md` records the objects and the environment). The list
+below stands as the record of what was created and why.
 
-Account `acct_1NMwN5JOFP4i3BqJ`, display name Vollyio. It currently holds only
-dormant products from a previous business, nothing for this app. Create:
+Account `acct_1NMwN5JOFP4i3BqJ`, display name Vollyio. It previously held only
+dormant products from another business. Created for this app:
 
 - **Product** `Vollyio Pro`, type service, metadata `plan=pro`,
   `monthly_analyses=18`.

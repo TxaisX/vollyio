@@ -17,14 +17,11 @@ type BillingProfile = {
 // `fetch` that calls it, the same reason docs/billing.md 4.5 forbids it for the
 // 402.
 //
-// No atomic quota runs here, and that is a decision rather than an omission.
-// `consume_api_quota` accepts only the four scopes fixed in SQL ('analyze',
-// 'coach', 'coach_daily', 'account_delete'). Borrowing 'analyze' would let a
+// The atomic quota below runs on the dedicated 'billing' scope (migration
+// 028, 10 per hour), never 'analyze': borrowing the analyze scope would let a
 // player who clicks upgrade twice burn the analysis slots they are trying to
-// buy more of, which is a worse failure than the one a quota would prevent. A
-// dedicated billing scope needs a migration; until it exists the gates are the
-// same-origin check and a verified session, and every session created below is
-// bound to that verified user id rather than to anything the caller sent.
+// buy more of. Every session created below is bound to the verified user id
+// rather than to anything the caller sent.
 export async function POST(req: NextRequest) {
   if (!hasTrustedMutationOrigin(req)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

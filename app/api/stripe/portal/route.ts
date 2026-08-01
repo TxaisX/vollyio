@@ -14,11 +14,11 @@ type BillingProfile = {
 // where cancelling and changing a card live. Returns the URL for the client to
 // navigate to, never a redirect, because the caller is a `fetch`.
 //
-// Like the checkout route this consumes no atomic quota: the four scopes in
-// `consume_api_quota` are fixed in SQL and none of them is a billing scope,
-// and spending an analysis slot to open a cancellation page would punish the
-// player for leaving. Same-origin plus a verified session are the gates, and
-// the customer id comes from their own profile row rather than the request.
+// Like the checkout route this consumes the atomic 'billing' quota (migration
+// 028, 10 per hour, shared with checkout), never 'analyze': spending an
+// analysis slot to open a cancellation page would punish the player for
+// leaving. Same-origin plus a verified session gate the call, and the
+// customer id comes from their own profile row rather than the request.
 export async function POST(req: NextRequest) {
   if (!hasTrustedMutationOrigin(req)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

@@ -20,7 +20,7 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 | `NEXT_PUBLIC_SUPABASE_URL` | no | public by design |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | anon/publishable key; row security is what enforces access |
 | `ANTHROPIC_API_KEY` | **yes** | the coaching service; server-side only |
-| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone, imported by the payment webhook alone. Absent means the webhook fails closed |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone; its two importers (payment webhook; analyze telemetry/refund, D-065) are recorded in `docs/security.md` rule 10. Absent means the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | **yes** | the payment provider API key |
 | `STRIPE_WEBHOOK_SECRET` | **yes** | the endpoint signing secret. Absent means every event is rejected and no plan is ever written |
 | `STRIPE_PRICE_ID` | no, but server-only | the recurring price to charge. Not a secret and deliberately not `NEXT_PUBLIC_`: the browser has no use for it, and a client-visible price id is the shape of the bug where the caller decides what to charge |
@@ -46,9 +46,9 @@ node --test lib/ratings.test.ts
 If a build fails with `EPERM: unlink .next/...`, OneDrive locked a build file - `Remove-Item -Recurse -Force .next` and rebuild.
 
 ## 4. Turning billing on
-Billing is built and inert. Nothing is metered and no upgrade button renders until both keys below are present, so this is a several-step operation rather than a flag.
+Billing is LIVE in production (D-078); this sequence was followed and stands as the record, and as the procedure for any fresh environment. Nothing is metered and no upgrade button renders until both keys below are present, so this is a several-step operation rather than a flag.
 
-1. Migrations `026`, `027`, and `028` are applied to production already.
+1. Migrations `026`, `027`, and `028` are applied to production already (production now carries everything through `040`).
 2. In the payment provider dashboard: the live product, the $9.99 monthly price, and the webhook endpoint for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed` all exist (IDs recorded in `docs/deploy.md`). The customer portal settings - cancel at period end, payment method updates, no plan switching, since there is only one plan - cannot be read from the repo; confirm them in the dashboard before arming, because the portal route is the player's only way to cancel.
 3. Set `STRIPE_WEBHOOK_SECRET` **first** and `STRIPE_SECRET_KEY` **last**, with `STRIPE_PRICE_ID`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_UPGRADE_URL` alongside. The ordering matters: a deployment holding a key and a price but no endpoint secret would take payments it can never apply.
 4. Run the billing verification steps `B0` through `B10` in `docs/security.md` against a staging project. `B2` through `B5` are the ones a green build will tempt you to skip, and they are the only proof that a player cannot write their own plan. No test in the suite can stand in for them.

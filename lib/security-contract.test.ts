@@ -73,6 +73,36 @@ test("coach quota migration pins the hardened limits (D-047)", async () => {
   assert.match(sql, /revoke all on function public\.consume_api_quota\(text\) from public/i);
 });
 
+test("the newest quota definition carries every scope, including billing (migration 028)", async () => {
+  // 018's pins above assert against 018's own file, which a later migration can
+  // legitimately supersede. This reads the NEWEST migration that redefines
+  // consume_api_quota, the same pattern the frame-cap test uses, so the full
+  // scope list and the billing limit can never silently drop out of a future
+  // redefinition. Until this existed, docs/security.md spent a month claiming
+  // the billing scope did not exist while 028 sat applied in production.
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let quota = "";
+  for (const name of names) {
+    const sql = await readFile(new URL(name, dir), "utf8");
+    if (/create or replace function public\.consume_api_quota/i.test(sql)) quota = sql;
+  }
+  assert.notEqual(quota, "", "no migration defines consume_api_quota");
+  assert.match(
+    quota,
+    /scope in \('analyze', 'coach', 'coach_daily', 'account_delete', 'billing'\)/i,
+  );
+  assert.match(quota, /when 'analyze' then\s*v_limit := 20;/i);
+  assert.match(quota, /when 'coach' then\s*v_limit := 20;/i);
+  assert.match(quota, /when 'coach_daily' then\s*v_limit := 30;\s*v_window := interval '24 hours';/i);
+  assert.match(quota, /when 'account_delete' then\s*v_limit := 3;/i);
+  // Generous for a human deciding whether to subscribe, tight enough that a
+  // script cannot mint provider objects in a loop (10/hr).
+  assert.match(quota, /when 'billing' then\s*v_limit := 10;/i);
+  // An unknown scope raises rather than falling through to some default limit.
+  assert.match(quota, /raise invalid_parameter_value using message = 'unknown quota scope'/i);
+});
+
 test("the one-argument quota refund is dropped and stays dropped", async () => {
   // 018 shipped `refund_api_quota(text)` granted to `authenticated`. Because
   // PostgREST publishes every SECURITY DEFINER function, a player could call it
