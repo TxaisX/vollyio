@@ -1059,9 +1059,41 @@ export function AnalyzeFlow({
                 >
                   Upload a clip
                 </button>
+                {/* Concrete framing guidance, not "any angle you can get"
+                    (D-081). The first cold signup filmed a rep the read could
+                    not see at all: every cue came back not_visible, the score
+                    fell back to a whole-clip guess, and the player spent one
+                    of their analyses to learn nothing. The checklist scores
+                    what the camera shows, so what the camera shows is the one
+                    thing worth saying before they film. */}
                 <p className="mt-3 text-xs text-chalk-dim">
-                  One rep, up to 10 seconds. Any angle you can get. Film with
-                  your camera app, then pick the clip here.
+                  One rep, up to 10 seconds. Film with your camera app, then
+                  pick the clip here.
+                </p>
+                <ul className="mx-auto mt-3 max-w-xs space-y-1 text-left text-xs text-chalk-dim">
+                  <li className="flex gap-2">
+                    <span aria-hidden="true" className="text-gold">
+                      &middot;
+                    </span>
+                    Fill the frame with the athlete, not the whole court
+                  </li>
+                  <li className="flex gap-2">
+                    <span aria-hidden="true" className="text-gold">
+                      &middot;
+                    </span>
+                    Start before the rep and stop after it, so the whole motion
+                    is in the clip
+                  </li>
+                  <li className="flex gap-2">
+                    <span aria-hidden="true" className="text-gold">
+                      &middot;
+                    </span>
+                    From the side beats head on, and one rep beats a rally
+                  </li>
+                </ul>
+                <p className="mx-auto mt-3 max-w-xs text-xs text-chalk-dim/80">
+                  The read scores what it can see. A distant or half-cut rep
+                  comes back with cues marked not visible instead of scored.
                 </p>
               </div>
 

@@ -316,6 +316,16 @@ export default async function AnalysisDetail({
               : `Graded on ${result.coverage_pct}% of the checklist`}
           </p>
         )}
+        {/* Naming the gap without naming the remedy leaves the player to
+            conclude the product is broken rather than the framing was (D-081).
+            The first cold signup scored 0% coverage on their first rep. */}
+        {result.low_confidence && (
+          <p className="mt-2 max-w-prose text-body text-chalk-dim">
+            Most of this rep was out of frame or too far away to judge. Next
+            clip, fill the frame with the athlete and keep the whole motion in
+            the shot, and the checklist has something to score.
+          </p>
+        )}
         {/* One rep is one rep (D-079): the line under a rough score says where
             the form STANDS, so the rep number never reads as a demotion, and a
             best rep gets named as one. */}

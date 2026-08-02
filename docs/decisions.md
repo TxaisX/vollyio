@@ -3023,3 +3023,35 @@ with no bot protection and (until Supabase Pro lands) ~36 analyses of total
 storage headroom is the 2026-07-20 outage with an audience. The storage
 purchase is the owner's next console action; at the current trickle the bump
 is safe ahead of it, and the math flips the moment traffic does.
+
+## D-081 - Tell them how to film before they spend a rep on it
+
+**Date**: 2026-08-02. **Status**: shipped.
+
+The first cold signup's first analysis came back with **0% checklist
+coverage**: every cue `not_visible`, the score falling back to the model's
+whole-clip read, and the player down one of their five analyses having
+learned nothing about their mechanics. That is the worst outcome the system
+can produce, and it is not a scoring bug. The honesty machinery worked
+exactly as designed (D-038: what the camera did not show is excluded rather
+than counted against the athlete). The failure was upstream: nothing told
+them how to film.
+
+The upload step said "Any angle you can get", which is friendly and wrong.
+The read scores what the camera shows, so framing is not a preference, it is
+the input that decides whether there is anything to score. It now says what
+actually drives coverage: fill the frame with the athlete rather than the
+court, keep the whole motion in the clip, side-on over head-on, one rep over
+a rally. Plus the honest consequence, so the guidance reads as physics
+rather than nagging: a distant or half-cut rep comes back with cues marked
+not visible instead of scored.
+
+The breakdown page closes the same loop from the other end. A low-confidence
+read named the gap ("Graded on 0% of the checklist") and stopped there,
+which invites the reader to conclude the product is broken rather than the
+framing was. It now names the remedy in one line.
+
+This is the cheapest thing in the product to get right and one of the most
+expensive to get wrong: an unreadable clip costs a real $0.234 coaching
+call, one of the player's five grants, and their first impression, all at
+once. Cost and conversion are the same fix here.
