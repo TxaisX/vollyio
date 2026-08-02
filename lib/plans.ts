@@ -16,13 +16,15 @@ export const MONTHLY_ALLOWANCE: Record<Plan, number> = {
 
 // Completed analyses a new account may run before the recurring rate applies.
 // Spent against LIFETIME rows in `analyses`, not stored and not decremented, so
-// three ever closes it whichever months they land in (migration 040).
+// five ever closes it whichever months they land in (migration 044).
 //
 // It exists because the rating only moves on the second read of a skill
 // (`updateRating` in lib/ratings.ts seeds on the first), so a player held to
 // one a month from signup would wait a month to see the product do the one
-// thing it is for.
-export const SIGNUP_GRANT = 3;
+// thing it is for. 3 -> 5 on D-080: the first day of real launch feedback was
+// unanimous that 3 was not enough room to evaluate the product, and 5 buys
+// two full rating progressions on one skill plus a spare.
+export const SIGNUP_GRANT = 5;
 
 export function isPlan(value: unknown): value is Plan {
   return typeof value === "string" && (PLANS as readonly string[]).includes(value);

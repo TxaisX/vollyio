@@ -231,6 +231,17 @@ export default function Landing() {
                 the one fix that buys the most. The whole read, in a
                 ten-second loop.
               </p>
+              {/* The zero-cost way to evaluate the product (D-080): three
+                  real breakdowns, browsable with no account, so "let me see
+                  what it actually does" never costs a signup or a rep. */}
+              <p className="mt-4">
+                <Link
+                  href="/samples"
+                  className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold transition-colors hover:text-chalk"
+                >
+                  Or browse three real breakdowns first &rarr;
+                </Link>
+              </p>
             </Reveal>
             <Reveal delay={120}>
               {/* max kept at 2deg: the film is the attention object, the tilt

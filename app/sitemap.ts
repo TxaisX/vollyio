@@ -12,6 +12,7 @@ import { REHAB } from "@/content/rehab";
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 },
+    { url: `${SITE_URL}/samples`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/learn`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/drills`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/start`, changeFrequency: "yearly", priority: 0.9 },

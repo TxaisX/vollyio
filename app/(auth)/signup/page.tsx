@@ -3,12 +3,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
+import { SIGNUP_GRANT } from "@/lib/plans";
 import { signup } from "../actions";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
   title: "Sign up",
-  description: "Create your Vollyio account and get your first breakdown free.",
+  // Quoted from the plan constant, never retyped: this line said "your first
+  // breakdown free" while the grant was 3, which undersold the offer for a
+  // month before anyone noticed.
+  description: `Create your Vollyio account and get your first ${SIGNUP_GRANT} breakdowns free.`,
   alternates: { canonical: "/signup" },
 };
 

@@ -2990,3 +2990,36 @@ estimate of the player, and choosing its estimator is statistics, not curving.
 Rejected: high-water-mark-only as THE rating (stops measuring; one lucky angle
 sets an unbeatable number; regression from rust or injury goes invisible; goal
 progress loses meaning).
+
+## D-080 - Evaluation must be free even where analysis cannot be
+
+**Date**: 2026-08-02. **Status**: shipped.
+
+The launch posts produced two cold signups and exactly one species of
+feedback, from every commenter: "3 analyses is not enough to test this."
+Half of that objection was self-inflicted: the one zero-cost way to evaluate
+the product, the shared breakdown link in the post, was broken for its first
+nine hours (a markdown escape put a literal backslash in the token), so the
+only way to see anything was to spend a signup. The fix is to separate
+evaluating the product from using it, and make the first one free forever:
+
+1. **`/samples`** - three real, unedited breakdowns (pass 87, set 77, attack
+   63, all full-coverage reads) served through the same share pages players
+   mint, with the expiry pushed to 2031 on those three rows. The score spread
+   is deliberate: a stranger should see what a middling number looks like
+   before spending a signup, because the honest 63 is the sales pitch. Linked
+   from the landing film-room section and the sitemap. Zero marginal cost per
+   viewer; the storage was already spent.
+
+2. **Signup grant 3 -> 5** (migration 044, `SIGNUP_GRANT` in lib/plans.ts,
+   pinned together by lib/plans.test.ts). Five buys two full rating
+   progressions on one skill plus a spare, which is "enough leeway to test"
+   in the commenters' own terms. $1.17 per fully-active signup at the
+   measured $0.234; break-even conversion moves ~4.3% -> ~5%, top of the
+   freemium band but inside it. The grant stays lifetime-spent and unstored.
+
+Rejected: dropping the cap or an unlimited launch window. Unbounded spend
+with no bot protection and (until Supabase Pro lands) ~36 analyses of total
+storage headroom is the 2026-07-20 outage with an audience. The storage
+purchase is the owner's next console action; at the current trickle the bump
+is safe ahead of it, and the math flips the moment traffic does.
