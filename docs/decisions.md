@@ -2953,3 +2953,40 @@ the tenth look like dead scratch too. The only thing separating a throwaway
 research branch from the repo's only copy of the security headers was one
 `rev-list` per branch, which cost seconds. Check before deleting, always, and
 prefer `git branch -d` over `-D` so the tool enforces it when the check does not.
+
+## D-079 - The rating trusts progress more than it trusts one bad day
+
+**Date**: 2026-08-01. **Status**: shipped (migration 043 applied).
+
+The rolling skill rating moved by the same alpha (0.35) in both directions, so
+one 50-scoring rep under a 75 rating erased ~9 points: two weeks of gains gone
+to one bad toss, a tired evening, or a camera angle. Players experience that as
+punishment, and a product whose progression demo is what converts cannot have
+its central number feel like a slot machine.
+
+Three changes, one boundary held:
+
+1. **Asymmetric smoothing** (`lib/ratings.ts`): `ALPHA_UP` stays 0.35,
+   `ALPHA_DOWN` is 0.15. This is a modeling claim, not flattery: skill does not
+   vanish in a day but does jump when a fix lands, so upward evidence deserves
+   more weight. A single bad rep is now a ~4-point nudge; eight straight bad
+   reps still drag a rating under 60, so sustained decline stays visible.
+   Coverage-weighting is unchanged.
+
+2. **The personal best is never lost** (migration 043, `personal_bests()`):
+   MAX(overall_score) over the caller's own analyses per skill and discipline,
+   derived on read so it cannot drift and stores nothing. SECURITY INVOKER,
+   deliberately unlike most functions here: plain RLS is exactly the scoping
+   wanted, so no definer privilege is taken. Dashboard skill cards show
+   "best N" under the rating; the breakdown page shows form and best under the
+   rep score, and a rep at the high-water mark is named "your best yet".
+
+3. **Framing copy**: a rough rep renders beside where the form stands, never
+   as a demotion headline.
+
+The boundary: the per-rep SCORE is untouched. D-040's no-curve rule is why the
+product is trustworthy, and it applies to the read of a rep. The rating is an
+estimate of the player, and choosing its estimator is statistics, not curving.
+Rejected: high-water-mark-only as THE rating (stops measuring; one lucky angle
+sets an unbeatable number; regression from rust or injury goes invisible; goal
+progress loses meaning).

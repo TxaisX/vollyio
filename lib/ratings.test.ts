@@ -5,20 +5,37 @@ import {
   overallScore,
   scoreBand,
   coherentOverall,
-  ALPHA,
+  ALPHA_UP,
+  ALPHA_DOWN,
 } from "./ratings.ts";
 
 test("first rating seeds with the score", () => {
   assert.equal(updateRating(null, 72), 72);
 });
 
-test("EWMA moves toward the new score by ALPHA", () => {
-  assert.equal(updateRating(60, 80), Math.round((60 + ALPHA * 20) * 10) / 10);
+test("EWMA moves toward a better score by ALPHA_UP", () => {
+  assert.equal(updateRating(60, 80), Math.round((60 + ALPHA_UP * 20) * 10) / 10);
+});
+
+test("EWMA moves toward a worse score by the smaller ALPHA_DOWN", () => {
+  assert.equal(updateRating(80, 40), Math.round((80 + ALPHA_DOWN * -40) * 10) / 10);
+});
+
+test("the same gap moves the rating further up than down", () => {
+  const up = updateRating(60, 80) - 60;
+  const down = 80 - updateRating(80, 60);
+  assert.ok(up > down, `up ${up} should exceed down ${down}`);
 });
 
 test("EWMA is stable against one bad rep", () => {
   const dropped = updateRating(80, 40);
-  assert.ok(dropped > 60, `expected > 60, got ${dropped}`);
+  assert.ok(dropped > 70, `one bad rep must stay a nudge, got ${dropped}`);
+});
+
+test("sustained decline still shows honestly", () => {
+  let r: number | null = 80;
+  for (let i = 0; i < 8; i++) r = updateRating(r, 45);
+  assert.ok(r! < 60, `eight bad reps must move the trend, got ${r}`);
 });
 
 test("EWMA converges upward across reps", () => {
@@ -31,8 +48,8 @@ test("a low-coverage rep moves the rating less than a full-coverage one", () => 
   const full = updateRating(70, 90, 100);
   const half = updateRating(70, 90, 50);
   const none = updateRating(70, 90, 0);
-  assert.equal(full, Math.round((70 + ALPHA * 1 * 20) * 10) / 10); // 77
-  assert.equal(half, Math.round((70 + ALPHA * 0.5 * 20) * 10) / 10); // 73.5
+  assert.equal(full, Math.round((70 + ALPHA_UP * 1 * 20) * 10) / 10); // 77
+  assert.equal(half, Math.round((70 + ALPHA_UP * 0.5 * 20) * 10) / 10); // 73.5
   assert.ok(half < full && half > 70, `half ${half} should sit between 70 and ${full}`);
   assert.equal(none, 70); // zero coverage cannot move the rating at all
 });

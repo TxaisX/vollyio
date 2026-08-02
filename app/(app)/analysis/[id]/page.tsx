@@ -120,27 +120,47 @@ export default async function AnalysisDetail({
   // storage signings, all keyed on the row just read and independent of one
   // another. The prev read is RLS plus the explicit owner filter, a read
   // within the existing select grant, so no security surface changes.
-  const [{ data: prevRow }, { data: signed }, signedClip] = await Promise.all([
-    supabase
-      .from("analyses")
-      .select("result")
-      .eq("user_id", userId!)
-      .eq("skill", row.skill)
-      .eq("discipline", row.discipline)
-      .lt("created_at", row.created_at)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase.storage.from("frames").createSignedUrls(row.frame_paths, 3600),
-    row.clip_path
-      ? supabase.storage.from("clips").createSignedUrl(row.clip_path, 3600)
-      : Promise.resolve(null),
-  ]);
+  const [{ data: prevRow }, { data: signed }, signedClip, { data: ratingRow }, { data: bestRows }] =
+    await Promise.all([
+      supabase
+        .from("analyses")
+        .select("result")
+        .eq("user_id", userId!)
+        .eq("skill", row.skill)
+        .eq("discipline", row.discipline)
+        .lt("created_at", row.created_at)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.storage.from("frames").createSignedUrls(row.frame_paths, 3600),
+      row.clip_path
+        ? supabase.storage.from("clips").createSignedUrl(row.clip_path, 3600)
+        : Promise.resolve(null),
+      // The rolling rating and the high-water mark, for the framing line under
+      // the score (D-079): a rough rep renders beside where the form stands
+      // and what it has reached, so one number never reads as a demotion.
+      // Either read failing renders no line rather than a wrong one.
+      supabase
+        .from("skill_ratings")
+        .select("rating")
+        .eq("user_id", userId!)
+        .eq("skill", row.skill)
+        .eq("discipline", row.discipline)
+        .maybeSingle(),
+      supabase.rpc("personal_bests"),
+    ]);
   const lastTime = lastTimeFix(
     (prevRow?.result as AnalysisResult | undefined) ?? null,
     result,
   );
   const sharingActive = (liveLinks?.length ?? 0) > 0;
+
+  const formRating = (ratingRow as { rating: number } | null)?.rating ?? null;
+  const personalBest =
+    (
+      (bestRows as { skill: string; discipline: string; best: number }[] | null) ?? []
+    ).find((b) => b.skill === row.skill && b.discipline === row.discipline)?.best ??
+    null;
   const initialFeedback = fb
     ? {
         wasRight: fb.was_right as boolean,
@@ -294,6 +314,16 @@ export default async function AnalysisDetail({
             {result.low_confidence
               ? `Graded on ${result.coverage_pct}% of the checklist; the rest wasn't visible`
               : `Graded on ${result.coverage_pct}% of the checklist`}
+          </p>
+        )}
+        {/* One rep is one rep (D-079): the line under a rough score says where
+            the form STANDS, so the rep number never reads as a demotion, and a
+            best rep gets named as one. */}
+        {formRating != null && personalBest != null && (
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
+            {row.overall_score >= personalBest
+              ? `Your best ${SKILL_LABEL[row.skill].toLowerCase()} rep yet`
+              : `Your ${SKILL_LABEL[row.skill].toLowerCase()} form: ${Math.round(formRating)} · best ${personalBest}`}
           </p>
         )}
       </Reveal>

@@ -1,4 +1,14 @@
-export const ALPHA = 0.35;
+// Asymmetric on purpose (D-079). Skill does not vanish in a day but it does
+// jump when a fix lands, so the estimator trusts upward evidence more: one
+// 50-scoring rep under a 75 rating is far more likely fatigue, a bad angle, or
+// one ugly toss than lost ability, while a first clean rep after a fix is
+// exactly the signal the product exists to reward. At 0.15 down, a single bad
+// rep is a nudge (~4 points on a 25-point gap) and eight straight bad reps
+// still drag the trend under 60, so sustained decline stays honest. The
+// per-rep SCORE is never touched by any of this (D-040): the read stays
+// blunt, the rating is the estimate.
+export const ALPHA_UP = 0.35;
+export const ALPHA_DOWN = 0.15;
 
 // Rolling skill rating. A rep graded on partial coverage moves the rating less
 // than one graded on the full checklist, so a few bad-angle clips do not swing
@@ -12,7 +22,8 @@ export function updateRating(
 ): number {
   if (prev == null) return score;
   const w = Math.max(0, Math.min(1, coveragePct / 100));
-  return Math.round((prev + ALPHA * w * (score - prev)) * 10) / 10;
+  const alpha = score >= prev ? ALPHA_UP : ALPHA_DOWN;
+  return Math.round((prev + alpha * w * (score - prev)) * 10) / 10;
 }
 
 export function overallScore(ratings: (number | null)[]): number | null {

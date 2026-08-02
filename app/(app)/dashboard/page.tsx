@@ -44,6 +44,7 @@ export const metadata: Metadata = {
 };
 
 type RatingRow = { skill: Skill; rating: number };
+type BestRow = { skill: Skill; discipline: string; best: number };
 type AnalysisRow = {
   id: string;
   skill: Skill;
@@ -216,6 +217,7 @@ export default async function Dashboard({
     { data: ratingsData, error: ratingsError },
     { data: analysesData, error: analysesError },
     { data: goalsData, error: goalsError },
+    { data: bestsData },
     progress,
     allowance,
   ] = await Promise.all([
@@ -253,6 +255,11 @@ export default async function Dashboard({
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(3),
+    // All-time high-water marks (D-079, migration 043): MAX over the caller's
+    // own analyses, derived on read so it can never drift from the reps. Not
+    // in fetchError below on purpose: a failed read renders no "best" line
+    // rather than failing the dashboard, the same posture as the allowance.
+    supabase.rpc("personal_bests"),
     getProgress(supabase, userId!),
     // Only ask when the cap is actually enforced, so the counter cannot appear
     // in a build where nothing is metered. In the same round trip as the rest:
@@ -269,6 +276,15 @@ export default async function Dashboard({
   ) as Partial<Record<Skill, number>>;
   const analyses = (analysesData as AnalysisRow[] | null) ?? [];
   const goals = (goalsData as GoalRow[] | null) ?? [];
+
+  // Per-skill personal best within the discipline group being shown, so the
+  // best sits on the same axis as the rating beside it.
+  const groupSet = new Set<string>(GROUP_DISCIPLINES[disciplineGroup(discipline)]);
+  const bests: Partial<Record<Skill, number>> = {};
+  for (const b of (bestsData as BestRow[] | null) ?? []) {
+    if (!groupSet.has(b.discipline)) continue;
+    bests[b.skill] = Math.max(bests[b.skill] ?? 0, b.best);
+  }
 
   // Latest priority fix per skill for the card's one-line fix history (D-044).
   // analyses is ordered newest-first, so the first hit per skill is the latest.
@@ -497,13 +513,23 @@ export default async function Dashboard({
                         </span>
                         {SKILL_LABEL[skill]}
                       </span>
-                      <span className="font-display text-xl font-bold text-gold">
-                        {rating != null ? (
-                          Math.round(rating)
-                        ) : (
-                          <span className="text-chalk-dim">
-                            <span className="sr-only">Not rated yet</span>
-                            <span aria-hidden="true">·</span>
+                      <span className="text-right">
+                        <span className="font-display text-xl font-bold text-gold">
+                          {rating != null ? (
+                            Math.round(rating)
+                          ) : (
+                            <span className="text-chalk-dim">
+                              <span className="sr-only">Not rated yet</span>
+                              <span aria-hidden="true">·</span>
+                            </span>
+                          )}
+                        </span>
+                        {/* The high-water mark never disappears under a rough
+                            patch (D-079): the rating says where the form is,
+                            this says what it has reached. */}
+                        {bests[skill] != null && rating != null && (
+                          <span className="block font-mono text-[10px] text-chalk-dim">
+                            best {bests[skill]}
                           </span>
                         )}
                       </span>
