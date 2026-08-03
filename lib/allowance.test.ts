@@ -47,6 +47,8 @@ test("a good reply becomes the counter, and asks for nothing but its own row", a
     // the deploy window this has to survive: null, not an invented grant.
     grantRemaining: null,
     monthlyRate: null,
+    grant: null,
+    lifetimeUsed: null,
   });
   assert.equal(name, "analysis_allowance");
   assert.equal(args, undefined);
@@ -141,6 +143,8 @@ test("the counter line reports plainly at three, one, and none", () => {
     resetsAt: GOOD.resets_at,
     grantRemaining: null,
     monthlyRate: null,
+    grant: null,
+    lifetimeUsed: null,
   });
 
   assert.equal(allowanceCopy(at(1)), "2 of 3 left this month");
@@ -170,6 +174,8 @@ test("the reset date is read in UTC, because the window is a UTC month", () => {
     resetsAt: "2026-08-01T00:00:00+00:00",
     grantRemaining: null,
     monthlyRate: null,
+    grant: null,
+    lifetimeUsed: null,
   };
   // Midnight UTC on the 1st is still the previous evening in every zone west of
   // Greenwich. The player is told the month it belongs to, not the local clock.
@@ -205,6 +211,8 @@ const counter = (
   resetsAt: "2026-08-01T00:00:00+00:00",
   grantRemaining: null,
   monthlyRate: null,
+  grant: null,
+  lifetimeUsed: null,
 });
 
 test("the tone follows the remaining count and nothing else", () => {
@@ -393,4 +401,69 @@ test("the offer is the same offer at every moment, and never manufactures urgenc
       assert.doesNotMatch(line, /only today|hurry|last chance|expires|ends soon/i);
     }
   }
+});
+
+test("while the signup grant is live the counter reports lifetime, not the month", () => {
+  // The exact shape that produced the complaint: a hand-set grant of 50 on an
+  // account with 20 analyses behind it and 1 this window. The window ceiling
+  // the SQL derives is 31 (30 remaining + 1 used), which is an artifact of the
+  // arithmetic and means nothing to the player, and "this month" is false
+  // because grant analyses do not reset. Both were being rendered.
+  const granted = {
+    plan: "pro" as const,
+    allowance: 31,
+    used: 1,
+    remaining: 30,
+    resetsAt: GOOD.resets_at,
+    grantRemaining: 30,
+    monthlyRate: 18,
+    grant: 50,
+    lifetimeUsed: 20,
+  };
+
+  assert.equal(allowanceCopy(granted), "20 of 50 used");
+  // The two false things must both be gone.
+  assert.doesNotMatch(allowanceCopy(granted), /this month/i);
+  assert.equal(allowanceCopy(granted).includes("31"), false);
+
+  // A fresh free account on the six-skill grant.
+  const fresh = { ...granted, plan: "free" as const, allowance: 6, used: 0,
+    remaining: 6, grantRemaining: 6, monthlyRate: 1, grant: 6, lifetimeUsed: 0 };
+  assert.equal(allowanceCopy(fresh), "0 of 6 used");
+});
+
+test("once the grant is spent the counter goes back to speaking about the month", () => {
+  const spent = {
+    plan: "free" as const,
+    allowance: 1,
+    used: 0,
+    remaining: 1,
+    resetsAt: GOOD.resets_at,
+    grantRemaining: 0,
+    monthlyRate: 1,
+    grant: 6,
+    lifetimeUsed: 6,
+  };
+  // The monthly rate is what binds now, so the month is the honest frame.
+  assert.equal(allowanceCopy(spent), "1 analysis this month");
+  assert.equal(allowanceCopy({ ...spent, allowance: 18, remaining: 7, used: 11 }),
+    "7 of 18 left this month");
+});
+
+test("a database that cannot report the grant falls back rather than guessing", () => {
+  // Between a deploy and its migration the two new fields are absent. Inventing
+  // a lifetime figure would be a number shown as a fact, so the copy reverts to
+  // the window frame it can actually substantiate.
+  const partial = {
+    plan: "free" as const,
+    allowance: 6,
+    used: 2,
+    remaining: 4,
+    resetsAt: GOOD.resets_at,
+    grantRemaining: 4,
+    monthlyRate: 1,
+    grant: null,
+    lifetimeUsed: null,
+  };
+  assert.equal(allowanceCopy(partial), "4 of 6 left this month");
 });

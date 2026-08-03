@@ -3130,3 +3130,42 @@ set it to `N + their current lifetime count`, not N. `set_analysis_grant`
 returns `lifetime_analyses` and `grant_remaining` in its result for exactly
 this reason, so the answer is visible in the call rather than needing a
 second query.
+
+## D-084 - The counter says what you were given and what you spent
+
+**Date**: 2026-08-02. **Status**: shipped (migration 047 applied).
+
+An account handed a grant of 50, with 20 analyses behind it and 1 this
+window, rendered **"30 of 31 left this month"**. Every number in that
+sentence is derived correctly and the sentence is still false twice over:
+
+- **31 is not a promise, it is an artifact.** `allowance` is
+  `greatest(rate, least(grantLeft + used, grant))`, so the denominator is
+  "what remains plus what happens to have been spent inside the current
+  window". Nobody was ever offered 31 of anything.
+- **"this month" describes a refill that will not happen.** Grant analyses
+  are spent against LIFETIME rows (D-076). They do not reset. The player
+  reading that line would expect 31 again on the first, and get 1.
+
+The counter is the one surface whose entire job is telling a player where
+they stand, so this is the worst place in the product for a number that
+needs explaining. The fix is data rather than phrasing: `analysis_allowance()`
+now also returns `grant` and `lifetime_used`, and the copy reports
+**"20 of 50 used"** while the grant is what is being spent, dropping the
+month entirely because the month is not the frame. Once the grant is gone
+and the recurring rate binds, the window frame returns and is true again:
+"7 of 18 left this month".
+
+`allowanceLine`'s warning follows the same rule. "Last analysis this month"
+promised the wrong refill at the end of a grant; it now reads "Last of your
+6. Then 1 a month, from Sep 1", which names both the number ending and the
+different number starting.
+
+Both new fields default to null in `lib/allowance.ts`, and the copy falls
+back to the window frame when either is absent, because a build running
+ahead of its migration can substantiate the window and cannot substantiate a
+lifetime. Inventing one would be the same class of error this entry exists
+to fix.
+
+The gate is untouched. Nothing about what any player may spend changed;
+only what they are told about it.

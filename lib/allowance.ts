@@ -29,6 +29,15 @@ export type Allowance = {
   // an account that no longer has one would promise reps the gate refuses.
   grantRemaining: number | null;
   monthlyRate: number | null;
+  // The grant's own two numbers, so a counter can say what a player has spent
+  // of what they were given instead of quoting the window ceiling (D-084).
+  // `allowance` above is derived as grantLeft + used capped at the grant, which
+  // is correct arithmetic and meaningless as a denominator: an account given 50
+  // with 20 behind it renders "30 of 31", where the 31 is an artifact and the
+  // 30 do not reset the way "this month" claims. Both default to null, because
+  // a build ahead of its migration must fall back rather than invent a lifetime.
+  grant: number | null;
+  lifetimeUsed: number | null;
 };
 
 // Fail soft, and deliberately so. Everything else on the analyze path fails
@@ -57,6 +66,8 @@ export async function readAllowance(
     resets_at: resetsAt,
     grant_remaining: grantRemaining,
     monthly_rate: monthlyRate,
+    grant,
+    lifetime_used: lifetimeUsed,
   } = row;
 
   // A plan string this build has no name for means the database is ahead of the
@@ -86,7 +97,24 @@ export async function readAllowance(
     // allowance: a first-window player and a downgraded one can both show 3.
     grantRemaining: isCount(grantRemaining) ? grantRemaining : null,
     monthlyRate: isCount(monthlyRate) ? monthlyRate : null,
+    grant: isCount(grant) ? grant : null,
+    lifetimeUsed: isCount(lifetimeUsed) ? lifetimeUsed : null,
   };
+}
+
+// Whether the one-time grant is the thing the player is actually spending. Both
+// numbers have to be present as well as unspent: a build whose database predates
+// the migration that reports them can substantiate the window frame and nothing
+// else, and a counter that guessed a lifetime figure would be inventing a fact.
+function grantIsLive(
+  a: Allowance,
+): a is Allowance & { grant: number; lifetimeUsed: number } {
+  return (
+    a.grantRemaining != null &&
+    a.grantRemaining > 0 &&
+    a.grant != null &&
+    a.lifetimeUsed != null
+  );
 }
 
 function isCount(value: unknown): value is number {
@@ -97,6 +125,14 @@ function isCount(value: unknown): value is number {
 // reporting: the plan card does the selling, this only says where they stand.
 export function allowanceCopy(a: Allowance): string {
   if (a.remaining === 0) return "None left this month";
+  // While the grant is what the player is spending, BOTH halves of the window
+  // sentence are false: the denominator is grantLeft + used rather than
+  // anything the player was promised, and grant analyses never reset, so "this
+  // month" describes a refill that will not happen. Report what was given and
+  // what is gone, which is the only frame both numbers are true in (D-084).
+  if (grantIsLive(a)) {
+    return `${a.lifetimeUsed} of ${a.grant} used`;
+  }
   // "1 of 1 left" is the free rate's normal untouched state and reads as though
   // something was already taken. Name the whole window instead.
   if (a.remaining === a.allowance && a.allowance === 1) {
@@ -129,6 +165,14 @@ export function allowanceTone(a: Allowance): AllowanceTone {
 // carries the date the next ones land, so it is never just a number going down.
 export function allowanceLine(a: Allowance): string {
   if (allowanceTone(a) === "last") {
+    // The last of a GRANT is not the last of a month, and what lands next is
+    // the recurring rate rather than another grant. Say which number is ending
+    // and which one starts, or the warning promises a refill of the wrong size.
+    if (grantIsLive(a) && a.monthlyRate != null) {
+      const rate =
+        a.monthlyRate === 1 ? "1 a month" : `${a.monthlyRate} a month`;
+      return `Last of your ${a.grant}. Then ${rate}, from ${resetDate(a)}.`;
+    }
     return `Last analysis this month. More on ${resetDate(a)}.`;
   }
   return allowanceCopy(a);
