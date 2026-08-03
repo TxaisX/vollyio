@@ -181,6 +181,7 @@ export async function POST(req: NextRequest) {
     p_user_id: userId,
     p_plan: change.plan,
     p_renews_at: change.renewsAt,
+    p_period_start: change.periodStartsAt,
     p_subscription_id: change.subscriptionId,
     p_customer_id: change.customerId,
     p_event_at: eventAt,

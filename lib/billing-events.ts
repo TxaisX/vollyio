@@ -15,6 +15,13 @@ export type PlanChange = {
   userId: string | null;
   plan: "free" | "pro";
   renewsAt: string | null;
+  // The period START as the provider reported it, never computed here. The
+  // allowance window used to derive it as renewsAt minus one month, which is
+  // wrong by one to three days whenever the anchor is the 29th to 31st and the
+  // period lands in a shorter month (a Feb 28 renewal derived Jan 28, where the
+  // real period began Jan 31). A start that is too early counts the tail of the
+  // previous period against the new one, so the error fell against the player.
+  periodStartsAt: string | null;
   subscriptionId: string | null;
   customerId: string | null;
 } | null;
@@ -85,6 +92,20 @@ function isoFromUnixSeconds(value: unknown): string | null {
 // The period end sits on the subscription in older API versions and on its
 // items in newer ones. Reading both means an account moved to a later version
 // keeps reporting a renewal date instead of quietly reporting none forever.
+function periodStart(object: Fields): string | null {
+  const top = isoFromUnixSeconds(object.current_period_start);
+  if (top) return top;
+  const items = asFields(object.items);
+  const rows = items && Array.isArray(items.data) ? items.data : null;
+  if (!rows) return null;
+  for (const row of rows) {
+    const item = asFields(row);
+    const start = item ? isoFromUnixSeconds(item.current_period_start) : null;
+    if (start) return start;
+  }
+  return null;
+}
+
 function periodEnd(object: Fields): string | null {
   const top = isoFromUnixSeconds(object.current_period_end);
   if (top) return top;
@@ -160,6 +181,7 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           // billing period, and the subscription event that follows carries the
           // real period end.
           renewsAt: null,
+          periodStartsAt: null,
           subscriptionId: referenceId(object.subscription),
           customerId: referenceId(object.customer),
         };
@@ -181,6 +203,7 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           userId: metadataUserId(object),
           plan: PAID_STATUSES.has(status) ? "pro" : "free",
           renewsAt: periodEnd(object),
+          periodStartsAt: periodStart(object),
           subscriptionId: asText(object.id),
           customerId: referenceId(object.customer),
         };
@@ -192,6 +215,7 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           plan: "free",
           // The subscription is gone, so there is no next renewal to promise.
           renewsAt: null,
+          periodStartsAt: null,
           subscriptionId: asText(object.id),
           customerId: referenceId(object.customer),
         };

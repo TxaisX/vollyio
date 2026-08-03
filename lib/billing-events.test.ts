@@ -38,6 +38,7 @@ test("a completed checkout makes the player pro and carries the ids forward", ()
     // The session knows nothing true about the billing period; the
     // subscription event that follows carries the real period end.
     renewsAt: null,
+    periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
   });
@@ -88,6 +89,7 @@ test("an active subscription is pro with the period end as an ISO timestamp", ()
     userId: null,
     plan: "pro",
     renewsAt: PERIOD_END_ISO,
+    periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
   });
@@ -203,6 +205,7 @@ test("a deleted subscription drops the player to free with no renewal", () => {
     userId: USER,
     plan: "free",
     renewsAt: null,
+    periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
   });
@@ -405,4 +408,62 @@ test("the checkout rule is payment_status, not the event name", () => {
     );
     assert.equal(settled?.plan, "pro", `${type} settled`);
   }
+});
+
+test("the period start is read from the event, never derived from the renewal", () => {
+  // A month-end anchor is the case that exposed this: February's renewal is
+  // the 28th, and the period genuinely began on January 31. Subtracting a
+  // month from the renewal gives January 28, three days early, which would
+  // count the tail of the previous period against the new one.
+  const feb = planChangeFromEvent({
+    type: "customer.subscription.updated",
+    created: 1_767_000_000,
+    data: {
+      object: {
+        id: "sub_1",
+        status: "active",
+        customer: "cus_1",
+        // 2027-01-31 and 2027-02-28 UTC.
+        current_period_start: 1_801_440_000,
+        current_period_end: 1_803_859_200,
+        metadata: { user_id: "11111111-1111-1111-1111-111111111111" },
+      },
+    },
+  });
+  assert.equal(feb?.periodStartsAt, new Date(1_801_440_000 * 1000).toISOString());
+  assert.equal(feb?.renewsAt, new Date(1_803_859_200 * 1000).toISOString());
+  // The two are independent readings, not one computed from the other.
+  assert.notEqual(feb?.periodStartsAt, null);
+
+  // Newer API versions carry both on the item rather than the subscription,
+  // exactly as the renewal already handled.
+  const onItem = planChangeFromEvent({
+    type: "customer.subscription.updated",
+    created: 1_767_000_000,
+    data: {
+      object: {
+        id: "sub_2",
+        status: "active",
+        customer: "cus_2",
+        items: {
+          data: [
+            {
+              current_period_start: 1_801_440_000,
+              current_period_end: 1_803_859_200,
+            },
+          ],
+        },
+        metadata: { user_id: "11111111-1111-1111-1111-111111111111" },
+      },
+    },
+  });
+  assert.equal(onItem?.periodStartsAt, new Date(1_801_440_000 * 1000).toISOString());
+
+  // An event that carries no period leaves it null rather than guessing one.
+  const bare = planChangeFromEvent({
+    type: "customer.subscription.deleted",
+    created: 1_767_000_000,
+    data: { object: { id: "sub_3", customer: "cus_3", status: "canceled" } },
+  });
+  assert.equal(bare?.periodStartsAt, null);
 });

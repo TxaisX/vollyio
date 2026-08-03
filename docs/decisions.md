@@ -3227,3 +3227,48 @@ the raise safe and the early cohort genuinely rewarded.
 Changing the COUNT needed no provider work at all; 24 is our number, not
 theirs. Changing the PRICE means a new price object plus a lookup-key
 transfer, which is owner console work.
+
+## D-086 - The billing period start is read, not computed
+
+**Date**: 2026-08-02. **Status**: shipped (migration 049 applied).
+
+Asked whether cancellation respects the purchase anniversary, including the
+month-length cases. The renewal DATE was always right, and for the reason
+that matters: it is never calculated here. The provider decides the
+anniversary, including how a 31st anchor behaves in a 30- or 28-day month,
+and the webhook stores whatever it reports. That is rule 2 of the house
+standard doing its job.
+
+The window START was not right. `private.allowance_window` derived it as
+`period_end - interval '1 month'`, and that subtraction disagrees with the
+real period whenever the anchor is the 29th to 31st:
+
+| Renewal | Derived start | Real start | Error |
+|---|---|---|---|
+| 2026-09-30 | 2026-08-30 | 2026-08-31 | 1 day early |
+| 2027-02-28 | 2027-01-28 | 2027-01-31 | 3 days early |
+
+A start earlier than the truth counts analyses from the tail of the previous
+period against the new one, so a Pro subscriber on a month-end anchor
+quietly got fewer analyses than they paid for, for up to three days a year.
+**It failed against the player**, which is the wrong direction for an error
+in a paid allowance.
+
+The fix applies the same rule that made the anniversary correct: read the
+boundary from the system that owns it. `profiles.plan_period_start` holds
+the provider's own `current_period_start`, read by a helper mirroring the
+one that already reads the end (both API shapes, subscription and item).
+`allowance_window` coalesces to the old subtraction, so every row written
+before this keeps working until its next billing event lands: no backfill,
+and no window in which anybody is worse off than they were.
+
+`set_subscription_plan` is dropped and recreated rather than overloaded,
+inside the one migration. A second signature would leave PostgREST
+resolving a six-argument named call against two candidates, and doing both
+in one transaction means there is no moment where the webhook has no
+function to call.
+
+Scope note: the custom cancellation page this question started from was
+**not** built. The provider's portal stays, because it is also where a card
+is updated and an invoice is fetched, and building card entry would take on
+PCI scope for no gain. What the question was actually worth was this bug.
