@@ -34,6 +34,15 @@ export const PROTECTED = [
 
 // Paths a signed-in player should never sit on, because each one's job is to get
 // them signed in and they already are.
+//
+// `/reset-password` must NEVER join this list, however much it looks like it
+// belongs. Verifying a recovery link creates a real session and THEN sends the
+// player there to choose a password, so by the time they arrive they are signed
+// in by this function's reckoning. Treating it as an entry path would bounce
+// every reset to the dashboard and make the feature unreachable by the only
+// route that reaches it. `/forgot` is left off for the same reason in reverse:
+// a player with a stale session in one tab still has to be able to ask for a
+// link. Pinned by route-guard.test.ts.
 const ENTRY_PATHS = ["/", "/login", "/signup"];
 
 export type GuardDecision = "pass" | "to-login" | "to-dashboard";

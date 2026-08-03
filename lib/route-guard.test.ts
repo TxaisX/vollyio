@@ -11,9 +11,28 @@ test("a visitor is sent to login from every protected path, and its children", (
 });
 
 test("a visitor passes through public paths", () => {
-  for (const p of ["/", "/login", "/signup", "/privacy", "/terms", "/share/abc123"]) {
+  for (const p of [
+    "/",
+    "/login",
+    "/signup",
+    "/forgot",
+    "/reset-password",
+    "/privacy",
+    "/terms",
+    "/share/abc123",
+  ]) {
     assert.equal(guardDecision(p, null), "pass", p);
   }
+});
+
+// The recovery flow signs the player in BEFORE they choose a password, so the
+// page that collects it is reached only ever by someone the guard already
+// counts as signed in. If /reset-password were treated as an entry path it
+// would bounce to the dashboard and password reset would be unreachable. This
+// is the regression test for that, not a style preference (D-092).
+test("password recovery is reachable with the session its own link creates", () => {
+  assert.equal(guardDecision("/reset-password", "user-1"), "pass");
+  assert.equal(guardDecision("/forgot", "user-1"), "pass");
 });
 
 test("a signed-in player is moved off the entry paths and left alone elsewhere", () => {

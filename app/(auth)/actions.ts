@@ -2,7 +2,20 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { parseLoginInput, parseSignupInput } from "@/lib/auth-input";
+import {
+  CONFIRM_SENT_MESSAGE,
+  RESET_SENT_MESSAGE,
+  loginErrorMessage,
+  resetRequestErrorMessage,
+  signupErrorMessage,
+  updatePasswordErrorMessage,
+} from "@/lib/auth-errors";
+import {
+  parseForgotInput,
+  parseLoginInput,
+  parseResetInput,
+  parseSignupInput,
+} from "@/lib/auth-input";
 import { SITE_URL } from "@/lib/site";
 
 export async function login(formData: FormData) {
@@ -17,26 +30,13 @@ export async function login(formData: FormData) {
     password: parsed.data.password,
   });
 
+  // The code matters. `email_not_confirmed` and `invalid_credentials` are
+  // different failures with different fixes, and this used to answer both with
+  // "Email or password is incorrect." See lib/auth-errors.ts and D-092.
   if (error) {
-    const message =
-      error.status === 429
-        ? "Too many login attempts. Wait a bit and try again."
-        : "Email or password is incorrect.";
-    redirect(`/login?error=${encodeURIComponent(message)}`);
+    redirect(`/login?error=${encodeURIComponent(loginErrorMessage(error.status, error.code))}`);
   }
   redirect("/dashboard");
-}
-
-function friendlySignupError(status?: number, code?: string): string {
-  if (
-    status === 429 ||
-    code === "over_email_send_rate_limit" ||
-    code === "over_request_rate_limit"
-  ) {
-    return "Too many signups this hour. Your answers are saved on this device. Wait a bit and try again.";
-  }
-  if (code === "weak_password") return "Use a stronger password and try again.";
-  return "Couldn't create your account. Try again.";
 }
 
 export async function signup(formData: FormData) {
@@ -73,13 +73,70 @@ export async function signup(formData: FormData) {
 
   if (error) {
     redirect(
-      `/signup?error=${encodeURIComponent(friendlySignupError(error.status, error.code))}`,
+      `/signup?error=${encodeURIComponent(signupErrorMessage(error.status, error.code))}`,
     );
   }
+  // Signing up again on an address that already has an unconfirmed account
+  // lands here too, and looks identical to a first signup: the service answers
+  // 200, returns the same user, resends the confirmation, and silently KEEPS
+  // THE ORIGINAL PASSWORD. There is nothing in the response that distinguishes
+  // the two, so the copy has to cover both cases honestly rather than pretend
+  // this is always a fresh account.
   if (!data.session) {
-    redirect(`/login?message=${encodeURIComponent("Check your email to confirm your account.")}`);
+    redirect(`/login?message=${encodeURIComponent(CONFIRM_SENT_MESSAGE)}`);
   }
   redirect("/welcome");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const parsed = parseForgotInput(formData);
+  if (!parsed.success) {
+    redirect(`/forgot?error=${encodeURIComponent("Enter a valid email address.")}`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    // The send-email hook rebuilds this as origin + /auth/callback and drops any
+    // path or query given here, so this only has to carry the right ORIGIN. It
+    // is written out in full anyway: if the hook is ever disabled the default
+    // template uses this verbatim, and a bare origin would land the player on
+    // the landing page with the token unexchanged.
+    redirectTo: `${SITE_URL}/auth/callback`,
+  });
+
+  // Rate limiting is the one failure worth naming, because waiting genuinely
+  // fixes it. Everything else falls through to the same neutral confirmation:
+  // /recover deliberately answers identically for addresses that do and do not
+  // have an account, and reporting a failure here would undo that and turn this
+  // form into an account-existence oracle.
+  if (error && (error.status === 429 || error.code?.includes("rate_limit"))) {
+    redirect(
+      `/forgot?error=${encodeURIComponent(resetRequestErrorMessage(error.status, error.code))}`,
+    );
+  }
+  redirect(`/forgot?message=${encodeURIComponent(RESET_SENT_MESSAGE)}`);
+}
+
+export async function updatePassword(formData: FormData) {
+  const parsed = parseResetInput(formData);
+  if (!parsed.success) {
+    redirect(
+      `/reset-password?error=${encodeURIComponent("Use at least 8 characters, and make both fields match.")}`,
+    );
+  }
+
+  const supabase = await createClient();
+  // Verifying the recovery link already put a real session in the cookie jar,
+  // which is what authorizes this. It also confirms the email as a side effect,
+  // so a player who never confirmed is fully recovered by this one path.
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+
+  if (error) {
+    redirect(
+      `/reset-password?error=${encodeURIComponent(updatePasswordErrorMessage(error.status, error.code))}`,
+    );
+  }
+  redirect("/dashboard");
 }
 
 export async function logout() {

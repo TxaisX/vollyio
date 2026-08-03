@@ -6,7 +6,7 @@ const root = process.cwd();
 const sourceRoots = ["app", "components", "content", "lib"];
 const sourceExtensions = new Set([".ts", ".tsx"]);
 const copyRoots = ["app", "components", "content"];
-const copyFiles = new Set(["lib/frames.ts", "lib/ai/mock.ts"]);
+const copyFiles = new Set(["lib/frames.ts", "lib/ai/mock.ts", "lib/auth-errors.ts"]);
 const copyExclusions = ["lib/ai/rubrics/"];
 const failures = [];
 

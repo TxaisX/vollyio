@@ -3518,3 +3518,78 @@ the live scrub video, and t~0.4s sits inside a typical fade. An extraction
 failure no longer strands the player: the framing card can reopen from the
 kept opening frame ("Re-mark and try again") instead of demanding the file
 be picked again.
+
+## D-092 - A failed sign-in says what actually failed, and there is a way back in
+
+The login action reported every failure that was not a rate limit as "Email or
+password is incorrect." The auth service never said that. It answers an
+unconfirmed account with `email_not_confirmed` and a genuinely wrong password
+with `invalid_credentials`, and the action folded the two into one string.
+
+The third real signup off Reddit found the hole on 2026-08-03 and did not get
+an account out of it. His session, reconstructed from the auth request log:
+
+    22:55:22  /signup  200   account created, first confirmation email sent
+    22:55:26  /token   400   email_not_confirmed
+    22:55:32  /token   400   email_not_confirmed
+    22:55:51  /token   400   email_not_confirmed
+    22:56:55  /signup  422   weak_password
+    22:57:11  /signup  200   second email sent, which kills the first link
+    22:57:43  /verify  403   otp_expired   (he clicked the older email)
+    22:57:51  /token   400   email_not_confirmed
+    22:58:02  /verify  403   otp_expired   (clicked it again)
+    22:58:17  /token   400   email_not_confirmed
+    22:59:15  /token   400   email_not_confirmed
+    22:59:48  /signup  422   weak_password
+    23:00:04  /signup  200   third email sent
+    23:00:13  /token   400   invalid_credentials
+
+All three emails were delivered. Every one of those `email_not_confirmed`
+answers reached him as "your password is wrong", so he did the reasonable
+thing and made the account again, twice. That is four separate defects, and
+only the first one is the message:
+
+- Signing up again on an address that already has an unconfirmed account
+  returns 200, returns the SAME user, resends the confirmation, and keeps the
+  ORIGINAL password. Nothing in the response distinguishes it from a first
+  signup. His password by then was the one he typed at 22:55, which is why the
+  last attempt is a real `invalid_credentials`: he had been trying to log in
+  with the third password he chose, and only the first was ever stored.
+- Every resend invalidates the previous email's token. He clicked twice and hit
+  a dead link both times, because by then he had triggered a resend. The
+  callback said only "Sign-in link is invalid or expired", which does not tell
+  anyone to go back to their inbox and open a newer message.
+- There was no password reset in the product at all. No route, no action, no
+  link on the login page. The reset emails in the provider's log were sent by
+  hand from the dashboard. Once the app had convinced him his password was
+  wrong, nothing in the product could have got him back in.
+
+The fix is one branch and one flow. `lib/auth-errors.ts` maps the real error
+codes to copy that names the next action, pinned by `lib/auth-errors.test.ts`
+with a test that fails if an unconfirmed email is ever again described as a
+bad password. `/forgot` and `/reset-password` are the flow, and the login page
+carries a permanent "Forgot your password?" link that every failure message on
+that page quotes by name.
+
+Password reset is the single recovery path on purpose, because it happens to
+fix all of it. Verified against the live project: `/recover` sends for an
+unconfirmed account, and using the link CONFIRMS the email as a side effect of
+issuing the session. So one flow recovers a forgotten password, an unconfirmed
+email, and an account whose stored password is one the player has forgotten
+they chose. That is why the `email_not_confirmed` copy points there instead of
+offering a resend, which would only fix one of the three.
+
+Two details that look like preferences and are not. The recovery destination
+is derived from the link's own `type` rather than from a `next` parameter, so
+the callback has no caller-supplied redirect to validate. And
+`/reset-password` must never join `ENTRY_PATHS` in `lib/route-guard.ts`:
+verifying a recovery link creates a real session and only then sends the
+player to choose a password, so the guard already counts them as signed in
+when they arrive, and treating that path as an entry point would bounce every
+reset to the dashboard and make the feature unreachable by the only route that
+reaches it. `lib/route-guard.test.ts` pins it.
+
+The reset form's confirmation never says whether the address has an account.
+The auth service answers `/recover` identically either way, and reporting a
+send failure here would undo that and turn the form into an account-existence
+oracle, so only rate limiting is surfaced.

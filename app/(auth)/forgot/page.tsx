@@ -3,16 +3,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
-import { login } from "../actions";
+import { requestPasswordReset } from "../actions";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
-  title: "Log in",
-  description: "Log in to your Vollyio account.",
-  alternates: { canonical: "/login" },
+  title: "Reset your password",
+  description: "Get a link to set a new Vollyio password.",
+  alternates: { canonical: "/forgot" },
+  robots: { index: false, follow: false },
 };
 
-export default async function Login({
+export default async function Forgot({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>;
@@ -37,9 +38,15 @@ export default async function Login({
         </Link>
         <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-            Welcome back
+            Locked out
           </p>
-          <h1 className="mt-2 font-display text-2xl font-bold">Log in</h1>
+          <h1 className="mt-2 font-display text-2xl font-bold">
+            Reset your password
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-chalk-dim">
+            We will email you a link to set a new one. It works even if you never
+            confirmed your account, so this is also how you finish signing up.
+          </p>
           {message && (
             <p role="status" className="mt-3 text-sm text-teal">
               {message}
@@ -50,7 +57,7 @@ export default async function Login({
               {error}
             </p>
           )}
-          <form action={login} className="mt-6 flex flex-col gap-4">
+          <form action={requestPasswordReset} className="mt-6 flex flex-col gap-4">
             <div>
               <label
                 htmlFor="email"
@@ -71,48 +78,16 @@ export default async function Login({
                 className="input-field text-sm"
               />
             </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                maxLength={128}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? "form-error" : undefined}
-                className="input-field text-sm"
-              />
-            </div>
-            <SubmitButton idleLabel="Log in" pendingLabel="Logging in…" />
+            <SubmitButton idleLabel="Email me a link" pendingLabel="Sending…" />
           </form>
-          {/* Permanent, not conditional on an error. Every failure message on
-              this page names it by these exact words, and it is the one path
-              that recovers a forgotten password AND an unconfirmed email, so it
-              has to be here whatever went wrong. */}
-          <p className="mt-5 text-center text-sm">
-            <Link
-              href="/forgot"
-              className="text-chalk-dim underline decoration-line underline-offset-4 transition-colors hover:text-gold"
-            >
-              Forgot your password?
-            </Link>
-          </p>
         </div>
         <p className="mt-5 text-center text-sm text-chalk-dim">
-          New here?{" "}
+          Remembered it?{" "}
           <Link
-            href="/start"
+            href="/login"
             className="text-gold underline-offset-4 transition-colors hover:underline"
           >
-            Create an account
+            Log in
           </Link>
         </p>
       </Reveal>
