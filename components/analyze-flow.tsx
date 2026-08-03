@@ -255,29 +255,86 @@ function clipExt(b: Blob): string {
   return m ? m[1] : "webm";
 }
 
-// What the pipeline is actually doing while the model scores the rep, in
-// order. The ticker walks forward and rests on the last line rather than
-// looping, a loop would read as fake progress.
-const SCORING_STAGES = [
-  "Reading your frames…",
-  "Following your player…",
-  "Scoring against the rubric…",
-  "Writing your one fix…",
+// Calibrated against the 16 live analyses on record (2026-08-03): the coaching
+// call runs 34-56s, p50 45.4s, p90 54.4s. Its length is set by the ~2,300
+// output tokens it writes, NOT by how many frames were sent, so a 12-frame clip
+// and a 64-frame clip wait the same. A wait that predictable can be shown
+// honestly, which is the whole reason this is a real bar and not a spinner
+// pretending to know something.
+//
+// The window the bar covers is wider than the coaching call: it opens when the
+// request body starts uploading and closes when the row, its frames, and the
+// clip are committed. Only the middle of that is instrumented, so the overhead
+// term is an estimate. Retune both numbers from `telemetry.duration_ms` on the
+// analyses table whenever the model, the effort level, or the frame budget
+// moves, or the bar starts lying.
+const COACHING_P50_MS = 45_400;
+const REQUEST_OVERHEAD_MS = 7_000;
+const WAIT_P50_MS = COACHING_P50_MS + REQUEST_OVERHEAD_MS;
+
+// The bar approaches CEILING and is never allowed to reach it: only the arriving
+// response finishes it. TAU is solved so the curve passes exactly through
+// AT_P50 at the median wait, which is what keeps the calibration a promise
+// rather than a shape someone eyeballed. Overshooting is the one unforgivable
+// failure here (a bar that sits full while the player keeps waiting reads as
+// broken), so the curve is deliberately behind on the fastest reads.
+const CEILING = 0.99;
+const AT_P50 = 0.85;
+const TAU_MS = WAIT_P50_MS / Math.log(CEILING / (CEILING - AT_P50));
+
+function waitProgress(elapsedMs: number): number {
+  return CEILING * (1 - Math.exp(-Math.max(0, elapsedMs) / TAU_MS));
+}
+
+// What the pipeline is actually doing while the model scores the rep, in order.
+// Each line is keyed to real elapsed time rather than a blind interval, so the
+// copy and the bar can never disagree about how far along the read is. The
+// ticker walks forward and rests on the last line rather than looping, a loop
+// would read as fake progress.
+const SCORING_STAGES: { atMs: number; line: string }[] = [
+  { atMs: 0, line: "Reading your frames…" },
+  { atMs: 10_000, line: "Following your player…" },
+  { atMs: 24_000, line: "Scoring against the rubric…" },
+  { atMs: 40_000, line: "Writing your one fix…" },
 ];
 
-function StatusTicker({ lines }: { lines: string[] }) {
-  const [step, setStep] = useState(0);
+// One clock for the bar and the stage line. Resets on every run so a retry
+// starts from zero instead of inheriting the failed attempt's elapsed time.
+function useElapsedMs(running: boolean): number {
+  const [elapsedMs, setElapsedMs] = useState(0);
   useEffect(() => {
-    const t = setInterval(
-      () => setStep((v) => Math.min(v + 1, lines.length - 1)),
-      6500,
-    );
+    setElapsedMs(0);
+    if (!running) return;
+    const startedAt = Date.now();
+    const t = setInterval(() => setElapsedMs(Date.now() - startedAt), 200);
     return () => clearInterval(t);
-  }, [lines.length]);
+  }, [running]);
+  return elapsedMs;
+}
+
+function ScoringProgress({ elapsedMs }: { elapsedMs: number }) {
+  const stage = SCORING_STAGES.reduce(
+    (current, next) => (elapsedMs >= next.atMs ? next : current),
+    SCORING_STAGES[0],
+  );
   return (
-    <span key={step} className="message-in inline-block">
-      {lines[step]}
-    </span>
+    <div className="space-y-2.5">
+      {/* Decorative: the stage line below carries the same state as text, and
+          it already sits inside the live region, so announcing a percentage
+          that changes five times a second would only talk over it. */}
+      <div aria-hidden className="h-1 w-full overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full rounded-full bg-teal transition-[width] duration-300 ease-linear"
+          style={{ width: `${waitProgress(elapsedMs) * 100}%` }}
+        />
+      </div>
+      <span className="flex items-center gap-2.5 text-teal">
+        <WorkingDots />
+        <span key={stage.line} className="message-in inline-block">
+          {stage.line}
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -677,6 +734,10 @@ export function AnalyzeFlow({
   }, []);
 
   const busy = status.kind === "reading" || status.kind === "sending";
+  // Drives the calibrated progress bar. The clock runs for every send, but the
+  // bar renders only on a first attempt: a retry keeps the spinner already on
+  // its own button rather than showing two indicators for one wait.
+  const scoringElapsedMs = useElapsedMs(status.kind === "sending");
   // The highest-intent moment in the product: they filmed, marked their
   // athlete, waited, and got refused. It is also the one calm state where
   // sending the same clip again cannot possibly work, so the offer REPLACES
@@ -1422,9 +1483,7 @@ export function AnalyzeFlow({
                 </span>
               )}
               {status.kind === "sending" && !retrying && (
-                <span className="flex items-center gap-2.5 text-teal">
-                  <WorkingDots /> <StatusTicker lines={SCORING_STAGES} />
-                </span>
+                <ScoringProgress elapsedMs={scoringElapsedMs} />
               )}
               {status.kind === "error" && (
                 <p className="animate-fade-up text-coral">{status.message}</p>
