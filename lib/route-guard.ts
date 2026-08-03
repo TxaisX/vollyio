@@ -17,6 +17,9 @@
 // has declared `robots: { index: true, follow: true }` in its own metadata the
 // whole time, so it was asking to be indexed while the guard sent crawlers to a
 // login redirect.
+// `/scoreboard` left this list when the feature was removed (D-088): the match
+// tracker was a closed loop nothing else consumed, and the route no longer
+// exists to guard.
 export const PROTECTED = [
   "/dashboard",
   "/analyze",
@@ -25,7 +28,6 @@ export const PROTECTED = [
   "/progress",
   "/plan",
   "/coach",
-  "/scoreboard",
   "/goals",
   "/settings",
 ];

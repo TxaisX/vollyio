@@ -11,6 +11,17 @@ test("a single provided field parses and unknown values are rejected", () => {
   assert.deepEqual(profileUpdateSchema.safeParse({ discipline: "beach" }).success, false);
 });
 
+test("level is editable and bounded to the four the rubric knows", () => {
+  // Level drives assignment difficulty, the plan seed, and the coach voice,
+  // and it changes as a player improves: freezing it at onboarding was the
+  // bug, not a boundary. The database grant always allowed this write
+  // (docs/security.md profiles row); the app schema was the only thing in
+  // the way.
+  assert.equal(profileUpdateSchema.safeParse({ level: "beginner" }).success, true);
+  assert.equal(profileUpdateSchema.safeParse({ level: "pro" }).success, true);
+  assert.equal(profileUpdateSchema.safeParse({ level: "galactic" }).success, false);
+});
+
 test("display_name is trimmed and length-capped", () => {
   const ok = profileUpdateSchema.safeParse({ display_name: "  Txais  " });
   assert.equal(ok.success, true);

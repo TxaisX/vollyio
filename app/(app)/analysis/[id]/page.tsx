@@ -13,7 +13,8 @@ import { ShareLink } from "@/components/share-link";
 import { AnalysisFeedback } from "@/components/analysis-feedback";
 import { LinkPending } from "@/components/link-pending";
 import { drillBySlug } from "@/content/drills";
-import { XpToast } from "@/components/xp-toast";
+import { RepToasts } from "@/components/xp-toast";
+import { claimAchievements } from "@/lib/achievements";
 import { ClipViewer } from "@/components/clip-viewer";
 import { SKILL_LABEL, type Skill, type Discipline } from "@/lib/skills";
 import type { AnalysisResult } from "@/lib/analysis-types";
@@ -79,6 +80,12 @@ export default async function AnalysisDetail({
   const { xp } = await searchParams;
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
+
+  // The rep this page shows may be the one that tipped a badge over (first
+  // read, all six, a new best), and the celebration belongs at the moment of
+  // pride rather than on the next Home visit. Idempotent, fails soft to [],
+  // and inert against a database without migration 050 (D-089).
+  const newBadges = await claimAchievements(supabase);
 
   // Two waves, not six awaits: everything keyed on the route param rides with
   // the main row, and everything keyed on the row's own fields follows in one
@@ -252,7 +259,9 @@ export default async function AnalysisDetail({
       {/* Reading progress for the long breakdown scroll; pure CSS, hidden
           where scroll timelines aren't supported. */}
       <div aria-hidden="true" className="scroll-progress" />
-      {xp && <XpToast amount={Number(xp) || 0} />}
+      {(xp || newBadges.length > 0) && (
+        <RepToasts amount={Number(xp) || 0} badges={newBadges} />
+      )}
 
       <Reveal>
         <div className="flex flex-wrap items-center justify-between gap-4">

@@ -27,7 +27,6 @@ const EXPECTED: Record<Feature, { free: boolean; pro: boolean }> = {
   share_link: { free: true, pro: true },
   drills: { free: true, pro: true },
   goals: { free: true, pro: true },
-  scoreboard: { free: true, pro: true },
 };
 
 test("every plan and feature pair answers what the matrix says", () => {

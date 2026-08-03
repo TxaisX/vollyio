@@ -69,7 +69,7 @@ Use an expand, deploy, contract rollout. First apply `011_security_hardening.sql
 
 ### Migration state
 
-Applied to production: everything through `040`, except `018_coach_quota.sql` (superseded in practice: `028` carries its `consume_api_quota` body, and `030`/`033` rewrote `refund_api_quota` past what `018` held; apply or retire it with any coach re-enable). `041_rls_auto_enable_is_not_callable.sql` is committed and **not yet applied**: it adopts the platform's RLS auto-enable event trigger into the migration history and revokes the pointless client EXECUTE grant the linter flags. Applied migrations must not be rewritten; any further change is a new file numbered `042` and up.
+Applied to production: everything through `051`, except `018_coach_quota.sql` (superseded in practice: `028` carries its `consume_api_quota` body, and `030`/`033` rewrote `refund_api_quota` past what `018` held; apply or retire it with any coach re-enable). Verified live 2026-08-03 by reading the deployed functions directly: `signup_grant()` returns 6, `plan_monthly_allowance('pro')` returns 24, and `set_subscription_plan` carries the seven-argument signature (`p_event_at`, `p_period_start` included), so the deployed webhook and the database agree. `050` (achievements, D-089) and `051` (the window start clamp, D-090) were applied the same day, ahead of the code that calls them, in the 036 additive mold. Applied migrations must not be rewritten; any further change is a new file numbered `052` and up.
 
 The telemetry gap `028` used to leave is closed: since `029` (D-065) the analyze route writes `analyses.telemetry` through the service-role client, so a player's own credentials can no longer shape their cost record, and `028`'s check constraint bounds what the column may hold.
 
@@ -154,13 +154,15 @@ Vercel keeps every deployment immutable. To roll back, promote the last-good dep
 ## Build gotcha
 `EPERM: unlink .next/...` on Windows means OneDrive locked a build file: `Remove-Item -Recurse -Force .next` and rebuild. (CI on Linux is unaffected.)
 
-## CV Phase 1 (2026-07-10)
+## CV Phase 1 (2026-07-10) - HISTORICAL
 
-- Migrations `005_clips.sql` (verified) and `006_cv_phase1.sql` (applied) are
-  live; both are idempotent. 006 must be live before this code deploys (the
-  analyze route writes `keypoints_path` / `stored_frame_paths`).
-- `public/pose/` ships ~39 MB of WASM runtime + landmarker model as static
-  assets, fetched lazily by the analyze flow only. Nothing enters the page
-  bundle; first analyze on a device downloads ~11 MB (SIMD wasm) + 5.8 MB
-  (model) once, then browser-cached.
-- New pinned dependency `@mediapipe/tasks-vision@0.10.35` (Decision Log D-008).
+D-033 removed the on-device pose engine entirely after two blind kill gates;
+the coaching service reads frames directly now. Kept as deployment history:
+
+- Migrations `005_clips.sql` and `006_cv_phase1.sql` are live and idempotent;
+  006's columns (`keypoints_path` / `stored_frame_paths`) remain in use by the
+  analyze route's storage bookkeeping.
+- `public/pose/` (the ~39 MB WASM runtime + landmarker model) and the pinned
+  `@mediapipe/tasks-vision` dependency were removed with D-033. Neither exists
+  in the repo or the bundle today; if either reappears, that is a regression
+  against a two-gate kill decision, not a restore.

@@ -22,15 +22,31 @@ import { PlanAction } from "@/components/plan-actions";
 //
 // Someone already paying always gets a way to stop paying, whatever the cap is
 // doing, because the money keeps moving either way.
-function planAction(pro: boolean, sellable: boolean, canPay: boolean) {
+//
+// A pending checkout outranks the upgrade offer: the player just paid, the
+// webhook has not landed, and a live Upgrade button in that window is an
+// invitation to buy the same subscription twice.
+function planAction(
+  pro: boolean,
+  sellable: boolean,
+  canPay: boolean,
+  pending = false,
+) {
   if (pro) return canPay ? "manage" : "unavailable";
+  if (pending) return "pending";
   return sellable && canPay ? "upgrade" : "none";
 }
 
 // The plan surface, and the only place either payment action starts. The `id`
 // is load-bearing: both billing routes send the player back to /settings#plan,
 // and that is where NEXT_PUBLIC_UPGRADE_URL points as well.
-export async function PlanCard({ plan }: { plan: Plan }) {
+export async function PlanCard({
+  plan,
+  checkoutPending = false,
+}: {
+  plan: Plan;
+  checkoutPending?: boolean;
+}) {
   const metered = shouldEnforceFreeTier();
   const sellable = billingOpen();
   const canPay = stripeConfigured();
@@ -40,7 +56,7 @@ export async function PlanCard({ plan }: { plan: Plan }) {
   // nothing is being enforced would be a lie, and not making the call at all is
   // what makes that impossible rather than merely unlikely.
   const allowance = metered ? await readAllowance(await createClient()) : null;
-  const action = planAction(pro, sellable, canPay);
+  const action = planAction(pro, sellable, canPay, checkoutPending);
 
   return (
     // Both billing routes and NEXT_PUBLIC_UPGRADE_URL land on /settings#plan.
@@ -107,6 +123,16 @@ export async function PlanCard({ plan }: { plan: Plan }) {
       {allowance && (pro || allowance.remaining === 0) && (
         <p className="mt-2 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
           {resetCopy(allowance)}
+        </p>
+      )}
+
+      {action === "pending" && (
+        <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
+          Payment received. {PLAN_LABEL.pro} switches on the moment the charge
+          is confirmed, usually under a minute. This page does not update
+          itself, so refresh in a moment to see the new plan. If it has not
+          landed after a few minutes, nothing is lost: the confirmation email
+          is your receipt, and support can put the plan right.
         </p>
       )}
 

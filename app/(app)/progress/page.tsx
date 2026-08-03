@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { Reveal } from "@/components/motion";
+import { ProgressNav } from "@/components/section-nav";
 import { ProgressChart } from "@/components/progress-chart";
 import { buildSeries, type ProgressRep } from "@/lib/progress-series";
 import type { Skill } from "@/lib/skills";
@@ -69,6 +70,7 @@ export default async function Progress() {
               Every skill you have filmed, scored over time. The line only claims a
               direction once there are enough reps across enough days to mean one.
             </p>
+            <ProgressNav active="trends" />
           </div>
         </Reveal>
 

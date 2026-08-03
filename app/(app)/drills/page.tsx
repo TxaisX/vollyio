@@ -4,6 +4,7 @@ import Link from "next/link";
 import { drillsForSkill } from "@/content/drills";
 import { LinkPending } from "@/components/link-pending";
 import { Reveal } from "@/components/motion";
+import { TrainNav } from "@/components/section-nav";
 import { SkillIcon } from "@/components/skill-icons";
 import { SKILLS, SKILL_LABEL } from "@/lib/skills";
 import type { Level } from "@/lib/skills";
@@ -43,6 +44,7 @@ export default function Drills() {
         <p className="mt-2 text-body text-chalk-dim">
           Step-by-step work for every skill, beginner to elite.
         </p>
+        <TrainNav active="drills" />
       </Reveal>
 
       <div className="mt-8 space-y-10">

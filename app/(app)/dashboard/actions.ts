@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { todayKey } from "@/lib/progression";
+import { claimAchievements, type AchievementKey } from "@/lib/achievements";
 import { SKILLS } from "@/lib/skills";
 import { drillBySlug } from "@/content/drills";
 
@@ -21,7 +22,12 @@ const completion = z.object({
   felt: z.enum(["easy", "right", "hard"]).nullable(),
 });
 
-export type ChallengeState = { ok: boolean; error: string | null; awarded: number };
+export type ChallengeState = {
+  ok: boolean;
+  error: string | null;
+  awarded: number;
+  badges: AchievementKey[];
+};
 
 export async function completeChallenge(
   _prev: ChallengeState,
@@ -29,7 +35,7 @@ export async function completeChallenge(
 ): Promise<ChallengeState> {
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
-  if (!userId) return { ok: false, error: "Sign in to log today's work.", awarded: 0 };
+  if (!userId) return { ok: false, error: "Sign in to log today's work.", awarded: 0, badges: [] };
 
   const parsed = completion.safeParse({
     kind: formData.get("kind"),
@@ -43,6 +49,7 @@ export async function completeChallenge(
       ok: false,
       error: "That didn't look right. Check the reps and try again.",
       awarded: 0,
+      badges: [],
     };
   }
   const value = parsed.data;
@@ -51,10 +58,10 @@ export async function completeChallenge(
   // rather than store it: content/drills.ts is the only source of drills, and a
   // stored slug that resolves to nothing becomes a broken card forever.
   if (value.drill_slug && !drillBySlug(value.drill_slug)) {
-    return { ok: false, error: "That drill doesn't exist.", awarded: 0 };
+    return { ok: false, error: "That drill doesn't exist.", awarded: 0, badges: [] };
   }
   if (value.kind === "drill" && !value.drill_slug) {
-    return { ok: false, error: "A logged drill has to say which drill.", awarded: 0 };
+    return { ok: false, error: "A logged drill has to say which drill.", awarded: 0, badges: [] };
   }
 
   // The day key is sent, but the database checks it against its OWN clock and
@@ -70,13 +77,23 @@ export async function completeChallenge(
 
   if (error) {
     console.error("[challenge] completion failed", { message: error.message });
-    return { ok: false, error: "Couldn't save that just now. Try again.", awarded: 0 };
+    return { ok: false, error: "Couldn't save that just now. Try again.", awarded: 0, badges: [] };
   }
+
+  // A logged day can tip a streak or challenge-count badge over, so the claim
+  // runs while the player is still looking at the card that earned it. Fails
+  // soft to [] and never blocks the completion (migration 050).
+  const badges = await claimAchievements(supabase);
 
   revalidatePath("/dashboard");
   // Zero awarded is a success, not a failure: it means today was already
   // logged. The work is recorded either way and the card should read as done.
-  return { ok: true, error: null, awarded: typeof data === "number" ? data : 0 };
+  return {
+    ok: true,
+    error: null,
+    awarded: typeof data === "number" ? data : 0,
+    badges,
+  };
 }
 
 function emptyToNull(v: FormDataEntryValue | null): string | null {

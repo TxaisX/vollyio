@@ -164,6 +164,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
+  // A checkout event's null dates mean "this event does not know them", never
+  // "clear them" (lib/billing-events.ts preserveBillingDates). The stale check
+  // in set_subscription_plan is strictly-less-than on a one-second timestamp,
+  // so the completed event from a purchase burst can legitimately apply AFTER
+  // the subscription event that carried the real dates; writing its nulls
+  // through would blank the renewal anchor and drop the allowance window back
+  // to the calendar month until the next billing event heals it. Coalescing
+  // from the player's own stored row keeps the write idempotent and touches
+  // only the user this event already resolved to, inside the service-role
+  // contract this route holds (docs/security.md).
+  let renewsAt = change.renewsAt;
+  let periodStartsAt = change.periodStartsAt;
+  if (change.preserveBillingDates && (renewsAt === null || periodStartsAt === null)) {
+    const { data: stored } = await supabase
+      .from("profiles")
+      .select("plan_renews_at, plan_period_start")
+      .eq("id", userId)
+      .maybeSingle();
+    if (stored) {
+      renewsAt = renewsAt ?? (stored.plan_renews_at as string | null);
+      periodStartsAt = periodStartsAt ?? (stored.plan_period_start as string | null);
+    }
+  }
+
   // Safe to apply twice AND safe to apply out of order.
   //
   // Duplicates are handled by the write being an idempotent UPDATE to a target
@@ -180,8 +204,8 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase.rpc("set_subscription_plan", {
     p_user_id: userId,
     p_plan: change.plan,
-    p_renews_at: change.renewsAt,
-    p_period_start: change.periodStartsAt,
+    p_renews_at: renewsAt,
+    p_period_start: periodStartsAt,
     p_subscription_id: change.subscriptionId,
     p_customer_id: change.customerId,
     p_event_at: eventAt,

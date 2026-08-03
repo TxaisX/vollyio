@@ -11,37 +11,35 @@ decisions behind the shape are D-064, D-065, and D-066.
 
 ## 0. The one-line answer
 
-**Pro differs from Free in exactly one way: the monthly analysis allowance, 18
+**Pro differs from Free in exactly one way: the analysis allowance, 24
 against 1. Nothing else in the product asks what plan you are on.**
 
-Free also carries a one-time signup grant of 3 analyses, spent against the
+Free also carries a one-time signup grant of 6 analyses, spent against the
 account's lifetime rather than per month (D-076, migration 040). It is a trial,
-not a plan line: it is gone after three completed analyses and never returns, so
+not a plan line: it is gone after six completed analyses and never returns, so
 it belongs in onboarding copy and not in any sentence comparing the two plans.
 
-And that one difference is not in force right now. `shouldEnforceFreeTier()`
-requires the cap flag, billing open, an upgrade destination, and a configured
-payment provider. The provider secret has not landed, so the cap is armed and
-waiting rather than biting, and Free and Pro are currently the same product.
-The plan card says that in as many words, which is D-066's point: someone
-upgrading in this window is buying the plan early, not buying capacity.
+And that one difference is IN FORCE. `shouldEnforceFreeTier()` requires the
+cap flag, billing open, an upgrade destination, and a configured payment
+provider, and since 2026-07-31 (D-078) all four hold in production: billing is
+live, a real card has been charged, and the webhook applied the plan. Someone
+upgrading today is buying capacity, and the copy below must say so.
 
-Two switches, both on:
+Two switches, both on, with the provider fully configured:
 
     BILLING_ENABLED=true     Pro is buyable
-    ENFORCE_FREE_CAP=true    the cap is armed, and engages itself when the
-                             provider secret arrives
+    ENFORCE_FREE_CAP=true    the cap bites
 
-Build for the armed state. "The cap is on" is the near-future default.
+Write every surface for the armed state, because that is the live state.
 
 ## 1. What is true now
 
 | Dimension | Free | Pro | Where it is decided |
 |---|---|---|---|
-| Monthly analyses | 3 at signup once, then 1 completed per UTC calendar month | 18 completed per UTC calendar month | `MONTHLY_ALLOWANCE` and `SIGNUP_GRANT` in `lib/plans.ts`, mirrored in migration 040, pinned by `lib/plans.test.ts` |
-| Is that allowance in force | No | No | `shouldEnforceFreeTier()` in `lib/billing.ts` |
+| Analyses | 6 at signup once, then 1 completed per UTC calendar month | 24 completed per billing period | `MONTHLY_ALLOWANCE` and `SIGNUP_GRANT` in `lib/plans.ts` (D-083, D-085), mirrored in migrations 044 through 049, pinned by `lib/plans.test.ts` |
+| Is that allowance in force | Yes | Yes | `shouldEnforceFreeTier()` in `lib/billing.ts`; live since 2026-07-31 (D-078) |
 | What counts against it | Completed analyses only. A clip that fails, times out, or hits a capacity outage costs nothing | Same | Insert ordering in `app/api/analyze/route.ts`, D-064 |
-| When it resets | 1st of the UTC calendar month | Same | `private.allowance_window()`, migration 026 |
+| When it resets | 1st of the UTC calendar month | The billing anniversary: the provider-reported period start to `plan_renews_at` | `private.allowance_window()`, migrations 035 and 049 (D-067, D-086) |
 | Analyzed clip window | Up to 10 s. The default window is 2 s or 3 s depending on skill | Same | `MAX_CLIP_SECONDS` in `lib/frames.ts`, `SKILL_PROFILES` in `lib/frame-plan.ts` |
 | Frames sent to the coaching service | 64, gapless coverage, contact phase at 1024 px and context at 640 px | Same | `MAX_FRAMES` in `lib/analysis-types.ts`, mirrored by the insert trigger in migration 025 |
 | Frames stored per analysis | 24 | Same | `MAX_STORED_FRAMES` |
@@ -84,16 +82,15 @@ Build for the armed state. "The cap is on" is the near-future default.
 - **Coach chat is off for everyone**, so it is not a Free feature today and
   cannot be sold as a Pro one. Nothing may imply otherwise until the flag is
   back on.
-- **`docs/security.md` says the coach quota is 60 an hour.** Migrations 018 and
-  028 both say 20. The migrations are the enforcement, so 20 is the true
-  number and that line in `docs/security.md` is stale. Not fixed here: that
-  file is not owned by this change.
+- **Resolved drift, kept for the record:** this file used to flag
+  `docs/security.md` for saying the coach quota was 60 an hour. That file now
+  says 20, matching migrations 018 and 028, so the two agree.
 
 ## 2. What Pro is, stated honestly
 
-Pro is a bigger monthly allowance on a product that is otherwise identical, and
-today even that is dormant. That is the whole of it. Anything a plan card or a
-landing page says beyond "18 analyses a month instead of 3" is either section 3
+Pro is a bigger allowance on a product that is otherwise identical. That is
+the whole of it. Anything a plan card or a
+landing page says beyond "24 analyses a month instead of 1" is either section 3
 or it is a claim the product cannot honour.
 
 ## 3. Proposed, and not built
@@ -124,19 +121,18 @@ ship without a new dependency.
 ### First. Finish the allowance.
 
 It is already built, it is the only real difference, and it is not delivered.
-The perk is 18 against 3, the marginal cost is real and measured at roughly
-$0.15 to $0.20 an analysis, and the only outstanding work is owner work in the
-provider account plus the switch engaging itself. Nothing else on this list
-should start before this is honestly live, because until it is, every other
-perk is being added to a plan that currently sells nothing.
+The perk is 24 against 1, the marginal cost is real and measured at roughly
+$0.15 to $0.20 an analysis. DONE since 2026-07-31 (D-078): the cap is live,
+the provider is configured, and Pro honestly sells its allowance. Every other
+perk on this list now builds on a plan that already sells something real.
 
 Cost: no code. Visibility: total, it is the plan card's whole sentence.
 Dependency: none.
 
-The uncomfortable half: while the cap is off, Pro genuinely buys nothing, and
-the plan card must keep saying so. Do not let a perk from section 3 be used to
-paper over that gap. Shipping a small perk so that Pro "has something" while
-the allowance is still dormant would be selling a distraction.
+The uncomfortable half is retired with it: while the cap was off, Pro
+genuinely bought nothing and the plan card had to say so. That constraint
+ended when the cap engaged; the standing rule it leaves behind is the same
+one, generalized: never sell a perk the product does not currently serve.
 
 ### Second. A longer analyzed window for Pro, with the frame budget raised to match.
 
@@ -206,14 +202,14 @@ taking longer is a claim we know to be false.
 
 ## 6. What copy may say today
 
-May say: Pro is $9.99 a month for 18 analyses a month against 1 on Free, on a
+May say: Pro is $9.99 a month for 24 analyses against 1 a month on Free, on a
 UTC calendar month reset, cancellable any time with access to the end of the
 period already paid for. Free may be described as 3 analyses to start and 1 a
 month after that, provided both halves appear together: "3 free analyses" alone
 is a number that stops being true in month two, and "1 a month" alone hides the
 trial. `allowanceSentence()` builds the sentence so this is hard to get wrong.
 
-Must also say, while the cap is off: nothing is being counted today, and
+Said, while the cap was off (historical; the cap is on): nothing is being counted today, and
 upgrading now is early support rather than more reps. That is D-066's
 requirement and the plan card already carries it.
 

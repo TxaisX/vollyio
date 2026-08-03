@@ -7,6 +7,7 @@ import { REHAB } from "@/content/rehab";
 import { REGION_LABEL, TRIAGE_LABEL, type RehabEntry } from "@/content/rehab-types";
 import { metricLabel, metricKeys } from "@/lib/ai/metrics";
 import { Reveal } from "@/components/motion";
+import { TrainNav } from "@/components/section-nav";
 import { LearnLibrary, type LibraryItem } from "@/components/learn-library";
 import {
   SKILLS,
@@ -118,6 +119,7 @@ export default async function Learn({
         <h1 className="mt-2 font-display text-page-title">
           Get better, and stay on the court
         </h1>
+        <TrainNav active={tab === "rehab" ? "recovery" : "technique"} />
         <div className="mt-5 flex items-center gap-2">
           {ANALYZE_DISCIPLINES.map((d) => (
             <Link

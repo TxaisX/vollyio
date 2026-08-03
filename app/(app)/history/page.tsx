@@ -4,8 +4,17 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { Reveal } from "@/components/motion";
+import { ProgressNav } from "@/components/section-nav";
 import { SkillIcon } from "@/components/skill-icons";
-import { SKILLS, SKILL_LABEL, isSkill, type Skill } from "@/lib/skills";
+import {
+  DISCIPLINE_LABEL,
+  SKILLS,
+  SKILL_LABEL,
+  disciplineGroup,
+  isSkill,
+  type Discipline,
+  type Skill,
+} from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +26,7 @@ export const metadata: Metadata = {
 type Row = {
   id: string;
   skill: Skill;
+  discipline: Discipline;
   overall_score: number;
   created_at: string;
   result: { priority_fix?: { title?: string } };
@@ -35,7 +45,7 @@ export default async function History({
 
   let query = supabase
     .from("analyses")
-    .select("id, skill, overall_score, created_at, result")
+    .select("id, skill, discipline, overall_score, created_at, result")
     .eq("user_id", userId!)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -59,6 +69,7 @@ export default async function History({
           <h1 className="mt-2 font-display text-page-title">
             The film room
           </h1>
+          <ProgressNav active="reps" />
 
           <div className="mt-3 flex flex-wrap gap-2">
             {/* aria-current, because the active filter is otherwise carried by
@@ -127,6 +138,14 @@ export default async function History({
                       <span className="flex items-center gap-1.5 rounded bg-navy-light px-2 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
                         <SkillIcon skill={r.skill} className="h-3 w-3" />
                         {SKILL_LABEL[r.skill]}
+                      </span>
+                      {/* The list mixes environments (Trends splits them), so
+                          each rep says which one it was: an outdoor 62 next to
+                          an indoor 78 is two facts, not a regression. */}
+                      <span className="rounded bg-navy-light px-2 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
+                        {disciplineGroup(r.discipline) === "indoor"
+                          ? DISCIPLINE_LABEL.indoor
+                          : DISCIPLINE_LABEL.grass}
                       </span>
                       {/* Shared-element morph source: this score appears to
                           travel into the breakdown's score ring when the row

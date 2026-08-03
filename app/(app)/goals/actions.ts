@@ -6,7 +6,16 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { awardXp, todayKey } from "@/lib/progression";
+import { claimAchievements, type AchievementKey } from "@/lib/achievements";
 import { SKILLS } from "@/lib/skills";
+
+// The goals surface is the dashboard board (D-088), and the archive renders
+// under Progress. Both re-read after every write; /goals itself is a redirect
+// and needs nothing.
+function revalidateGoalSurfaces() {
+  revalidatePath("/dashboard");
+  revalidatePath("/progress/milestones");
+}
 
 const FIELDS = ["title", "skill", "target_rating", "deadline"] as const;
 type Field = (typeof FIELDS)[number];
@@ -90,32 +99,54 @@ export async function createGoal(
     };
   }
 
-  revalidatePath("/goals");
+  revalidateGoalSurfaces();
   return { status: "success", key: Date.now() };
 }
 
-export async function completeGoal(id: string) {
+// What the board needs back to celebrate honestly: whether the update landed,
+// what the ledger actually paid (0 on a replay), and any badge the completion
+// tipped over. The amounts come from the database, never from here (D-071).
+export type CompleteGoalResult = {
+  completed: boolean;
+  awarded: number;
+  badges: AchievementKey[];
+};
+
+export async function completeGoal(id: string): Promise<CompleteGoalResult> {
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
   if (!userId) redirect("/login");
-  if (!z.uuid().safeParse(id).success) return;
+  if (!z.uuid().safeParse(id).success) {
+    return { completed: false, awarded: 0, badges: [] };
+  }
 
   const { data } = await supabase
     .from("goals")
-    .update({ status: "done" })
+    // completed_at is advisory (migration 050): it feeds the deadline badge
+    // and nothing that decides authorization, billing or scoring.
+    .update({ status: "done", completed_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", userId)
     .eq("status", "active")
     .select("id")
     .maybeSingle();
 
-  if (data) {
-    // The status is already 'done' above, which is exactly what award_xp
-    // re-checks before paying: the goal has to be finished and owned by the
-    // caller, so a bare reason string cannot buy 150 XP (D-071).
-    await awardXp(supabase, `goal:${id}`);
+  if (!data) {
+    revalidateGoalSurfaces();
+    return { completed: false, awarded: 0, badges: [] };
   }
-  revalidatePath("/goals");
+
+  // The status is already 'done' above, which is exactly what award_xp
+  // re-checks before paying: the goal has to be finished and owned by the
+  // caller, so a bare reason string cannot buy 150 XP (D-071).
+  const awarded = await awardXp(supabase, `goal:${id}`);
+  // Same pattern one level up: the claim re-derives every criterion from the
+  // caller's own rows, so completing a goal is simply the moment a goal badge
+  // can first come back. Fails soft to [] and never blocks the completion.
+  const badges = await claimAchievements(supabase);
+
+  revalidateGoalSurfaces();
+  return { completed: true, awarded, badges };
 }
 
 export async function abandonGoal(id: string) {
@@ -131,5 +162,5 @@ export async function abandonGoal(id: string) {
     .eq("user_id", userId)
     .eq("status", "active");
 
-  revalidatePath("/goals");
+  revalidateGoalSurfaces();
 }

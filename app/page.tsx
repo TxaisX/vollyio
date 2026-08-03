@@ -535,14 +535,17 @@ export default function Landing() {
             <div>
               <Reveal>
                 <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-                  Coach chat
+                  Coach chat{" "}
+                  <span className="ml-2 inline-block rounded-full border border-line-control px-2.5 py-0.5 text-[10px] tracking-[0.12em] text-chalk-dim">
+                    Coming soon
+                  </span>
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
                   A coach that has actually seen you play.
                 </h2>
                 <p className="mt-4 max-w-md text-chalk-dim">
-                  Ask anything. The coach answers from your own scores,
-                  breakdowns, and goals, not generic tips.
+                  Next up for Vollyio: ask anything, and the coach answers from
+                  your own scores, breakdowns, and goals, not generic tips.
                 </p>
               </Reveal>
             </div>
@@ -555,7 +558,7 @@ export default function Landing() {
                   <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-2.5 text-sm text-chalk">
                     Your last three reps all lost points on the same metric:
                     platform angle. You&rsquo;re swinging your arms instead of
-                    riding your legs. Run Wall Platform Holds before Thursday
+                    riding your legs. Run Wall Platform Reps before Thursday
                     and re-film.
                   </div>
                 </div>

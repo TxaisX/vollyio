@@ -13,10 +13,12 @@ import {
 } from "@/lib/skills";
 import {
   FREQUENCY_OPTIONS,
+  LEVEL_OPTIONS,
   POSITION_OPTIONS,
   type PlayFrequency,
   type Position,
 } from "@/lib/funnel";
+import type { Level } from "@/lib/skills";
 import { logout } from "@/app/(auth)/actions";
 import { setTrainingConsent, updateProfile } from "./actions";
 
@@ -30,14 +32,20 @@ export const metadata: Metadata = {
 type ProfileRow = {
   display_name: string | null;
   discipline: Discipline;
+  level: Level | null;
   position: Position | null;
   play_frequency: PlayFrequency | null;
   training_consent: boolean | null;
   plan: string | null;
 };
 
-export default async function Settings() {
+export default async function Settings({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
   const supabase = await createClient();
+  const { checkout } = await searchParams;
   const userId = await getAuthUserId(supabase);
   const {
     data: { user: authUser },
@@ -47,7 +55,7 @@ export default async function Settings() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, discipline, position, play_frequency, training_consent, plan",
+      "display_name, discipline, level, position, play_frequency, training_consent, plan",
     )
     .eq("id", userId!)
     .single();
@@ -58,6 +66,14 @@ export default async function Settings() {
   // direction lib/plans.ts fails: never show a player a larger entitlement than
   // the reservation will actually honour.
   const plan: Plan = isPlan(profile.plan) ? profile.plan : "free";
+
+  // The checkout route returns the payer to /settings?checkout=complete#plan.
+  // Until the provider's webhook lands, the stored plan still reads free, and a
+  // card that keeps offering Upgrade in that window invites a second checkout
+  // session, and with it a second customer record (D-064's read-then-act race,
+  // but with real money attached). The marker holds the card in a waiting state
+  // instead. Once the plan reads pro the marker is spent and ignored.
+  const checkoutPending = checkout === "complete" && plan !== "pro";
 
   // Legacy 'beach' profiles light up the "Grass & sand" chip: the two wire
   // values are one environment everywhere the player sees it (D-035).
@@ -116,7 +132,7 @@ export default async function Settings() {
       </Reveal>
 
       <Reveal delay={120}>
-        <PlanCard plan={plan} />
+        <PlanCard plan={plan} checkoutPending={checkoutPending} />
       </Reveal>
 
       <Reveal delay={180}>
@@ -150,6 +166,36 @@ export default async function Settings() {
                 className={`chip min-h-11 ${activeDiscipline(d) ? "chip-active" : ""}`}
               >
                 {DISCIPLINE_LABEL[d]}
+              </button>
+            ))}
+          </form>
+
+          {/* The level was set once at onboarding and then frozen, while it
+              drives assignment difficulty, the plan seed and the coaching
+              voice. A player who levels up should not need a new account for
+              the coaching to notice. */}
+          <p
+            id="settings-level"
+            className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim"
+          >
+            Coaching level
+          </p>
+          <form
+            action={updateProfile}
+            role="group"
+            aria-labelledby="settings-level"
+            className="mt-2 flex flex-wrap gap-2"
+          >
+            {LEVEL_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="submit"
+                name="level"
+                value={value}
+                aria-pressed={profile.level === value}
+                className={`chip min-h-11 ${profile.level === value ? "chip-active" : ""}`}
+              >
+                {label}
               </button>
             ))}
           </form>

@@ -304,6 +304,28 @@ against a known answer. Getting 022 applied first means the cheap stream is
 running while the expensive one is still being built.
 
 ## Session log
+- **2026-08-03 (Session 8, five tabs and a payoff)** - Pre-invite pass, D-087
+  through D-090. Nav consolidated to five tabs (Home, Analyze, Train,
+  Progress, Coach-when-lit) with Settings as chrome and the mobile tab bar no
+  longer scrolling; scoreboard deleted after verifying `games` is a closed
+  loop; `/goals` now redirects to the dashboard goals board, which creates,
+  completes and celebrates (the 150 finally shows, and the challenge's 75
+  confirms). Achievements shipped in the D-071 mold: migration 050
+  (achievements table + `claim_achievements()`, additive), twelve badges
+  pinned TS-to-SQL by `lib/achievements.test.ts`, shelf on Home, Milestones
+  under Progress with bests and the goal archive. Billing hardening in D-090:
+  checkout events carry `preserveBillingDates` so their nulls cannot blank
+  the renewal anchor, migration 051 clamps a future `plan_period_start`, and
+  the plan card finally reads `?checkout=complete` so a fresh payer is not
+  offered a second checkout. Terms' false 24-versus-20 sentence fixed,
+  landing Coach section marked coming soon, level editable in Settings,
+  service worker cache versioned with a working SKIP_WAITING listener,
+  onboarding's malformed submit no longer drops answers silently. Docs
+  resynced to 6/1/24 live reality (billing.md, runbook, plan-matrix, README,
+  SETUP, deploy.md incl. the historical CV section); security.md matrices
+  carry the new and removed surfaces. Migrations 050 and 051 applied to prod
+  ahead of the code, per the 036 mold. Gates green: lint, typecheck, tests,
+  build.
 - **2026-07-27 (Session 7, the billing surface)** - `9de3f2b` built the paid path
   end to end and left it switched off: migration 026 replaced the lifetime-one
   free rule with a per-plan count over the UTC calendar month, 027 gave

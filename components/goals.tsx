@@ -7,13 +7,16 @@ import {
   useState,
   useTransition,
 } from "react";
+import Link from "next/link";
 import {
   abandonGoal,
   completeGoal,
   createGoal,
+  type CompleteGoalResult,
 } from "@/app/(app)/goals/actions";
-import { Reveal } from "@/components/motion";
 import { RewardMark, RewardToast } from "@/components/reward-toast";
+import { BadgeToasts } from "@/components/xp-toast";
+import type { AchievementKey } from "@/lib/achievements";
 import { SKILLS, SKILL_LABEL, type Skill } from "@/lib/skills";
 
 export type Goal = {
@@ -191,83 +194,6 @@ function GoalForm({
   );
 }
 
-export function NewGoal() {
-  const [open, setOpen] = useState(false);
-  const [announce, setAnnounce] = useState("");
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const restoreFocus = useRef(false);
-
-  useEffect(() => {
-    if (!open && restoreFocus.current) {
-      restoreFocus.current = false;
-      triggerRef.current?.focus();
-    }
-  }, [open]);
-
-  return (
-    <>
-      {open ? (
-        <div className="card p-5">
-          <GoalForm
-            onCreated={() => {
-              restoreFocus.current = true;
-              setAnnounce("Goal added.");
-              setOpen(false);
-            }}
-            onCancel={() => setOpen(false)}
-          />
-        </div>
-      ) : (
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => {
-            setAnnounce("");
-            setOpen(true);
-          }}
-          className="btn-ghost min-h-11 w-full sm:w-auto"
-        >
-          + New goal
-        </button>
-      )}
-      {announce && (
-        <RewardToast
-          title="Goal added"
-          detail="Your target is set."
-          onDismiss={() => setAnnounce("")}
-        />
-      )}
-    </>
-  );
-}
-
-export function GoalsEmptyState() {
-  return (
-    <div className="card mx-auto w-full max-w-md p-6 sm:p-8">
-      <div className="text-center">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          className="mx-auto h-10 w-10 text-gold"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <circle cx="12" cy="12" r="5.5" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-        </svg>
-        <p className="mt-4 text-body text-chalk-dim">
-          One number to chase gives every session a direction.
-        </p>
-      </div>
-      <div className="mt-6">
-        <GoalForm />
-      </div>
-    </div>
-  );
-}
-
 function useMounted() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -291,21 +217,21 @@ function Deadline({ date }: { date: string }) {
   return (
     <span
       suppressHydrationWarning
-      className={`font-mono text-xs ${days < 0 ? "text-coral" : "text-chalk-dim"}`}
+      className={`font-mono text-[11px] ${days < 0 ? "text-coral" : "text-chalk-dim"}`}
     >
       {label}
     </span>
   );
 }
 
-export function ActiveGoalCard({
+function GoalRow({
   goal,
   rating,
-  delay = 0,
+  onCompleted,
 }: {
   goal: Goal;
   rating: number | null;
-  delay?: number;
+  onCompleted: (goal: Goal, result: CompleteGoalResult) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [intent, setIntent] = useState<"complete" | "abandon" | null>(null);
@@ -320,111 +246,259 @@ export function ActiveGoalCard({
   const hit = showBar && rating != null && rating >= target;
 
   return (
-    <Reveal delay={delay}>
-      <div
-        className={`card card-lift spot relative p-5 ${
-          pending && intent === "complete" ? "reward-completing" : ""
-        }`}
-      >
-        {pending && intent === "complete" && (
-          <RewardMark className="absolute right-4 top-4" />
+    <li
+      className={`relative border-b border-line py-3.5 last:border-b-0 last:pb-1 ${
+        pending && intent === "complete" ? "reward-completing" : ""
+      }`}
+    >
+      {pending && intent === "complete" && (
+        <RewardMark className="absolute right-0 top-3.5" />
+      )}
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-chalk">
+          {goal.title}
+        </span>
+        {goal.skill && (
+          <span className="rounded bg-navy px-1.5 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
+            {SKILL_LABEL[goal.skill]}
+          </span>
         )}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h3 className="font-display text-lg font-bold">{goal.title}</h3>
-          {goal.skill && (
-            <span className="rounded bg-navy px-2 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
-              {SKILL_LABEL[goal.skill]}
-            </span>
-          )}
-          {goal.deadline && <Deadline date={goal.deadline} />}
-        </div>
+        {goal.deadline && <Deadline date={goal.deadline} />}
+      </div>
 
-        {showBar && (
-          <div className="mt-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">
-                Rating
-              </span>
-              <span className="font-mono text-xs text-chalk">
-                {rating != null ? Math.round(rating) : "·"} / {target}
-              </span>
-            </div>
+      {showBar && (
+        <div className="mt-2">
+          <div
+            role="progressbar"
+            aria-label={`${SKILL_LABEL[goal.skill!]} rating progress`}
+            aria-valuemin={0}
+            aria-valuemax={target}
+            aria-valuenow={rating != null ? Math.round(rating) : 0}
+            aria-valuetext={
+              rating != null
+                ? `${Math.round(rating)} of ${target}`
+                : `Not rated yet, target ${target}`
+            }
+            className="h-1 overflow-hidden rounded-full bg-line/60"
+          >
             <div
-              role="progressbar"
-              aria-label={`${SKILL_LABEL[goal.skill!]} rating progress`}
-              aria-valuemin={0}
-              aria-valuemax={target}
-              aria-valuenow={rating != null ? Math.round(rating) : 0}
-              aria-valuetext={
-                rating != null
-                  ? `${Math.round(rating)} of ${target}`
-                  : `Not rated yet, target ${target}`
-              }
-              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-navy"
-            >
-              <div
-                className="h-full rounded-full bg-gold"
-                style={{
-                  width: mounted ? `${pct}%` : "0%",
-                  transition: "width 0.6s var(--ease-court)",
-                }}
-              />
-            </div>
+              className={`h-full rounded-full ${hit ? "bg-teal" : "bg-gold"}`}
+              style={{
+                width: mounted ? `${pct}%` : "0%",
+                transition: "width 0.6s var(--ease-court)",
+              }}
+            />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between gap-2">
+            <span className="font-mono text-[10px] text-chalk-dim">
+              {rating != null ? Math.round(rating) : "·"}/{target}
+            </span>
             {hit && (
-              <p className="mt-2 text-xs text-teal">Target hit. Mark it done.</p>
+              <span className="font-mono text-[10px] uppercase tracking-wide text-teal">
+                Target hit
+              </span>
             )}
           </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {confirming ? (
-            <>
-              <span className="text-xs text-chalk-dim">
-                Abandon this goal?
-              </span>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setIntent("abandon");
-                  startTransition(() => abandonGoal(goal.id));
-                }}
-                className="btn-ghost min-h-11 px-4 py-2 text-sm text-coral disabled:opacity-60"
-              >
-                Abandon
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                className="btn-ghost min-h-11 px-4 py-2 text-sm"
-              >
-                Keep
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setIntent("complete");
-                  startTransition(() => completeGoal(goal.id));
-                }}
-                className="btn-primary min-h-11 px-5 py-2 text-sm disabled:opacity-60"
-              >
-                {pending && intent === "complete" ? "Completing" : "Done"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="btn-ghost min-h-11 border-transparent px-4 py-2 text-sm text-chalk-dim"
-              >
-                Abandon
-              </button>
-            </>
-          )}
         </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {confirming ? (
+          <>
+            <span className="text-xs text-chalk-dim">Abandon this goal?</span>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setIntent("abandon");
+                startTransition(() => abandonGoal(goal.id));
+              }}
+              className="btn-ghost min-h-11 px-3.5 py-1.5 text-xs text-coral disabled:opacity-60"
+            >
+              Abandon
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="btn-ghost min-h-11 px-3.5 py-1.5 text-xs"
+            >
+              Keep
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setIntent("complete");
+                startTransition(async () => {
+                  const result = await completeGoal(goal.id);
+                  onCompleted(goal, result);
+                });
+              }}
+              className={`${
+                hit ? "btn-primary" : "btn-ghost"
+              } min-h-11 px-4 py-1.5 text-xs disabled:opacity-60`}
+            >
+              {pending && intent === "complete" ? "Completing" : "Mark done"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="btn-ghost min-h-11 border-transparent px-3.5 py-1.5 text-xs text-chalk-dim"
+            >
+              Abandon
+            </button>
+          </>
+        )}
       </div>
-    </Reveal>
+    </li>
+  );
+}
+
+const VISIBLE_DEFAULT = 4;
+
+// The goals surface, on the dashboard where the chasing happens (D-088).
+// Everything the old /goals page could do happens in this one card: set a
+// goal, watch the bar, mark it done, and actually SEE the 150 XP land, which
+// used to be paid in silence. Active goals are unlimited; the card shows four
+// and says how many more there are instead of silently hiding them.
+export function GoalsBoard({
+  goals,
+  ratings,
+  doneCount,
+}: {
+  goals: Goal[];
+  ratings: Partial<Record<Skill, number>>;
+  doneCount: number;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [toast, setToast] = useState<{ title: string; detail: string } | null>(
+    null,
+  );
+  const [badgeQueue, setBadgeQueue] = useState<AchievementKey[]>([]);
+  const addRef = useRef<HTMLButtonElement>(null);
+
+  const visible = showAll ? goals : goals.slice(0, VISIBLE_DEFAULT);
+  const hidden = goals.length - visible.length;
+
+  const handleCompleted = (goal: Goal, result: CompleteGoalResult) => {
+    if (!result.completed) return;
+    // awarded 0 means the ledger already paid once (a retry); the goal is
+    // still done, so the words stay true either way.
+    setToast(
+      result.awarded > 0
+        ? { title: `+${result.awarded} XP`, detail: `Goal completed. ${goal.title}` }
+        : { title: "Goal completed", detail: goal.title },
+    );
+    if (result.badges.length > 0) {
+      setBadgeQueue((queue) => [...queue, ...result.badges]);
+    }
+  };
+
+  return (
+    <section
+      id="goals"
+      aria-labelledby="goals-heading"
+      tabIndex={-1}
+      className="card scroll-mt-20 p-5"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2
+          id="goals-heading"
+          className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold"
+        >
+          Goals
+          {goals.length > 0 && (
+            <span className="ml-2 text-chalk-dim">{goals.length} active</span>
+          )}
+        </h2>
+        {!adding && (
+          <button
+            ref={addRef}
+            type="button"
+            onClick={() => setAdding(true)}
+            className="-my-2 py-2 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
+          >
+            + New goal
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="mt-3 border-b border-line pb-4">
+          <GoalForm
+            onCreated={() => {
+              setAdding(false);
+              setToast({ title: "Goal added", detail: "Your target is set." });
+              addRef.current?.focus();
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        </div>
+      )}
+
+      {goals.length === 0 && !adding ? (
+        <p className="mt-2 text-body text-chalk-dim">
+          One number to chase gives every session a direction.{" "}
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="text-gold transition-colors hover:text-chalk"
+          >
+            Set a target.
+          </button>
+        </p>
+      ) : (
+        <ul className="mt-1">
+          {visible.map((g) => (
+            <GoalRow
+              key={g.id}
+              goal={g}
+              rating={g.skill ? (ratings[g.skill] ?? null) : null}
+              onCompleted={handleCompleted}
+            />
+          ))}
+        </ul>
+      )}
+
+      {(hidden > 0 || showAll) && goals.length > VISIBLE_DEFAULT && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-2 w-full py-2 text-center font-mono text-[11px] text-chalk-dim underline decoration-line-control underline-offset-4 transition-colors hover:text-chalk"
+        >
+          {showAll ? "Show fewer" : `Show all (${goals.length})`}
+        </button>
+      )}
+
+      {doneCount > 0 && (
+        <p className="mt-3 border-t border-line pt-3 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+          {doneCount} completed ·{" "}
+          <Link
+            href="/progress/milestones"
+            className="text-chalk-dim underline decoration-line-control underline-offset-4 transition-colors hover:text-chalk"
+          >
+            See them in Milestones
+          </Link>
+        </p>
+      )}
+
+      {toast && (
+        <RewardToast
+          key={`${toast.title}-${toast.detail}`}
+          title={toast.title}
+          detail={toast.detail}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+      {/* Badges wait for the XP toast's spot to free up: same anchor, queued
+          rather than stacked. */}
+      {!toast && badgeQueue.length > 0 && (
+        <BadgeToasts key={badgeQueue.join(",")} badges={badgeQueue} />
+      )}
+    </section>
   );
 }

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
 };
 
-const EFFECTIVE = "July 29, 2026";
+const EFFECTIVE = "August 3, 2026";
 
 // The price as a bare amount, for the sentences where "$9.99/mo every month"
 // would read wrong. Derived from the same constant the plan card and the limit
@@ -317,9 +317,11 @@ export default function TermsPage() {
           There is also a short-term limit, on every plan and whether or not
           monthly limits are on: no more than {HOURLY_ANALYSIS_LIMIT} analyses
           in an hour, and one running at a time. It is there to keep the
-          service up. While monthly limits are counting you will never meet it,
-          because {MONTHLY_ALLOWANCE.pro} in a month is well under{" "}
-          {HOURLY_ANALYSIS_LIMIT} in an hour.
+          service up. In practice the monthly allowance is the limit you will
+          feel first. The hourly wall only matters if you spend a large share
+          of a month&rsquo;s {MONTHLY_ALLOWANCE.pro} analyses in one sitting,
+          and then the next rep waits for the hour to turn over rather than
+          being lost.
         </p>
         <p>Analyses you do not use do not carry into the next month.</p>
       </Section>

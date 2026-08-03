@@ -24,6 +24,14 @@ export type PlanChange = {
   periodStartsAt: string | null;
   subscriptionId: string | null;
   customerId: string | null;
+  // True on the checkout events, whose nulls above mean "this event does not
+  // know the dates", never "clear them". Delivery is unordered and `created`
+  // has one-second granularity, so a completed event applied after the same
+  // burst's subscription event would otherwise blank the anchor it just wrote
+  // and drop the allowance window back to the calendar month. The route
+  // coalesces these nulls from the stored row when this is set. The deletion
+  // event keeps false because its nulls ARE the message: nothing renews.
+  preserveBillingDates: boolean;
 } | null;
 
 type Fields = Record<string, unknown>;
@@ -184,6 +192,9 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           periodStartsAt: null,
           subscriptionId: referenceId(object.subscription),
           customerId: referenceId(object.customer),
+          // These nulls mean "unknown", not "gone": never let this event blank
+          // dates a same-burst subscription event already stored.
+          preserveBillingDates: true,
         };
       }
 
@@ -206,6 +217,7 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           periodStartsAt: periodStart(object),
           subscriptionId: asText(object.id),
           customerId: referenceId(object.customer),
+          preserveBillingDates: false,
         };
       }
 
@@ -214,10 +226,12 @@ export function planChangeFromEvent(event: unknown): PlanChange {
           userId: metadataUserId(object),
           plan: "free",
           // The subscription is gone, so there is no next renewal to promise.
+          // preserveBillingDates stays false: these nulls are the truth.
           renewsAt: null,
           periodStartsAt: null,
           subscriptionId: asText(object.id),
           customerId: referenceId(object.customer),
+          preserveBillingDates: false,
         };
       }
 

@@ -36,11 +36,14 @@ test("a completed checkout makes the player pro and carries the ids forward", ()
     userId: USER,
     plan: "pro",
     // The session knows nothing true about the billing period; the
-    // subscription event that follows carries the real period end.
+    // subscription event that follows carries the real period end. The flag
+    // is what keeps these nulls from overwriting dates a same-burst
+    // subscription event already stored.
     renewsAt: null,
     periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
+    preserveBillingDates: true,
   });
 });
 
@@ -92,6 +95,7 @@ test("an active subscription is pro with the period end as an ISO timestamp", ()
     periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
+    preserveBillingDates: false,
   });
 });
 
@@ -208,6 +212,7 @@ test("a deleted subscription drops the player to free with no renewal", () => {
     periodStartsAt: null,
     subscriptionId: "sub_1",
     customerId: "cus_1",
+    preserveBillingDates: false,
   });
 });
 
@@ -408,6 +413,54 @@ test("the checkout rule is payment_status, not the event name", () => {
     );
     assert.equal(settled?.plan, "pro", `${type} settled`);
   }
+});
+
+test("a settled checkout asks the writer to keep any stored billing dates", () => {
+  // The completed event deliberately carries no billing dates (a session has
+  // an expiry, not a period), while the subscription event in the same
+  // purchase burst carries both. Stripe's `created` has one-second
+  // granularity and delivery is unordered, so whenever the completed event
+  // sorts equal-or-later, writing its nulls through would blank the anchor
+  // the subscription event just stored and drop the window back to the
+  // calendar month for up to a month. The flag tells the route: coalesce
+  // these nulls from the stored row instead of writing them.
+  const completed = planChangeFromEvent(
+    event("checkout.session.completed", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
+      client_reference_id: USER,
+      customer: "cus_1",
+      subscription: "sub_1",
+    }),
+  );
+  assert.equal(completed?.preserveBillingDates, true);
+
+  const settledLater = planChangeFromEvent(
+    event("checkout.session.async_payment_succeeded", {
+      id: "cs_1",
+      status: "complete",
+      payment_status: "paid",
+      client_reference_id: USER,
+      customer: "cus_1",
+    }),
+  );
+  assert.equal(settledLater?.preserveBillingDates, true);
+
+  // A subscription event's dates are the truth and write through as read.
+  const updated = planChangeFromEvent(
+    event(
+      "customer.subscription.updated",
+      subscription({ status: "active", metadata: { user_id: USER } }),
+    ),
+  );
+  assert.equal(updated?.preserveBillingDates, false);
+
+  // A deletion's nulls are the message: there is no next renewal to keep.
+  const deleted = planChangeFromEvent(
+    event("customer.subscription.deleted", subscription({ metadata: { user_id: USER } })),
+  );
+  assert.equal(deleted?.preserveBillingDates, false);
 });
 
 test("the period start is read from the event, never derived from the renewal", () => {

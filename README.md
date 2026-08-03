@@ -39,7 +39,7 @@ whole trim window at uniform dense coverage rather than a few picked frames (D-0
 
 ## Plans
 
-Free is 3 completed analyses at signup, once, then 1 per UTC calendar month,
+Free is 6 completed analyses at signup, once, then 1 a month,
 resetting on the 1st (D-076). Pro is $9.99 a month for 18. The count reads
 stored analysis rows, so a clip that fails, times out, or hits a capacity
 outage costs the player nothing and needs no refund path.

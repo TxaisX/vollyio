@@ -71,8 +71,11 @@ export async function completeOnboarding(formData: FormData) {
     target_rating: formData.get("target_rating") || undefined,
     timeframe_days: formData.get("timeframe_days") || undefined,
   });
-  // A malformed submit still lands the player somewhere useful.
-  if (!parsed.success) redirect("/analyze");
+  // A malformed submit used to silently drop every answer into /analyze,
+  // which read as "saved" while nothing was. Landing back here with the
+  // notice keeps the player in the flow and tells the truth: nothing stuck,
+  // run it once more.
+  if (!parsed.success) redirect("/welcome?retry=1");
 
   await applyAnswers(userId, parsed.data);
   redirect(

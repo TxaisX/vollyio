@@ -4,10 +4,12 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { completeChallenge, type ChallengeState } from "@/app/(app)/dashboard/actions";
 import { LinkPending } from "@/components/link-pending";
+import { RewardToast } from "@/components/reward-toast";
+import { BadgeToasts } from "@/components/xp-toast";
 import { SKILL_LABEL } from "@/lib/skills";
 import type { Assignment } from "@/lib/daily-assignment";
 
-const INITIAL: ChallengeState = { ok: false, error: null, awarded: 0 };
+const INITIAL: ChallengeState = { ok: false, error: null, awarded: 0, badges: [] };
 
 const FELT = [
   { value: "easy", label: "Easy" },
@@ -32,6 +34,10 @@ export function DailyAssignmentCard({
 }) {
   const [noCourt, setNoCourt] = useState(false);
   const [state, formAction, pending] = useActionState(completeChallenge, INITIAL);
+  // The card promises "+75 XP" in its corner, so the payment has to be shown
+  // landing or the promise reads as decoration. Dismissed is tracked locally
+  // because the card survives the revalidation that follows the action.
+  const [xpToastDone, setXpToastDone] = useState(false);
 
   const active = noCourt ? courtFree : assignment;
   const logged = done || state.ok;
@@ -170,6 +176,20 @@ export function DailyAssignmentCard({
           {noCourt ? "I can train today" : "No court today"}
         </button>
       )}
+
+      {state.ok && state.awarded > 0 && !xpToastDone && (
+        <RewardToast
+          title={`+${state.awarded} XP`}
+          detail="Challenge logged."
+          onDismiss={() => setXpToastDone(true)}
+        />
+      )}
+      {/* Badges queue behind the XP toast: same screen anchor, one at a time. */}
+      {state.ok &&
+        state.badges.length > 0 &&
+        (state.awarded === 0 || xpToastDone) && (
+          <BadgeToasts badges={state.badges} />
+        )}
     </div>
   );
 }

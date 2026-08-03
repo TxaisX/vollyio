@@ -42,19 +42,25 @@ never engage in a configuration where a player could not buy past it.
 
 | Tier | Price | Analyses | Where it is managed |
 |---|---|---|---|
-| Free | $0 | 3 at signup, once, then 1 completed analysis per calendar month | nothing to manage |
-| Pro | $9.99/mo | 18 completed analyses per calendar month | Settings, plan card |
+| Free | $0 | 6 at signup, once, then 1 completed analysis per month window | nothing to manage |
+| Pro | $9.99/mo | 24 completed analyses per billing period | Settings, plan card |
 
 - **Free is two numbers and has to be described as both** (D-076, migration
-  040). The 3 are a one-time grant spent against LIFETIME rows in `analyses`,
-  not a monthly figure: three completed analyses close it permanently, whichever
+  040; grant raised 3 to 5 on D-080, 5 to 6 on D-083 so it reads every skill
+  once, and Pro raised 18 to 24 on D-085, migrations 044 through 048). The 6
+  are a one-time grant spent against LIFETIME rows in `analyses`, not a
+  monthly figure: six completed analyses close it permanently, whichever
   months they land in. `signup_grant()` holds the grant,
   `plan_monthly_allowance()` holds the rate, and `allowanceSentence()` in
   `lib/plans.ts` is the single place the sentence is built, so no surface can
   quote half of it.
-- The window is the **UTC calendar month**, resetting on the 1st, not the
-  subscription anniversary. It matches `analyze_usage_month()` and it means the
-  answer to "how many do I have left" never depends on Stripe being reachable.
+- The window is the **UTC calendar month** for free accounts. For a
+  subscriber it is the **billing period the provider reports** (D-067,
+  migration 035; start read rather than derived since D-086, migration 049):
+  `plan_period_start` to `plan_renews_at`, so "resets" means the anniversary,
+  not the 1st. A free account's answer to "how many do I have left" still
+  never depends on Stripe being reachable; a subscriber's window follows the
+  subscription that pays for it.
 - **No top-up packs, no credit purchases.** Out of analyses means wait for the
   reset or, for a free player, upgrade. Selling analyses by the pack would
   anchor the plan price against a marginal cost of roughly 19 cents and turn
@@ -138,7 +144,7 @@ that 4.6 needs and `private.allowance_window()` so the month boundary is
 derived from the server clock and can never be supplied by a caller.
 
 ```
-plan_monthly_allowance(p_plan text) returns int   -- 'pro' -> 18, else 3
+plan_monthly_allowance(p_plan text) returns int   -- 'pro' -> 24, else 1
 ```
 
 Rewrite `reserve_analysis_entitlement` so that, when enforcing:
@@ -168,9 +174,18 @@ or later events cannot be matched back to a player:
 
 ```
 set_subscription_plan(p_user_id uuid, p_plan text, p_renews_at timestamptz,
-                      p_subscription_id text, p_customer_id text)
+                      p_subscription_id text, p_customer_id text,
+                      p_event_at timestamptz, p_period_start timestamptz)
 user_id_for_billing_customer(p_customer_id text) returns uuid
 ```
+
+Two arguments grew in later migrations and this snippet records the shipped
+shape: `p_event_at` is the out-of-order guard (delivery is unordered, and a
+stale "still active" event must not restore a cancelled subscription), and
+`p_period_start` is the provider-reported window start (D-086, migration 049;
+seven arguments total since then). The checkout events pass their dates
+through the webhook's preserve step first, so their nulls can never blank an
+anchor a same-burst subscription event already stored (D-090).
 
 Both are `service_role` only. The migration also adds
 `profiles.stripe_subscription_id` and a check constraint bounding `plan` to
@@ -199,7 +214,9 @@ Account `acct_1NMwN5JOFP4i3BqJ`, display name Vollyio. It previously held only
 dormant products from another business. Created for this app:
 
 - **Product** `Vollyio Pro`, type service, metadata `plan=pro`,
-  `monthly_analyses=18`.
+  `monthly_analyses=18`. Stale since D-085: the dashboard metadata still says
+  18 while the product sells 24; update it on the next console visit. Metadata
+  is display-only and decides nothing.
 - **Price** $9.99 USD, recurring monthly, lookup key `vollyio_pro_monthly`.
   Live object is `price_1TzKG5JOFP4i3BqJC2z0xklp` (D-077). The superseded $14.99
   price `price_1TxzWVJOFP4i3BqJ9th7pH9v` is deliberately left ACTIVE: a live
@@ -256,7 +273,7 @@ One card, one of the two live states:
 
 - **Free:** "3 analyses a month. You've used 2." plus an upgrade button that
   opens Stripe Checkout.
-- **Pro:** "18 analyses a month. You've used 7. Resets Aug 1." plus a link into
+- **Pro:** "24 analyses a month. You've used 7. Resets on your renewal date." plus a link into
   the Stripe customer portal for cancel and payment method.
 
 ### 4.5 The 402 contract

@@ -3272,3 +3272,173 @@ Scope note: the custom cancellation page this question started from was
 **not** built. The provider's portal stays, because it is also where a card
 is updated and an invoice is fetched, and building card entry would take on
 PCI scope for no gain. What the question was actually worth was this bug.
+
+## D-087 - The words match the product before strangers read them
+
+**Date**: 2026-08-03. **Status**: shipped.
+
+A pre-invite pass over every surface a first paying user reads, fixing the
+places where the product had moved and the words had not.
+
+- The Terms hourly-limit paragraph claimed the monthly allowance could never
+  meet the hourly wall "because 24 in a month is well under 20 in an hour",
+  which is false arithmetic since D-085 and reads as nonsense to anyone who
+  checks it. Rewritten to state the true relationship; the effective date
+  moved to the day the displayed numbers changed.
+- The landing page sold Coach chat as a live feature while `/coach` answers
+  404 behind its flag, breaking the rule the page's own structured-data
+  comment states. The section now carries a "Coming soon" tag and future
+  tense, and its mock conversation names a drill that exists (Wall Platform
+  Reps, not Holds).
+- The operator docs were resynced to the live numbers and the live state:
+  `docs/billing.md`, `docs/billing-runbook.md` (marked EXECUTED, expected
+  values corrected to 1/24 and grant 6), `docs/plan-matrix.md` (billing is in
+  force; copy rules updated), `README.md`, `SETUP.md`, and `docs/deploy.md`
+  (migration state read live from production; the CV Phase 1 section marked
+  historical per D-033). The principle is D-042's: the repo tells the truth,
+  and a runbook whose expected values are two generations stale would have
+  the owner concluding production is broken while verifying that it is fine.
+
+## D-088 - Five tabs, one screen of nav
+
+**Date**: 2026-08-03. **Status**: shipped.
+
+The nav had grown to eleven items. On desktop that is a long sidebar; on a
+phone it was ten to eleven fixed 72px tabs inside a horizontally scrolling
+bar, which put Goals, Progress, History, Drills and Settings off the right
+edge of every phone with no affordance beyond an unhinted swipe, and the bar
+recentered itself under the thumb after every tap. Half the product was
+invisible to exactly the first-time players about to be invited.
+
+The replacement is five destinations, one player question each:
+
+| Tab | Question | Owns |
+|---|---|---|
+| Home (`/dashboard`) | what do I do today | assignment, goals board (D-089), badge shelf, rating, recent reps |
+| Analyze | how was that rep | capture flow, `/analysis/[id]` breakdowns |
+| Train (`/plan`) | what do I practice | the week, `/drills`, `/learn`, recovery |
+| Progress | is it working | trends, `/history` reps, milestones |
+| Coach | can I ask someone | flag-gated as before; four tabs while dark |
+
+Mechanics: nav items carry a `match` list so a hub tab stays lit anywhere
+inside it; the tab bar is equal-width slots with the overflow, snap and
+scroll-into-view machinery deleted; a shared chip strip (`section-nav.tsx`)
+switches views inside Train and Progress, the same vocabulary as the
+discipline chips. Routes did not move, so the public `/learn` and `/drills`
+pages keep their URLs and the sitemap stays true.
+
+Two demotions and one deletion fell out of it:
+
+- **Settings became chrome**: a gear in the mobile top bar and a pinned entry
+  above Sign out in the sidebar. A page visited monthly does not hold one of
+  five daily slots. The payment-provider return URLs still land on
+  `/settings#plan` unchanged.
+- **Goals moved home** (D-089 carries the reward half). `/goals` is a
+  redirect to `/dashboard#goals` so old links keep working; the actions file
+  stayed put and the dashboard imports it.
+- **The scoreboard is deleted.** Verified before deleting: the `games` table
+  is read and written by the scoreboard surfaces alone, nothing else in the
+  repo consumes it, no XP, no rating effect, no inbound links. It was a
+  closed loop holding a prime nav slot and three different names (Scoreboard,
+  Games, Track a match). The table and its grants stay for the rows that
+  exist; the route, component, guard entry and robots entry are gone. An
+  in-progress live match lived only in one browser's localStorage and is
+  accepted as lost, the same call D-058 made for the rename. If match logging
+  ever returns it returns as a Progress feature with a consumer, not as a tab.
+
+Level became editable in Settings in the same pass: it drives assignment
+difficulty, the plan seed and the coach voice, the database grant always
+allowed the owner to write it, and the app schema was the only thing keeping
+a player who improved pinned to their onboarding answer.
+
+## D-089 - Finishing leaves a mark
+
+**Date**: 2026-08-03. **Status**: shipped (migration 050; applied with 051).
+
+Completing a goal paid the app's largest XP award, 150, in total silence: no
+toast, no amount, nowhere it accumulated. Creating a goal celebrated more
+than finishing one. The daily challenge promised "+75 XP" on the card and
+never confirmed it, although the action already returned the amount. XP fed
+levels and streaks and otherwise led nowhere a player could point at.
+
+Three changes close the loop:
+
+- **The goals board lives on Home.** All active goals (the old card showed
+  the newest three and silently hid the rest), inline create, complete and
+  abandon, a deadline chip, and a gold "Target hit" state. Completion now
+  toasts the 150 the ledger actually paid, and the challenge card confirms
+  its 75 the same way. Amounts come back from the database, never from the
+  client; a replay pays zero and the toast says "completed" without a number.
+- **Badges.** Twelve, in `content`-style catalog form (`lib/achievements.ts`)
+  with the prices and criteria in SQL (migration 050), pinned together by
+  `lib/achievements.test.ts` exactly as `lib/plans.test.ts` pins the
+  allowance. Every badge derives from rows that already exist: analyses
+  counts and distinct skills, personal bests, goals done, challenge count,
+  streak walked by the same Pacific-day rule as `lib/progression.ts`.
+- **The trophy case.** A shelf on Home (latest three, count, link) and a
+  Milestones view under Progress: the full grid (earned gold, unearned
+  hollow, the pointer checklist's own vocabulary), personal bests per skill,
+  and the completed-goals archive that used to sit at the bottom of /goals.
+
+The mechanism is D-071's, verbatim: `claim_achievements()` takes no
+arguments, keys on `auth.uid()`, re-derives every criterion server-side,
+inserts through the table's primary key (the idempotency), pays each new
+badge's XP into `xp_events` with a `badge:<key>` reason, and returns the
+fresh keys for the client to celebrate. The table has no client write grant
+and no write policy. A client cannot name a badge, a price, or a moment.
+
+Two accepted costs, stated: `goals.completed_at` is client-writable like the
+rest of the goals row and feeds exactly one cosmetic badge (Ahead of
+Schedule), the same posture as ratings and feedback, a player lying to their
+own trophy case; and the claim runs at celebration moments plus quietly on
+Home and Milestones loads, one indexed RPC per view, which is cheap and can
+move behind a trigger later without the catalog changing. Deliberately out:
+tiers, seasons, and any leaderboard, because D-071's own note stands: the
+moment XP crosses accounts it has to stop being self-reported anywhere.
+
+## D-090 - A checkout event cannot blank the anchor, and the window cannot start in the future
+
+**Date**: 2026-08-03. **Status**: shipped (migration 051 applied; code same day).
+
+Three related billing hardenings, none reachable by a player alone.
+
+First, the ordering hole. The checkout events deliberately carry no billing
+dates (a session has an expiry, not a period), while the subscription event
+in the same purchase burst carries both, and `set_subscription_plan`'s
+staleness guard is strictly-less-than on a one-second timestamp. Whenever
+the completed event sorted equal or later, its nulls wrote through and
+blanked `plan_renews_at` and `plan_period_start`, dropping the allowance
+window back to the calendar month for up to a month, an over-grant at the
+owner's cost that healed only on the next billing event. `PlanChange` now
+carries `preserveBillingDates`: true on the checkout family, whose nulls
+mean "this event does not know", false on the deletion event, whose nulls
+are the message. The webhook coalesces preserved nulls from the player's own
+stored row before writing. Unit-tested in `lib/billing-events.test.ts`.
+
+Second, the future start. 035 gave the renewal date two guards precisely
+because a window anchored in the future counts zero used forever; 049's
+`plan_period_start` shipped without the mirror of that guard. Only a
+provider-signed payload can set the column, so this is hardening against a
+malformed payload, but the failure mode is the expensive direction.
+Migration 051 restates the allowance stack (whole, for the reason 044
+through 049 record) with one changed clause: a `plan_period_start` in the
+future falls back to the same derivation a NULL does.
+
+Third, the double purchase. The checkout route has always returned payers to
+`/settings?checkout=complete#plan` and documented that the marker stops the
+returned player being invited to buy again; nothing ever read it. In the
+window before the webhook lands, the plan card still read Free with a live
+Upgrade button, the 409 guard passes because the stored plan is still free,
+and no customer id is stored yet, so a second click minted a second customer
+and a second subscription the app could only half-track. This was beyond the
+race D-064 accepted. The card now holds a calm "payment received, refresh in
+a moment" state whenever the marker is present and the stored plan still
+reads free; once the plan reads pro the marker is spent and ignored.
+
+With it, the service worker stopped lying about updates: the cache name now
+carries a build tag (v1 could never invalidate, so the offline page was
+frozen at first install and dead chunks accumulated forever), install no
+longer calls skipWaiting unconditionally, and the SKIP_WAITING message the
+"new version is ready" toast has always posted finally has a listener. The
+onboarding action's malformed-submit path stopped silently dropping every
+answer into /analyze; it returns to /welcome with a visible retry notice.

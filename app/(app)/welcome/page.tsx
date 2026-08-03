@@ -9,8 +9,13 @@ export const metadata: Metadata = {
   description: "Tell the coaching service where you are and where you're headed.",
 };
 
-export default async function Welcome() {
+export default async function Welcome({
+  searchParams,
+}: {
+  searchParams: Promise<{ retry?: string }>;
+}) {
   const supabase = await createClient();
+  const { retry } = await searchParams;
   const userId = await getAuthUserId(supabase);
   if (!userId) redirect("/login");
 
@@ -27,5 +32,17 @@ export default async function Welcome() {
     .eq("id", userId)
     .single();
 
-  return <OnboardingFlow name={profile?.display_name ?? null} />;
+  return (
+    <>
+      {retry && (
+        <p
+          role="alert"
+          className="mx-auto mb-4 max-w-xl rounded-card border border-coral/40 bg-coral/10 px-4 py-3 text-sm text-chalk"
+        >
+          That didn&rsquo;t save. Run through it once more and it will stick.
+        </p>
+      )}
+      <OnboardingFlow name={profile?.display_name ?? null} />
+    </>
+  );
 }

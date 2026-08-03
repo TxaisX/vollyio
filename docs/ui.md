@@ -30,6 +30,18 @@ Type carries meaning too: `text-body` for any sentence a player reads,
 and meta only. A paragraph in `text-sm` renders at 14.88px, below the mobile
 floor and the same size as the chrome around it (D-068).
 
+## Navigation (D-088)
+
+Five primary destinations, each answering one player question, and never more:
+Home (what do I do today), Analyze (how was that rep), Train (what do I
+practice: the week, drills, technique, recovery), Progress (is it working:
+trends, reps, milestones), Coach (flag-gated; the bar holds four tabs while it
+is dark). Settings is chrome: the gear in the mobile top bar and the pinned
+entry above Sign out in the sidebar. The mobile tab bar is equal-width slots
+that always fit the viewport; if a sixth destination ever seems necessary, it
+goes inside a hub as a `section-nav` chip strip, not into the bar, because a
+nav that scrolls is a nav that hides.
+
 ## Ease-of-use rules
 
 - Tap targets at least 44px tall. Chips, nav items, and buttons all qualify.

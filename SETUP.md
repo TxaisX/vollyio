@@ -10,7 +10,7 @@
 4. Authentication → URL Configuration: set the Site URL and add the deployed domain as a redirect URL.
 5. Authentication → Policies: enable leaked-password protection. It is **off** in production today, the database advisor flags it, and it is one toggle (`HANDOFF.md` open items).
 
-Production migration state: everything through `028` is applied, except `018_coach_quota.sql`. See `docs/deploy.md` for the caveat there - `028` already carries `018`'s `consume_api_quota` body, so what 018 still holds is its `refund_api_quota` rewrite.
+Production migration state: everything through `051` is applied, except `018_coach_quota.sql`. See `docs/deploy.md` for the caveat there - `028` already carries `018`'s `consume_api_quota` body, so what 018 still holds is its `refund_api_quota` rewrite. `docs/deploy.md` is the authority on applied state; this line is a convenience copy and loses to it.
 
 ## 2. Environment
 Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never carries a `NEXT_PUBLIC_` prefix, never reaches a client bundle, never gets committed. Everything that is not secret is still server-only unless its name starts with `NEXT_PUBLIC_`.
@@ -31,7 +31,7 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 | `AI_MOCK` | no | `true` runs the whole flow on canned coaching results at no cost |
 | `EVAL_TOKEN` | **yes** | bearer token for the local-only eval route; leave unset in hosted environments |
 
-`.env.example` predates the billing work and does not list the billing variables yet; this table is the complete list.
+`.env.example` now lists every variable including billing and is the complete reference; the table above is the annotated tour and loses to it if the two ever disagree.
 
 Mirror the same variables to Vercel: `vercel env add <NAME> production` (and `preview`). Model routing and reasoning effort are **not** environment variables - they are checked-in constants in `lib/ai/client.ts` (D-004, D-027).
 
@@ -48,7 +48,7 @@ If a build fails with `EPERM: unlink .next/...`, OneDrive locked a build file - 
 ## 4. Turning billing on
 Billing is LIVE in production (D-078); this sequence was followed and stands as the record, and as the procedure for any fresh environment. Nothing is metered and no upgrade button renders until both keys below are present, so this is a several-step operation rather than a flag.
 
-1. Migrations `026`, `027`, and `028` are applied to production already (production now carries everything through `040`).
+1. Migrations `026`, `027`, and `028` are applied to production already (production now carries everything through `051`; see `docs/deploy.md`).
 2. In the payment provider dashboard: the live product, the $9.99 monthly price, and the webhook endpoint for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed` all exist (IDs recorded in `docs/deploy.md`). The customer portal settings - cancel at period end, payment method updates, no plan switching, since there is only one plan - cannot be read from the repo; confirm them in the dashboard before arming, because the portal route is the player's only way to cancel.
 3. Set `STRIPE_WEBHOOK_SECRET` **first** and `STRIPE_SECRET_KEY` **last**, with `STRIPE_PRICE_ID`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_UPGRADE_URL` alongside. The ordering matters: a deployment holding a key and a price but no endpoint secret would take payments it can never apply.
 4. Run the billing verification steps `B0` through `B10` in `docs/security.md` against a staging project. `B2` through `B5` are the ones a green build will tempt you to skip, and they are the only proof that a player cannot write their own plan. No test in the suite can stand in for them.

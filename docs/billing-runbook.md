@@ -1,5 +1,14 @@
 # Billing runbook: switching it on, and switching it off
 
+**Status 2026-08-03: EXECUTED.** Billing has been LIVE since 2026-07-31
+(D-078): every variable in the table below is set, a real card was charged,
+and the webhook applied the plan. This file stands as the sequence that was
+followed, the template for any future re-arm, and the reference for section 5
+(switching OFF) and section 7 (incidents), which remain operational. Where a
+step states an expected number, the live numbers are grant 6, free 1, Pro 24
+(D-083, D-085, migrations 044 through 049); the original 3/18 expectations
+below are corrected inline.
+
 For the owner, alone, possibly at speed. Every step is one command or one click,
 with the output you should see and what to do when you see something else.
 
@@ -35,11 +44,11 @@ anything.
 | `STRIPE_WEBHOOK_SECRET` | yes | anyone with dashboard access |
 | `NEXT_PUBLIC_UPGRADE_URL` | yes | public by definition |
 | `OWNER_ALERT_EMAIL` | yes | you |
-| `ANALYZE_MONTHLY_BUDGET_USD` | yes, `25` | you |
-| `STRIPE_SECRET_KEY` | **no, section 2** | only you |
-| `SUPABASE_SERVICE_ROLE_KEY` | **no, section 2** | only you |
-| `BILLING_ENABLED` | **no, section 3** | you |
-| `ENFORCE_FREE_CAP` | **no, and it can stay that way, section 3.5** | you |
+| `ANALYZE_MONTHLY_BUDGET_USD` | **no, deliberately unset since D-077**; the provider console cap is the spend ceiling | you |
+| `STRIPE_SECRET_KEY` | yes (set last, per section 2's ordering) | only you |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | only you |
+| `BILLING_ENABLED` | yes | you |
+| `ENFORCE_FREE_CAP` | yes | you |
 
 ---
 
@@ -67,7 +76,8 @@ select
   public.plan_monthly_allowance('pro')  as pro_allowance;
 ```
 
-Expected: six `true` columns, then `3` and `18`.
+Expected: six `true` columns, then `1` and `24` (the free RATE and the Pro
+allowance; the signup grant is a separate 6 from `signup_grant()`, D-083).
 
 If `m027_writer` is false but `m027_lookup` is true, the five-argument version of
 the writer may still exist from an older attempt. Migration 027 drops it on
@@ -341,7 +351,7 @@ setting anything.
 | Variable | What it does | Set it when |
 |---|---|---|
 | `BILLING_ENABLED=true` | Pro becomes purchasable. The upgrade button appears. Nobody is capped. | You want to be open with premium as a choice. **This is the launch posture.** |
-| `ENFORCE_FREE_CAP=true` | The 3 a month free allowance starts refusing reps with a 402. | Later, once you actually want the free tier metered. |
+| `ENFORCE_FREE_CAP=true` | The free allowance (6 at signup, then 1 a month) starts refusing reps with a 402. | Set 2026-07-31; the free tier is metered. |
 
 Setting `BILLING_ENABLED` alone leaves every player unlimited and lets anyone
 who wants Pro take it. That is section 3.1. Section 3.5 covers the cap, and it
@@ -579,11 +589,12 @@ the `checkout.session.completed` event and read the delivery response:
 - `200` with the plan still free: no profile matched. Look for
   `[billing] no profile matches the event customer; ignored` in the logs.
 
-### 4.4 The counter reads 18
+### 4.4 The counter reads 24
 
-In the UI, `/settings#plan` should now read `Pro`, `18 analyses a month.` and
-`18 of 18 left this month` (fewer if you already ran some this month, which is
-the retroactive counting from 3.5 working as designed).
+In the UI, `/settings#plan` should now read `Pro`, `24 analyses a month.` and
+`24 of 24 left` (fewer if you already ran some this window, which is the
+retroactive counting from 3.5 working as designed; the reset date is the
+billing anniversary, not the 1st, since D-067).
 
 In SQL:
 

@@ -11,6 +11,9 @@ import { SkillIcon } from "@/components/skill-icons";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { LimitNotice } from "@/components/limit-notice";
+import { GoalsBoard, type Goal } from "@/components/goals";
+import { BadgeShelf } from "@/components/achievements";
+import { claimAchievements, readAchievements } from "@/lib/achievements";
 import { overallScore } from "@/lib/ratings";
 import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
 import {
@@ -48,82 +51,15 @@ type BestRow = { skill: Skill; discipline: string; best: number };
 type AnalysisRow = {
   id: string;
   skill: Skill;
+  discipline: Discipline;
   overall_score: number;
   created_at: string;
   fix: string | null;
   metric: string | null;
 };
-type GoalRow = {
-  id: string;
-  title: string;
-  skill: Skill | null;
-  target_rating: number | null;
-};
-
-function GoalsCard({
-  goals,
-  ratings,
-}: {
-  goals: GoalRow[];
-  ratings: Partial<Record<Skill, number>>;
-}) {
-  return (
-    <div className="card card-lift p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
-          Goals
-        </h2>
-        {/* The padding buys a 44px tap target and the matching negative margin
-            gives it back to the layout, so an 11px label is still reachable
-            with a thumb without the card growing a fat header row. */}
-        <Link
-          href="/goals"
-          className="-my-4 py-4 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
-        >
-          View all
-        </Link>
-      </div>
-      {goals.length === 0 ? (
-        <p className="mt-2 text-body text-chalk-dim">
-          Nothing on the board.{" "}
-          <Link href="/goals" className="text-gold">
-            Set a target.
-          </Link>
-        </p>
-      ) : (
-        <ul className="mt-2 space-y-2.5">
-          {goals.map((g) => {
-            const current = g.skill ? ratings[g.skill] : null;
-            const pct =
-              g.target_rating && current != null
-                ? Math.min(100, Math.round((current / g.target_rating) * 100))
-                : null;
-            return (
-              <li key={g.id}>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm text-chalk">{g.title}</span>
-                  {pct != null && (
-                    <span className="font-mono text-[10px] text-chalk-dim">
-                      {Math.round(current!)}/{g.target_rating}
-                    </span>
-                  )}
-                </div>
-                {pct != null && (
-                  <div className="mt-1 h-1 rounded-full bg-line/60">
-                    <div
-                      className="h-full rounded-full bg-gold"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
+// The goals board itself is components/goals.tsx (GoalsBoard): create,
+// complete and abandon all happen here on the dashboard now (D-088), so the
+// old read-only three-goal card is gone with the /goals page it linked to.
 
 // xl only: the heading pills collapse into this rail card so the wide layout
 // reads as one column of play state instead of a crowded header.
@@ -207,25 +143,36 @@ export default async function Dashboard({
 }) {
   const supabase = await createClient();
   const { discipline: rawDiscipline } = await searchParams;
-  const discipline: Discipline = isDiscipline(rawDiscipline ?? "")
-    ? (rawDiscipline as Discipline)
-    : "indoor";
   const userId = await getAuthUserId(supabase);
 
+  // The profile leads the waterfall because the view depends on it: with no
+  // ?discipline in the URL the page opens on the player's own environment
+  // rather than flipping a beach player to indoor on every visit. The chips
+  // below always write the parameter explicitly, so a choice still overrides.
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("display_name, level, discipline")
+    .eq("id", userId!)
+    .single();
+  if (profileError) throw profileError;
+
+  const profileDefault: Discipline = isDiscipline(profile?.discipline ?? "")
+    ? (profile!.discipline as Discipline)
+    : "indoor";
+  const discipline: Discipline = isDiscipline(rawDiscipline ?? "")
+    ? (rawDiscipline as Discipline)
+    : profileDefault;
+
   const [
-    { data: profile, error: profileError },
     { data: ratingsData, error: ratingsError },
     { data: analysesData, error: analysesError },
     { data: goalsData, error: goalsError },
+    { count: doneCountData },
     { data: bestsData },
+    earnedAchievements,
     progress,
     allowance,
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("display_name, level")
-      .eq("id", userId!)
-      .single(),
     supabase
       .from("skill_ratings")
       .select("skill, rating")
@@ -242,24 +189,39 @@ export default async function Dashboard({
       // priority_fix.target_metric -- that field is null on every stored row,
       // so selecting it would silently target nothing forever.
       .select(
-        "id, skill, overall_score, created_at, fix:result->priority_fix->>title, metric:result->changes->0->>target_metric",
+        "id, skill, discipline, overall_score, created_at, fix:result->priority_fix->>title, metric:result->changes->0->>target_metric",
       )
       .eq("user_id", userId!)
       .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]])
       .order("created_at", { ascending: false })
       .limit(40),
+    // Every active goal, newest first. The board owns the folding (it shows
+    // four and says how many more), so nothing is silently dropped the way
+    // the old limit(3) card dropped a fourth goal. The 50 cap is a guard
+    // against a pathological account, not a display rule.
     supabase
       .from("goals")
-      .select("id, title, skill, target_rating")
+      .select("id, title, skill, target_rating, deadline")
       .eq("user_id", userId!)
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .limit(3),
+      .limit(50),
+    supabase
+      .from("goals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId!)
+      .eq("status", "done"),
     // All-time high-water marks (D-079, migration 043): MAX over the caller's
     // own analyses, derived on read so it can never drift from the reps. Not
     // in fetchError below on purpose: a failed read renders no "best" line
     // rather than failing the dashboard, the same posture as the allowance.
     supabase.rpc("personal_bests"),
+    // Quiet catch-up, then read: anything earned away from a celebration
+    // moment (an old account's back catalog, a streak that crossed seven
+    // overnight) lands on the shelf without a toast. Both calls fail soft, so
+    // a database without migration 050 renders no shelf and nothing else
+    // changes (D-089).
+    claimAchievements(supabase).then(() => readAchievements(supabase)),
     getProgress(supabase, userId!),
     // Only ask when the cap is actually enforced, so the counter cannot appear
     // in a build where nothing is metered. In the same round trip as the rest:
@@ -267,15 +229,15 @@ export default async function Dashboard({
     shouldEnforceFreeTier() ? readAllowance(supabase) : null,
   ]);
 
-  const fetchError =
-    profileError ?? ratingsError ?? analysesError ?? goalsError;
+  const fetchError = ratingsError ?? analysesError ?? goalsError;
   if (fetchError) throw fetchError;
 
   const ratings = Object.fromEntries(
     (ratingsData as RatingRow[] | null)?.map((r) => [r.skill, r.rating]) ?? [],
   ) as Partial<Record<Skill, number>>;
   const analyses = (analysesData as AnalysisRow[] | null) ?? [];
-  const goals = (goalsData as GoalRow[] | null) ?? [];
+  const goals = (goalsData as Goal[] | null) ?? [];
+  const goalsDone = doneCountData ?? 0;
 
   // Per-skill personal best within the discipline group being shown, so the
   // best sits on the same axis as the rating beside it.
@@ -337,18 +299,32 @@ export default async function Dashboard({
         <div className="dashboard-heading relative flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-              Dashboard
+              Home
             </p>
             <h1 className="mt-2 font-display text-page-title">
               {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
             </h1>
             <div className="mt-3 flex items-center gap-2">
+              {/* Explicit on both chips, because the bare route now falls back
+                  to the PROFILE default rather than to indoor: an indoor link
+                  that dropped the parameter would read as "no choice" and send
+                  a beach player straight back to the sand. Active state
+                  compares by group so the legacy beach value lights the
+                  combined chip (D-035). */}
               {ANALYZE_DISCIPLINES.map((d) => (
                 <Link
                   key={d}
-                  href={d === "indoor" ? "/dashboard" : `/dashboard?discipline=${d}`}
-                  aria-current={discipline === d ? "page" : undefined}
-                  className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
+                  href={`/dashboard?discipline=${d}`}
+                  aria-current={
+                    disciplineGroup(discipline) === disciplineGroup(d)
+                      ? "page"
+                      : undefined
+                  }
+                  className={`chip min-h-11 ${
+                    disciplineGroup(discipline) === disciplineGroup(d)
+                      ? "chip-active"
+                      : ""
+                  }`}
                 >
                   {DISCIPLINE_LABEL[d]}
                 </Link>
@@ -375,8 +351,19 @@ export default async function Dashboard({
               scrolled, and the answer is always another rep. Without this the
               only route to /analyze from here was the nav. */}
           <div className="flex flex-wrap items-center gap-3">
+            {/* Deep-linked to the last rep's skill and environment when there
+                is one: the daily loop is "same skill, better number", and the
+                flow already reads both parameters (it is how onboarding hands
+                off). A first-timer still gets the bare picker. */}
             {!spent && (
-              <Link href="/analyze" className="btn-primary text-sm">
+              <Link
+                href={
+                  analyses[0]
+                    ? `/analyze?skill=${analyses[0].skill}&discipline=${analyses[0].discipline}`
+                    : "/analyze"
+                }
+                className="btn-primary text-sm"
+              >
                 Film a rep
               </Link>
             )}
@@ -489,9 +476,19 @@ export default async function Dashboard({
             </div>
           </Reveal>
 
-          <div className="mt-4 xl:hidden">
+          {/* The board renders once, in the main column at every width: it
+              carries a form and mutating actions now, and two live copies of
+              one form is how duplicate-id bugs are born. The xl rail keeps the
+              glanceable cards instead. */}
+          <div className="mt-4">
             <Reveal delay={240}>
-              <GoalsCard goals={goals} ratings={ratings} />
+              <GoalsBoard goals={goals} ratings={ratings} doneCount={goalsDone} />
+            </Reveal>
+          </div>
+
+          <div className="mt-4 xl:hidden">
+            <Reveal delay={280}>
+              <BadgeShelf earned={earnedAchievements} />
             </Reveal>
           </div>
 
@@ -645,10 +642,10 @@ export default async function Dashboard({
             would give the same card two live copies of one form. */}
         <aside className="hidden xl:flex xl:flex-col xl:gap-4">
           <Reveal delay={240}>
-            <GoalsCard goals={goals} ratings={ratings} />
+            <ThisWeekCard progress={progress} weekCount={weekCount} />
           </Reveal>
           <Reveal delay={300}>
-            <ThisWeekCard progress={progress} weekCount={weekCount} />
+            <BadgeShelf earned={earnedAchievements} />
           </Reveal>
         </aside>
       </div>

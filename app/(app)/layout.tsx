@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { SideNavLinks, TabBar } from "@/components/app-nav";
+import {
+  SideNavLinks,
+  SettingsNavLink,
+  SettingsTopBarLink,
+  TabBar,
+} from "@/components/app-nav";
 import { FunnelHandoff } from "@/components/funnel-handoff";
 import { SeamArcs } from "@/components/motif";
 import { logout } from "@/app/(auth)/actions";
@@ -35,9 +40,15 @@ export default function AppLayout({
           <Image src="/icon-mark.png" alt="" width={24} height={24} className="h-6 w-6" />
           Vollyio
         </Link>
-        <form action={logout}>
-          <LogoutButton variant="mobile" />
-        </form>
+        {/* Settings lives here rather than in the tab bar: the five tabs below
+            are the daily loop, and the gear keeps the monthly page one tap
+            away without costing a slot. */}
+        <div className="flex items-center gap-1">
+          <SettingsTopBarLink />
+          <form action={logout}>
+            <LogoutButton variant="mobile" />
+          </form>
+        </div>
       </header>
       <nav
         aria-label="Primary"
@@ -53,9 +64,12 @@ export default function AppLayout({
           Vollyio
         </Link>
         <SideNavLinks />
-        <form action={logout} className="mt-auto">
-          <LogoutButton variant="sidebar" />
-        </form>
+        <div className="mt-auto flex flex-col gap-1">
+          <SettingsNavLink />
+          <form action={logout}>
+            <LogoutButton variant="sidebar" />
+          </form>
+        </div>
       </nav>
       <main
         id="main"

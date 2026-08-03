@@ -28,7 +28,6 @@ export const FEATURES = [
   "share_link",
   "drills",
   "goals",
-  "scoreboard",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -46,7 +45,6 @@ const FEATURE_MATRIX: Record<Feature, Record<Plan, boolean>> = {
   share_link: { free: true, pro: true },
   drills: { free: true, pro: true },
   goals: { free: true, pro: true },
-  scoreboard: { free: true, pro: true },
 };
 
 export function isFeature(value: unknown): value is Feature {

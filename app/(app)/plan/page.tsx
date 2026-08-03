@@ -6,6 +6,7 @@ import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { LinkPending } from "@/components/link-pending";
 import { PlanGenerate } from "@/components/plan-generate";
+import { TrainNav } from "@/components/section-nav";
 import { todayKey } from "@/lib/progression";
 import {
   PLAN_DAYS,
@@ -75,6 +76,7 @@ export default async function PlanPage() {
               follow it.
             </p>
           )}
+          <TrainNav active="week" />
         </div>
       </Reveal>
 

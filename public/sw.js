@@ -1,11 +1,26 @@
-const STATIC_CACHE = "vollyio-static-v1";
+// Bump SW_BUILD with any service worker change. The cache name carries it, so
+// activating a new worker drops the previous build's cache instead of serving
+// a frozen /offline page and dead hashed chunks forever. v1 shipped with an
+// unversioned cache and an unconditional skipWaiting at install; both are the
+// reason this header comment exists.
+const SW_BUILD = "v2";
+const STATIC_CACHE = `vollyio-static-${SW_BUILD}`;
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => cache.addAll([OFFLINE_URL])),
   );
-  self.skipWaiting();
+  // No skipWaiting here: the new worker WAITS, which is what gives the
+  // "A new version is ready" toast in components/pwa-register.tsx something
+  // true to say. The player chooses the moment the page swaps out from under
+  // them, via the message below.
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {

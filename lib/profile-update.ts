@@ -1,17 +1,21 @@
 import { z } from "zod";
 import { ANALYZE_DISCIPLINES } from "./skills.ts";
-import { FREQUENCIES, POSITIONS } from "./funnel.ts";
+import { FREQUENCIES, LEVELS, POSITIONS } from "./funnel.ts";
 
 // One settings submit carries one field (each chip row and the name form post
 // independently), so every field is optional and only provided keys reach the
 // update. Discipline writes are limited to the values capture offers; legacy
-// 'beach' rows stay readable but are never re-written by settings.
+// 'beach' rows stay readable but are never re-written by settings. Level is
+// here because it moves as the player does: it shapes assignment difficulty,
+// the weekly plan seed, and the coach voice, and the database grant always
+// allowed the owner to change it (docs/security.md profiles row).
 export const profileUpdateSchema = z
   .object({
     display_name: z.string().trim().min(1).max(40).optional(),
     position: z.enum(POSITIONS).optional(),
     play_frequency: z.enum(FREQUENCIES).optional(),
     discipline: z.enum(ANALYZE_DISCIPLINES).optional(),
+    level: z.enum(LEVELS).optional(),
   })
   .refine((fields) => Object.values(fields).some((v) => v !== undefined), {
     message: "empty update",
@@ -21,7 +25,13 @@ export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
 
 export function profileUpdateFromForm(formData: FormData): ProfileUpdate | null {
   const raw: Record<string, string> = {};
-  for (const key of ["display_name", "position", "play_frequency", "discipline"]) {
+  for (const key of [
+    "display_name",
+    "position",
+    "play_frequency",
+    "discipline",
+    "level",
+  ]) {
     const value = formData.get(key);
     if (typeof value === "string" && value !== "") raw[key] = value;
   }
