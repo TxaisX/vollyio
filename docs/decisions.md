@@ -3169,3 +3169,61 @@ to fix.
 
 The gate is untouched. Nothing about what any player may spend changed;
 only what they are told about it.
+
+## D-085 - Pro is 24, and the price stays $9.99 for now
+
+**Date**: 2026-08-02. **Status**: 24 shipped (migration 048 applied). Price
+recommendation recorded, NOT applied.
+
+24 a month: four reads of every skill, the same one-per-skill logic the
+signup grant uses now that `SKILLS.length` is the number both derive from.
+18 was a round number with nothing behind it. 24 puts a weekly rep on every
+skill within reach, which is a sentence a player can be told.
+
+### First, the question this answered: the grant does not stack on a subscription
+
+Verified against the live gate rather than reasoned about. The allowance is
+`greatest(rate, least(grantLeft + used, grant))`, so the plan rate is a
+FLOOR and the standard grant can never add to it:
+
+| Case | Grant left | Rate | Allowance |
+|---|---:|---:|---:|
+| New free account | 6 | 1 | 6 |
+| Free, grant spent | 0 | 1 | 1 |
+| **New Pro subscriber** | 6 | 24 | **24, not 30** |
+| Pro, grant spent | 0 | 24 | 24 |
+
+A hand-set override ABOVE the plan rate does exceed it (an account given 50
+sees more than a Pro month), which is the admin lever from D-082 working as
+intended rather than an overlap bug.
+
+### The price, and why it did not move with the count
+
+At the measured $0.234, $9.99 nets $9.40 and full use now costs $5.62, so
+the margin at full utilization falls from 55% to **40%**. That is thinner
+and still positive, and full use is the worst case rather than the norm.
+Break-even conversion is ~5.8% at full use and ~3.3% at half, both inside
+the band D-076 established.
+
+**The recommendation, when there is evidence to act on: $12.99.** It nets
+$12.31, clears $6.69 at full use, and restores a 54% margin. The pitch is
+not a price rise: at 24 for $12.99 a player pays **$0.54 an analysis against
+$0.555 today**, so the offer is more analyses AND better value per rep.
+
+It is not applied, for one reason: **nobody has ever converted.** Every
+number above rests on an assumed conversion rate, and at four-to-five
+subscribers the entire margin difference between $9.99 and $12.99 is about
+$12 a month, which is noise. A lower price converting better is worth more
+than the margin right now, and the cheapest possible offer is the right one
+while the goal is evidence rather than income.
+
+When it does move, the tactic to use is **founding-member pricing**: raise
+the standard price and leave early subscribers on the old one. The mechanic
+is already proven in this account, because prices are immutable in Stripe
+and archiving one never migrates the subscriptions attached to it, which is
+exactly why the superseded $14.99 price is still live (D-077). That makes
+the raise safe and the early cohort genuinely rewarded.
+
+Changing the COUNT needed no provider work at all; 24 is our number, not
+theirs. Changing the PRICE means a new price object plus a lookup-key
+transfer, which is owner console work.

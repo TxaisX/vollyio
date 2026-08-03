@@ -11,7 +11,10 @@ export type Plan = (typeof PLANS)[number];
 // SIGNUP_GRANT below, which is a separate and larger number.
 export const MONTHLY_ALLOWANCE: Record<Plan, number> = {
   free: 1,
-  pro: 18,
+  // 24 since D-085: four reads of every skill a month, the same
+  // one-number-per-skill logic the signup grant uses (SKILLS.length is 6).
+  // 18 was a round number with no story; 24 is a sentence.
+  pro: 24,
 };
 
 // Completed analyses a new account may run before the recurring rate applies.

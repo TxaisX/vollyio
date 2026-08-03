@@ -315,18 +315,18 @@ test("a Pro player who is out is told when, and is sold nothing", () => {
   // nothing this month, so there is no button and no price.
   const offer = limitOffer({
     plan: "pro",
-    allowance: 18,
+    allowance: MONTHLY_ALLOWANCE.pro,
     resetsOn: "Aug 1",
     canBuy: true,
   });
 
   assert.equal(
     offer.headline,
-    "You've used all 18 of your Pro analyses this month.",
+    `You've used all ${MONTHLY_ALLOWANCE.pro} of your Pro analyses this month.`,
   );
   assert.equal(offer.terms, null);
   assert.equal(offer.action, null);
-  assert.equal(offer.wait, "Your next 18 unlock on Aug 1.");
+  assert.equal(offer.wait, `Your next ${MONTHLY_ALLOWANCE.pro} unlock on Aug 1.`);
 });
 
 test("no upgrade destination means no offer, only the wait", () => {

@@ -124,7 +124,7 @@ test("only the service role may write a plan", async () => {
 
 test("an unknown plan falls back to the free allowance rather than throwing", () => {
   assert.equal(monthlyAllowance("free"), 1);
-  assert.equal(monthlyAllowance("pro"), 18);
+  assert.equal(monthlyAllowance("pro"), MONTHLY_ALLOWANCE.pro);
   assert.equal(monthlyAllowance("enterprise"), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance(null), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance(undefined), MONTHLY_ALLOWANCE.free);

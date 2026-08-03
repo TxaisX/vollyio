@@ -149,7 +149,7 @@ test("the monthly allowance is the one thing Pro actually buys", () => {
   // purpose: it answers "what does this plan give every month", and the grant
   // is neither monthly nor a property of the plan.
   assert.equal(allowanceFor("free"), 1);
-  assert.equal(allowanceFor("pro"), 18);
+  assert.equal(allowanceFor("pro"), MONTHLY_ALLOWANCE.pro);
   assert.ok(allowanceFor("pro") > allowanceFor("free"));
 });
 
