@@ -3093,3 +3093,40 @@ of the plan and does not know about overrides. The COUNTERS are correct
 everywhere, since they read `analysis_allowance()`. Rewiring the sentence to
 be per-account is not worth it for a handful of hand-picked accounts, but it
 is the thing to fix first if overrides ever become a routine tool.
+
+## D-083 - The grant is one read of every skill
+
+**Date**: 2026-08-02. **Status**: shipped (migration 046 applied).
+
+Six, because `SKILLS.length` is six. The product scores serve, pass, set,
+attack, block and dig, so a new account now gets exactly one read of each
+before the monthly rate applies.
+
+This is a smaller change than D-080 and a better one, because the number
+finally has a reason attached. Five was a defensible guess; six is a
+sentence a player can be told: try it on everything you play, once. It also
+makes the first session a natural tour of the product rather than a
+rationing decision, and it means a player's first ratings exist across the
+whole radar instead of on one skill.
+
+Costs $1.40 per fully-spent signup at the measured $0.234, against $1.17 at
+five. Break-even conversion moves by a fraction of a point and stays inside
+the band D-076 established.
+
+The per-account override from D-082 rides along untouched: `coalesce` still
+prefers `analysis_grant`, so nobody holding a hand-set number is moved by
+this.
+
+### The lifetime-grant surprise, recorded because it will recur
+
+Setting an account's grant to 50 showed "30 of 31", which reads like a bug
+and is not one. The grant is spent against LIFETIME analyses (D-076), so an
+account with 20 rows already behind it has 30 of that 50 left. The 31 is the
+window ceiling: 30 remaining plus the 1 already used this window.
+
+The consequence to remember when handing out grants: **a grant is a lifetime
+ceiling, not a top-up.** To give an established account N more from today,
+set it to `N + their current lifetime count`, not N. `set_analysis_grant`
+returns `lifetime_analyses` and `grant_remaining` in its result for exactly
+this reason, so the answer is visible in the call rather than needing a
+second query.
