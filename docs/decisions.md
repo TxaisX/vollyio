@@ -3458,3 +3458,63 @@ longer calls skipWaiting unconditionally, and the SKIP_WAITING message the
 "new version is ready" toast has always posted finally has a listener. The
 onboarding action's malformed-submit path stopped silently dropping every
 answer into /analyze; it returns to /welcome with a visible retry notice.
+
+## D-091 - A frame the browser never rendered is caught before it costs anyone anything
+
+**Date**: 2026-08-03. **Status**: shipped.
+
+A real mobile upload (analyses row 204a9569) reached the model as 61
+structurally valid, solid-black JPEG frames. The read scored 0 at 0%
+coverage, burned one of the player's granted analyses and $0.234 of
+inference, and the failure was misread as a filming problem in support. The
+clip was fine: the same file analyzed correctly on desktop.
+
+The terminal mechanism is spec-mandated and silent. `drawImage(video)` is a
+no-op below HAVE_CURRENT_DATA; the canvas backing store is transparent after
+every resize; `toDataURL("image/jpeg")` flattens transparency to opaque
+black. `seekTo` resolved on 'seeked', which announces the timeline moved and
+not that a frame arrived, and its 3s timeout resolved as success. Any cause
+that leaves the element without a presentable frame therefore yields a valid
+image of nothing, with plausible timestamps. The likeliest initiating causes
+on mobile, in evidence order: decoder-session exhaustion (the page held FOUR
+media elements on the same clip - preview, scrub, opening frame, extraction -
+against a small per-device decoder pool, and the extraction element, last to
+ask and the only one played, got nothing) and iOS's frame-drawable lag of
+~80-100ms after 'seeked' losing to a same-task draw on every one of 61
+serial seeks.
+
+The fix layers four guarantees, all fail-open at the frame level and
+fail-closed only at the money:
+
+- Presentation, not seek completion, is the readiness signal. The
+  requestVideoFrameCallback is registered BEFORE the seek (after 'seeked' it
+  can miss and never fire on a paused element), cancelled when it loses to
+  the bounded fallback delay, and never replaced with rAF, which stops in
+  backgrounded tabs.
+- Pixels are verified before the expensive encode: a 48x27 guard canvas per
+  frame, near-UNIFORM (not near-black: broken Android decodes emit solid
+  green or gray) means blank, retry twice on the next presented frame. Eight
+  consecutive blanks abandon the pass instead of grinding out sixty. The
+  guard itself fails open: no readback, no verdict, proceed as before.
+- Every discarded element is explicitly released (pause, clear src, load) so
+  its decoder returns to the pool, and a blank first pass earns exactly one
+  retry on a fresh, never-played element. Only after both passes fail does
+  the player see an error, in the house voice, before any request exists to
+  count. Blank frames that ride a partial pass are dropped before indices
+  are assigned, so the marker contract holds; fewer than two survivors fails
+  the pass instead.
+- The route holds a server-side floor before the hourly slot and the
+  entitlement: a video set whose MEDIAN frame is under 6KB is refused with a
+  422 and honest copy. Calibrated against the incident (black median 4.3KB,
+  healthy median 26.6KB); the median means a few legitimately simple frames
+  cannot trip it, and sets under 8 frames are never judged. The client guard
+  is the real fix; this is what a stale bundle cannot bypass.
+
+The blank thresholds live in `lib/frame-guard.ts`, pure and pinned by
+`lib/frame-guard.test.ts`, including one test per false-positive family:
+dark gym footage, sensor noise, fade-from-black. The opening frame keeps its
+dark image rather than dead-stopping - it is a poster, the player aims on
+the live scrub video, and t~0.4s sits inside a typical fade. An extraction
+failure no longer strands the player: the framing card can reopen from the
+kept opening frame ("Re-mark and try again") instead of demanding the file
+be picked again.

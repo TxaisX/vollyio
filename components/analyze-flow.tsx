@@ -947,7 +947,7 @@ export function AnalyzeFlow({
         setStatus({
           kind: "error",
           message:
-            "This browser couldn't read a frame from that clip, so there's no way to mark your player. iPhones record HEVC, which Chrome can't decode: open Vollyio in Safari, or re-export the clip as MP4 and try again.",
+            "This browser couldn't read a frame from that clip, so there's no way to mark your player. On iPhone open Vollyio in Safari (iPhones record HEVC, which other browsers often can't decode); on Android try Chrome. Or re-export the clip as MP4 and try again.",
         });
         return;
       }
@@ -1487,6 +1487,19 @@ export function AnalyzeFlow({
               )}
               {status.kind === "error" && (
                 <p className="animate-fade-up text-coral">{status.message}</p>
+              )}
+              {/* Extraction failed but the clip and its opening frame survive:
+                  reopen the framing card instead of stranding the player. The
+                  mark and trim they set are theirs; a failed render pass is
+                  not a reason to make them re-pick the file (D-091). */}
+              {status.kind === "error" && lastOpening && !openingPick && (
+                <button
+                  type="button"
+                  onClick={() => setOpeningPick(lastOpening)}
+                  className="chip mt-3"
+                >
+                  Re-mark and try again
+                </button>
               )}
               {status.kind === "unavailable" && !outOfAnalyses && (
                 <p className="animate-fade-up text-chalk">{status.message}</p>

@@ -28,6 +28,7 @@ import {
   safeClipExtension,
 } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
+import { base64Bytes, blankSetByBytes } from "@/lib/frame-guard";
 import { checkAnalyzeBudget } from "@/lib/ai/budget";
 import { recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -126,6 +127,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
   const { skill, discipline, source, duration_s, frames } = parsedBody.data;
+
+  // Cheap gate before anything is spent (D-091): a mobile extraction bug once
+  // shipped 61 structurally valid frames that were all solid black, and the
+  // model dutifully billed a read of nothing. Blank JPEG frames are tiny -
+  // black measured 4.3KB median against 26.6KB healthy, so the MEDIAN byte
+  // size separates them with a 4x margin and a few legitimately simple frames
+  // cannot trip it. The client now guards pixels before sending, but a stale
+  // bundle or a future client bug reaches this route directly, and this floor
+  // is what keeps that from costing the player an analysis. Runs before the
+  // hourly slot and the entitlement, so "nothing was counted" stays true.
+  if (source === "video") {
+    const byteLengths = frames.map((f) => base64Bytes(f.data.length));
+    if (blankSetByBytes(byteLengths)) {
+      return NextResponse.json(
+        {
+          error:
+            "That clip arrived as blank frames, so there was nothing to analyze and nothing was counted. Reload the page and try again, or re-export the clip as MP4.",
+        },
+        { status: 422 },
+      );
+    }
+  }
 
   const quota = await consumeApiQuota(supabase, "analyze");
   if (!quota.ok) {
