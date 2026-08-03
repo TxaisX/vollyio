@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function RewardMark({ className = "" }: { className?: string }) {
   return (
@@ -32,6 +33,12 @@ export function RewardToast({
   onDismiss?: () => void;
 }) {
   const [visible, setVisible] = useState(true);
+  // Portal host, set after mount so server rendering never touches document.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHost(document.body);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -41,9 +48,15 @@ export function RewardToast({
     return () => window.clearTimeout(timer);
   }, [duration, onDismiss]);
 
-  if (!visible) return null;
+  if (!visible || !host) return null;
 
-  return (
+  // Portaled to <body>, not rendered in place, because `position: fixed`
+  // anchors to the nearest TRANSFORMED ancestor rather than the viewport, and
+  // several callers sit inside a Reveal whose animation applies a transform.
+  // On the dashboard goals board that pinned the toast to the card's own box,
+  // out of view: the DOM said role=status, the screen said nothing. The portal
+  // makes "fixed" mean the viewport for every caller, present and future.
+  return createPortal(
     <div
       className="fixed bottom-24 left-1/2 z-50 w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 md:bottom-8"
     >
@@ -75,6 +88,7 @@ export function RewardToast({
           </span>
         </button>
       </div>
-    </div>
+    </div>,
+    host,
   );
 }

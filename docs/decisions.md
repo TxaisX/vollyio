@@ -3387,6 +3387,22 @@ badge's XP into `xp_events` with a `badge:<key>` reason, and returns the
 fresh keys for the client to celebrate. The table has no client write grant
 and no write policy. A client cannot name a badge, a price, or a moment.
 
+Correction, same day, found by the live browser pass: 050's function
+declared `returns table (key, xp)`, whose OUT variables made every `key`
+inside the body ambiguous against the table column, so every claim failed
+with `column reference "key" is ambiguous`. The fail-soft client hid it
+exactly as designed (no badges, no error page); the Vercel log was the only
+witness. Migration 052 re-declares the function with `#variable_conflict
+use_column` and nothing else changed; verified live by running the claim as
+a real player, which returned and paid first_read, ten_reps, eighty_club
+and finisher. The lesson for the next function in this shape: a RETURNS
+TABLE name is a variable everywhere inside the body, so either name the
+outputs off the column namespace or state the conflict rule explicitly. The
+same pass caught RewardToast rendering `position: fixed` inside a Reveal,
+whose animation transform made the card the containing block and pinned the
+toast out of view; it now portals to document.body, so "fixed" means the
+viewport for every caller.
+
 Two accepted costs, stated: `goals.completed_at` is client-writable like the
 rest of the goals row and feeds exactly one cosmetic badge (Ahead of
 Schedule), the same posture as ratings and feedback, a player lying to their
