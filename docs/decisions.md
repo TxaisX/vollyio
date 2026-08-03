@@ -3055,3 +3055,41 @@ This is the cheapest thing in the product to get right and one of the most
 expensive to get wrong: an unreadable clip costs a real $0.234 coaching
 call, one of the player's five grants, and their first impression, all at
 once. Cost and conversion are the same fix here.
+
+## D-082 - The grant becomes a number the owner can set per account
+
+**Date**: 2026-08-02. **Status**: shipped (migration 045 applied).
+
+Two strangers signed up from the launch posts and both said the same thing:
+five analyses is not enough room to evaluate the product. The only lever
+that existed was `signup_grant()`, a single global number, so answering one
+hand-recruited player meant answering everybody and paying for it forever.
+
+`profiles.analysis_grant` overrides the grant for ONE account. NULL means the
+standard grant, so every untouched account is unaffected by construction
+rather than by a branch someone has to maintain. Both allowance functions
+read `coalesce(analysis_grant, signup_grant())` and nothing else changes:
+the value feeds the same `greatest(0, v_grant - v_lifetime)`, counted against
+LIFETIME rows, stored nowhere, decremented never. It inherits D-076's whole
+shape, so there is nothing to drift and nothing to farm.
+
+**It is entitlement, so the account it describes cannot write it** (rule 11).
+The column sits outside migration 012's fixed update allowlist, which is a
+property of how that grant was written rather than something anyone
+remembered; `set_analysis_grant` is `service_role` only like
+`set_subscription_plan`; and `lib/plans.test.ts` now asserts across every
+migration that no later one ever hands the column to `authenticated`.
+Verified live after applying: `has_column_privilege` and
+`has_function_privilege` both deny `authenticated` and `anon`.
+
+Bounded 0 to 500. Not decoration: every analysis is a real paid coaching call
+at about $0.234, so an extra digit typed into the setter is a real bill. The
+two launch signups were set to 24, which costs about $5.60 each if fully
+spent and is the cheapest research this product will ever buy.
+
+Known limitation, accepted: `allowanceSentence()` still renders the standard
+"5 to start, then 1 a month" on plan surfaces, because it is a pure function
+of the plan and does not know about overrides. The COUNTERS are correct
+everywhere, since they read `analysis_allowance()`. Rewiring the sentence to
+be per-account is not worth it for a handful of hand-picked accounts, but it
+is the thing to fix first if overrides ever become a routine tool.

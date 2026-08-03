@@ -268,3 +268,51 @@ test("GREATEST and LEAST are never schema-qualified in any migration", async () 
     assert.doesNotMatch(body, /pg_catalog\.least/i, `${fn} qualifies LEAST`);
   }
 });
+
+test("a per-account grant override exists and only the service role may write it", async () => {
+  const sql = await allowanceSql();
+  const all = await allMigrations();
+
+  // The number the allowance derives from is the account's own override when
+  // it has one, and signup_grant() otherwise. coalesce, not a branch, so an
+  // untouched account keeps the standard grant by construction.
+  assert.match(
+    sql,
+    /coalesce\(\s*[a-z_.]*analysis_grant,\s*public\.signup_grant\(\)\s*\)/i,
+  );
+
+  // The override is spent the same way the standard grant is: against
+  // LIFETIME rows, with nothing stored and nothing to decrement. If this ever
+  // becomes its own counter it acquires a drift bug the grant never had.
+  assert.match(sql, /v_grant_left := greatest\(0, v_grant - v_lifetime\)/i);
+
+  // Entitlement is never writable by the account it describes (security.md
+  // rule 11). The column is outside 012's fixed update allowlist by
+  // construction; this asserts no later migration ever hands it over.
+  for (const grant of all.matchAll(
+    /grant update \(([\s\S]*?)\) on table public\.profiles to ([a-z_, ]+)/gi,
+  )) {
+    if (/authenticated|anon/i.test(grant[2])) {
+      assert.doesNotMatch(
+        grant[1],
+        /analysis_grant/i,
+        "analysis_grant must never be player-writable",
+      );
+    }
+  }
+
+  // The setter is service_role only, same posture as the plan writer.
+  assert.match(all, /create or replace function public\.set_analysis_grant/i);
+  assert.match(
+    all,
+    /revoke all on function public\.set_analysis_grant[\s\S]{0,120}from public, anon, authenticated/i,
+  );
+  assert.match(
+    all,
+    /grant execute on function public\.set_analysis_grant[\s\S]{0,120}to service_role/i,
+  );
+
+  // Bounded. An unbounded grant is an unbounded bill: every analysis is a real
+  // paid coaching call, so a fat-fingered extra digit has a dollar cost.
+  assert.match(all, /analysis_grant[\s\S]{0,80}<=\s*500/i);
+});
