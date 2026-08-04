@@ -404,9 +404,14 @@ export default async function AnalysisDetail({
         </Reveal>
       )}
 
-      <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,42rem)] lg:items-start lg:gap-8">
-        {/* Player: right column on desktop, first thing on mobile */}
-        <div className="lg:order-2 lg:sticky lg:top-8">
+      {/* The split starts at md, not lg. At lg it meant every laptop under
+          1024px and every tablet got the clip stacked on top of the scores,
+          which is most of the screens this page is actually read on. The clip
+          column is capped well under half the row so the breakdown text keeps
+          the wider side: the clip is the evidence, the scores are the product. */}
+      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] md:items-start md:gap-8">
+        {/* Player: right column from tablet up, first thing on a phone */}
+        <div className="md:order-2 md:sticky md:top-8">
           <Reveal delay={80}>
             {nothingToShow ? (
               <div className="card p-6 text-center">
@@ -446,8 +451,8 @@ export default async function AnalysisDetail({
           </Reveal>
         </div>
 
-        {/* Breakdown: left column on desktop */}
-        <div className="mt-8 min-w-0 lg:order-1 lg:mt-0">
+        {/* Breakdown: left column from tablet up */}
+        <div className="mt-8 min-w-0 md:order-1 md:mt-0">
           {result.subject_check && (
             <Reveal delay={100}>
               <p

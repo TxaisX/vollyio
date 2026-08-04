@@ -159,8 +159,12 @@ Deno.serve(async (req: Request) => {
     return json({ error: `unhandled action ${action}` }, 400);
   }
 
+  // A bare "Hey," is not a greeting, it is a gap where a name should be, and it
+  // is the first line of the first thing a new player reads. The name comes off
+  // the auth metadata written at signup, which settings mirrors on every rename
+  // so this stays populated for accounts that change it later.
   const name = user.user_metadata?.display_name?.trim();
-  const greeting = name ? `Hey ${name},` : "Hey,";
+  const greeting = name ? `Hey ${name},` : "Hey there,";
   const link = confirmLink(data);
 
   const { error } = await new Resend(apiKey).emails.send({

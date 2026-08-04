@@ -147,7 +147,10 @@ function ClipPlayer({
 
       {/* min-h on mobile keeps the clip visible: a w-full/height-auto video
           collapses to 0 height on iOS Safari until it plays. object-contain + bg
-          keeps portrait clips undistorted (letterboxed, not stretched). */}
+          keeps portrait clips undistorted (letterboxed, not stretched).
+          The cap is 55vh, not 70: a portrait phone clip shown on a desktop is
+          tall and narrow, and at 70vh it pushed the scores it is meant to
+          illustrate off the bottom of the screen. */}
       <div className="relative overflow-hidden rounded-lg bg-navy">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
@@ -158,7 +161,7 @@ function ClipPlayer({
           playsInline
           preload="metadata"
           onError={() => setFailed(true)}
-          className="block max-h-[70vh] min-h-[52vh] w-full bg-navy object-contain sm:min-h-0"
+          className="block max-h-[55vh] min-h-[52vh] w-full bg-navy object-contain sm:min-h-0"
         />
       </div>
 

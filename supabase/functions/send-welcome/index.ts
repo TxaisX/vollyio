@@ -114,8 +114,11 @@ Deno.serve(async (req: Request) => {
   if (claimError) return json({ error: "claim failed" }, 503);
   if (!claimed || claimed.length === 0) return json({ ok: true, skipped: "already sent" });
 
+  // Reads the PROFILE name rather than the auth metadata, because settings
+  // writes the profile and that is the name the player last chose. Nameless
+  // accounts still get addressed rather than a bare line.
   const name = claimed[0]?.display_name?.trim();
-  const greeting = name ? `You're in, ${name}.` : "You're in.";
+  const greeting = name ? `You're in, ${name}.` : "You're in, player.";
   const link = `${siteUrl}/analyze`;
 
   const { error } = await new Resend(apiKey).emails.send({

@@ -50,7 +50,13 @@ export default async function SharedBreakdown({
   });
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    // Wider only when there is a clip to put beside the scores. A breakdown
+    // with no clip is a column of prose, and stretching that to 64rem hurts it.
+    <main
+      className={`mx-auto px-4 py-10 sm:px-6 ${
+        shared.clip_path ? "max-w-5xl" : "max-w-3xl"
+      }`}
+    >
       <Reveal>
         <div className="flex items-center justify-between border-b border-line pb-5">
           <Link
@@ -92,24 +98,32 @@ export default async function SharedBreakdown({
         )}
       </Reveal>
 
-      {shared.clip_path && (
-        <Reveal delay={100}>
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            src={`/share/${token}/clip`}
-            className="mt-6 w-full rounded-card border border-line bg-navy-light"
-          />
-        </Reveal>
-      )}
+      {/* Same split as the owner's own breakdown: clip on the right from tablet
+          up, scores on the wider left. Without it the clip ran the full column
+          width on every screen and a stranger had to scroll past a full-bleed
+          video before reaching the thing the link was sent to show them. */}
+      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] md:items-start md:gap-8">
+        {shared.clip_path && (
+          <div className="md:order-2 md:sticky md:top-8">
+            <Reveal delay={100}>
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                src={`/share/${token}/clip`}
+                className="max-h-[55vh] w-full rounded-card border border-line bg-navy-light object-contain"
+              />
+            </Reveal>
+          </div>
+        )}
 
-      <div className="mt-8">
-        <BreakdownBody
-          skill={shared.skill}
-          result={shared.result}
-          linkDrills={false}
-        />
+        <div className="mt-8 min-w-0 md:order-1 md:mt-0">
+          <BreakdownBody
+            skill={shared.skill}
+            result={shared.result}
+            linkDrills={false}
+          />
+        </div>
       </div>
 
       <Reveal delay={360}>
