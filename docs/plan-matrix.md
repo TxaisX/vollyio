@@ -49,8 +49,8 @@ Write every surface for the armed state, because that is the live state.
 | History page | 100 most recent reps, filterable by skill | Same | `app/(app)/history/page.tsx` |
 | Clip playback | The original clip is stored privately and replays on the breakdown, up to 100 MB | Same | Migration 005 |
 | Share links | Unlimited, each expires in 30 days, revocable at any time. The clip travels with the link; frames never do | Same | Migration 019, `SHARE_LINK_TTL_DAYS` |
-| Coach chat | Off for everyone | Off for everyone | `NEXT_PUBLIC_COACH_ENABLED` in `lib/flags.ts`, dark since D-047 |
-| Coach chat quotas, if it is switched back on | 20 messages an hour, 30 a day | Same | Migration 028 |
+| Coach chat | On for everyone | Same | Live 2026-08-06. `NEXT_PUBLIC_COACH_ENABLED` in `lib/flags.ts` now defaults ON; set it to `false` to take it away again. The plan decides nothing about it |
+| Coach chat quotas | 20 messages an hour, 30 a day | Same | Migration 028. Identical on both plans, which is why coach has no row in `lib/entitlement-features.ts` |
 | Drills | The whole library, on a publicly indexable page | Same | `content/drills`, `app/(app)/drills` |
 | Goals | Unlimited active goals, indoor scoped | Same | `app/(app)/goals` |
 | Scoreboard | Full use, 10 most recent matches listed | Same | `app/(app)/scoreboard` |

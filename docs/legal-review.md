@@ -89,8 +89,10 @@ one needs the owner to confirm it can be honoured before ship.**
   trackers and profiling.
 - The email provider is added to the exhaustive list of processors. It receives
   the player's email address (`lib/email.ts`, `supabase/functions/send-welcome`).
-- Coach chat is described conditionally on both pages. It is dark behind
-  `NEXT_PUBLIC_COACH_ENABLED` (default off, `/api/coach` 404s, D-047).
+- Coach chat is described conditionally on both pages. As of 2026-08-06 it is
+  LIVE for every account: `NEXT_PUBLIC_COACH_ENABLED` defaults on, and setting
+  it to `false` is what closes the nav entry, the page and `/api/coach`
+  together. The conditional wording stays because that switch still exists.
 
 ---
 

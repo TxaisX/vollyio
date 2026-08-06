@@ -21,7 +21,11 @@ type SectionNavItem = { key: string; href: string; label: string };
 export const TRAIN_NAV: SectionNavItem[] = [
   { key: "drills", href: "/drills", label: "Drills" },
   { key: "technique", href: "/learn", label: "Technique" },
-  { key: "recovery", href: "/learn?tab=rehab", label: "Recovery" },
+  // "Injury & recovery", not "Recovery". The library underneath is about what
+  // volleyball injuries are and when to stop and get seen, and the tab inside
+  // it and the back link on every entry both already said so; this chip was the
+  // one place that read as a training-recovery day and sent the wrong player in.
+  { key: "recovery", href: "/learn?tab=rehab", label: "Injury & recovery" },
 ];
 
 export const PROGRESS_NAV: SectionNavItem[] = [

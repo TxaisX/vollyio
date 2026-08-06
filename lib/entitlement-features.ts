@@ -34,10 +34,11 @@ export type Feature = (typeof FEATURES)[number];
 
 // Each row is what the PLAN includes, never what is switched on globally.
 //
-// Coach chat is deliberately absent. A build flag decides it (`COACH_ENABLED`,
-// dark since D-047), so a row here would have this module claim an authority it
-// does not hold and report a capability whose route answers 404. It earns a row
-// when the plan is the thing that decides it, and not before.
+// Coach chat is deliberately absent, and still is now that it is live. A build
+// flag decides whether it exists at all (`COACH_ENABLED`), and its per-account
+// quotas bound it identically on both plans, so the PLAN decides nothing about
+// it. A row here would have this module claim an authority it does not hold. It
+// earns one when the plan is the thing that decides it, and not before.
 const FEATURE_MATRIX: Record<Feature, Record<Plan, boolean>> = {
   analysis: { free: true, pro: true },
   breakdown_detail: { free: true, pro: true },

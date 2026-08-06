@@ -167,9 +167,11 @@ export default function Landing() {
       "Six skills scored 0-100",
       "One priority fix per rep",
       "Rolling skill rating",
-      // Coach chat is deliberately absent: it is gated behind COACH_ENABLED
-      // and its route 404s while that flag is off, so advertising it in
-      // structured data promises a feature the product may not serve.
+      // Listed as of 2026-08-06, when coach chat stopped being dark. The rule
+      // this line has to keep obeying is the one that kept it out before:
+      // structured data may only name a feature the product actually serves. If
+      // COACH_ENABLED is ever set to false, this entry comes out with it.
+      "Coach chat grounded in your own scores",
     ],
     offers: {
       "@type": "AggregateOffer",

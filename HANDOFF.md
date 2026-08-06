@@ -60,8 +60,9 @@ production. Live at https://vollyio.com.
   Vercel `ANALYZE_MONTHLY_BUDGET_USD` env remain owner console items.
 - **UI restructure shipped 2026-07-21** (D-047 -> D-052): configuration moved off
   the dashboard to `/settings` (D-050) and the dashboard gained an xl right rail;
-  scoreboard sides are Home (court blue) vs Guest (coral) (D-051); coach chat is
-  dark behind `NEXT_PUBLIC_COACH_ENABLED` with hardened quotas ready (D-047);
+  scoreboard sides are Home (court blue) vs Guest (coral) (D-051); coach chat was
+  dark behind `NEXT_PUBLIC_COACH_ENABLED` with hardened quotas ready (D-047),
+  and went live 2026-08-06 when that flag's default flipped on;
   outdoor Learn content now derives from the authored outdoor base (D-048);
   analyze runs environment -> skill -> film as explicit steps with a wider video
   stage and a metric-checkpoint legend (D-052); analyses are shareable as
@@ -190,9 +191,9 @@ beneath the provider cap. The key split below is what remains of that item.
 5. **Counsel skim of `/privacy` and `/terms`** before any marketing push.
 6. **Eval labeling** (see `evals/LABELING.md`): label all 18 active cases, source
    intermediate/expert footage, then run a scored baseline and stability check.
-7. **Migration 018 (coach quotas) before or with any coach re-enable**
-   (`NEXT_PUBLIC_COACH_ENABLED=true` in Vercel is the switch; leave unset to
-   stay dark). Narrower than it was: 028 already put 018's `consume_api_quota`
+7. **Migration 018 (coach quotas).** Coach is LIVE as of 2026-08-06; the flag
+   defaults on and `NEXT_PUBLIC_COACH_ENABLED=false` is now the way to take it
+   away rather than the way to grant it. Narrower than it was: 028 already put 018's `consume_api_quota`
    body and the `coach_daily` scope into production, so what 018 still carries
    is the `refund_api_quota` rewrite that knows `coach_daily`. Apply it anyway
    rather than reasoning about which half is live.
