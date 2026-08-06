@@ -626,7 +626,7 @@ export default function Landing() {
                 counts.
               </p>
               <div className="mt-8 flex justify-center">
-                <Link href="/signup" className="btn-primary text-base">
+                <Link href="/start" className="btn-primary text-base">
                   Analyze your first rep
                 </Link>
               </div>
@@ -717,7 +717,7 @@ export default function Landing() {
                   Log in
                 </Link>
                 <Link
-                  href="/signup"
+                  href="/start"
                   className="block text-chalk-dim transition-colors hover:text-chalk"
                 >
                   Analyze your first rep
@@ -740,7 +740,7 @@ export default function Landing() {
       <StickyCta
         watch="hero-cta"
         label="Analyze your first rep"
-        href="/signup"
+        href="/start"
       />
       <div
         className="md:hidden"

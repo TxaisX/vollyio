@@ -25,6 +25,11 @@ export type Goal = {
   title: string;
   target_rating: number | null;
   deadline: string | null;
+  // Written once, by the onboarding funnel, explaining why this focus suits
+  // this player (D-105). Null on every goal the player adds by hand and on any
+  // account whose personalization call did not answer, so it renders only when
+  // it exists rather than reserving space for itself.
+  note?: string | null;
 };
 
 const LABEL_CLASS =
@@ -265,6 +270,13 @@ function GoalRow({
         )}
         {goal.deadline && <Deadline date={goal.deadline} />}
       </div>
+
+      {/* Only ever present on the goal the funnel created, and only when the
+          model answered. No placeholder and no reserved space, so an account
+          without one looks like the card always did. */}
+      {goal.note && (
+        <p className="mt-1.5 text-xs leading-relaxed text-chalk-dim">{goal.note}</p>
+      )}
 
       {showBar && (
         <div className="mt-2">

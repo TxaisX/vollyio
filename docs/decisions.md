@@ -4277,3 +4277,72 @@ deployment not using captcha keeps the tighter policy.
 budget alerts) and `OWNER_ALERT_EMAIL` is dead. Both are left in place
 deliberately rather than swept up in this change; deleting them is a separate,
 owner-approved cleanup.
+
+## D-105 - The funnel goes back in front, and the account it creates is written for the player
+
+Reverses the CTA half of D-102 at the owner's direction, and adds the thing
+that makes the reversal worth it.
+
+**The funnel is the front door again.** Every landing CTA, "Analyze your first
+rep" included, points at `/start` rather than `/signup`. D-102 moved them the
+other way on the reasoning that seven questions before an account is friction on
+a funnel already losing 88.5% before the form. That reasoning is not wrong, and
+the counter-argument is the one the owner made: questions answered are
+investment made, and a player who has just told us their position, level and
+target has a reason to finish. Duolingo and Noom both sell that order. It is now
+measurable rather than arguable, because `auth_signup_view` records from this
+week, so the two orderings can be compared on our own numbers instead of
+industry ones.
+
+**What the account arrives holding.** Before this, onboarding wrote profile
+fields plus one goal titled by template: `Attacking to 75`. Accurate, unreadable
+as motivation, and identical for everyone who picked the same two dropdowns.
+Now, two model-authored additions:
+
+- **A goal in the player's own words** plus one line on why that focus suits
+  someone at their level, in their position, at their training frequency. One
+  `completeObject` call on `deepseek-v4-flash`, schema-bound to two length-capped
+  strings so neither can break the card.
+- **Their first weekly training plan**, generated from the same answers by the
+  existing `generateWeeklyPlan`.
+
+**The ordering is the safety property, and it is not stylistic.** The
+deterministic profile write and the deterministic goal insert happen FIRST and
+are complete without any model. Personalization is an UPDATE over a row that is
+already correct. A timeout, a refusal, a schema miss, an exhausted prepaid
+balance or an absent credential therefore all land on exactly the account that
+shipped before this existed. `fallbackGoalTitle()` is pinned by test to the old
+template for that reason: if it ever drifts, a model outage becomes a visible
+regression instead of an invisible one. **Nothing a player needs is downstream
+of a model call.**
+
+**Why the plan is not inline.** Measured on this repo's own draws, a healthy
+weekly plan takes 20 to 38 seconds against a 50 second ceiling, and three of
+twenty-one draws never completed. That is not a wait a brand new account can be
+shown, at the single most abandonment-prone moment in the product. It runs in
+`after()` instead: the redirect streams first and the week is written behind it,
+so the player is filming their first rep while their plan is being built.
+`after()` is registered BEFORE the `redirect()` call because `redirect()` throws
+and anything scheduled after the throw never runs. Firing it blind is safe
+because the week is reserved (migration 038): if the player reaches `/plan` and
+generates one by hand in the meantime, whichever claims the week first wins and
+the other returns without spending.
+
+The inline call gets 12 seconds and one retry, against the plan's 50 and two.
+Different budgets on purpose: this one is in the signup redirect, and a generic
+title instantly beats a bespoke one in forty seconds.
+
+**The prompt's hardest constraint is what it may not say.** At the moment it
+runs the player has **zero analyses**. No film, no measurement, no score. Any
+sentence implying otherwise is a fabricated observation wearing coaching
+clothes, which is precisely what D-094 and D-099 exist to prevent on the
+analysis side. So the system prompt forbids claiming to have watched, noticed or
+reviewed anything, forbids inventing any number other than the target the player
+themselves chose, and the user turn states the zero-analysis fact explicitly.
+`onboarding-brief.test.ts` pins all three; do not trim them to shorten the
+prompt.
+
+Migration 056 adds `goals.note`, nullable and unconstrained, because it is
+model-authored and every read must treat absent as ordinary. It renders on the
+goal card only when present, with no reserved space, so an account without one
+looks exactly as it always did.

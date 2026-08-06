@@ -201,7 +201,7 @@ export default async function Dashboard({
     // against a pathological account, not a display rule.
     supabase
       .from("goals")
-      .select("id, title, skill, target_rating, deadline")
+      .select("id, title, skill, target_rating, deadline, note")
       .eq("user_id", userId!)
       .eq("status", "active")
       .order("created_at", { ascending: false })
