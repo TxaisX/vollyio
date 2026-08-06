@@ -6,7 +6,6 @@ import {
   isJpegPayload,
   isLocalRequest,
   readJsonRequest,
-  safeClipExtension,
 } from "./request.ts";
 
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x01, 0xff, 0xd9]).toString(
@@ -125,9 +124,3 @@ test("JPEG payload validation checks type and decoded size", () => {
   assert.equal(isJpegPayload("%%%%", 100), false);
 });
 
-test("clip extensions are a fixed allowlist", () => {
-  assert.equal(safeClipExtension("mp4"), "mp4");
-  assert.equal(safeClipExtension("MOV"), "mov");
-  assert.equal(safeClipExtension("html"), "webm");
-  assert.equal(safeClipExtension(null), "webm");
-});

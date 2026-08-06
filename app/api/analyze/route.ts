@@ -1,17 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, ANALYZE_MODEL, ANALYZE_EFFORT } from "@/lib/ai/client";
+import { VISION_MODEL } from "@/lib/ai/client";
+import { readVideo, VisionError } from "@/lib/ai/vision";
 import { classifyCoachingError } from "@/lib/ai/errors";
 import { shouldEnforceFreeTier } from "@/lib/billing";
-import { analysisSchema } from "@/lib/ai/schema";
-import { getRubric } from "@/lib/ai/rubrics";
-import { outputSpec } from "@/lib/ai/output-spec";
+import {
+  focusInstruction,
+  notRatableMessage,
+  simpleRatingSchema,
+  simpleRubric,
+} from "@/lib/ai/simple-rubric";
 import { mockResult } from "@/lib/ai/mock";
 import { drillSlugs } from "@/content/drills";
 import { updateRating } from "@/lib/ratings";
-import { deriveResult } from "@/lib/ai/derive";
 import { awardXp } from "@/lib/progression";
 import {
   releaseAnalysisEntitlement,
@@ -20,21 +21,42 @@ import {
 } from "@/lib/entitlements";
 import { MONTHLY_ALLOWANCE, PLAN_LABEL, isPlan, type Plan } from "@/lib/plans";
 import { SKILL_LABEL } from "@/lib/skills";
-import { MAX_BODY_BYTES, type AnalysisResult } from "@/lib/analysis-types";
-import { analyzeRequestSchema } from "@/lib/analyze-request";
 import {
-  hasTrustedMutationOrigin,
-  readJsonRequest,
-  safeClipExtension,
-} from "@/lib/security/request";
+  MAX_BODY_BYTES,
+  MAX_CLIP_BYTES,
+  RESULT_VERSION_VIDEO,
+  type AnalysisResult,
+} from "@/lib/analysis-types";
+import { analyzeRequestSchema } from "@/lib/analyze-request";
+import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
-import { base64Bytes, blankSetByBytes } from "@/lib/frame-guard";
+import { blankClipByBytes } from "@/lib/frame-guard";
 import { checkAnalyzeBudget } from "@/lib/ai/budget";
 import { recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+// The container the provider dispatches on, from the extension the request
+// declared. Both were validated by the request schema against the same closed
+// set, so this is a translation and never a decision.
+const CLIP_MIME: Record<string, string> = {
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+// Per attempt, and the whole route is bounded by `maxDuration = 120`. The video
+// read is a much smaller request than the frame read it replaces (about ten
+// low-resolution samples against 64 frames at 1024px), so it does not need the
+// 90s the frame path did, and leaving it at 90 would put a single retry outside
+// the platform budget. A function the platform kills skips the refund below and
+// the entitlement release in the outer finally, silently costing the player an
+// hourly slot: that is what these two numbers exist to prevent.
+const READ_TIMEOUT_MS = 50_000;
+// Only re-read when there is room for the attempt to finish inside the budget.
+const RETRY_DEADLINE_MS = 55_000;
 
 // Which plan the reservation just enforced against. An unrecognized plan
 // string resolves to free exactly as `monthlyAllowance()` does: fail toward
@@ -126,28 +148,56 @@ export async function POST(req: NextRequest) {
   if (!parsedBody.success) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const { skill, discipline, source, duration_s, frames } = parsedBody.data;
+  const { skill, discipline, source, duration_s, focus_point } = parsedBody.data;
 
-  // Cheap gate before anything is spent (D-091): a mobile extraction bug once
-  // shipped 61 structurally valid frames that were all solid black, and the
-  // model dutifully billed a read of nothing. Blank JPEG frames are tiny -
-  // black measured 4.3KB median against 26.6KB healthy, so the MEDIAN byte
-  // size separates them with a 4x margin and a few legitimately simple frames
-  // cannot trip it. The client now guards pixels before sending, but a stale
-  // bundle or a future client bug reaches this route directly, and this floor
-  // is what keeps that from costing the player an analysis. Runs before the
-  // hourly slot and the entitlement, so "nothing was counted" stays true.
-  if (source === "video") {
-    const byteLengths = frames.map((f) => base64Bytes(f.data.length));
-    if (blankSetByBytes(byteLengths)) {
-      return NextResponse.json(
-        {
-          error:
-            "That clip arrived as blank frames, so there was nothing to analyze and nothing was counted. Reload the page and try again, or re-export the clip as MP4.",
-        },
-        { status: 422 },
-      );
-    }
+  // The clip the read is performed on. It is already in storage under the
+  // caller's own pending prefix, because the platform's 4.5 MB request cap
+  // cannot carry it (D-097, migration 054). The path is composed here from the
+  // VERIFIED user id and a request value the schema proved is a UUID, so
+  // nothing the caller sends can name a segment outside their own folder.
+  //
+  // Read with the player's own client, not the service role. The pending select
+  // policy is owner-scoped, which means the tenant boundary is still the
+  // database's rather than this route remembering to compare two ids. That is
+  // also why /api/analyze does not become a third service-role importer here
+  // (docs/security.md rule 10).
+  const pendingPath = `${user.id}/pending/${parsedBody.data.pending_clip_id}/clip.${parsedBody.data.clip_ext}`;
+  const clipPathFinalExt = parsedBody.data.clip_ext;
+  const { data: clipBlob, error: clipError } = await supabase.storage
+    .from("clips")
+    .download(pendingPath);
+  if (clipError || !clipBlob) {
+    console.error("[analyze] pending clip unreadable", { message: clipError?.message });
+    return NextResponse.json(
+      {
+        error:
+          "Your clip didn't finish uploading, so there was nothing to analyze and nothing was counted. Try again.",
+      },
+      { status: 422 },
+    );
+  }
+
+  // Both bounds run before the hourly slot and the entitlement, so a clip that
+  // cannot be read costs the player nothing. The upper bound repeats the
+  // storage policy's ceiling because this is where the bytes become a base64
+  // string in function memory; the lower one is the blank-media floor.
+  const clipBytes = Buffer.from(await clipBlob.arrayBuffer());
+  if (clipBytes.byteLength > MAX_CLIP_BYTES) {
+    return NextResponse.json(
+      {
+        error: "That clip is too large to analyze. Trim it to a shorter window and try again.",
+      },
+      { status: 413 },
+    );
+  }
+  if (blankClipByBytes(clipBytes.byteLength)) {
+    return NextResponse.json(
+      {
+        error:
+          "That clip arrived empty, so there was nothing to analyze and nothing was counted. Reload the page and try again, or re-export the clip as MP4.",
+      },
+      { status: 422 },
+    );
   }
 
   const quota = await consumeApiQuota(supabase, "analyze");
@@ -201,8 +251,10 @@ export async function POST(req: NextRequest) {
   const reservationId = entitlement.reservationId;
 
   const performAnalysis = async () => {
-    const timeAt = (index: number) =>
-    frames.find((f) => f.index === index)?.time_s ?? null;
+    // No frame carries a time on this path, so nothing has an instant to
+    // report. Kept as the one place that says so, rather than each caller
+    // deciding what a missing timestamp means.
+    const timeAt = () => null;
 
   let result: AnalysisResult;
   // Server-recorded, server-only measurement of the coaching call (D-043): real
@@ -220,93 +272,89 @@ export async function POST(req: NextRequest) {
     result = mockResult(skill, timeAt);
   } else {
     try {
-      const content = frames.flatMap((f) => [
-        {
-          type: "text" as const,
-          text: f.time_s != null ? `Frame ${f.index}, t=${f.time_s}s` : `Frame ${f.index}`,
-        },
-        {
-          type: "image" as const,
-          source: { type: "base64" as const, media_type: "image/jpeg" as const, data: f.data },
-        },
-      ]);
-
-      const markerAt = parsedBody.data.marker_frame_index;
-      const focusBlock = parsedBody.data.focus_marker
-        ? [
-            {
-              type: "text" as const,
-              text:
-                `The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete${markerAt != null ? ` in frame ${markerAt}` : " in one frame"}. ` +
-                "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
-            },
-          ]
-        : [];
+      const instructions = [
+        ...(focus_point
+          ? [focusInstruction(focus_point.x, focus_point.y, focus_point.t_s)]
+          : []),
+        `Discipline: ${discipline}. Rate this ${SKILL_LABEL[skill].toLowerCase()} rep across the whole clip.`,
+      ];
 
       const startedAt = Date.now();
-      const response = await coach().messages.parse({
-        model: ANALYZE_MODEL,
-        max_tokens: 4096,
-        // Stated, not inherited. Opus 4.8 ran with no reasoning at all when
-        // `thinking` was absent (D-027); Opus 5 thinks by default (D-070). Naming
-        // it keeps this call's reasoning independent of whichever default the
-        // pinned model happens to carry.
-        thinking: { type: "adaptive" },
-        system: [
-          {
-            type: "text",
-            text: getRubric(skill, discipline),
-            cache_control: { type: "ephemeral" },
+      const readOnce = () =>
+        readVideo({
+          model: VISION_MODEL,
+          system: [simpleRubric(skill, discipline, drillSlugs(skill))],
+          video: {
+            data: clipBytes.toString("base64"),
+            mime: CLIP_MIME[clipPathFinalExt],
+            duration_s,
           },
-          {
-            type: "text",
-            text: outputSpec(skill),
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        messages: [
-          {
-            role: "user",
-            content: [
-              ...content,
-              ...focusBlock,
-              {
-                type: "text",
-                text: `Discipline: ${discipline}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
-              },
-            ],
-          },
-        ],
-        output_config: {
-          effort: ANALYZE_EFFORT,
-          format: zodOutputFormat(analysisSchema(skill)),
-        },
-      },
-      // Exponential backoff on 429/5xx from the coaching service (CS-7); the
-      // SDK honors Retry-After and jitters between attempts. Both numbers are
-      // bounded by `maxDuration = 120`: the SDK's default per-attempt timeout
-      // is ~10 minutes, so a hung provider connection used to end with the
-      // platform killing the function, which skips the refund below and the
-      // entitlement release in the outer finally, silently costing the player
-      // an hourly slot. 90s per attempt never cuts a legitimately slow call
-      // (the read runs 30-60s), and one retry keeps the common failure (a
-      // fast 429/529, then success) inside the platform budget where five
-      // attempts could not be.
-      { maxRetries: 1, timeout: 90_000 },
-    );
+          instructions,
+          schema: simpleRatingSchema,
+          // Well above what this rubric's reply needs, because on this gateway
+          // the ceiling is not an output budget: one model id resolves across
+          // several upstreams and the ones that reason bill that reasoning
+          // against max_tokens BEFORE any content (D-096). A ceiling sized to
+          // the answer therefore returns an empty string on exactly the
+          // upstreams that think hardest, which is not a failure mode worth
+          // saving tokens for.
+          maxTokens: 8192,
+          timeoutMs: READ_TIMEOUT_MS,
+          maxRetries: 1,
+        });
 
-      const usage = response.usage;
+      let read = await readOnce();
+      // One re-read on a reply that arrived and did not parse. This is not
+      // belt-and-braces: two full passes over the same 38 clips produced one
+      // abstention and two hard failures, then neither, with individual scores
+      // moving up to 14 points. Failure on this path is STOCHASTIC, so a parse
+      // miss is more often a bad draw than a bad clip, and the alternative is
+      // a player who filmed a rep and got nothing back. Guarded by the elapsed
+      // clock so the retry can never be what the platform kills the function
+      // in the middle of.
+      if (!read.parsed && Date.now() - startedAt < RETRY_DEADLINE_MS) {
+        console.warn("[analyze] unparseable read, retrying once", {
+          provider: read.usage.provider,
+          reasoning_tokens: read.usage.reasoning_tokens,
+        });
+        const retry = await readOnce();
+        read = {
+          parsed: retry.parsed,
+          // Both attempts were billed, so both are recorded. A telemetry row
+          // that showed only the successful attempt would price this route
+          // below what it actually costs.
+          usage: {
+            input_tokens: read.usage.input_tokens + retry.usage.input_tokens,
+            output_tokens: read.usage.output_tokens + retry.usage.output_tokens,
+            cache_read_input_tokens:
+              read.usage.cache_read_input_tokens + retry.usage.cache_read_input_tokens,
+            cache_creation_input_tokens:
+              read.usage.cache_creation_input_tokens +
+              retry.usage.cache_creation_input_tokens,
+            provider: retry.usage.provider,
+            reasoning_tokens: read.usage.reasoning_tokens + retry.usage.reasoning_tokens,
+          },
+          ms: retry.ms,
+        };
+      }
+
       telemetry = {
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+        input_tokens: read.usage.input_tokens,
+        output_tokens: read.usage.output_tokens,
+        cache_read_input_tokens: read.usage.cache_read_input_tokens,
+        cache_creation_input_tokens: read.usage.cache_creation_input_tokens,
         duration_ms: Date.now() - startedAt,
-        model: ANALYZE_MODEL,
-        effort: ANALYZE_EFFORT,
+        model: VISION_MODEL,
+        // Which upstream answered, and what it spent thinking. Recorded because
+        // one id is not one behaviour on this gateway (D-096): without these
+        // two numbers an empty read cannot be told apart from a refusal, and
+        // there is no evidence from which to choose a ceiling.
+        provider: read.usage.provider,
+        reasoning_tokens: read.usage.reasoning_tokens,
+        result_version: RESULT_VERSION_VIDEO,
       };
 
-      const raw = response.parsed_output;
+      const raw = read.parsed;
       if (!raw) {
         return NextResponse.json(
           { error: "The coaching service couldn't read that clip. Try again." },
@@ -314,60 +362,61 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const metricsMap = raw.metrics as Record<
-        string,
-        { note: string; pointers: { key: string; status: string }[] }
-      >;
-      // Weighted derivation (D-045): each checkpoint scores from its pointer
-      // verdicts (D-039, uncurved per D-040); the overall is the weighted mean
-      // over OBSERVED checkpoints, and coverage_pct records how much of the
-      // rubric the clip supported. Only when nothing was observable does the
-      // model's whole-clip read stand in.
-      const derived = deriveResult(skill, metricsMap);
-      const top = raw.changes[0];
-      const overallScore = derived.overall ?? raw.overall_score;
+      // The abstain lane, and the reason it is a refusal rather than a low
+      // score. A clip that does not show the declared skill has no honest
+      // number attached to it, and the alternative to saying so is expressing
+      // "I cannot see it" as something in the fifties, which the player then
+      // reads as coaching and acts on. Nothing is stored and the hourly slot is
+      // given back, because no analysis happened.
+      if (raw.ratable === false) {
+        await refundApiQuota(createServiceClient(), user.id, "analyze");
+        return NextResponse.json(
+          {
+            error: notRatableMessage(raw.not_ratable_reason),
+            reason: "not_ratable",
+          },
+          { status: 422 },
+        );
+      }
+
+      const top = raw.improvements[0];
+      if (!top) {
+        return NextResponse.json(
+          { error: "The coaching service couldn't read that clip. Try again." },
+          { status: 502 },
+        );
+      }
       result = {
         skill,
-        overall_score: overallScore,
-        coverage_pct: derived.coveragePct,
-        low_confidence: derived.lowConfidence,
-        // Who the model says it analyzed, and whether that matches the athlete
-        // the player marked. Optional: an older stored row has no such field,
-        // and a reply that omits it must not fail the analysis (D-030).
-        subject_check: raw.subject_check,
-        rep_scores: raw.rep_scores,
-        metrics: derived.metrics.map((m) => ({
-          key: m.key,
-          score: m.score,
-          weight: m.weight,
-          note: metricsMap[m.key]?.note ?? "",
-          observed: m.observed,
-          pointers: m.statuses,
-        })),
-        contact_frame_index: raw.contact_frame_index,
-        focus: { ...raw.focus, time_s: timeAt(raw.focus.frame_index) },
-        insights: raw.insights.map((i) => ({ ...i, time_s: timeAt(i.frame_index) })),
-        changes: raw.changes,
-        priority_fix: {
-          title: top.title,
-          detail: top.detail,
-          frame_index: raw.focus.frame_index,
-          time_s: timeAt(raw.focus.frame_index),
-        },
-        // The model is guided to the valid slugs but not hard-bound to them
-        // (see lib/ai/schema.ts); drop any it invents so drill lookups can't 404.
+        // Clamped, not trusted. The scale is prompt-stated rather than schema
+        // bound (lib/ai/simple-rubric.ts), so a reply outside 0..100 is a
+        // wording miss and must degrade into a valid score rather than into a
+        // rating curve and a history chart that can never be read again.
+        overall_score: Math.max(0, Math.min(100, Math.round(raw.overall_score))),
+        result_version: RESULT_VERSION_VIDEO,
+        confidence: raw.confidence,
+        strengths: raw.strengths,
+        // Shaped as `Change` so the numbered-changes section, the priority-fix
+        // card and the drills list render unchanged. target_metric and
+        // expected_gain are OMITTED rather than filled: both are per-checkpoint
+        // quantities and this rubric has no checkpoints, so a value there would
+        // be a number the player would act on that nothing measured.
+        changes: raw.improvements,
+        priority_fix: { title: top.title, detail: top.detail },
+        // The model is guided to the valid slugs but not hard-bound to them;
+        // drop any it invents so drill lookups can't 404.
         drill_slugs: raw.drill_slugs.filter((s) => drillSlugs(skill).includes(s)),
         summary: raw.summary,
       };
     } catch (err) {
       // Log the real cause server-side only. The client message stays generic
       // and vendor-neutral (no-vendor-names rule); an opaque 502 with a bare
-      // `catch` hid whatever the coaching call actually threw.
-      const apiErr = err instanceof Anthropic.APIError ? err : null;
+      // `catch` hid whatever the read actually threw.
+      const apiErr = err instanceof VisionError ? err : null;
       const message = apiErr?.message ?? (err instanceof Error ? err.message : String(err));
-      console.error("[analyze] coaching call failed", {
+      console.error("[analyze] vision call failed", {
         status: apiErr?.status,
-        requestId: apiErr?.requestID,
+        requestId: apiErr?.requestId,
         message,
       });
       const kind = classifyCoachingError({ status: apiErr?.status ?? null, message });
@@ -401,34 +450,15 @@ export async function POST(req: NextRequest) {
   }
 
   result.discipline = discipline;
-  // Clip time per sent frame, keyed by frame index, so viewers can place
-  // per-frame data on the clip timeline (client data, not model output; the
-  // response schema stays frozen).
-  const frameTimes: (number | null)[] = [];
-  for (const f of frames) frameTimes[f.index] = f.time_s;
-  result.frame_times = Array.from(frameTimes, (t) => t ?? null);
 
   const analysisId = crypto.randomUUID();
+  const clipPath = `${user.id}/${analysisId}/clip.${clipPathFinalExt}`;
 
-  const wantsClip = source === "video" && parsedBody.data.has_clip === true;
-  const clipPath = wantsClip
-    ? `${user.id}/${analysisId}/clip.${safeClipExtension(parsedBody.data.clip_ext)}`
-    : null;
-
-  // Predetermine storage paths for the client's post-response uploads (same
-  // non-fatal pattern as the clip): the extra stored frames beyond the send
-  // set.
-  const extraFrameCount = parsedBody.data.extra_frame_count ?? 0;
-  const storedFramePaths = Array.from(
-    { length: extraFrameCount },
-    (_, i) => `${user.id}/${analysisId}/x${String(frames.length + i).padStart(2, "0")}.jpg`,
-  );
-
-  const framePaths = frames.map(
-    (frame) =>
-      `${user.id}/${analysisId}/f${String(frame.index).padStart(2, "0")}.jpg`,
-  );
-
+  // A video row carries NO frames, which is what migration 054 relaxed the
+  // insert trigger's 2-to-64 floor to allow. The read is performed on the clip
+  // itself, so shipping stills alongside would be paying to upload and store
+  // pixels no model looks at. `thumb_path` must be null to match an empty
+  // frame_paths, which the trigger checks; nothing in the product reads it.
   const { error: insertError } = await supabase.from("analyses").insert({
     id: analysisId,
     user_id: user.id,
@@ -436,15 +466,15 @@ export async function POST(req: NextRequest) {
     discipline,
     source,
     duration_s,
-    frame_count: frames.length,
-    frame_paths: framePaths,
-    thumb_path: framePaths[0] ?? null,
+    frame_count: 0,
+    frame_paths: [],
+    thumb_path: null,
     clip_path: clipPath,
     keypoints_path: null,
-    stored_frame_paths: storedFramePaths,
+    stored_frame_paths: [],
     overall_score: result.overall_score,
     result,
-    model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
+    model: process.env.AI_MOCK === "true" ? "mock" : VISION_MODEL,
   });
   if (insertError) {
     if (insertError.message.includes("analysis rate limit exceeded")) {
@@ -456,49 +486,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Couldn't save your analysis." }, { status: 500 });
   }
 
-  // Batched, not one-at-a-time: up to 64 sequential storage round trips added
-  // seconds to a response the player is already tens of seconds into. Bounded
-  // concurrency keeps the discard semantics: every path that made it into
-  // storage lands in uploadedFramePaths, so the failure branch below removes
-  // exactly what exists, including successes from a partially failed batch.
-  const uploadedFramePaths: string[] = [];
-  let frameUploadFailed = false;
-  const UPLOAD_CONCURRENCY = 6;
-  for (let i = 0; i < frames.length && !frameUploadFailed; i += UPLOAD_CONCURRENCY) {
-    const results = await Promise.all(
-      frames.slice(i, i + UPLOAD_CONCURRENCY).map(async (frame, j) => {
-        const index = i + j;
-        const bytes = Buffer.from(frame.data, "base64");
-        const { error } = await supabase.storage
-          .from("frames")
-          .upload(framePaths[index], bytes, { contentType: "image/jpeg", upsert: false });
-        if (error) {
-          console.error("[analyze] required frame upload failed", {
-            analysisId,
-            frameIndex: index,
-          });
-          return null;
-        }
-        return framePaths[index];
-      }),
-    );
-    for (const path of results) {
-      if (path === null) frameUploadFailed = true;
-      else uploadedFramePaths.push(path);
-    }
-  }
-  if (frameUploadFailed) {
-    if (uploadedFramePaths.length > 0) {
-      await supabase.storage.from("frames").remove(uploadedFramePaths);
-    }
-    await supabase.rpc("discard_new_analysis", {
-      p_analysis_id: analysisId,
-      p_reservation_id: reservationId,
+  // Now that the row exists and declares the path, the analysis-anchored clip
+  // policy from migration 012 admits the write, so the pending object can move
+  // to where every reader already looks for it. Copy then remove rather than a
+  // single move: the destination is governed by one policy and the source by
+  // another, and a copy that lands followed by a remove that does not is a
+  // stray file, where a move that half-applies is a row pointing at nothing.
+  //
+  // NOT fatal. The clip is the only media a video row has, so losing it costs
+  // the player their film; it does not cost them the analysis, which is already
+  // saved and is the thing they waited for. Discarding a scored row over a
+  // storage hiccup would spend their allowance and give them nothing, so this
+  // logs and continues, exactly as the frame path's clip upload always did.
+  const { error: copyError } = await supabase.storage
+    .from("clips")
+    .copy(pendingPath, clipPath);
+  if (copyError) {
+    console.error("[analyze] clip copy to the analysis path failed", {
+      analysisId,
+      message: copyError.message,
     });
-    return NextResponse.json(
-      { error: "Couldn't save your analysis. Try again." },
-      { status: 500 },
-    );
+  }
+  const { error: pendingRemoveError } = await supabase.storage
+    .from("clips")
+    .remove([pendingPath]);
+  if (pendingRemoveError) {
+    // The orphan sweep collects it on age. Worth a line either way: a prefix
+    // that only ever grows is a storage bill nobody is watching.
+    console.error("[analyze] pending clip cleanup failed", {
+      analysisId,
+      message: pendingRemoveError.message,
+    });
   }
 
   // The cost measurement, written with credentials the player does not hold
@@ -549,10 +567,13 @@ export async function POST(req: NextRequest) {
   // (D-071). Returns the amount, or 0 when this analysis already paid.
   const xpAwarded = await awardXp(supabase, `analysis:${analysisId}`);
 
+  // The client no longer has media to upload after the response: the clip went
+  // up before the request and this route has already put it where it belongs.
+  // clipPath is returned so the caller can tell whether its own pending object
+  // was consumed, and clean up if it was not.
   return NextResponse.json({
     analysisId,
     clipPath,
-    storedFramePaths,
     xpAwarded,
   });
   };

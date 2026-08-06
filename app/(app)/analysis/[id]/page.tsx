@@ -207,9 +207,13 @@ export default async function AnalysisDetail({
 
   const clipUrl: string | null = signedClip?.data?.signedUrl ?? null;
 
+  // A video-path row (D-097) cites no frames and stores none, so nothing is
+  // highlighted and the strip is empty. Both fields are absent there rather
+  // than empty, which is why every read below goes through a default.
   const timeByFrame = new Map<number, number | null>();
-  for (const i of result.insights) timeByFrame.set(i.frame_index, i.time_s);
-  timeByFrame.set(result.priority_fix.frame_index, result.priority_fix.time_s);
+  for (const i of result.insights ?? []) timeByFrame.set(i.frame_index, i.time_s);
+  if (result.priority_fix.frame_index != null)
+    timeByFrame.set(result.priority_fix.frame_index, result.priority_fix.time_s ?? null);
   const highlight = new Set(timeByFrame.keys());
   if (result.focus) highlight.add(result.focus.frame_index);
   if (typeof result.contact_frame_index === "number")
@@ -241,7 +245,11 @@ export default async function AnalysisDetail({
 
   // Everything the breakdown computed, counted up front so the player sees
   // the full value of the rep before scrolling.
-  const strengthCount = result.insights.filter((i) => i.type === "strength").length;
+  // The frame path reports strengths as timeline insights; the video path names
+  // them directly (D-097). Count whichever this row actually has.
+  const strengthCount =
+    (result.insights ?? []).filter((i) => i.type === "strength").length +
+    (result.strengths?.length ?? 0);
   const fixCount = changes.length > 0 ? changes.length : 1;
   const drillCount = result.drill_slugs.length;
   // The model already ranked these, so the first one is the drill for the
@@ -249,7 +257,14 @@ export default async function AnalysisDetail({
   // exists must not render an empty card.
   const startHere = result.drill_slugs.map(drillBySlug).find(Boolean) ?? null;
   const valueChips = [
-    { count: strengthCount, label: strengthCount === 1 ? "strength" : "strengths", href: "#timeline" },
+    {
+      count: strengthCount,
+      label: strengthCount === 1 ? "strength" : "strengths",
+      // Whichever section this row actually renders them in. A v1 row lists
+      // strengths on the timeline; a video row has no timeline and names them
+      // under their own heading, so a fixed anchor would scroll to nothing.
+      href: (result.insights?.length ?? 0) > 0 ? "#timeline" : "#strengths",
+    },
     { count: fixCount, label: fixCount === 1 ? "fix" : "fixes", href: "#changes" },
     { count: drillCount, label: drillCount === 1 ? "drill" : "drills", href: "#drills" },
   ].filter((c) => c.count > 0);

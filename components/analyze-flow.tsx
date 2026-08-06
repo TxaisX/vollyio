@@ -13,6 +13,7 @@ import {
   type FrameDebug,
   type OpeningFrame,
 } from "@/lib/frames";
+import { canTrimVideo, trimClip, type TrimmedClip } from "@/lib/video-clip";
 import { Reveal } from "@/components/motion";
 import { LimitNotice } from "@/components/limit-notice";
 import {
@@ -226,33 +227,17 @@ async function burnMark(
   return { frames, markerIndex: nearest };
 }
 
-// Fire-and-forget persistence of the extra stored frames after the analysis is
-// saved. Failures are silent; the results page handles absence.
-function uploadExtraFrames(extras: Frame[], storedFramePaths: string[]) {
-  const supabase = createClient();
-  const count = Math.min(storedFramePaths.length, extras.length);
-  for (let i = 0; i < count; i++) {
-    try {
-      const b64 = extras[i].dataUrl.split(",")[1];
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-      void supabase.storage
-        .from("frames")
-        .upload(storedFramePaths[i], bytes, { contentType: "image/jpeg", upsert: false })
-        .catch(() => {});
-    } catch {
-      // Skip a frame that fails to decode; the rest still upload.
-    }
-  }
-}
-
-function clipExt(b: Blob): string {
-  const type = (b.type || "").toLowerCase();
-  if (type.includes("mp4")) return "mp4";
-  if (type.includes("quicktime") || type.includes("mov")) return "mov";
-  if (type.includes("webm")) return "webm";
-  const name = (b as File).name ?? "";
-  const m = name.toLowerCase().match(/\.([a-z0-9]{2,4})$/);
-  return m ? m[1] : "webm";
+// The container, from the MIME lib/video-clip.ts settled on. Not from the
+// filename: the trimmed clip is either the source's own bytes with a MIME the
+// passthrough check already narrowed, or a re-encode whose type this app chose,
+// so there is no case left where a file extension knows better. The three
+// values are the closed set the storage policy and the request schema both
+// enforce, and an unrecognised one is a bug rather than a default.
+function clipExtOf(mime: string): "mp4" | "webm" | "mov" | null {
+  if (mime === "video/mp4") return "mp4";
+  if (mime === "video/webm") return "webm";
+  if (mime === "video/quicktime") return "mov";
+  return null;
 }
 
 // Calibrated against the 16 live analyses on record (2026-08-03): the coaching
@@ -292,7 +277,7 @@ function waitProgress(elapsedMs: number): number {
 // ticker walks forward and rests on the last line rather than looping, a loop
 // would read as fake progress.
 const SCORING_STAGES: { atMs: number; line: string }[] = [
-  { atMs: 0, line: "Reading your frames…" },
+  { atMs: 0, line: "Reading your clip…" },
   { atMs: 10_000, line: "Following your player…" },
   { atMs: 24_000, line: "Scoring against the rubric…" },
   { atMs: 40_000, line: "Writing your one fix…" },
@@ -446,7 +431,14 @@ export function AnalyzeFlow({
   const videoInput = useRef<HTMLInputElement>(null);
   const debugRef = useRef(false);
   const clipRef = useRef<Blob | null>(null);
-  const extrasRef = useRef<Frame[]>([]);
+  // The clip the analysis is actually performed on: the trimmed window, cut in
+  // the browser because there is no server-side cutter (lib/video-clip.ts).
+  // This is the request's whole payload now, so a submit without one has
+  // nothing to send.
+  const trimmedRef = useRef<TrimmedClip | null>(null);
+  // The tap, in the trimmed clip's own time base. Absolute source seconds would
+  // point past the end of a window that does not start at zero.
+  const focusRef = useRef<{ x: number; y: number; t_s: number } | null>(null);
   const stepSkillRef = useRef<HTMLHeadingElement>(null);
   const prevDisciplineRef = useRef<Discipline | null>(discipline);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
@@ -791,27 +783,66 @@ export function AnalyzeFlow({
       if (consentAnsweredRef.current === false) setConsentOpen(true);
       return;
     }
+    const trimmed = trimmedRef.current;
+    const ext = trimmed ? clipExtOf(trimmed.mime) : null;
+    if (!trimmed || !ext) {
+      setStatus({
+        kind: "error",
+        message: "That clip couldn't be prepared for analysis. Pick it again and retry.",
+      });
+      return;
+    }
     setRetrying(isRetry);
     setStatus({ kind: "sending" });
-    const clip = clipRef.current;
+
+    // The clip goes to storage BEFORE the request, because the request cannot
+    // carry it: the platform caps a body at 4.5 MB and a ten second window is
+    // about that once base64'd. The route reads it back from the pending prefix
+    // (D-097, migration 054), which is owner-scoped, so this path is only
+    // writable by the account it names.
+    //
+    // A fresh id per attempt. Reusing one would collide on a retry, because the
+    // storage policies grant create-only semantics and never replacement.
+    const supabase = createClient();
+    const pendingId = crypto.randomUUID();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.assign("/login");
+      return;
+    }
+    const pendingPath = `${user.id}/pending/${pendingId}/clip.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("clips")
+      .upload(pendingPath, trimmed.blob, { contentType: trimmed.mime, upsert: false });
+    if (uploadError) {
+      setRetrying(false);
+      setStatus({
+        kind: "error",
+        message: "Your clip didn't finish uploading. Check your connection and try again.",
+      });
+      return;
+    }
+    // Remove the uploaded clip on any path that does not hand it to an
+    // analysis. The orphan sweep would collect it eventually, but a player who
+    // retries four times should not leave four clips behind in the meantime.
+    const dropPending = async () => {
+      try {
+        await supabase.storage.from("clips").remove([pendingPath]);
+      } catch {
+        // The sweep is the backstop. Nothing here is worth failing a retry for.
+      }
+    };
+
     const body: AnalyzeRequest = {
       skill,
       discipline,
       source: "video",
-      duration_s: dur,
-      has_clip: !!clip,
-      clip_ext: clip ? clipExt(clip) : null,
-      frames: payloadFrames.map((f) => ({
-        index: f.index,
-        time_s: f.time_s,
-        data: f.dataUrl.split(",")[1],
-      })),
-      focus_marker: markedRef.current ? true : undefined,
-      marker_frame_index:
-        markedRef.current && markerIndexRef.current != null
-          ? markerIndexRef.current
-          : undefined,
-      extra_frame_count: extrasRef.current.length,
+      duration_s: trimmed.duration_s ?? dur,
+      pending_clip_id: pendingId,
+      clip_ext: ext,
+      focus_point: focusRef.current ?? undefined,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -831,6 +862,7 @@ export function AnalyzeFlow({
         // everything else stays an error. The mapping lives in
         // lib/analyze-status.ts where it is unit-tested.
         const failure = analyzeFailureStatus(res.status, body);
+        await dropPending();
         setRetrying(false);
         setStatus(
           failure.kind === "unavailable"
@@ -850,23 +882,11 @@ export function AnalyzeFlow({
         );
         return;
       }
-      const { analysisId, clipPath, storedFramePaths, xpAwarded } = await res.json();
-      if (clip && clipPath) {
-        try {
-          await createClient()
-            .storage.from("clips")
-            .upload(clipPath, clip, {
-              contentType: (clip.type || "video/webm").split(";")[0],
-              upsert: false,
-            });
-        } catch {
-          // Non-fatal: the results page falls back to the frame player.
-        }
-      }
-      if (extrasRef.current.length > 0 && Array.isArray(storedFramePaths)) {
-        // Background persistence; navigation does not wait on it.
-        uploadExtraFrames(extrasRef.current, storedFramePaths);
-      }
+      // The route has already copied the clip to the analysis path and removed
+      // the pending object. Nothing left to upload here: this used to be where
+      // the clip and the extra frames went up, and both are now either the
+      // request's input or not stored at all.
+      const { analysisId, xpAwarded } = await res.json();
       // Purge the client router cache so dashboard/history show this rep
       // immediately instead of a cached copy for up to 30s.
       router.refresh();
@@ -874,6 +894,7 @@ export function AnalyzeFlow({
         `/analysis/${analysisId}${xpAwarded ? `?xp=${xpAwarded}` : ""}`,
       );
     } catch (err) {
+      await dropPending();
       setRetrying(false);
       setStatus({
         kind: "error",
@@ -882,15 +903,40 @@ export function AnalyzeFlow({
     }
   }
 
-  // Extraction over the trimmed window, marking the tapped athlete when there
-  // is a tap, then submit or preview.
+  // Cut the analyzed window, extract the preview strip, and hold the tap.
+  //
+  // The frames no longer travel: the read is performed on the clip itself
+  // (D-097), and these stills exist to show the player what they are about to
+  // spend an analysis on and to prove this browser can decode the file at all,
+  // which is D-091's guard. Their budget is now larger than a preview needs and
+  // is worth revisiting.
   async function runVideoExtraction(
     blob: Blob,
     target?: Mark,
     window?: TrimWindow,
   ) {
     try {
-      const { frames: f, extras, duration_s, debug } = await extractFrames(blob, {
+      // Cut first. It is the only step whose failure means there is nothing to
+      // analyze, so finding out before the extraction spends the player's time
+      // is the difference between one message and a filmstrip that leads
+      // nowhere.
+      const cut = await trimClip(blob, {
+        startS: window?.startS ?? 0,
+        endS: window?.endS ?? Number.POSITIVE_INFINITY,
+      });
+      trimmedRef.current = cut;
+      // The tap, rebased onto the cut. A window that starts at 3s makes an
+      // absolute 4.2s tap 1.2s into what the model is shown, and handing over
+      // the absolute number would point past the end of a short window.
+      focusRef.current = target
+        ? {
+            x: target.x,
+            y: target.y,
+            t_s: Math.max(0, Math.min(cut.duration_s, target.t - (window?.startS ?? 0))),
+          }
+        : null;
+
+      const { frames: f, duration_s, debug } = await extractFrames(blob, {
         debug: debugRef.current,
         window,
         markT: target?.t,
@@ -898,7 +944,6 @@ export function AnalyzeFlow({
         skill: skill ?? undefined,
       });
       setStatus({ kind: "reading" });
-      extrasRef.current = extras;
       let shown = f;
       markedRef.current = false;
       markerIndexRef.current = null;
@@ -933,10 +978,24 @@ export function AnalyzeFlow({
   // (D-062), so a clip this browser cannot render a frame from is a dead stop
   // and says so, rather than quietly analyzing whoever the model picks.
   async function handleVideo(blob: Blob) {
+    // Asked BEFORE the framing card opens, not when the cut is attempted. The
+    // analysis IS the clip now, so a browser that cannot cut one cannot analyze
+    // at all, and finding that out after the player has picked their athlete
+    // and pressed the button turns a clear message into a dead end.
+    if (!canTrimVideo()) {
+      setStatus({
+        kind: "error",
+        message:
+          "This browser can't prepare a clip for analysis. On iPhone open Vollyio in Safari; on Android try Chrome.",
+      });
+      return;
+    }
     setStatus({ kind: "reading" });
     setFrameDebug(null);
     setOpeningPick(null);
     setLastOpening(null);
+    trimmedRef.current = null;
+    focusRef.current = null;
     clipRef.current = blob;
     setVideoUrl(URL.createObjectURL(blob));
     try {
@@ -952,7 +1011,6 @@ export function AnalyzeFlow({
         return;
       }
       // Long clips get the card too: the trim window makes them analyzable.
-      extrasRef.current = [];
       setFrames([]);
       markedRef.current = false;
       markerIndexRef.current = null;

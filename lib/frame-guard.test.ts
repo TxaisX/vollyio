@@ -2,11 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BLANK_ABORT_RUN,
-  BLANK_FLOOR_MIN_FRAMES,
-  BLANK_MEDIAN_BYTES,
-  base64Bytes,
+  MIN_CLIP_BYTES,
+  blankClipByBytes,
   blankFilterVerdict,
-  blankSetByBytes,
   isBlankStats,
   lumaStats,
 } from "./frame-guard.ts";
@@ -93,31 +91,24 @@ test("the abort run is long enough that no real rep trips it", () => {
   assert.ok(BLANK_ABORT_RUN >= 8);
 });
 
-test("server byte floor: the incident's sizes fail, healthy sizes pass", () => {
-  // Calibration from prod (2026-08-03): black frames 4307-11005 bytes,
-  // healthy frames 14327-65010 with median 26583.
-  const black = Array.from({ length: 61 }, (_, i) => (i === 10 ? 11_005 : 4_307));
-  const healthy = Array.from({ length: 64 }, (_, i) => 14_327 + i * 790);
-  assert.equal(blankSetByBytes(black), true);
-  assert.equal(blankSetByBytes(healthy), false);
+// D-097 moved this floor from the frame set to the clip, because the request
+// carries no frames any more. What it guards is unchanged: a decode failure
+// that produces structurally valid media of nothing, which the model then bills
+// a read of (D-091, prod row 204a9569).
+test("server byte floor: an empty clip fails, a real one passes", () => {
+  // A 0.88 MB six second cut measured 2026-08-05, and the 3 MB a ten second
+  // window lands at. Both are two orders of magnitude clear of the floor.
+  assert.equal(blankClipByBytes(882_527), false);
+  assert.equal(blankClipByBytes(3_000_000), false);
+  // What a canvas that drew nothing produces: a container and almost no data.
+  assert.equal(blankClipByBytes(0), true);
+  assert.equal(blankClipByBytes(4_307), true);
 });
 
-test("server byte floor never judges small sets", () => {
-  const tiny = Array.from({ length: BLANK_FLOOR_MIN_FRAMES - 1 }, () => 100);
-  assert.equal(blankSetByBytes(tiny), false, "below the frame minimum, no verdict");
-  assert.equal(blankSetByBytes([]), false);
-});
-
-test("server byte floor judges the median, so a few small frames cannot trip it", () => {
-  // Half tiny, half healthy: median sits between, above the floor.
-  const mixed = [
-    ...Array.from({ length: 10 }, () => 3_000),
-    ...Array.from({ length: 11 }, () => 20_000),
-  ];
-  assert.equal(blankSetByBytes(mixed), false);
-});
-
-test("base64 length converts to approximate bytes", () => {
-  assert.equal(base64Bytes(8_000), 6_000);
-  assert.ok(base64Bytes(8_001) >= BLANK_MEDIAN_BYTES);
+// A false positive here blocks a legitimate clip, which is the worse failure,
+// so the margin over the shortest real cut has to stay large. The trim path
+// encodes at ~2.5 Mbps, so even a 2 second window is ~600 KB.
+test("the clip floor keeps an order of magnitude under the shortest real cut", () => {
+  const shortestRealCut = 2 * (2_500_000 / 8);
+  assert.ok(MIN_CLIP_BYTES * 10 <= shortestRealCut);
 });

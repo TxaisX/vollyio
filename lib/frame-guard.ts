@@ -79,29 +79,29 @@ export function blankFilterVerdict(
 // ---------------------------------------------------------------------------
 // Server-side floor. The client guard above is bypassable by a stale bundle or
 // a future client bug, and the incident's money loss stays reachable without a
-// server check. Pixels are not available server-side without decoding JPEGs,
-// but byte size is: a solid-black 1024px JPEG measured 4.3KB against a healthy
-// median of 26.6KB (calibrated on the incident row 204a9569 vs a healthy
-// analysis, 2026-08-03). The MEDIAN is compared, not the minimum, so a few
-// legitimately simple frames cannot trip it; and the floor sits at 6KB, well
-// above the black median and 4x under the healthy one.
+// server check. Pixels are not available server-side without decoding the
+// media, but byte size is.
+//
+// This floor used to judge a FRAME SET, comparing the median JPEG size against
+// 6 KB: a solid-black 1024px frame measured 4.3 KB against a healthy median of
+// 26.6 KB, calibrated on the incident row 204a9569. There is no frame set to
+// judge any more (D-097): the read is performed on the clip, and the request
+// carries no pixels at all. So the same guard moved to the same job in the new
+// medium, which is the only change that keeps D-091's property rather than
+// quietly retiring it.
+//
+// A clip below this is not footage. `lib/video-clip.ts` re-encodes the trimmed
+// window at about 2.5 Mbps, so even a two second cut lands in the hundreds of
+// kilobytes, and a source forwarded untouched is larger still. The margin is
+// therefore an order of magnitude, not a hair, which matters because a false
+// positive here blocks a legitimate clip and that is the worse failure.
+//
+// The route checks this BEFORE the hourly slot and the entitlement, so a clip
+// that arrived empty costs the player nothing and "nothing was counted" stays
+// literally true.
 
-export const BLANK_MEDIAN_BYTES = 6_000;
+export const MIN_CLIP_BYTES = 20_000;
 
-// Only meaningful on sets big enough for a median to mean something. A short
-// set (the 2-frame minimum, photo-derived sends) must never be judged by this.
-export const BLANK_FLOOR_MIN_FRAMES = 8;
-
-/** Approximate decoded byte length of a base64 payload string. */
-export function base64Bytes(base64Length: number): number {
-  return Math.floor(base64Length * 0.75);
-}
-
-export function blankSetByBytes(byteLengths: number[]): boolean {
-  if (byteLengths.length < BLANK_FLOOR_MIN_FRAMES) return false;
-  const sorted = [...byteLengths].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const median =
-    sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  return median < BLANK_MEDIAN_BYTES;
+export function blankClipByBytes(byteLength: number): boolean {
+  return byteLength < MIN_CLIP_BYTES;
 }

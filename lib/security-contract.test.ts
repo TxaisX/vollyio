@@ -1,7 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
-import { MAX_FRAMES } from "./analysis-types.ts";
+import { MAX_CLIP_BYTES, MAX_FRAMES } from "./analysis-types.ts";
+
+// The newest migration that redefines the analysis insert trigger. Read by
+// name-scan rather than by filename for the reason D-046 records: pinning one
+// file meant a later migration could move a ceiling and leave the test still
+// asserting against the superseded one.
+async function newestDefining(pattern: RegExp): Promise<string> {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let found = "";
+  for (const name of names) {
+    const sql = await readFile(new URL(name, dir), "utf8");
+    if (pattern.test(sql)) found = sql;
+  }
+  return found;
+}
 
 test("security migration keeps quotas atomic and profile authority server-controlled", async () => {
   const expand = await readFile(
@@ -163,4 +178,65 @@ test("frame-cap alignment migration matches the MAX_FRAMES send budget (D-046)",
   assert.match(align, /pg_advisory_xact_lock/i);
   assert.match(align, /raise check_violation using message = 'invalid frame path'/i);
   assert.match(align, /new\.created_at := v_now/i);
+});
+
+test("a zero-frame video row is allowed, but only with a clip behind it (D-097)", async () => {
+  const align = await newestDefining(
+    /create or replace function private\.enforce_analysis_insert_limit/i,
+  );
+  assert.notEqual(align, "", "no migration defines enforce_analysis_insert_limit");
+  // The video path stores no frames: the read is performed on the clip, so
+  // shipping stills alongside would upload pixels no model looks at. The old
+  // floor of 2 rejected exactly that row.
+  assert.doesNotMatch(align, /new\.frame_count < 2\s*$/im);
+  assert.match(align, /new\.frame_count > 0 and new\.frame_count < 2/i);
+  // A row with neither frames nor a clip is an analysis with no evidence behind
+  // it that nothing can render and nothing can ever re-derive. Removing this
+  // line would make the relaxation above unbounded.
+  assert.match(align, /new\.frame_count = 0 and new\.clip_path is null/i);
+  assert.match(align, /raise check_violation using message = 'analysis has no media'/i);
+  // The thumbnail rule is what forces a zero-frame row's thumb_path to null,
+  // and it is unchanged from 025. Stated here so a future edit that "fixes"
+  // the null case knows it is load-bearing.
+  assert.match(align, /new\.thumb_path is distinct from new\.frame_paths\[1\]/i);
+});
+
+test("the pending clip prefix stays owner-scoped, typed and capped (D-097)", async () => {
+  const sql = await newestDefining(/create policy "pending clip objects insert"/i);
+  assert.notEqual(sql, "", "no migration defines the pending clip policies");
+
+  // Three policies, and the delete one is not optional: without it the prefix
+  // only ever grows and every failed analysis strands a clip its owner can read
+  // but not remove.
+  for (const verb of ["insert", "select", "delete"]) {
+    assert.match(sql, new RegExp(`create policy "pending clip objects ${verb}"`, "i"));
+  }
+
+  // The WHOLE path is matched against the caller's verified id, not just its
+  // first folder segment. This is the one clip write with no analysis row
+  // behind it to constrain the rest of the path, so the literal `pending`
+  // segment, the UUID-shaped directory and the single filename are what stop
+  // the prefix becoming a general-purpose owner-scoped file drop.
+  const anchors = sql.match(
+    /'\^' \|\| \(select auth\.uid\(\)::text\)\s*\|\| '\/pending\/\[0-9a-f\]\{8\}-/gi,
+  );
+  assert.equal(anchors?.length, 3, "every pending policy must anchor on the caller's own id");
+  assert.match(sql, /\/clip\[\.\]\(webm\|mp4\|mov\)\$/i);
+
+  // Type and size. The analysis-anchored policies inherit their ceiling from a
+  // row the player could not write; this one has no row behind it, so it states
+  // its own, and it must agree with what the route will read into memory.
+  assert.match(sql, /metadata ->> 'mimetype' = 'video\/mp4'/i);
+  assert.match(sql, /metadata ->> 'mimetype' = 'video\/webm'/i);
+  assert.match(sql, /metadata ->> 'mimetype' = 'video\/quicktime'/i);
+  assert.match(
+    sql,
+    new RegExp(`metadata ->> 'size'\\)::bigint, 0\\) <= ${MAX_CLIP_BYTES}\\b`, "i"),
+    "the pending size cap must equal MAX_CLIP_BYTES",
+  );
+
+  // Reads and deletes additionally require ownership of the object itself, the
+  // same posture every other clip policy takes.
+  const scoped = sql.match(/owner_id = \(select auth\.uid\(\)::text\)/gi);
+  assert.equal(scoped?.length, 2, "select and delete must both check owner_id");
 });

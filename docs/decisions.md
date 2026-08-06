@@ -3783,3 +3783,140 @@ and coach has no reservation to present. Preview environments have the same
 exposure and are the easier place to forget the variable. D-093's note that an
 absent key "fails exactly as a provider outage does" was written about
 `/api/analyze`, which refunds; it is not true of this route.
+
+## D-097 - The analysis is the clip, so the clip arrives before the analysis
+
+**Date**: 2026-08-05. **Status**: written, not deployed. Migration 054 is
+unapplied; `docs/security.md` step 8b is the live check that no test can run.
+
+`/api/analyze` no longer reads frames. It reads the clip, once, holistically,
+against `lib/ai/simple-rubric.ts`, and stores the result as `result_version: 2`.
+This is the change D-093 pointed at and D-094 refused to let happen the obvious
+way, and the order matters: doing it as "swap the model, keep the rubric" ships
+a scoring regression that looks like an improvement.
+
+**Why the pointer catalog could not come along.** Measured on the same clips
+with only the rubric text changed: the 120-pointer catalog on video returns a
+median of 97 with strict evidence enforcement on, and 100 with it off. That is
+every player being told they are near-perfect, and it reproduces D-094 exactly.
+The simplified holistic rubric on the same footage lands at median 78, range
+65-89, and abstains on real cases. The cause is not the model and not the
+prompt. It is that the provider samples video at roughly one low-resolution
+image per second, flat, at about 89 tokens per second of footage, and that
+number is not configurable through the gateway: `videoMetadata.fps`, the `file`
+content shape and an MP4 in `image_url` all land on an identical 201-token
+ingestion. A ten second clip reaches the model as about ten stills. Per-pointer
+verdicts and a contact instant cannot be produced honestly from that, so they
+are not produced at all. `metrics`, `insights`, `focus` and
+`contact_frame_index` became optional on `AnalysisResult`, and the breakdown,
+the analysis page and the share page each render whichever shape the row is.
+Every v1 row still carries all four and renders exactly as it did.
+
+**The temporal claim is absolute.** On a clip whose contact is hand-verified at
+3.42s, six runs answered between 0.27s and 0.60s while self-reporting 30fps. A
+contact lasts 50 to 150ms and is not in the sample. Nothing on this path may be
+asked when something happened, which is why `priority_fix` on a video row
+carries no frame index and why the rubric forbids the model from volunteering a
+timestamp.
+
+**Clip delivery is what made this a security change.** The read needs the bytes,
+the platform caps a request at 4.5 MB, and a ten second window is about 4 MB
+once base64'd before the JSON envelope, so the clip cannot travel in the body.
+There is no server-side cutter to shrink it with either: ffmpeg is not on the
+function runtime, which is why `lib/video-clip.ts` cuts the window in the
+browser. So the order inverts. The client uploads to
+`{user_id}/pending/{uuid}/clip.{ext}`, the route reads it back, scores it,
+writes the row, copies the object to the analysis path the row declares, and
+deletes the pending one.
+
+That prefix is the only clip write in the app with no analysis row behind it,
+and the rest of the storage contract exists precisely because there always was
+one. What replaces the row is the account: migration 054 matches the WHOLE
+object name against the caller's verified id rather than only its first folder
+segment, which pins the literal `pending` segment, a UUID-shaped directory and
+the single filename. `(storage.foldername(name))[1] = auth.uid()` would have
+proved the owner and nothing else, and would have turned the bucket into a
+general-purpose owner-scoped file drop. The policy states its own 8 MB ceiling
+rather than inheriting the bucket's 100 MB, because there is no row to bound it
+and the number has to agree with what the route will base64 into function
+memory; `lib/security-contract.test.ts` pins it to `MAX_CLIP_BYTES`.
+
+The route reads the object with the PLAYER's client, not the service role. That
+was a choice: the pending select policy is owner-scoped, so the tenant boundary
+stays the database's rather than this route remembering to compare two ids, and
+`/api/analyze` does not become the service-role client's third importer for
+something a policy already covers (rule 10).
+
+What is left open is bounded storage that no row points at, closed on three
+sides: the route deletes on success, the client deletes on every path that does
+not reach an analysis, and `scripts/purge-orphaned-media.mjs` now walks live
+accounts as well as deleted ones and removes pending clips older than an hour.
+The margin over the route's 120 second ceiling is deliberate. That script also
+had to learn to recurse: it walked exactly two levels, which was the shape all
+media had, and would have reported `{user}/pending/{uuid}` as a file.
+
+**A video row stores no frames.** Migration 054 relaxes the insert trigger's 2
+to 64 floor to allow 0, and adds the guard that makes the relaxation safe: a row
+with neither frames nor a clip is refused as `analysis has no media`. Sending
+stills alongside would have been paying to upload pixels no model looks at.
+`thumb_path` is null by the unchanged rule that it must equal `frame_paths[1]`,
+which costs nothing because no surface in the product reads that column. The
+client still extracts frames locally for the framing card and the preview strip,
+and they never leave the browser; their budget is now larger than a preview
+needs and is worth revisiting.
+
+**D-091's blank-media floor moved rather than disappeared.** The server used to
+reject a frame set whose median byte size was under 6 KB, because a mobile
+decode bug once produced 61 structurally valid, solid-black frames that the
+model billed a read of. There is no frame set to judge now, so the floor moved
+to the medium the read actually uses: a clip under 20 KB is not footage, and the
+canvas trim path re-encodes at ~2.5 Mbps so even a two second window is hundreds
+of kilobytes. Both bounds run before the hourly slot and the entitlement, so
+"nothing was counted" stays literally true.
+
+**Refusal is a first-class outcome now.** `ratable: false` stores nothing,
+refunds the hourly quota through the service-role client, and returns 422. The
+alternative is that "I cannot see it" gets expressed as something in the
+fifties, which the player reads as coaching and acts on; the 0% abstention rate
+in D-094 is the failure this closes. The message is composed in
+`notRatableMessage`, which uses the model's own reason when it looks like a
+sentence a coach wrote and falls back to a fixed one when it does not, because
+that reason is the only model-authored string in the product that reaches a
+player without a schema shaping it.
+
+**Verification, and what it does and does not establish.** The real modules were
+run against a real 6 second clip, six reads. Three as `attack`: scored 66, 76
+and 71, all inside the measured band, with two valid drill slugs each, no
+invented slugs, and no frame-path field in the stored shape. Three of the same
+clip submitted as `serve`: abstained three of three, each correctly naming that
+the footage shows an attack rather than a serve. Reads ran 7.2 to 10.6 seconds
+against a 50 second per-attempt ceiling.
+
+The upstream resolved to Google on all six and reported 643 to 1,202 reasoning
+tokens, which bill against `max_tokens` BEFORE any content (D-096). That is why
+the ceiling is 8192 and not sized to the reply: a budget fitted to the answer
+returns an empty string on exactly the upstreams that think hardest, and the
+same model id resolves across upstreams that differ on this. `VisionUsage` now
+carries `provider` and `reasoning_tokens` and both reach the telemetry row,
+because without them an empty read cannot be told apart from a refusal and there
+is no evidence from which to choose a ceiling.
+
+Six runs is not a reliability claim. The three attack scores moved ten points on
+identical bytes, which is the stochasticity `docs/model-findings-2026-08-05.md`
+recorded at up to fourteen, and the route's one re-read on an unparseable reply
+is sized for that rather than for confidence. What six runs establish is that
+the wiring is right and the calibration is not ceiling-pegged. What still needs
+a multi-run pass over the corpus is whether the abstention rate is acceptable to
+a player who filmed a real rep.
+
+**The window defaults to the whole clip**, and two things now hold it there. The
+trim seeds at `[0, min(duration, MAX_CLIP_SECONDS)]`, and `defaultWindowS`,
+which returns the 2 to 3 second frame-extraction window from `SKILL_PROFILES`,
+has no production caller. Both were already true and neither was pinned. The
+cost of losing it was measured: the owner's own clip scored 73 and 66 on the
+full 5.5 seconds and 61 on the first 4.0, where the truncated read told him to
+start jumping on a rep where he jumped.
+
+**Still on the coaching service after this**: `/api/players`, the weekly plan,
+and `/api/eval`. The scoring path, which is the reason the order was forced, is
+off it.

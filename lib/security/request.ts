@@ -105,9 +105,11 @@ export function isJpegPayload(data: string, maxDecodedBytes: number): boolean {
   );
 }
 
-export function safeClipExtension(ext: string | null | undefined): "webm" | "mp4" | "mov" {
-  const normalized = ext?.trim().toLowerCase();
-  return normalized === "mp4" || normalized === "mov" || normalized === "webm"
-    ? normalized
-    : "webm";
-}
+// safeClipExtension lived here until D-097. It normalised whatever a request
+// sent and fell back to "webm" on anything unrecognised, which was the right
+// shape while the extension only decorated a path the analysis row already
+// owned. It is not the right shape now that the extension picks which object
+// the route DOWNLOADS and analyses, because a silent default there turns a
+// malformed request into a read of some other file. `analyzeRequestSchema`
+// carries a closed enum instead, so an unrecognised container is a 400 rather
+// than a guess.

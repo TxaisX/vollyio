@@ -24,6 +24,13 @@ export function BreakdownBody({
   linkDrills?: boolean;
 }) {
   const changes = result.changes ?? [];
+  // Absent on a video-path row (D-097), which has no per-checkpoint evidence
+  // and no resolvable instants. Each section below simply does not render
+  // rather than showing an empty shell; a v1 row is unaffected because it
+  // carries all three.
+  const metrics = result.metrics ?? [];
+  const insights = result.insights ?? [];
+  const strengths = result.strengths ?? [];
   const difficultyLabel: Record<string, string> = {
     quick: "Quick win",
     moderate: "Moderate",
@@ -62,6 +69,29 @@ export function BreakdownBody({
         </Reveal>
       )}
 
+      {strengths.length > 0 && (
+        <Reveal delay={160}>
+          <h2
+            id="strengths"
+            className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+          >
+            What worked
+          </h2>
+          <ul className="card space-y-4 p-5">
+            {strengths.map((s, i) => (
+              <li key={i}>
+                <p className="flex gap-2 font-medium">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
+                  {s.title}
+                </p>
+                <p className="mt-1 pl-3.5 text-sm text-chalk-dim">{s.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      )}
+
+      {metrics.length > 0 && (
       <Reveal delay={180}>
         <h2 className="mt-8 mb-2 font-display text-sm font-bold uppercase tracking-wide">
           Metrics
@@ -70,7 +100,7 @@ export function BreakdownBody({
           <MetricLegend />
         </div>
         <div className="card space-y-4 p-5">
-          {result.metrics.map((m, i) => (
+          {metrics.map((m, i) => (
             <MetricBar
               key={m.key}
               label={metricLabel(skill, m.key)}
@@ -96,7 +126,9 @@ export function BreakdownBody({
           ))}
         </div>
       </Reveal>
+      )}
 
+      {insights.length > 0 && (
       <Reveal delay={220}>
         <h2
           id="timeline"
@@ -105,7 +137,7 @@ export function BreakdownBody({
           Timeline
         </h2>
         <ul className="space-y-1">
-          {result.insights.map((ins, i) => (
+          {insights.map((ins, i) => (
             <li
               key={i}
               className="flex gap-3 rounded-control p-2 text-sm transition-colors hover:bg-navy-light"
@@ -123,6 +155,7 @@ export function BreakdownBody({
           ))}
         </ul>
       </Reveal>
+      )}
 
       {changes.length > 0 ? (
         <Reveal delay={260}>
@@ -147,15 +180,23 @@ export function BreakdownBody({
                 )}
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-display text-lg font-bold">{c.title}</p>
-                  <span className="chip shrink-0 border-teal/40 text-teal">
-                    +{c.expected_gain} pts
-                  </span>
+                  {/* Both badges are frame-path evidence: the points a named
+                      checkpoint would rise, and which checkpoint it is. A video
+                      row has no checkpoints, so they are omitted rather than
+                      shown as a guess (D-097). */}
+                  {c.expected_gain != null && (
+                    <span className="chip shrink-0 border-teal/40 text-teal">
+                      +{c.expected_gain} pts
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-body leading-relaxed text-chalk-dim">
                   {c.detail}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-                  <span className="chip">{metricLabel(skill, c.target_metric)}</span>
+                  {c.target_metric && (
+                    <span className="chip">{metricLabel(skill, c.target_metric)}</span>
+                  )}
                   <span>{difficultyLabel[c.difficulty] ?? c.difficulty}</span>
                   <span>·</span>
                   <span>{c.timeframe}</span>
