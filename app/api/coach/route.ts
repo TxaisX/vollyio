@@ -11,6 +11,7 @@ import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { COACH_ENABLED } from "@/lib/flags";
+import { hasJourney, journeySummary, type JourneyRow } from "@/lib/journey";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -37,6 +38,17 @@ type AnalysisRow = {
   overall_score: number;
   result: { priority_fix?: { title?: string; detail?: string } } | null;
   created_at: string;
+};
+
+// Only the two key arrays, projected server side. The whole `result` blob is
+// large and thirty of them would be real bandwidth to compute a handful of
+// strings from; the journey needs the checkpoint keys and nothing else.
+type JourneyKeyRow = {
+  id: string;
+  skill: Skill;
+  created_at: string;
+  strengths: { key?: string }[] | null;
+  changes: { key?: string }[] | null;
 };
 type GoalRow = {
   skill: Skill;
@@ -200,6 +212,8 @@ export async function POST(req: NextRequest) {
     { data: ratingsData },
     { data: analysesData },
     { data: goalsData },
+    { data: journeyData },
+    { data: disputedData },
     { data: historyData },
   ] = await Promise.all([
     supabase
@@ -222,6 +236,24 @@ export async function POST(req: NextRequest) {
       .select("skill, title, target_rating, deadline")
       .eq("user_id", user.id)
       .eq("status", "active"),
+    // The journey (D-101). Deliberately a WIDER, THINNER read than
+    // recent_analyses above: thirty rows so a streak is visible, but only the
+    // checkpoint keys, because that is all the derivation consumes.
+    supabase
+      .from("analyses")
+      .select("id, skill, created_at, strengths:result->strengths, changes:result->changes")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    // Reads the player told us were wrong. Nothing has ever read this table
+    // (D-101): it has been collected since migration 022 and ignored. A read
+    // that looked at the wrong person is not evidence about this player, and a
+    // trend built on a row they already disputed is worse than no trend.
+    supabase
+      .from("analysis_feedback")
+      .select("analysis_id, was_right")
+      .eq("user_id", user.id)
+      .eq("was_right", false),
     supabase
       .from("chat_messages")
       .select("role, content")
@@ -265,6 +297,38 @@ export async function POST(req: NextRequest) {
       ? DRILLS.filter((d) => weakestSkills.includes(d.skill))
       : DRILLS;
 
+  // THE JOURNEY (D-101), derived here rather than asked of the model.
+  //
+  // The scoring read stays blind on purpose: told to confirm a checklist this
+  // model confirmed 90 to 100% of it (D-094), so priming a read with "they
+  // struggle with Release" produces a finding that looks exactly like evidence.
+  // Continuity is therefore computed from what the reads INDEPENDENTLY said,
+  // which is deterministic and cannot be talked into anything.
+  const disputedIds = new Set(
+    ((disputedData as { analysis_id: string }[] | null) ?? []).map((d) => d.analysis_id),
+  );
+  const journeyRows: JourneyRow[] = ((journeyData as JourneyKeyRow[] | null) ?? []).map((r) => ({
+    skill: r.skill,
+    created_at: r.created_at,
+    // A key the catalog does not know is dropped by the analyze route before
+    // storage, so anything here is real; the filter is for rows written before
+    // keys existed, which carry none.
+    strengthKeys: (r.strengths ?? []).map((x) => x?.key).filter((k): k is string => !!k),
+    changeKeys: (r.changes ?? []).map((x) => x?.key).filter((k): k is string => !!k),
+    disputed: disputedIds.has(r.id),
+  }));
+
+  // Only for the skills the prompt already carries technique and drills for.
+  // A journey for a skill the answer will never mention is tokens spent on
+  // nothing, and D-047 is the record of that mistake made with drills.
+  // `skill` is re-attached from the narrow type rather than taken from the
+  // summary: lib/journey.ts deliberately imports nothing, so it types skills as
+  // plain strings, and that independence is what lets it be unit tested against
+  // fixtures instead of a database. The narrowing belongs here, at the boundary.
+  const journeys = weakestSkills
+    .map((skill) => ({ ...journeySummary(journeyRows, skill), skill }))
+    .filter(hasJourney);
+
   const context: CoachContext = {
     player: {
       display_name: profile?.display_name ?? null,
@@ -291,6 +355,7 @@ export async function POST(req: NextRequest) {
       level: d.level,
     })),
     ...(techniqueNotes.length > 0 ? { technique_notes: techniqueNotes } : {}),
+    ...(journeys.length > 0 ? { journey: journeys } : {}),
   };
 
   const history = (((historyData as HistoryRow[] | null) ?? [])).slice().reverse();

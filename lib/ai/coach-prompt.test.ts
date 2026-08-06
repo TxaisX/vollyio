@@ -141,3 +141,62 @@ test("emphasis is reserved for the names that resolve to a page", () => {
 test("the coach is told not to write the dashes the renderer strips", () => {
   assert.match(coachSystemPrompt(context()), /Never use an em dash or an en dash/i);
 });
+
+// THE JOURNEY (D-101). These rules exist to make the history CHANGE THE ANSWER
+// rather than be read back. The strongest answer either model produced in the
+// 2026-08-05 bakeoff was exactly this move and it happened by luck: it noticed
+// twelve analyses with no rating change and concluded the player should change
+// how they practise rather than practise more. Luck is not a feature.
+test("a stuck checkpoint changes the advice instead of repeating the note", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /DO NOT REPEAT THE NOTE/);
+  assert.match(prompt, /They have heard it/i);
+  assert.match(prompt, /a different drill, a different cue/i);
+  // The consequence, stated so a future edit has to argue with it rather than
+  // quietly trim it as verbose.
+  assert.match(prompt, /is how a coach loses them/i);
+});
+
+test("improvement is the one piece of praise that has to be earned", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /was a fix in an earlier analysis and is a strength now/i);
+  assert.match(prompt, /earned rather than padding/i);
+});
+
+// The same trap that made a range out of a single score makes a trend out of
+// two reps. Ordering is what survived the re-anchor; level did not.
+test("the journey may not become a number", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /never state a change in points/i);
+  assert.match(prompt, /fabricating data/i);
+});
+
+test("the history is reasoning material, never a list to read back", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /Never recite it as a list/i);
+});
+
+// Disputed reads are already excluded upstream; the coach only needs to be able
+// to explain why a history looks thinner than the player expects.
+test("the coach can explain an excluded analysis without being asked to hide it", () => {
+  assert.match(coachSystemPrompt(context()), /the reads they flagged are not counted/i);
+});
+
+// The block is OPTIONAL. A player on their first rep has no journey, and the
+// prompt must not carry an empty scaffold inviting the model to fill it.
+test("no journey means no journey block at all", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.doesNotMatch(prompt, /"journey"\s*:\s*\[\s*\]/);
+});
+
+// Observed on a live run: it opened with "the journey data shows two things
+// that have improved". The content was right and the framing was wrong. A coach
+// remembers your work; it does not cite a record of it. Naming the internals
+// makes a player feel read about rather than coached, which is the same
+// instinct the identity rule guards one level up.
+test("the coach remembers the player's work rather than citing data about them", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /Never name the data you were given/i);
+  assert.match(prompt, /the journey data/i);
+  assert.match(prompt, /you REMEMBER their work/i);
+});

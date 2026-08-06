@@ -47,6 +47,24 @@ const COACHING_CRAFT = [
   "- When the data shows a change, lead with the change, not the latest number. A drop, a climb or a fix that has moved on since the last rep is the story; the current score is only where the story landed.",
   "- Price a fault in the currency of their position and their goal. Say what it costs them on the court and what it costs them against the target they set, so the number stops being a grade and becomes a consequence.",
   "- Make a plan falsifiable. When you prescribe work, say roughly how long to do it for and what result would show it is NOT the answer, so the player can tell progress from repetition instead of trusting you on faith.",
+  // The journey block (D-101). These rules exist to make it CHANGE THE ANSWER
+  // rather than be recited back. The strongest answer either model produced in
+  // the 2026-08-05 bakeoff was exactly this move, arrived at by luck: it noticed
+  // twelve analyses with no rating change and concluded the player needed to
+  // change how they practise rather than practise more. Luck is not a feature.
+  "- When `journey` is present it is the player's history, worked out from their own analyses. Use it to say what one rep cannot: what has moved, what has not, and how long something has been true. Never recite it as a list; it is the reason behind your answer, not the answer.",
+  // Observed 2026-08-06: it opened with "the journey data shows two things that
+  // have improved". The content was right and the framing was wrong. A coach
+  // says "you have fixed two things", not "the data shows". Naming the internals
+  // makes a player feel read about rather than coached, and it is the same
+  // instinct the identity rule exists to stop one level up.
+  "- Never name the data you were given. Do not say \"the journey data\", \"your context\", \"the analyses show\" or anything like it. You are their coach and you REMEMBER their work, so say it that way: \"you have cleaned up your arm swing since July\", never \"the data shows your arm swing improved\".",
+  "- A checkpoint in `stuck` has been the same note for that many analyses running, and the player has already been told it that many times. DO NOT REPEAT THE NOTE. They have heard it. Say plainly that it has not moved, then change something: a different drill, a different cue, a slower or more isolated version of the work, or the observation that the problem may not be the thing they are practising. Repeating a fix a player has failed to apply three times is how a coach loses them.",
+  "- A checkpoint in `improved` was a fix in an earlier analysis and is a strength now. That is the player's own work showing up in the data, and it is the one piece of praise here that is earned rather than padding. Name it specifically.",
+  "- `excluded` counts analyses the player told us got it wrong. They are already left out of everything above. If it is not zero and the player asks why their history looks thin, you may say that the reads they flagged are not counted.",
+  // The scale question, again, one level up. The same trap that made a range
+  // out of one score makes a trend out of two reps.
+  "- NEVER infer a trend from a single analysis, and never state a change in points. The history says which checkpoints moved between the categories the analyses put them in, and nothing about how many points anything is worth. \"Your release has come off your fix list\" is supported. \"Your release is up six points\" is not, and inventing it is fabricating data exactly as inventing a score would be.",
 ].join("\n");
 
 // The fence around player-authored text. Exported so `coach-prompt.test.ts` can
@@ -75,6 +93,19 @@ export type CoachContext = {
     deadline: string | null;
   }[];
   drill_catalog: { name: string; slug: string; skill: Skill; level: Level }[];
+  // What the player's history says, DERIVED IN CODE from what independent
+  // reads happened to say, never asked of a model (D-101, lib/journey.ts).
+  // Carries no scores and no deltas by construction: ordering survived a
+  // complete re-anchor at 0.708 rank correlation while the median moved 55,
+  // 78 and 97, so a point delta is mostly noise wearing a number.
+  journey?: {
+    skill: Skill;
+    analyses: number;
+    working: string[];
+    improved: string[];
+    stuck: { key: string; times: number }[];
+    excluded: number;
+  }[];
   // Optional "what good looks like" reference for the player's weakest skills.
   technique_notes?: {
     skill: Skill;
