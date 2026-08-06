@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { captchaSiteKey } from "@/lib/captcha";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { enabledOAuthProviders } from "@/lib/oauth";
@@ -8,6 +9,7 @@ import { SIGNUP_GRANT } from "@/lib/plans";
 import { signup } from "../actions";
 import { FunnelBeacon } from "../funnel-beacon";
 import { OAuthButtons } from "../oauth-buttons";
+import { CaptchaField } from "../captcha-field";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
@@ -26,6 +28,7 @@ export default async function Signup({
 }) {
   const { error } = await searchParams;
   const providers = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
+  const siteKey = captchaSiteKey();
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
@@ -134,6 +137,7 @@ export default async function Signup({
               </Link>
               .
             </p>
+            <CaptchaField siteKey={siteKey} />
             <SubmitButton
               idleLabel="Start your first breakdown"
               pendingLabel="Creating your account…"

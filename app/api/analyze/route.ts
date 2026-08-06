@@ -36,7 +36,6 @@ import { analyzeRequestSchema } from "@/lib/analyze-request";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 import { blankClipByBytes } from "@/lib/frame-guard";
-import { checkAnalyzeBudget } from "@/lib/ai/budget";
 import { recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -177,21 +176,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
-  // Self-imposed monthly budget (D-054), checked before anything is consumed:
-  // no body parsed, no hourly slot taken, no entitlement reserved. Tripped or
-  // unknown spend returns the same capacity response as the provider-side
-  // outage below, so the client's calm 503 path covers both, and "wasn't
-  // counted" stays literally true with nothing to refund.
-  const budget = await checkAnalyzeBudget(supabase);
-  if (budget !== "ok") {
-    return NextResponse.json(
-      {
-        error:
-          "The coaching service is temporarily out of capacity, so your clip wasn't counted against your limit. Please try again later.",
-      },
-      { status: 503, headers: { "Retry-After": "1800" } },
-    );
-  }
+  // The self-imposed monthly spend cap that used to sit here is GONE (D-104).
+  // It answered the wrong question: once tripped it degraded the product to a
+  // 503 for every player at once, including the paying ones, while doing
+  // nothing whatsoever to the thing actually spending the money. Cost is now
+  // controlled at the source, by refusing automated ACCOUNTS (`lib/captcha.ts`)
+  // rather than by refusing analyses. Do not reintroduce a global cap here
+  // without reading D-104 first: a per-user allowance already exists, and a
+  // platform-wide ceiling turns one abuser into everybody's outage.
 
   const json = await readJsonRequest(req, MAX_BODY_BYTES);
   if (!json.ok) {

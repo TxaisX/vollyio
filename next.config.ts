@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { TURNSTILE_ORIGIN, captchaSiteKey } from "./lib/captcha";
 
 // Supabase is the only third-party origin the browser ever talks to directly
 // (auth refresh, storage uploads/downloads, realtime); derived from the same
@@ -36,10 +37,23 @@ const { http: supabaseOrigin, ws: supabaseWsOrigin } = supabaseOrigins();
 // require every route to opt into dynamic rendering (including the landing
 // page, which has its own Lighthouse budget). Every other directive is
 // locked down, so this is a deliberate, narrow exception, not a blanket one.
+// Turnstile needs three directives named, and it is only widened when a site
+// key is actually configured, so an unconfigured deployment keeps the tighter
+// policy rather than carrying a permanent hole for a feature it does not use.
+// Getting this wrong fails SILENTLY and expensively: the script is blocked, no
+// token is minted, and once Supabase is enforcing captcha every signup and
+// login is refused with only a console error to explain it. `lib/captcha.ts`
+// owns the origin string and a test pins it to the loader URL so the two
+// cannot drift.
+const turnstile = captchaSiteKey() ? ` ${TURNSTILE_ORIGIN}` : "";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${turnstile}`,
   "style-src 'self' 'unsafe-inline'",
+  // The widget renders inside an iframe. There is no frame-src here otherwise,
+  // so it would fall back to default-src 'self' and be blocked.
+  ...(turnstile ? [`frame-src${turnstile}`] : []),
   // Both origins are guaranteed non-empty by the throw above, so no conditional
   // interpolation: an empty segment here would be an unnoticed hole.
   `img-src 'self' data: blob: ${supabaseOrigin}`,
@@ -50,7 +64,7 @@ const csp = [
   // Vercel Analytics is same-origin in production (/_vercel/insights/script.js
   // and /_vercel/insights/event); only its debug build talks to
   // va.vercel-scripts.com, which is never shipped.
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin}`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin}${turnstile}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

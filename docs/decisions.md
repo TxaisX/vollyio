@@ -4163,3 +4163,117 @@ a guess. A week of these events replaces the guess.
 the step that already converts at 31%. The 11.5% of landing-page visitors who
 reach the form at all is worth several times more, and no amount of signup speed
 touches it.
+
+## D-103 - Web-only for now, and the App Store is a sequencing decision rather than a rejected one
+
+Owner's call, 2026-08-06: vollyio stays a web app and a PWA. No Capacitor
+wrapper, no App Store or Play Store submission, for now.
+
+The counter-argument was raised and is real, so it is recorded rather than
+buried: **roughly 94% of mobile time is spent in apps and under 6% in
+browsers** (Sensor Tower, State of Mobile 2026; US adults average 3h45m in apps
+against about 18 minutes in mobile browsers). For a product whose audience lives
+on their phones that looks decisive. Three things stop it being decisive here.
+
+**That time is concentrated, not distributed.** It is social, video and games:
+idle-time consumption. Vollyio is not competing for idle time. Its own design
+says so, because Pro caps at 24 analyses a month and typical use is around 8,
+which is roughly twice a week, after practice, with one clip and one question.
+Sustained engagement is what apps win at and is not what this sells.
+
+**The one measured acquisition channel is a link.** A single `/share/...` URL
+drew 74 of 219 visitors in 30 days, a third of all traffic, which is more than
+the homepage earned relative to the effort behind it (`docs/pricing-and-reach.html`).
+App-first breaks that loop: a shared clip that opens to "install our app to view
+this" converts far worse than one that simply plays. Going native would damage
+the only distribution that is currently working.
+
+**And it lengthens a funnel that already leaks.** 88.5% of homepage visitors
+never reach signup (D-102). App-first prepends store listing, install and first
+open in FRONT of that. A leaking funnel does not get fixed by adding stages.
+
+Two consequences fall out immediately:
+
+- **Apple Sign In is no longer required.** App Store guideline 4.8 compels it
+  only for an iOS app that offers third-party sign-in. On the web it is a
+  nice-to-have, so `OAUTH_PROVIDERS=google` alone is a complete configuration
+  and the pending Apple Developer membership blocks nothing on the auth path.
+- **The $99/yr Apple Developer membership may be droppable**, which moves fixed
+  cost from about $54.50 to about $46.25 a month and break-even from 8 paying
+  subscribers to 7. `docs/pricing-and-reach.html` still carries the $8.25/mo
+  amortized line and should be updated if the membership actually lapses.
+
+**What would reverse this**, stated in advance so it is a trigger rather than a
+mood: web retention proven, meaning players return weekly without being
+prompted; enough volume that store discovery would add real traffic rather than
+just re-routing it; or live in-the-gym feedback becoming the product, which is
+the one feature that genuinely needs native camera and native performance. The
+July commercialization plan set the same bar and it has not moved.
+
+**Not needed either way: a Mac.** With a Capacitor wrapper the developer writes
+no Swift, so Xcode is a build-and-sign step rather than a development
+environment, and Codemagic or a macOS CI runner performs it. The absence of a
+Mac was never the reason for this decision and must not be recorded as one.
+
+The cheap experiment that would inform the reversal, unbuilt: an "Add to Home
+Screen" prompt on the PWA, plus a measurement of whether installed players
+return more often than browser-only ones. That answers the app question with our
+own numbers instead of an industry average.
+
+## D-104 - The spend cap is gone; cost is defended at the account, not the analysis
+
+Two changes, one argument. The monthly spend ceiling
+(`ANALYZE_MONTHLY_BUDGET_USD`, `lib/ai/budget.ts`, D-054) is **deleted**, and
+Cloudflare Turnstile now guards the auth forms (`lib/captcha.ts`).
+
+**Why the cap had to go.** It answered the wrong question. A platform-wide
+dollar ceiling does nothing to the thing spending the money; it waits until the
+money is spent and then degrades the product to a calm 503 **for everyone at
+once**, including the paying subscriber, while the script that drained it is
+unaffected and free to keep going. One abuser becomes everybody's outage. The
+per-user allowance (D-064) already bounds what any single player can consume,
+which is the bound that actually discriminates. A global cap only ever converted
+an abuse problem into an availability problem, and it was never armed in
+production anyway: `ANALYZE_MONTHLY_BUDGET_USD` was never set, so the guard has
+been inert its whole life.
+
+**What replaced it.** The real exposure was measured in the 2026-08-06 launch
+audit: **$80.92 of prepaid model credit remaining, ~$0.024 an analysis, and a
+six-analysis signup grant per account**, which is roughly 560 farmed accounts to
+zero. At zero every analysis fails for everyone, the app cannot read the balance
+to warn anyone, and D-102 had just removed email confirmation, which was the
+last friction on account creation. So the cheap, correct place to spend defence
+is account creation, not analysis.
+
+**Silent by requirement.** Turnstile runs in `interaction-only` appearance: a
+real player never sees a puzzle, never ticks a box, and never learns it ran.
+Buying bot protection with signup friction would spend exactly the conversion
+D-102 was written to earn, on a funnel already losing 88.5% before the form.
+
+**The credential split is the good part.** Turnstile's site key is public and
+lives in `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; the SECRET key is verified by
+Supabase Auth and is set in the Supabase dashboard. **No Turnstile secret ever
+enters this repo, this bundle, or any environment variable here.**
+
+**Order of operations, and it is not optional.** Ship the client with the site
+key, confirm a token is riding along on a real submit, and only THEN turn on
+"Enable CAPTCHA protection" in Supabase. Arming Supabase against a client that
+is not yet sending a token rejects **every signup and every login**, including
+the owner's, and the failure presents as a wrong password. `captchaSiteKey()`
+returns null by default so an unconfigured deployment renders no widget and
+behaves exactly as before, which is what makes that order safe to get wrong once.
+
+**The CSP had to move with it.** Turnstile needs `script-src`, `frame-src` and
+`connect-src` to name `https://challenges.cloudflare.com`, and there was no
+`frame-src` at all, so the widget's iframe would have fallen through to
+`default-src 'self'` and been blocked. That failure is **silent**: no puzzle, no
+token, and once Supabase is enforcing, every auth attempt refused with a console
+error nobody is watching. The origin lives in `lib/captcha.ts` and
+`captcha.test.ts` pins it to the loader URL so the CSP and the script cannot
+drift. The widening is conditional on a site key being configured, so a
+deployment not using captcha keeps the tighter policy.
+
+**Also removed:** `lib/owner-alert.ts` is now orphaned (it existed only to mail
+budget alerts) and `OWNER_ALERT_EMAIL` is dead. Both are left in place
+deliberately rather than swept up in this change; deleting them is a separate,
+owner-approved cleanup.

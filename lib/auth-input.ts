@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeCaptchaToken } from "./captcha.ts";
 
 const loginSchema = z.object({
   email: z.string().trim().max(254).email(),
@@ -37,6 +38,18 @@ const resetSchema = z
 function text(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+/**
+ * The bot-check token, read separately from the credential schemas.
+ *
+ * Deliberately NOT part of the zod objects: a missing or malformed token must
+ * never fail validation the way a bad email does. Whether a token is required
+ * is decided by the auth service, not by this app, so the parsers stay
+ * indifferent to it and simply pass along whatever arrived.
+ */
+export function captchaTokenFrom(formData: FormData): string | undefined {
+  return normalizeCaptchaToken(formData.get("captcha_token"));
 }
 
 export function parseLoginInput(formData: FormData) {

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { captchaSiteKey } from "@/lib/captcha";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { enabledOAuthProviders } from "@/lib/oauth";
 import { login } from "../actions";
 import { OAuthButtons } from "../oauth-buttons";
+import { CaptchaField } from "../captcha-field";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
@@ -21,6 +23,7 @@ export default async function Login({
 }) {
   const { error, message } = await searchParams;
   const providers = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
+  const siteKey = captchaSiteKey();
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
@@ -95,6 +98,7 @@ export default async function Login({
                 className="input-field text-sm"
               />
             </div>
+            <CaptchaField siteKey={siteKey} />
             <SubmitButton idleLabel="Log in" pendingLabel="Logging in…" />
           </form>
           {/* Permanent, not conditional on an error. Every failure message on

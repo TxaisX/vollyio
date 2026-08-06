@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { captchaSiteKey } from "@/lib/captcha";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { requestPasswordReset } from "../actions";
+import { CaptchaField } from "../captcha-field";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
@@ -19,6 +21,7 @@ export default async function Forgot({
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { error, message } = await searchParams;
+  const siteKey = captchaSiteKey();
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
@@ -78,6 +81,7 @@ export default async function Forgot({
                 className="input-field text-sm"
               />
             </div>
+            <CaptchaField siteKey={siteKey} />
             <SubmitButton idleLabel="Email me a link" pendingLabel="Sending…" />
           </form>
         </div>

@@ -12,6 +12,7 @@ import {
   updatePasswordErrorMessage,
 } from "@/lib/auth-errors";
 import {
+  captchaTokenFrom,
   parseForgotInput,
   parseLoginInput,
   parseResetInput,
@@ -30,6 +31,10 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
+    // Spread rather than assigned: when captcha is not configured this key is
+    // absent entirely, rather than sent as an empty string the auth service
+    // would read as a present-but-invalid token.
+    options: { captchaToken: captchaTokenFrom(formData) },
   });
 
   // The code matters. `email_not_confirmed` and `invalid_credentials` are
@@ -53,6 +58,7 @@ export async function signup(formData: FormData) {
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
+      captchaToken: captchaTokenFrom(formData),
       // Without this the confirmation link's redirect_to falls back to the
       // project's Site URL, which is the LANDING PAGE. The player clicks the
       // link, the token is verified, and they are dropped on the marketing page
@@ -140,6 +146,7 @@ export async function requestPasswordReset(formData: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    captchaToken: captchaTokenFrom(formData),
     // The send-email hook rebuilds this as origin + /auth/callback and drops any
     // path or query given here, so this only has to carry the right ORIGIN. It
     // is written out in full anyway: if the hook is ever disabled the default
