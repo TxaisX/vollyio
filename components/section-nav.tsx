@@ -43,15 +43,45 @@ function SectionNav({
   items: SectionNavItem[];
   active: string;
 }) {
+  // THE ORDER IS STABLE, and that is a decision rather than an oversight.
+  //
+  // This briefly hoisted the active chip to the front, so a scroll container
+  // that always opens at offset 0 would open on the page you are already on.
+  // It worked, and it cost more than it bought: the chips then sit in different
+  // slots on different pages of the hub, so nobody can ever learn that
+  // Technique is the middle one. Positional memory is worth more than never
+  // having to drag, especially at three entries, where the row barely overflows
+  // and the page heading already says where you are.
+  //
+  // If a hub ever grows past a handful of entries this becomes worth revisiting,
+  // and the answer then is a stable order PLUS a small client effect that
+  // scrolls the active chip into view, not a reorder. Reordering is the thing
+  // that breaks the learning.
   return (
-    <nav aria-label={label} className="mt-4">
-      <ul className="flex flex-wrap gap-2">
+    <nav aria-label={label} className="mt-3">
+      {/* One row that scrolls sideways, never two rows that wrap: on a phone a
+          wrapped strip is a second line of chrome shoving the page content
+          down. The negative margin plus matching padding lets the row bleed
+          through the app shell's px-5 gutter (app/(app)/layout.tsx gives main
+          `px-5 md:px-10`), so a chip is visibly cut by the screen edge and it
+          reads as "there is more to the right" rather than as a full row. Both
+          are dropped at md, where the row fits and the desktop gutter is
+          wider. tabIndex makes the scroll region reachable and arrow-key
+          scrollable in engines that do not focus scrollers on their own. The
+          scrollbar is hidden because under a 44px strip it is noise, and drag,
+          wheel and arrow keys all still scroll. py-1 is the room the 2px focus
+          ring needs, since overflow-x clips vertically too; mt-3 plus that
+          padding lands the chips exactly where mt-4 used to put them. */}
+      <ul
+        tabIndex={0}
+        className="-mx-5 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-5 px-5 py-1 [scrollbar-width:none] md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden"
+      >
         {items.map((item) => (
-          <li key={item.key}>
+          <li key={item.key} className="shrink-0 snap-start">
             <Link
               href={item.href}
               aria-current={item.key === active ? "page" : undefined}
-              className={`chip min-h-11 ${item.key === active ? "chip-active" : ""}`}
+              className={`chip min-h-11 whitespace-nowrap ${item.key === active ? "chip-active" : ""}`}
             >
               {item.label}
             </Link>

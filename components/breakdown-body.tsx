@@ -30,15 +30,22 @@ import { type Skill } from "@/lib/skills";
 //
 // SHAPE OF THE PAGE, and why it is this shape. The player asked for the old
 // scorecard back but shorter: "putting the pros and cons next to each other
-// just so that there's less moving or scrolling". Three things do that work
+// just so that there's less moving or scrolling". Two things do that work
 // here. The two verdict columns sit side by side once the column they live in
 // is wide enough to carry them (a container query, not a viewport one, because
 // this component renders inside a page that gives up to 30rem of its width to
 // the clip and a viewport breakpoint would put two 220px columns on a laptop).
-// The five checkpoints collapse their teaching content behind a native
-// disclosure. And everything that explains HOW the read was reached moves
-// behind the Basic / Advanced switch. On a phone the first two do most of the
-// work, because nothing puts two columns of prose beside each other at 390px.
+// And everything that is not the change to make tonight sits behind the Basic /
+// Advanced switch: the per-rep notes, the metrics, the timeline, the
+// confidence, and since 2026-08-06 the five named checkpoints as well.
+//
+// The checkpoints moved because they are the same five rows on every rep
+// whatever the clip showed, so on a phone they were five cards of standing
+// teaching content wedged between the fixes and the drills, which is the
+// scrolling this layout exists to remove. Basic is now the summary, the two
+// columns and the drills, and nothing else. On a phone the switch does nearly
+// all of the work, because nothing puts two columns of prose beside each other
+// at 390px.
 export function BreakdownBody({
   skill,
   result,
@@ -201,7 +208,14 @@ export function BreakdownBody({
                           </p>
                         )}
                         <div className="flex items-start justify-between gap-3">
-                          <p className="font-display text-lg font-bold">{c.title}</p>
+                          {/* Base size, matching the "what worked" titles
+                              opposite. At text-lg a two-clause fix title ran
+                              three lines on a 390px phone and read as the
+                              loudest thing on the page; the gold edge, the
+                              lift and the "Your #1 fix" label already carry
+                              which one to do first, so the size was saying it
+                              a fourth time. */}
+                          <p className="font-display font-bold">{c.title}</p>
                           {/* Frame-path evidence: the points a named checkpoint
                               would rise. A video row has no scored checkpoints,
                               so it is omitted rather than shown as a guess
@@ -255,8 +269,14 @@ export function BreakdownBody({
         </div>
       </div>
 
+      {/* v2 only, and Advanced only. Every rep renders all five rows from the
+          catalog whatever the clip showed, so at Basic this was a fixed five
+          cards of teaching content between the fixes and the drills on every
+          single rep. It is reference material, not tonight's change, so it
+          moves rather than shrinks: a player who wants the five things a coach
+          watches opens Advanced and finds all of them, unchanged. */}
       {checkpoints.length > 0 && (
-        <Reveal delay={220}>
+        <Reveal delay={220} className={ADVANCED_ONLY}>
           <h2
             id="checkpoints"
             className="mt-8 mb-1 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"

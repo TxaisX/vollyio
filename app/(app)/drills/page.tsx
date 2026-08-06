@@ -47,7 +47,7 @@ export default function Drills() {
         <TrainNav active="drills" />
       </Reveal>
 
-      <div className="mt-8 space-y-10">
+      <div className="mt-6 space-y-7">
         {SKILLS.map((skill, si) => {
           const drills = [...drillsForSkill(skill)].sort(
             (a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level],
@@ -55,9 +55,14 @@ export default function Drills() {
           if (drills.length === 0) return null;
           return (
             <Reveal key={skill} delay={Math.min(si, 2) * 70}>
-              <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
+              {/* A group label, not a headline. Six of these at text-lg bold
+                  were shouting as loudly as the thirty drill names underneath
+                  them, which is what made the page feel like it arrived all at
+                  once. Same quiet uppercase label the breakdown page uses over
+                  its sections, so the eye lands on the drill, not the divider. */}
+              <h2 className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide">
                 <span className="text-gold">
-                  <SkillIcon skill={skill} className="h-5 w-5" />
+                  <SkillIcon skill={skill} className="h-4 w-4" />
                 </span>
                 {SKILL_LABEL[skill]}
               </h2>
@@ -80,16 +85,23 @@ export default function Drills() {
                       >
                         <span className="font-display font-bold">{d.name}</span>
                       </ViewTransition>
-                      <span
-                        className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] uppercase ${LEVEL_CLASS[d.level]}`}
-                      >
-                        {d.level}
+                      {/* Length sits beside the level instead of claiming its
+                          own row. Thirty cards stack up on a phone and a whole
+                          line per card was being spent on one number; both are
+                          the same kind of fact about the drill, so they read
+                          fine as one cluster. */}
+                      <span className="flex shrink-0 items-center gap-2">
+                        <span className="font-mono text-[10px] text-chalk-dim">
+                          {d.duration_min} min
+                        </span>
+                        <span
+                          className={`rounded px-2 py-0.5 font-mono text-[10px] uppercase ${LEVEL_CLASS[d.level]}`}
+                        >
+                          {d.level}
+                        </span>
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-chalk-dim">{d.summary}</p>
-                    <p className="mt-2 font-mono text-[10px] text-chalk-dim">
-                      {d.duration_min} min
-                    </p>
                     {/* /drills/[slug] has no loading.tsx (it is static), so a
                         cold navigation gets this pending hint. */}
                     <LinkPending />

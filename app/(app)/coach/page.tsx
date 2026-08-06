@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { CoachChat } from "@/components/coach-chat";
-import { CoachSessions, type CoachSession } from "@/components/coach-sessions";
+import {
+  CoachSessionsDrawer,
+  CoachSessionsRail,
+  type CoachSession,
+} from "@/components/coach-sessions";
 import { COACH_ENABLED } from "@/lib/flags";
 import { buildCoachLinks } from "@/lib/coach-links";
 import { DRILLS } from "@/content/drills";
@@ -95,11 +100,46 @@ export default async function Coach({
           If the layout's padding or the top bar's height ever change, these
           change with them. lib/nav-contract.test.ts pins them together. */}
       <section className="mx-auto flex h-[calc(100dvh-5.75rem)] w-full max-w-5xl flex-col overflow-hidden -mb-28 md:-mb-12 md:h-[calc(100dvh-2rem)] lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-8 xl:max-w-6xl xl:grid-cols-[15rem_minmax(0,1fr)_15rem]">
-        <div className="shrink-0 lg:col-start-2">
-          <p className="font-mono text-xs uppercase tracking-[0.1em] text-gold">Coach</p>
-          <h1 className="font-display text-page-title">Ask your coach</h1>
+        {/* THE ONLY CHROME LEFT ABOVE THE CONVERSATION, and on a phone it is one
+            row of controls rather than a title block.
+
+            This was a gold mono eyebrow over a `text-page-title` h1 reading
+            "Ask your coach", roughly 4rem at the top of a surface where the
+            conversation IS the content, paid for on every visit and saying
+            nothing the lit Coach tab did not already say. The h1 survives at
+            label size, so the page still has a real heading to navigate to and
+            a name in the column.
+
+            The row itself now earns its height on a phone: the left control
+            opens the conversation list, which before this had no way in at all
+            below lg, and the right one starts a new chat, which used to sit in
+            a strip of chips that cost a permanent row of its own. From lg both
+            disappear, because the rail beside this holds them. */}
+        <div className="flex shrink-0 items-center gap-2 lg:col-start-2 lg:pb-2">
+          <CoachSessionsDrawer sessions={sessions} activeId={active?.id ?? null} />
+          <h1 className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+            Coach
+          </h1>
+          <Link
+            href="/coach?s=new"
+            aria-label="New chat"
+            className="icon-btn -mr-3 ml-auto lg:hidden"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </Link>
         </div>
-        <CoachSessions sessions={sessions} activeId={active?.id ?? null} />
+        <CoachSessionsRail sessions={sessions} activeId={active?.id ?? null} />
         <div className="flex min-h-0 w-full max-w-2xl flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 lg:col-start-2 lg:mx-auto">
           <CoachChat
             key={active?.id ?? "new"}

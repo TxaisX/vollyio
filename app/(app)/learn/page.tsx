@@ -120,7 +120,12 @@ export default async function Learn({
           Get better, and stay on the court
         </h1>
         <TrainNav active={tab === "rehab" ? "recovery" : "technique"} />
-        <div className="mt-5 flex items-center gap-2">
+        {/* Three chip rows land on this page in a row (hub sections, then
+            discipline, then the library tabs). This one is the least of the
+            three: it only re-cuts the technique text, and indoor is what most
+            players want, so it sits tight under the section strip rather than
+            reading as its own step. */}
+        <div className="mt-3 flex items-center gap-2">
           {ANALYZE_DISCIPLINES.map((d) => (
             <Link
               key={d}

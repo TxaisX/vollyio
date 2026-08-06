@@ -89,17 +89,34 @@ function renderInline(text: string, keyBase: string, links: CoachLinkMap): React
   return nodes;
 }
 
+// TYPE SCALE ON THIS SURFACE, and why it is not text-body.
+//
+// app/globals.css argues that prose a player is meant to READ belongs at
+// text-body (1rem, 17px at the 106.25% root), and on a scorecard or a drill page
+// that is right: those pages hold a few paragraphs and the reader arrives once.
+// A transcript is the opposite case. It is the whole page, it accumulates, and
+// the owner's complaint was that too little of it fits on a phone. text-sm
+// (14.88px) with leading-relaxed buys back roughly two lines per answer and a
+// whole extra turn on a phone screen, and unlike the pages text-body was written
+// for, the reader is looking at one continuous column with nothing competing
+// with it.
+const PROSE = "text-sm leading-relaxed break-words";
+
 function AssistantContent({ text, links }: { text: string; links: CoachLinkMap }) {
   const blocks = text.split(/\n{2,}/).filter((b) => b.trim() !== "");
   return (
-    <div className="flex flex-col gap-2 text-body leading-relaxed break-words">
+    // Measure capped in `ch`, not by the column. Dropping the type without this
+    // would have stretched a coach answer to roughly 90 characters a line
+    // inside the max-w-2xl column, which is past the point prose stays easy to
+    // track back to the next line.
+    <div className={`flex max-w-[68ch] flex-col gap-1.5 ${PROSE}`}>
       {blocks.map((block, bi) => {
         const lines = block.split("\n");
         const isUL = lines.every((l) => /^\s*[-*]\s+/.test(l));
         const isOL = lines.every((l) => /^\s*\d+\.\s+/.test(l));
         if (isUL) {
           return (
-            <ul key={bi} className="ml-4 list-disc space-y-1">
+            <ul key={bi} className="ml-4 list-disc space-y-0.5">
               {lines.map((l, li) => (
                 <li key={li}>
                   {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${bi}-${li}`, links)}
@@ -110,7 +127,7 @@ function AssistantContent({ text, links }: { text: string; links: CoachLinkMap }
         }
         if (isOL) {
           return (
-            <ol key={bi} className="ml-4 list-decimal space-y-1">
+            <ol key={bi} className="ml-4 list-decimal space-y-0.5">
               {lines.map((l, li) => (
                 <li key={li}>
                   {renderInline(l.replace(/^\s*\d+\.\s+/, ""), `${bi}-${li}`, links)}
@@ -134,6 +151,162 @@ function AssistantContent({ text, links }: { text: string; links: CoachLinkMap }
   );
 }
 
+/** Ties the trigger to the panel for `aria-controls`. */
+const DRAWER_ID = "coach-conversations";
+
+/**
+ * The conversation list as an off-canvas panel, phone only.
+ *
+ * Before this there was a horizontal strip of session chips above the
+ * transcript, which cost a permanent row on the smallest screen and still could
+ * not show more than two titles. The list now slides over the conversation from
+ * the left, from a control in the top left, and the row it used to occupy goes
+ * back to the transcript.
+ *
+ * A native <dialog> opened with showModal(), NOT a div with a z-index, and that
+ * is the whole reason this is short. The browser gives us the top layer, the
+ * backdrop, the focus trap, focus restoration to the trigger on close, and
+ * Escape, all of it correct in every browser, none of it reimplemented. What is
+ * left here is the state sync, the backdrop click, and closing when a link
+ * inside it navigates.
+ *
+ * It lives in this file rather than beside the list because this is the coach
+ * surface's single "use client" module. The list it wraps stays a server
+ * component and arrives as children, so no session row ships to the browser.
+ */
+export function CoachDrawer({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const backRef = useRef<HTMLButtonElement | null>(null);
+
+  // showModal() already puts focus on the first focusable thing inside, which
+  // is the back button, and the `autoFocus` below says so declaratively. Both
+  // are hedges: React applies autoFocus by calling focus() at mount, and at
+  // mount this button is inside a closed dialog and cannot take it. Asking for
+  // it here, after the dialog is actually open, is the one that always lands.
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    if (open && !el.open) {
+      el.showModal();
+      backRef.current?.focus();
+    }
+    if (!open && el.open) el.close();
+  }, [open]);
+
+  // `close` fires for Escape and for the backdrop-dismiss path as well as for
+  // our own buttons, so this is the one place open state comes back down. The
+  // browser already returns focus to whatever opened the dialog; asking for it
+  // explicitly costs nothing and makes the guarantee local to this file.
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    const onClose = () => {
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    el.addEventListener("close", onClose);
+    return () => el.removeEventListener("close", onClose);
+  }, []);
+
+  // A modal dialog holds the top layer and makes everything behind it inert. If
+  // a resize past the lg breakpoint hid it with `display: none` while it was
+  // still open, the page underneath would stay inert with nothing on screen to
+  // dismiss. 64rem is the lg breakpoint, and media queries resolve rem against
+  // the initial 16px rather than the root override, so this is exactly it.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 64rem)");
+    const sync = () => {
+      if (mq.matches) setOpen(false);
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="Your conversations"
+        aria-expanded={open}
+        aria-controls={DRAWER_ID}
+        onClick={() => setOpen(true)}
+        className="icon-btn -ml-3 lg:hidden"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-5 w-5"
+          aria-hidden="true"
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M9 4v16" />
+        </svg>
+      </button>
+
+      {/* The dialog itself is a transparent sheet over the whole viewport and
+          the panel is the child inside it, which is what makes "tapped outside
+          the panel" a plain `e.target === the dialog` check. The dim comes from
+          ::backdrop, so it is the browser's, sits under the top layer, and
+          needs no element of its own. */}
+      <dialog
+        id={DRAWER_ID}
+        ref={dialogRef}
+        aria-label="Your conversations"
+        onClick={(e) => {
+          if (e.target === dialogRef.current) setOpen(false);
+        }}
+        className="fixed inset-0 m-0 h-auto max-h-none w-auto max-w-none bg-transparent p-0 backdrop:bg-navy/80 lg:hidden"
+      >
+        <div
+          // A tap on any link in here is a navigation, and the panel must not
+          // still be sitting over the conversation it just switched to.
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a")) setOpen(false);
+          }}
+          // drawer-in-left, not the mobile menu's fade-up: this panel lives off
+          // the left edge and has to be seen arriving from it, because that
+          // direction is what tells a player the back control puts it away
+          // again rather than dismissing something that will not come back.
+          className="drawer-in-left flex h-dvh w-[17rem] max-w-[82vw] flex-col gap-1 border-r border-line bg-navy p-2 shadow-lift"
+        >
+          {/* Back, in the same top-left corner the trigger occupies, so the way
+              out is where the way in was. */}
+          <button
+            ref={backRef}
+            type="button"
+            autoFocus
+            aria-label="Close conversations"
+            onClick={() => setOpen(false)}
+            className="icon-btn mb-1 shrink-0"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          {children}
+        </div>
+      </dialog>
+    </>
+  );
+}
+
 export function CoachChat({
   activeSessionId,
   initialMessages,
@@ -154,7 +327,6 @@ export function CoachChat({
   const [failedText, setFailedText] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const endRef = useRef<HTMLDivElement | null>(null);
   // The transcript, which is the ONLY thing on this page that scrolls. The
   // heading above it and the composer below it are fixed in place, so a player
   // mid-conversation never loses the box they are typing into.
@@ -308,19 +480,21 @@ export function CoachChat({
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain py-6"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain py-2"
       >
         {messages.length === 0 && (
           <Reveal>
-            <div className="card p-5">
-              <p className="font-display font-bold">
-                Your coach knows your game.
-              </p>
-              <p className="mt-1 text-body text-chalk-dim">
+            {/* The way in for a player who has never asked anything, at the
+                weight of a hint rather than of a card. It used to be a bordered
+                .card with a display-weight headline, which announced itself
+                every time an empty chat opened and then never appeared again;
+                the suggestions are the useful half and they survive intact. */}
+            <div>
+              <p className="max-w-[60ch] text-xs leading-relaxed text-chalk-dim">
                 Ask about your scores, your priority fixes, or what to train
                 next. Every answer comes from your own analyses.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
@@ -337,21 +511,40 @@ export function CoachChat({
           </Reveal>
         )}
 
-        <div role="log" aria-live="polite" className="flex flex-col gap-4">
+        <div role="log" aria-live="polite" className="flex flex-col gap-3">
           {messages.map((m) => (
             <div
               key={m.id}
               className={`message-in flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
             >
+              {/* TWO SPEAKERS, ONE COLUMN, AND ONLY ONE OF THEM GETS A SURFACE.
+                  Both turns used to be rounded blobs capped at 85%, the
+                  player's filled solid gold. On a phone that reads as two
+                  chat-app bubbles; on a full desktop column it puts a large
+                  block of saturated colour behind what is really an essay.
+                  A coach answer is prose the player is meant to read, so it now
+                  renders as prose: no fill, no border, no radius, just type in
+                  the column. The player's own line is short, is scanned rather
+                  than read, and has to be findable when scrolling back, so it
+                  keeps a quiet surface and the right edge; alignment plus that
+                  surface is the whole speaker cue and it is enough.
+                  Gold is gone from both turns on purpose. Inside a coach answer
+                  gold now means exactly one thing, "this phrase is a page you
+                  can open" (see resolveCoachLink), and it could not mean that
+                  while an entire message was painted in it. */}
               <div
                 className={
                   m.role === "user"
-                    ? "max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm text-navy"
-                    : "max-w-[85%] rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-2.5 text-sm text-chalk"
+                    ? `max-w-[85%] rounded-2xl border border-line bg-navy-light px-3 py-1.5 text-chalk ${PROSE}`
+                    : `w-full text-chalk ${PROSE}`
                 }
               >
-                <span className="sr-only">
-                  {m.role === "user" ? "You:" : "Coach:"}
+                {/* The clock moved in here. A per-message timestamp cost a line
+                    of its own under every single turn, which is the densest
+                    thing on the page that nobody reads; a screen reader still
+                    gets it, announced with the speaker it belongs to. */}
+                <span suppressHydrationWarning className="sr-only">
+                  {m.role === "user" ? "You" : "Coach"}, {timeLabel(m.created_at)}:
                 </span>
                 {m.role === "assistant" ? (
                   <AssistantContent text={m.content} links={links} />
@@ -359,47 +552,39 @@ export function CoachChat({
                   <p className="whitespace-pre-wrap break-words">{m.content}</p>
                 )}
               </div>
-              <span
-                suppressHydrationWarning
-                className="mt-1 px-1 font-mono text-[10px] text-chalk-dim"
-              >
-                {timeLabel(m.created_at)}
-              </span>
             </div>
           ))}
         </div>
 
         {waiting && (
-          <div className="flex items-start">
-            <div
-              role="status"
-              aria-label="Coach is typing."
-              className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-3.5"
-            >
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  aria-hidden="true"
-                  className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-chalk-dim"
-                  style={{
-                    animationDuration: "1.2s",
-                    animationDelay: `${i * -0.2}s`,
-                  }}
-                />
-              ))}
-            </div>
+          // Sits where the answer will, at the answer's left edge, because the
+          // answer no longer arrives in a bubble for this to have to match.
+          <div
+            role="status"
+            aria-label="Coach is typing."
+            className="flex items-center gap-1.5 py-1"
+          >
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                aria-hidden="true"
+                className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-chalk-dim"
+                style={{
+                  animationDuration: "1.2s",
+                  animationDelay: `${i * -0.2}s`,
+                }}
+              />
+            ))}
           </div>
         )}
-
-        <div ref={endRef} />
       </div>
 
       {/* Was `sticky bottom-20`, which only looked pinned because the window
           was the scroller. Now it is an ordinary flex child that cannot move,
           because nothing around it scrolls. */}
-      <div className="shrink-0 border-t border-line bg-navy pb-1 pt-3">
+      <div className="shrink-0 bg-navy pb-1 pt-2">
         {error && (
-          <div role="alert" className="mb-2 flex items-center gap-3">
+          <div role="alert" className="mb-1.5 flex items-center gap-3">
             <span className="text-sm text-coral">{error}</span>
             {failedText && (
               <button
@@ -417,7 +602,14 @@ export function CoachChat({
             e.preventDefault();
             handleSubmit();
           }}
-          className="flex items-end gap-2"
+          // One quiet rounded field with the send control inside it, rather
+          // than a box and a button sitting next to each other above a rule.
+          // .input-field is still what draws it, moved up to the form so the
+          // border wraps both; the rule that used to separate the composer from
+          // the transcript is gone, because a bordered field already reads as
+          // "not the conversation" and the divider was one more line of chrome
+          // on the surface the owner asked to quieten.
+          className="input-field flex items-end gap-1 py-1 pl-3 pr-1 focus-within:border-gold"
         >
           <textarea
             ref={textareaRef}
@@ -425,7 +617,19 @@ export function CoachChat({
             rows={1}
             placeholder="Ask your coach..."
             aria-label="Message your coach"
-            className="input-field min-h-11 flex-1 resize-none leading-6"
+            // Typing at the size the transcript reads at, so what a player is
+            // composing does not sit a size larger than the answer it gets.
+            // min-h-11 survives the smaller type: it is the tap target, and
+            // shrinking type is not licence to shrink that.
+            // 16px EXACTLY, and it is not a style choice. iOS Safari zooms the
+            // viewport when a text field under 16px takes focus, and this page
+            // is pinned to 100dvh with nothing scrolling, so that zoom does not
+            // gracefully scroll back: it leaves the composer somewhere off the
+            // new viewport with no way to reach it but pinching out. The
+            // transcript above is free to be smaller because nobody focuses it.
+            // Do not fold this into text-sm to match the prose; that is the
+            // change that breaks typing on an iPhone.
+            className="min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[16px] leading-6 text-chalk outline-none placeholder:text-chalk-dim"
             onChange={(e) => {
               setInput(e.target.value);
               autoGrow();

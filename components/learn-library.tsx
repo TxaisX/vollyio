@@ -73,7 +73,7 @@ export function LearnLibrary({
   }, [active, query]);
 
   return (
-    <div className="mt-6">
+    <div className="mt-5">
       <div
         role="tablist"
         aria-label="Library"
@@ -101,11 +101,16 @@ export function LearnLibrary({
         })}
       </div>
 
-      <p className="mt-3 max-w-prose text-body leading-relaxed text-chalk-dim">
+      {/* Kept word for word, just quieter. This is orientation copy, not the
+          thing anyone came for, and the injury blurb in particular ran four
+          lines of text-body straight under the page title. Nothing is cut here
+          on purpose: the injury one is safety framing, and trimming safety
+          framing to save two lines is not a trade worth making. */}
+      <p className="mt-3 max-w-prose text-sm leading-relaxed text-chalk-dim">
         {meta.blurb}
       </p>
 
-      <div className="mt-4">
+      <div className="mt-3">
         <label htmlFor="lib-search" className="sr-only">
           Search the {tab === "training" ? "training" : "injury"} library
         </label>
@@ -132,8 +137,8 @@ export function LearnLibrary({
         className="mt-4"
       >
         {results.length === 0 ? (
-          <div className="card p-8 text-center">
-            <p className="font-display text-lg font-bold">
+          <div className="card p-6 text-center">
+            <p className="font-display text-base font-bold">
               Nothing in {meta.label.toLowerCase()} matches that.
             </p>
             <p className="mx-auto mt-1 max-w-sm text-body text-chalk-dim">
@@ -156,9 +161,14 @@ export function LearnLibrary({
                 <Link
                   href={item.href}
                   transitionTypes={["nav-forward"]}
-                  className="learn-card card card-lift group relative block h-full p-5"
+                  className="learn-card card card-lift group relative block h-full p-4 sm:p-5"
                 >
-                  <span className="font-display text-lg font-bold leading-snug">
+                  {/* text-base, not text-lg. This grid is thirty-odd cards
+                      long and every title was set two steps above the copy
+                      under it, so the list read as a wall of headlines. The
+                      display face and the weight still separate a title from
+                      its blurb without the extra size doing it as well. */}
+                  <span className="font-display text-base font-bold leading-snug">
                     {item.title}
                   </span>
                   <span
@@ -168,7 +178,7 @@ export function LearnLibrary({
                   >
                     {item.meta}
                   </span>
-                  <span className="mt-2 block text-body leading-relaxed text-chalk-dim">
+                  <span className="mt-1.5 block text-sm leading-relaxed text-chalk-dim">
                     {item.subtitle}
                   </span>
                   <LinkPending />

@@ -1,22 +1,30 @@
 // The breakdown's Basic / Advanced switch, and the two class strings that
 // answer it.
 //
-// WHAT GOES WHERE, and why. Basic is everything a player can act on tonight:
-// the summary, what worked beside what to change, the named checkpoints of the
-// skill, and the drills. Advanced is the EVIDENCE behind those calls: the
-// scored checkpoint bars and their per-cue verdicts, the timeline, the per-rep
-// notes and spread, the scoring ladder inside each checkpoint, and the read's
-// own confidence. The split is "act on it" versus "check my work", not
-// "important" versus "unimportant", which is why nothing is deleted at either
-// level and why Basic is the default: the first thing on screen should be the
-// one change to make, not a wall of numbers proving how the change was chosen.
+// WHAT GOES WHERE, and why. Basic is the four things a player can act on
+// tonight and nothing else: the summary, what worked beside what to change,
+// and the drills. Advanced is everything BEHIND those calls: the five named
+// checkpoints of the skill and the scoring ladder inside each one, the scored
+// metric bars and their per-cue verdicts, the timeline, the per-rep notes and
+// spread, and the read's own confidence. The split is "act on it" versus
+// "check my work", not "important" versus "unimportant", which is why nothing
+// is deleted at either level and why Basic is the default: the first thing on
+// screen should be the one change to make, not a wall of numbers proving how
+// the change was chosen.
+//
+// The checkpoints started on the Basic side and moved here 2026-08-06. They
+// are the same five rows on every rep whatever the clip showed, so they read
+// as reference rather than as this rep's verdict, and five standing cards
+// between the fixes and the drills was most of the scrolling the owner asked
+// us to cut on a phone. Moved, not trimmed: opening Advanced still shows all
+// five, unchanged.
 //
 // A v1 row (result_version absent or 1) carries metrics, per-pointer verdicts
 // and a timeline and NOTHING ELSE explains its score, so Advanced is where all
 // three live and they are still all there. A v2 row has none of them; its
-// Advanced is the scoring ladder under each checkpoint plus the confidence
-// line. Both shapes therefore have a Basic worth reading and an Advanced worth
-// opening.
+// Advanced is the checkpoints section, the ladder under each checkpoint and
+// the confidence line. Both shapes therefore have a Basic worth reading and an
+// Advanced worth opening.
 //
 // THE MECHANISM IS PURE CSS ON PURPOSE. Two real radios in a fieldset carry
 // the state, and `:has()` on the checked one reveals the rest. No client

@@ -18,6 +18,10 @@ import type { AnalysisResult } from "./analysis-types.ts";
 // the component source, which is the shape lib/nav-contract.test.ts and
 // lib/security-contract.test.ts already use for components that cannot be
 // imported under `node --test`.
+//
+// The last block pins the reps list on /history by the same technique, because
+// it is the other half of one ask: the breakdown shows less per rep, and the
+// list shows less per row, so that more of either fits on a phone.
 const BODY = await readFile(
   new URL("../components/breakdown-body.tsx", import.meta.url),
   "utf8",
@@ -208,23 +212,47 @@ test("a v1 row renders no checkpoints section and no confidence line", () => {
   assert.match(BODY, /const checkpoints = result\.checkpoints \?\? \[\]/);
 });
 
-test("a v2 row renders checkpoints, and they are not behind the switch", () => {
+// The checkpoints moved behind Advanced on 2026-08-06. They render all five
+// catalog rows on every rep whatever the clip showed, so at Basic they were a
+// fixed five cards of standing teaching content between the fixes and the
+// drills, which was most of what made a phone scroll. Moved, never dropped, so
+// both halves are pinned: the section still renders on a v2 row, and it renders
+// Advanced-only.
+test("a v2 row renders checkpoints, and they sit behind Advanced", () => {
   const cp = section(BODY, "{checkpoints.length > 0 && (");
-  assert.doesNotMatch(
+  assert.match(
     cp,
-    /ADVANCED_ONLY/,
-    "the named checkpoints are the base level the owner asked for",
+    /className=\{ADVANCED_ONLY\}/,
+    "the named checkpoints are reference material, not tonight's change",
   );
   assert.match(cp, /<h2/);
+  // And the list itself is still rendered, so "behind Advanced" never quietly
+  // became "deleted".
+  assert.match(BODY, /<CheckpointList/);
 });
 
-test("both columns are base level on both shapes", () => {
+// WHAT BASIC IS, pinned as a list rather than one section at a time, because
+// the owner's ask was about the total height of the page and any one section
+// drifting back undoes it. Basic is four things: the summary, what worked,
+// what to change, the drills.
+test("Basic is the summary, both columns and the drills", () => {
+  // The summary shares its Reveal with the switch, so nothing can gate it
+  // without gating the control that ungates everything else.
+  const summary = section(BODY, "<Reveal delay={140}>", 200);
+  assert.match(summary, /\{result\.summary\}/);
+  assert.match(summary, /<DetailSwitch \/>/);
+  assert.doesNotMatch(summary, /ADVANCED_ONLY/);
+
   for (const anchor of ['id="strengths"', 'id="changes"']) {
     const at = BODY.indexOf(anchor);
     assert.notEqual(at, -1, anchor);
     // Nothing between the grid and the heading hides it.
-    assert.doesNotMatch(BODY.slice(at - 320, at), /ADVANCED_ONLY/);
+    assert.doesNotMatch(BODY.slice(at - 320, at), /ADVANCED_ONLY/, anchor);
   }
+
+  const drills = section(BODY, "{result.drill_slugs.length > 0 && (");
+  assert.match(drills, /id="drills"/);
+  assert.doesNotMatch(drills, /ADVANCED_ONLY/, "drills are the thing to do tonight");
 });
 
 test("the metric bars and the timeline are moved behind Advanced, not dropped", () => {
@@ -349,4 +377,73 @@ test("the clip cap leaves the breakdown enough room to split its columns", async
     `a 1280px viewport leaves the breakdown ${remaining.toFixed(1)}rem but the columns need ${threshold}rem; ` +
       "either lower the clip cap or lower the container breakpoint, but do not let them drift",
   );
+});
+
+// ---------------------------------------------------------------------------
+// The reps list. One line per rep, because how many reps fit on a phone screen
+// is the whole value of the page.
+// ---------------------------------------------------------------------------
+
+const HISTORY = await readFile(
+  new URL("../app/(app)/history/page.tsx", import.meta.url),
+  "utf8",
+);
+
+test("a rep in the list is one line: when, what, where, how it scored", () => {
+  // The fix used to be the row's second line. It is gone from the markup AND
+  // from the query, so the result blob no longer crosses the wire for up to
+  // 100 rows to print one string. Someone who wants to know what to change
+  // opens the rep, which is where all of it already is.
+  assert.doesNotMatch(HISTORY, /priority_fix/);
+  assert.doesNotMatch(
+    HISTORY,
+    /select\("[^"]*\bresult\b/,
+    "nothing on this row needs the result JSON any more",
+  );
+
+  // BOTH remaining facts stay. The list mixes environments (Trends splits
+  // them), so an outdoor 62 next to an indoor 78 has to read as two facts
+  // rather than as a regression; that is why the environment is on the row.
+  assert.match(HISTORY, /SKILL_LABEL\[r\.skill\]/);
+  assert.match(HISTORY, /disciplineGroup\(r\.discipline\)/);
+  assert.match(HISTORY, /DISCIPLINE_LABEL\.indoor/);
+  assert.match(HISTORY, /DISCIPLINE_LABEL\.grass/);
+
+  // The score is the source of a shared-element morph into the breakdown's
+  // score ring. Dropping the ViewTransition to save a wrapper would break the
+  // open animation, not just this row.
+  assert.match(HISTORY, /<ViewTransition\s+name=\{`rep-\$\{r\.id\}`\}/);
+  assert.match(HISTORY, /share="morph"/);
+
+  // Shorter row, same target. A one-line row is under 44px on its own, so the
+  // floor is what holds it there.
+  assert.match(HISTORY, /className="group flex min-h-11/);
+});
+
+// The /history header was about 200px before the first rep: a kicker, a 32px
+// title, the hub strip, and seven filter chips that WRAPPED to two rows on any
+// phone. It was taller than the slice of the list it introduced, which is the
+// opposite of what a list header is for. The chips cannot shrink (they are the
+// tap targets), so the row scrolls sideways instead, matching the hub strips in
+// components/section-nav.tsx. Two scrolling chip rows that behaved differently
+// would read as two different controls.
+test("the history filter chips scroll sideways rather than wrapping", async () => {
+  const page = await readFile(
+    new URL("../app/(app)/history/page.tsx", import.meta.url),
+    "utf8",
+  );
+  // The wrap is the bug. It must not come back.
+  assert.doesNotMatch(page, /flex-wrap/);
+  assert.match(page, /overflow-x-auto/);
+  assert.match(page, /snap-x snap-mandatory/);
+  // Bleeding past the shell gutter is what signals there is more to the right.
+  assert.match(page, /-mx-5/);
+  assert.match(page, /md:mx-0/);
+  // Smaller type is fine on this page; smaller tap targets are not.
+  const chipClasses = [...page.matchAll(/className=\{`chip ([^`]*)`/g)].map((m) => m[1]);
+  assert.ok(chipClasses.length >= 2, "expected the All chip and the per-skill chips");
+  for (const cls of chipClasses) {
+    assert.match(cls, /min-h-11/, `a filter chip lost its 44px target: ${cls}`);
+    assert.match(cls, /shrink-0/, `a filter chip can be squeezed by the row: ${cls}`);
+  }
 });

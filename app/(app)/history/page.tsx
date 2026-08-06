@@ -20,16 +20,18 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "History",
-  description: "Every rep you have filmed, with the priority fix for each.",
+  description: "Every rep you have filmed, newest first.",
 };
 
+// Five scalar columns and no `result`. The list used to select the whole
+// result JSON for one string, the priority fix, on every one of up to 100
+// rows; the row no longer shows it, so the blob no longer crosses the wire.
 type Row = {
   id: string;
   skill: Skill;
   discipline: Discipline;
   overall_score: number;
   created_at: string;
-  result: { priority_fix?: { title?: string } };
 };
 
 export default async function History({
@@ -45,7 +47,7 @@ export default async function History({
 
   let query = supabase
     .from("analyses")
-    .select("id, skill, discipline, overall_score, created_at, result")
+    .select("id, skill, discipline, overall_score, created_at")
     .eq("user_id", userId!)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -71,13 +73,35 @@ export default async function History({
           </h1>
           <ProgressNav active="reps" />
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          {/* Seven chips, one row, scrolling sideways. They used to wrap, and
+              seven 44px targets became two rows on any phone, which put the
+              header at roughly 200px before the first rep: taller than the
+              slice of the list it was introducing. The chips cannot shrink,
+              because they are the tap targets, so the row scrolls instead.
+
+              Same treatment as the hub strips in components/section-nav.tsx,
+              deliberately: two scrolling chip rows that behaved differently
+              would read as two different controls. The negative margin plus
+              matching padding bleeds the row through the shell's px-5 gutter
+              (app/(app)/layout.tsx), so a chip is visibly clipped by the screen
+              edge and it reads as "more to the right" rather than as a row that
+              simply ends. Both are dropped at md where the row fits.
+
+              Unlike those strips this list is NOT reordered to surface the
+              active chip. The order here is the skill order players see
+              everywhere else in the app, and "All" is first because it is the
+              way back. Reordering would move a filter under the finger that
+              just tapped a different one. */}
+          <div
+            tabIndex={0}
+            className="-mx-5 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-5 px-5 py-1 [scrollbar-width:none] md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden"
+          >
             {/* aria-current, because the active filter is otherwise carried by
                 the gold fill alone. */}
             <Link
               href="/history"
               aria-current={!activeSkill ? "page" : undefined}
-              className={`chip min-h-11 ${!activeSkill ? "chip-active" : ""}`}
+              className={`chip min-h-11 shrink-0 snap-start whitespace-nowrap ${!activeSkill ? "chip-active" : ""}`}
             >
               All
             </Link>
@@ -86,7 +110,7 @@ export default async function History({
                 key={s}
                 href={`/history?skill=${s}`}
                 aria-current={activeSkill === s ? "page" : undefined}
-                className={`chip min-h-11 ${activeSkill === s ? "chip-active" : ""}`}
+                className={`chip min-h-11 shrink-0 snap-start whitespace-nowrap ${activeSkill === s ? "chip-active" : ""}`}
               >
                 {SKILL_LABEL[s]}
               </Link>
@@ -120,53 +144,57 @@ export default async function History({
               </Link>
             </div>
           ) : (
+            // ONE LINE PER REP, and the whole point is how many fit. The row
+            // used to carry the priority fix on a second line, which made a
+            // phone screen hold about four reps; the owner's call was that
+            // anyone who wants to know what to change opens the rep, so the
+            // fix line is gone rather than truncated. What is left is what you
+            // scan a list of reps by: when, what, where, how it scored.
+            //
+            // p-3 with min-h-11 rather than a tighter padding: the row still
+            // has to be a 44px target, so the height floor holds it there and
+            // the space came out of the second line instead.
             <ul className="mt-6 divide-y divide-line">
               {rows.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/analysis/${r.id}`}
-                  className="group flex min-h-11 items-start gap-3 rounded-control p-3 transition-colors hover:bg-navy-light"
+                  className="group flex min-h-11 items-center gap-3 rounded-control p-3 transition-colors hover:bg-navy-light"
                 >
-                  <span className="w-12 shrink-0 pt-1 font-mono text-xs text-chalk-dim">
+                  <span className="w-12 shrink-0 font-mono text-xs text-chalk-dim">
                     {new Date(r.created_at).toLocaleDateString(undefined, {
                       month: "short",
                       day: "numeric",
                     })}
                   </span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 rounded bg-navy-light px-2 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
-                        <SkillIcon skill={r.skill} className="h-3 w-3" />
-                        {SKILL_LABEL[r.skill]}
-                      </span>
-                      {/* The list mixes environments (Trends splits them), so
-                          each rep says which one it was: an outdoor 62 next to
-                          an indoor 78 is two facts, not a regression. */}
-                      <span className="rounded bg-navy-light px-2 py-0.5 font-mono text-[10px] uppercase text-chalk-dim">
-                        {disciplineGroup(r.discipline) === "indoor"
-                          ? DISCIPLINE_LABEL.indoor
-                          : DISCIPLINE_LABEL.grass}
-                      </span>
-                      {/* Shared-element morph source: this score appears to
-                          travel into the breakdown's score ring when the row
-                          is opened. share="morph" so it only fires on that
-                          shared navigation, not on the filter crossfade. */}
-                      <ViewTransition
-                        name={`rep-${r.id}`}
-                        share="morph"
-                        default="none"
-                      >
-                        <span className="font-display text-sm font-bold text-gold">
-                          {r.overall_score}
-                        </span>
-                      </ViewTransition>
-                    </div>
-                    {r.result?.priority_fix?.title && (
-                      <p className="mt-1 text-body text-chalk">
-                        {r.result.priority_fix.title}
-                      </p>
-                    )}
-                  </div>
+                  {/* Skill and environment share one mono line instead of two
+                      filled pills. BOTH facts stay: the list mixes
+                      environments (Trends splits them), so each rep says which
+                      one it was, because an outdoor 62 next to an indoor 78 is
+                      two facts and not a regression. Two boxes for two short
+                      words was the chrome, not the information. */}
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-chalk-dim">
+                    <SkillIcon skill={r.skill} className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">
+                      {SKILL_LABEL[r.skill]} ·{" "}
+                      {disciplineGroup(r.discipline) === "indoor"
+                        ? DISCIPLINE_LABEL.indoor
+                        : DISCIPLINE_LABEL.grass}
+                    </span>
+                  </span>
+                  {/* Shared-element morph source: this score appears to
+                      travel into the breakdown's score ring when the row
+                      is opened. share="morph" so it only fires on that
+                      shared navigation, not on the filter crossfade. */}
+                  <ViewTransition
+                    name={`rep-${r.id}`}
+                    share="morph"
+                    default="none"
+                  >
+                    <span className="font-display text-sm font-bold text-gold">
+                      {r.overall_score}
+                    </span>
+                  </ViewTransition>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -174,7 +202,7 @@ export default async function History({
                     strokeWidth="1.75"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="mt-1 h-4 w-4 text-chalk-dim transition-transform group-hover:translate-x-0.5"
+                    className="h-4 w-4 shrink-0 text-chalk-dim transition-transform group-hover:translate-x-0.5"
                     aria-hidden
                   >
                     <path d="M9 6l6 6-6 6" />
