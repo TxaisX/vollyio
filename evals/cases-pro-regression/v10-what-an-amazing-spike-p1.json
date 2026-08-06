@@ -52,8 +52,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 93,
-    "weakest_metric": "",
+    "weakest_metric": "arm_swing",
     "strongest_metric": "arm_swing",
-    "notes": "Outside hitter rises off the jump set and swings over the block: high-and-back elbow load, full extension, contact above and in front near apex; no isolable fault."
+    "notes": "Outside hitter rises off the jump set and swings over the block: high-and-back elbow load, full extension, contact above and in front near apex; no isolable fault.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

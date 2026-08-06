@@ -68,8 +68,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 92,
-    "weakest_metric": "",
+    "weakest_metric": "power_followthrough",
     "strongest_metric": "jump_timing",
-    "notes": "Pro AVP hitter rising off a clean straight-up sand takeoff to a ball above the net; wide shot can't resolve arm swing/contact."
+    "notes": "Pro AVP hitter rising off a clean straight-up sand takeoff to a ball above the net; wide shot can't resolve arm swing/contact.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

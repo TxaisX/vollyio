@@ -43,11 +43,14 @@ export type Insight = {
   type: "strength" | "issue";
   observation: string;
 };
+// Always present: it is the analysis page's headline, so every row needs one and
+// both paths derive it from their top-ranked change. The frame coordinates are
+// optional because only the frame path can resolve an instant to point at.
 export type PriorityFix = {
   title: string;
   detail: string;
-  frame_index: number;
-  time_s: number | null;
+  frame_index?: number;
+  time_s?: number | null;
 };
 
 export type Focus = {
@@ -57,12 +60,16 @@ export type Focus = {
   time_s: number | null;
 };
 
+// target_metric and expected_gain are optional because the VIDEO path has no
+// checkpoints to target or to move (D-096). They are omitted there rather than
+// filled with a plausible-looking metric key, because a change that claims to
+// raise a checkpoint nothing measured is a number the player would act on.
 export type Change = {
   title: string;
   detail: string;
-  target_metric: string;
-  expected_gain: number;
-  difficulty: "quick" | "moderate" | "long-term";
+  target_metric?: string;
+  expected_gain?: number;
+  difficulty: "quick" | "moderate" | "long-term" | string;
   timeframe: string;
 };
 
@@ -88,19 +95,43 @@ export type AnalysisResult = {
   // low enough to flag (< 60%). Optional: rows stored before D-045 have neither.
   coverage_pct?: number;
   low_confidence?: boolean;
+  // Which calibration of the pointer-to-score mapping produced these numbers
+  // (D-094). Absent means version 1, the scale every row carried before
+  // versioning existed.
+  scale_version?: number;
   // Who the model says it analyzed. Optional: rows predating this field, and
   // replies that omitted it, simply have none.
   subject_check?: SubjectCheck;
+  // Which engine produced this row (D-096). Absent or 1 means the frame path:
+  // Opus reading a dense frame sequence against the 120-pointer catalog, which
+  // is the only thing that can fill metrics, insights and the frame indices.
+  // 2 means the video path: one clip read holistically, which produces a score,
+  // a summary, strengths and changes but has no per-checkpoint evidence to
+  // report. Readers branch on this rather than sniffing for missing fields.
+  result_version?: number;
   // Per-rep mini-scores when more than one repetition was distinguishable.
   rep_scores?: RepScore[];
-  metrics: Metric[];
-  contact_frame_index: number;
-  focus: Focus;
-  insights: Insight[];
+  // EVERYTHING BELOW THIS LINE THAT IS OPTIONAL is optional because the video
+  // path cannot honestly produce it, NOT because it is unimportant. The vision
+  // provider samples video at roughly one low-resolution image per second, so
+  // per-checkpoint verdicts come back 90-100% "met" (measured 2026-08-05:
+  // median 97 with strict evidence enforcement on, which is every player being
+  // told they are near-perfect), and a contact lasting 50-150ms is not in the
+  // sample at all. Filling these on a video row would be inventing evidence.
+  // v1 rows carry all of them and render exactly as they always have.
+  metrics?: Metric[];
+  contact_frame_index?: number;
+  focus?: Focus;
+  insights?: Insight[];
   changes: Change[];
-  priority_fix: PriorityFix; // derived from changes[0] for back-compat readers
+  priority_fix: PriorityFix; // derived from changes[0] by BOTH paths
   drill_slugs: string[];
   summary: string;
+  // Video path only: what the player did well. The frame path expresses this
+  // through per-metric notes and `insights`, so it has none.
+  strengths?: { title: string; detail: string }[];
+  // The model's own confidence in the read, free-form. Video only.
+  confidence?: string;
   // Clip time of each sent frame by index, echoed from the request so viewers
   // can place sparse per-frame data (like ball marks) on the clip timeline.
   frame_times?: (number | null)[];

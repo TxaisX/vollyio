@@ -64,7 +64,7 @@ if (args.has("--json")) {
   if (unlabeled.length) {
     console.log(`\nCases needing a weakest_metric decision from a human (${unlabeled.length}):`);
     for (const c of unlabeled) console.log(`  ${c.id}`);
-    console.log("Label them with: node scripts/label-case.mjs <case-id>");
+    console.log("Label them with: node scripts/label-evals.mjs (frames + keys in one window)");
   }
 }
 

@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 78,
     "overall_max": 92,
-    "weakest_metric": "",
+    "weakest_metric": "toss_quality",
     "strongest_metric": "contact_point",
-    "notes": "Featured female jump serve: high in-front toss, straight-up sand takeoff, full-reach contact above the shoulder; wide shot can't resolve wrist/spin so no fault isolated."
+    "notes": "Featured female jump serve: high in-front toss, straight-up sand takeoff, full-reach contact above the shoulder; wide shot can't resolve wrist/spin so no fault isolated.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

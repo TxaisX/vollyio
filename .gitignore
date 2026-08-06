@@ -59,6 +59,7 @@ next-env.d.ts
 # case set, because the committed BASELINE.json resolves its ids against it.
 evals/cases/*.json
 evals/footage/
+evals/clips/
 evals/RESULTS.json
 /eval-results/
 

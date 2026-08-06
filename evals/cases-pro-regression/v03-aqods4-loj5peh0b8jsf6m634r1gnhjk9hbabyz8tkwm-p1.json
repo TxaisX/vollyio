@@ -56,8 +56,10 @@
   "expected": {
     "overall_min": 72,
     "overall_max": 86,
-    "weakest_metric": "",
+    "weakest_metric": "body_alignment",
     "strongest_metric": "body_alignment",
-    "notes": "Grass set: clean two-hand overhead set, contact above the forehead, square and balanced; distance hides any fine fault."
+    "notes": "Grass set: clean two-hand overhead set, contact above the forehead, square and balanced; distance hides any fine fault.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

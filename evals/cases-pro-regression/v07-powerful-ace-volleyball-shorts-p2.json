@@ -56,8 +56,10 @@
   "expected": {
     "overall_min": 79,
     "overall_max": 93,
-    "weakest_metric": "",
+    "weakest_metric": "body_alignment",
     "strongest_metric": "",
-    "notes": "Same jump serve behind the ref stand plus serve receive; occluded angle too coarse to isolate a fault."
+    "notes": "Same jump serve behind the ref stand plus serve receive; occluded angle too coarse to isolate a fault.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

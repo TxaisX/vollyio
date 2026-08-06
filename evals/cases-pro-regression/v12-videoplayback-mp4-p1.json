@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 93,
-    "weakest_metric": "",
+    "weakest_metric": "jump_timing",
     "strongest_metric": "contact_height",
-    "notes": "OH elevates over a two-man block, contact at full extension well above the net for a bounce kill; clean high-and-back load, no isolable fault."
+    "notes": "OH elevates over a two-man block, contact at full extension well above the net for a bounce kill; clean high-and-back load, no isolable fault.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

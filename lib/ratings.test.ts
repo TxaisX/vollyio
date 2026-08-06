@@ -2,12 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   updateRating,
+  nextRating,
   overallScore,
   scoreBand,
   coherentOverall,
   ALPHA_UP,
   ALPHA_DOWN,
 } from "./ratings.ts";
+import { SCALE_VERSION } from "./ai/pointers.ts";
 
 test("first rating seeds with the score", () => {
   assert.equal(updateRating(null, 72), 72);
@@ -57,6 +59,48 @@ test("a low-coverage rep moves the rating less than a full-coverage one", () => 
 test("coverage defaults to a full read and the first rating ignores it", () => {
   assert.equal(updateRating(70, 90), updateRating(70, 90, 100));
   assert.equal(updateRating(null, 84, 40), 84);
+});
+
+test("nextRating with no prior row seeds with the score", () => {
+  assert.equal(nextRating(null, 72), 72);
+});
+
+test("nextRating blends when the stored scale matches the current one", () => {
+  assert.equal(
+    nextRating({ rating: 60, scale_version: SCALE_VERSION }, 80),
+    updateRating(60, 80),
+  );
+});
+
+test("a null stored scale means version 1, not unknown", () => {
+  // Every rating written before versioning existed was built on scale 1.
+  // While SCALE_VERSION is 1, those rows must keep blending; re-seeding every
+  // existing player's rating on the day the column ships would be a bug.
+  const legacy = nextRating({ rating: 60, scale_version: null }, 80);
+  if (SCALE_VERSION === 1) {
+    assert.equal(legacy, updateRating(60, 80));
+  } else {
+    assert.equal(legacy, 80);
+  }
+});
+
+test("nextRating re-seeds instead of blending across scale versions", () => {
+  const other = SCALE_VERSION + 1;
+  assert.equal(nextRating({ rating: 60, scale_version: other }, 80), 80);
+  // Re-seeding ignores coverage the same way a first rating does: there is no
+  // comparable prior to move toward.
+  assert.equal(nextRating({ rating: 60, scale_version: other }, 80, 40), 80);
+});
+
+test("nextRating passes coverage through to the blend", () => {
+  assert.equal(
+    nextRating({ rating: 70, scale_version: SCALE_VERSION }, 90, 50),
+    updateRating(70, 90, 50),
+  );
+});
+
+test("nextRating treats a null stored rating as no prior", () => {
+  assert.equal(nextRating({ rating: null, scale_version: SCALE_VERSION }, 66), 66);
 });
 
 test("overall ignores unrated skills", () => {

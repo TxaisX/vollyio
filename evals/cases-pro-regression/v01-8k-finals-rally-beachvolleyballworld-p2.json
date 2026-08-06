@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 76,
     "overall_max": 90,
-    "weakest_metric": "",
     "strongest_metric": "movement_pursuit",
-    "notes": "Featured diving cross-court dig: explosive full-extension layout keeps the ball alive; distance caps the platform read so no fault isolated."
+    "notes": "Featured diving cross-court dig: explosive full-extension layout keeps the ball alive; distance caps the platform read so no fault isolated.",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

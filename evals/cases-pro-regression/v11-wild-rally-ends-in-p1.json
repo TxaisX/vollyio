@@ -72,8 +72,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 94,
-    "weakest_metric": "",
     "strongest_metric": "movement_pursuit",
-    "notes": "Beach Pro Tour scramble rally kept alive by repeated digs; wide shots show strong court-covering pursuit but no fine platform/ready fault."
+    "notes": "Beach Pro Tour scramble rally kept alive by repeated digs; wide shots show strong court-covering pursuit but no fine platform/ready fault.",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

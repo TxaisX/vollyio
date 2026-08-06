@@ -54,7 +54,7 @@ Shipped component/campaign motion (D-005 through D-010) follows the same rules: 
 
 - Dependency budget is deliberately small but gated, not closed (D-001). An animation/motion library (10.2) and added MCP servers (10.5) are allowed once they clear the 10.5 viability gate plus a Decision Log entry. The gate, per candidate: publisher/provenance (official?), exact tool scopes and permissions, security (no unexpected network/fs/secret access, least privilege), necessity (cheapest tool for a real need), licensing/terms, pinned version.
 - Chart, state-management, and service-worker libraries stay out unless they clear that same gate. The service worker stays hand-rolled (`components/pwa-register.tsx` + `public/sw.js`).
-- No vendor names in UI, docs, or user-visible errors. The AI layer is "the coaching service"; the only vendor-named string in the repo is the `ANTHROPIC_API_KEY` env var, server-side only.
+- No vendor names in UI, docs, or user-visible errors. The AI layer is "the coaching service" and, for the frame read, "the vision provider"; the only vendor-named strings in the repo are the `ANTHROPIC_API_KEY` and `OPENROUTER_API_KEY` env vars, the model constants in `lib/ai/client.ts`, and the gateway endpoint in `lib/ai/vision.ts` (D-093), all server-side only.
 - Security authority is `docs/security.md`. Read and update its access-control matrices whenever changing a route handler, server action, table, storage policy, role, or paid external call.
 
 ## Commands

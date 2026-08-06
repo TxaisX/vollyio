@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, ANALYZE_MODEL, ANALYZE_EFFORT } from "@/lib/ai/client";
+import { VISION_MODEL } from "@/lib/ai/client";
+import { readFrames } from "@/lib/ai/vision";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { isJpegPayload } from "@/lib/security/request";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
@@ -78,43 +78,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const response = await coach().messages.parse(
-      {
-        model: ANALYZE_MODEL,
-        max_tokens: 1024,
-        thinking: { type: "adaptive" },
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/jpeg",
-                  data: parsed.data.frame,
-                },
-              },
-              {
-                type: "text",
-                text:
-                  "List the people in this frame who are clearly PLAYING volleyball and close enough to assess, most prominent first, up to six. " +
-                  "For each: a short physical description a user could match at a glance (kit or shirt color, distinguishing detail, where they are on the court; never a name or a guess about identity), " +
-                  "and the position of their torso center in normalized image coordinates (x 0 at the left edge to 1 at the right, y 0 at the top to 1 at the bottom). " +
-                  "Only include people you can actually see well enough to describe; distant background players and spectators are excluded. An empty list is a valid answer.",
-              },
-            ],
-          },
-        ],
-        output_config: {
-          effort: ANALYZE_EFFORT,
-          format: zodOutputFormat(spotSchema),
-        },
-      },
-      { maxRetries: 2 },
-    );
-    const raw = response.parsed_output;
-    return NextResponse.json({ players: raw?.players ?? [] });
+    // Spotting reads pixels, so it goes to the vision provider with the frame
+    // read (D-093) rather than to the coaching service.
+    const read = await readFrames({
+      model: VISION_MODEL,
+      system: [],
+      frames: [{ index: 0, time_s: null, data: parsed.data.frame }],
+      instructions: [
+        "List the people in this frame who are clearly PLAYING volleyball and close enough to assess, most prominent first, up to six. " +
+          "For each: a short physical description a user could match at a glance (kit or shirt color, distinguishing detail, where they are on the court; never a name or a guess about identity), " +
+          "and the position of their torso center in normalized image coordinates (x 0 at the left edge to 1 at the right, y 0 at the top to 1 at the bottom). " +
+          "Only include people you can actually see well enough to describe; distant background players and spectators are excluded. An empty list is a valid answer.",
+      ],
+      schema: spotSchema,
+      maxTokens: 1024,
+      // Inside this route's own maxDuration of 30, with room for the retry.
+      timeoutMs: 12_000,
+      maxRetries: 1,
+    });
+    return NextResponse.json({ players: read.parsed?.players ?? [] });
   } catch (err) {
     console.error("[players] spotting call failed", {
       message: err instanceof Error ? err.message : String(err),

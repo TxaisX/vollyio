@@ -68,8 +68,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 93,
-    "weakest_metric": "",
     "strongest_metric": "arm_swing",
-    "notes": "Explosive baseline jump serve, high contact above the head with hard arm speed; distant fan-POV caps fine-fault reads."
+    "notes": "Explosive baseline jump serve, high contact above the head with hard arm speed; distant fan-POV caps fine-fault reads. | abstain: VNL Pro Nishida",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

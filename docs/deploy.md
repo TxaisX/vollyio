@@ -20,7 +20,8 @@ Set in `.env.local` for dev and mirrored to Vercel (`vercel env add <NAME> produ
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | public | no | read client + build time |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | no | anon/publishable key; RLS enforces access |
-| `ANTHROPIC_API_KEY` | server only | **yes** | the coaching service; never prefix `NEXT_PUBLIC` |
+| `ANTHROPIC_API_KEY` | server only | **yes** | the coaching service: coach chat, the weekly plan, every written report. Never prefix `NEXT_PUBLIC` |
+| `OPENROUTER_API_KEY` | server only | **yes** | the vision provider: the frame read behind `/api/analyze` and `/api/players` (D-093). Prepaid credit, so the account balance is the real ceiling. Absent, both routes fail exactly as a provider outage does and no analysis is counted |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | **yes** | bypasses row security on every table. `lib/supabase/service.ts` is the only reader; its two importers are the payment webhook and the analyze route's telemetry/refund calls (D-065), each recorded with its reason in `docs/security.md` rule 10. A third importer is a security change, not a refactor. Absent, the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | server only | **yes** | payment provider API key. Read only by `lib/stripe.ts` |
 | `STRIPE_WEBHOOK_SECRET` | server only | **yes** | endpoint signing secret. Absent, the webhook returns 500 and applies nothing; there is deliberately no unverified branch |

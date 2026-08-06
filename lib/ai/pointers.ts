@@ -231,6 +231,15 @@ export function parsePointerStatus(value: unknown): PointerStatus {
 const RAW_FLOOR = 30;
 const RAW_CEILING = 100;
 
+// Which calibration of the fraction-to-score mapping produced a stored score
+// (D-094). Version 1 is the linear 30..100 above. Any change to RAW_FLOOR,
+// RAW_CEILING, or the shape of the mapping MUST bump this number in the same
+// commit: `nextRating` (lib/ratings.ts) refuses to blend a new score into a
+// rating built on a different scale, and this constant is how it knows. Stored
+// results are stamped with it; a row without one predates versioning and is
+// version 1 by construction.
+export const SCALE_VERSION = 1;
+
 export type DerivedMetric = {
   observed: boolean;
   // Raw (pre-curve) score. Meaningless when observed is false.
@@ -262,6 +271,139 @@ export function deriveMetric(
 }
 
 // The pointer checklist for one skill, rendered for the prompt.
+// Pointers that CANNOT be honestly judged from a silent, single-rep frame
+// sequence, no matter what the model claims (D-095). Two families:
+//   - sound: the evidence is images; there is no audio to hear a slap or a
+//     catch with.
+//   - repeatability: one rep cannot demonstrate that anything repeats.
+// Measured 2026-08-05: on a real grass clip the vision provider returned "met"
+// on BOTH families, so this is not a hypothetical. Prompt wording cannot fix a
+// question the evidence cannot answer; only removing the question can.
+export const UNANSWERABLE_POINTERS: ReadonlySet<string> = new Set([
+  // sound
+  "quiet_contact",
+  // repeatability across reps
+  "repeatable_arc",
+  "repeatable_height",
+  "repeatable_contact",
+  "consistent_toss",
+]);
+
+export type CitedPointer = { key: string; status: string; frame?: number };
+
+/**
+ * Strict-evidence enforcement (D-095). A `met` or `missed` verdict is a claim
+ * that the mechanic was RESOLVABLE in the footage, so it must name the frame
+ * where it was resolvable. Anything uncited, cited outside the sent range, or
+ * asking a question the evidence cannot answer at all, degrades to
+ * not_visible, which excludes it from the score rather than counting it.
+ *
+ * Deliberately one-directional: it can only ever move a verdict toward
+ * abstention, never toward a better one, so it cannot inflate a score. And it
+ * leaves `partial` alone, because partial already reads as a hedge rather than
+ * a confident claim of sight.
+ */
+export function enforceEvidence(
+  reported: CitedPointer[] | undefined,
+  frameCount: number,
+): { key: string; status: string }[] {
+  return (reported ?? []).map((p) => {
+    const status = parsePointerStatus(p.status);
+    if (status === "not_visible") return { key: p.key, status: p.status };
+
+    // A question the evidence cannot answer at all leaves the score. This is
+    // the ONE place not_visible is the right degradation, because the mechanic
+    // genuinely was not observable and the athlete must not be charged for it.
+    if (UNANSWERABLE_POINTERS.has(p.key)) return { key: p.key, status: "not_visible" };
+
+    // Everything else degrades to `partial`, NOT to not_visible. Measured
+    // twice on 2026-08-05: not_visible is an ABSTENTION, not a harsh grade, so
+    // every rule that degraded toward it removed the contested pointers from
+    // the denominator and RAISED the score (95/97/98 consensused to 100;
+    // requiring citations on partial pushed runs from 89 up to 94-100).
+    //
+    // `partial` is the honest landing place: the model did judge the mechanic,
+    // so it is not unseen, but the claim that it was done CORRECTLY failed its
+    // evidence test, and a mechanic that is present without demonstrable
+    // correctness is precisely what partial means. A `missed` is left intact
+    // because an unsupported claim of failure is still a claim the athlete
+    // should not be credited for reversing.
+    const cited = typeof p.frame === "number" && Number.isInteger(p.frame);
+    const inRange = cited && p.frame! >= 0 && p.frame! < frameCount;
+    if (inRange) return { key: p.key, status: p.status };
+    return { key: p.key, status: status === "met" ? "partial" : p.status };
+  });
+}
+
+// Strictness order for consensus. A verdict only survives if the runs agree;
+// otherwise the pointer falls to the strictest verdict that actually appeared.
+// Order among JUDGED verdicts only. not_visible is deliberately absent from
+// the ranking: it is an abstention, not a harsh grade, and it is handled
+// separately in consensusPointers below.
+const STRICTNESS: Record<PointerStatus, number> = {
+  met: 0,
+  partial: 1,
+  missed: 2,
+  not_visible: 0,
+};
+
+/**
+ * Per-pointer consensus across N independent runs of the same clip (D-095).
+ *
+ * The measured problem this solves: one run of the same clip returned 12 met
+ * and the next returned 16, a swing wider than the gap between providers. A
+ * single sample is therefore not evidence about the athlete, it is a sample of
+ * the model's variance.
+ *
+ * `met` requires a strict majority. Anything short of that falls to the
+ * strictest verdict any run reported, because a mechanic that one look calls
+ * correct and another calls flawed is, by definition, not clearly correct.
+ * not_visible is treated as the strictest of all: if any run could not resolve
+ * a mechanic and no majority says otherwise, the honest answer is that the
+ * footage does not settle it.
+ */
+export function consensusPointers(
+  runs: { key: string; status: string }[][],
+): { key: string; status: string }[] {
+  const votes = new Map<string, PointerStatus[]>();
+  for (const run of runs) {
+    for (const p of run ?? []) {
+      const list = votes.get(p.key) ?? [];
+      list.push(parsePointerStatus(p.status));
+      votes.set(p.key, list);
+    }
+  }
+  const out: { key: string; status: string }[] = [];
+  for (const [key, list] of votes) {
+    // not_visible is NEUTRAL, not strict: an unseen pointer leaves the
+    // arithmetic entirely, so falling back to it on disagreement REMOVES the
+    // hard-to-judge pointers from the denominator and raises the score. That
+    // is measured, not theoretical: an earlier version of this function ranked
+    // not_visible strictest and turned runs of 95/97/98 into a consensus of
+    // 100. So abstention needs its own majority, and every other disagreement
+    // resolves among the JUDGED verdicts only.
+    const unseen = list.filter((s) => s === "not_visible").length;
+    if (unseen * 2 > list.length) {
+      out.push({ key, status: "not_visible" });
+      continue;
+    }
+    const judged = list.filter((s) => s !== "not_visible");
+    if (judged.length === 0) {
+      out.push({ key, status: "not_visible" });
+      continue;
+    }
+    const metVotes = judged.filter((s) => s === "met").length;
+    if (metVotes * 2 > judged.length) {
+      out.push({ key, status: "met" });
+      continue;
+    }
+    let worst: PointerStatus = "met";
+    for (const s of judged) if (STRICTNESS[s] > STRICTNESS[worst]) worst = s;
+    out.push({ key, status: worst });
+  }
+  return out;
+}
+
 export function pointerSpec(skill: Skill): string {
   const lines: string[] = [
     "POINTERS (the checklist the score is computed from)",

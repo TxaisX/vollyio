@@ -1,0 +1,4115 @@
+{
+  "model": "google/gemini-3.6-flash",
+  "runs": 3,
+  "started_at": "2026-08-05T04:03:38.214Z",
+  "results": {
+    "v01-8k-finals-rally-beachvolleyballworld-p1": {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p1",
+      "skill": "serve",
+      "discipline": "beach",
+      "overall": 95,
+      "overalls": [
+        93,
+        98,
+        95
+      ],
+      "coherent_overall": 95,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "95 vs [78, 92]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": true,
+          "status": "pass",
+          "detail": "expected one of [toss_quality], got toss_quality"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected contact_point, got arm_swing"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 5,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11838,
+          "output_tokens": 1884,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9882,
+          "output_tokens": 2001,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 11838,
+          "output_tokens": 1699,
+          "cache_read_input_tokens": 8085,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        10321,
+        3552,
+        9326
+      ],
+      "analysis": {
+        "overall_score": 84,
+        "subject_check": {
+          "analyzed": "player in grey tank top and blue shorts executing a jump float serve",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "toss_quality": {
+            "note": "Toss is lifted smoothly with two hands out in front of the hitting shoulder, giving the server clean momentum into the jump float.",
+            "pointers": [
+              {
+                "key": "consistent_toss",
+                "status": "partial"
+              },
+              {
+                "key": "toss_in_front",
+                "status": "met"
+              },
+              {
+                "key": "lifted_no_spin",
+                "status": "met"
+              },
+              {
+                "key": "toss_arm_extends",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "Clean high-elbow bow-and-arrow load at frame 2 with full high-reach swing speed through the ball.",
+            "pointers": [
+              {
+                "key": "high_elbow_load",
+                "status": "met"
+              },
+              {
+                "key": "bow_draw",
+                "status": "met"
+              },
+              {
+                "key": "arm_accelerates",
+                "status": "met"
+              },
+              {
+                "key": "wrist_snap",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_point": {
+            "note": "Contact is hit at high vertical reach in frame 2 directly in front of the right shoulder with a firm hand.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "contact_in_front",
+                "status": "met"
+              },
+              {
+                "key": "firm_open_hand",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_contact",
+                "status": "partial"
+              }
+            ]
+          },
+          "follow_through": {
+            "note": "Arm decelerates naturally with forward movement into the court, though camera cuts mid-landing.",
+            "pointers": [
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              },
+              {
+                "key": "natural_deceleration",
+                "status": "met"
+              },
+              {
+                "key": "balanced_finish",
+                "status": "partial"
+              },
+              {
+                "key": "weight_transfers",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Body stays loaded and tall into takeoff, maintaining squared alignment toward the target line through contact.",
+            "pointers": [
+              {
+                "key": "side_on_start",
+                "status": "met"
+              },
+              {
+                "key": "hips_rotate",
+                "status": "met"
+              },
+              {
+                "key": "stable_head",
+                "status": "met"
+              },
+              {
+                "key": "square_finish",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 2,
+        "focus": {
+          "frame_index": 2,
+          "label": "High contact point",
+          "why": "Frame 2 demonstrates clean reach and sound high-elbow loading through the contact phase."
+        },
+        "insights": [
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Reaches maximum vertical extension at contact point in frame 2."
+          },
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Consistent toss placement pushed slightly forward to allow forward transition off the sand."
+          },
+          {
+            "frame_index": 2,
+            "type": "issue",
+            "observation": "Contact palm alignment could be even flatter to maximize unpredictable float movement in wind."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Refine Float Contact Flatness",
+            "detail": "Focus on contacting the precise dead center of the ball with a solid palm and stiff wrist to eliminate residual spin.",
+            "target_metric": "contact_point",
+            "expected_gain": 6,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "serve-toss-and-freeze",
+          "serve-wall-contact-snap"
+        ],
+        "summary": "The player demonstrates high-level jump float mechanics with an ideal forward toss and high-reach contact point. Body alignment and transfer of weight through takeoff on sand are exceptionally well-controlled. Not visible in this clip: complete landing and post-serve transition posture."
+      }
+    },
+    "v01-8k-finals-rally-beachvolleyballworld-p2": {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p2",
+      "skill": "dig",
+      "discipline": "beach",
+      "overall": 98,
+      "overalls": [
+        100,
+        100,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [76, 90]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected movement_pursuit, got ready_position"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 6 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 9772,
+          "output_tokens": 2416,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9772,
+          "output_tokens": 1474,
+          "cache_read_input_tokens": 6739,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9772,
+          "output_tokens": 2032,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3627,
+        2782,
+        3175
+      ],
+      "analysis": {
+        "overall_score": 91,
+        "subject_check": {
+          "analyzed": "player in white top and white shorts on the near court",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "ready_position": {
+            "note": "Maintains an exceptionally low, wide base with weight forward and arms separated before attacker contact in frames 1-2.",
+            "pointers": [
+              {
+                "key": "low_wide_base",
+                "status": "met"
+              },
+              {
+                "key": "weight_forward",
+                "status": "met"
+              },
+              {
+                "key": "arms_ready_apart",
+                "status": "met"
+              },
+              {
+                "key": "stopped_at_swing",
+                "status": "met"
+              }
+            ]
+          },
+          "read_anticipation": {
+            "note": "Reads the attacker's shoulder turn early in frame 2 and commits laterally without guessing or pre-drifting.",
+            "pointers": [
+              {
+                "key": "reads_hitter_line",
+                "status": "met"
+              },
+              {
+                "key": "early_position",
+                "status": "met"
+              },
+              {
+                "key": "in_the_lane",
+                "status": "met"
+              },
+              {
+                "key": "no_guess_drift",
+                "status": "met"
+              }
+            ]
+          },
+          "platform_control": {
+            "note": "Extends arms cleanly in frame 3 to create forearm contact; slight wrist looseness at full stretch pops the ball high rather than driving it to the target zone.",
+            "pointers": [
+              {
+                "key": "early_platform",
+                "status": "met"
+              },
+              {
+                "key": "angle_to_target",
+                "status": "partial"
+              },
+              {
+                "key": "absorbs_pace",
+                "status": "met"
+              },
+              {
+                "key": "forearm_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "movement_pursuit": {
+            "note": "Explosive lateral first step and complete layout drive in frames 3-4, maintaining low height through the sand.",
+            "pointers": [
+              {
+                "key": "quick_first_step",
+                "status": "met"
+              },
+              {
+                "key": "stays_low_moving",
+                "status": "met"
+              },
+              {
+                "key": "full_effort_extension",
+                "status": "met"
+              },
+              {
+                "key": "controlled_emergency",
+                "status": "met"
+              }
+            ]
+          },
+          "recovery": {
+            "note": "Pushes up off the sand immediately in frame 5 while keeping eyes locked on the ball, returning to base position effortlessly.",
+            "pointers": [
+              {
+                "key": "up_quickly",
+                "status": "met"
+              },
+              {
+                "key": "eyes_stay_on_ball",
+                "status": "met"
+              },
+              {
+                "key": "returns_to_base",
+                "status": "met"
+              },
+              {
+                "key": "ready_for_next",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "Layout contact angle",
+          "why": "Frame 3 captures maximum extension where holding a rigid wrist angle keeps the dig trajectory lower and more controllable for the setter."
+        },
+        "insights": [
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Maintains a wide, loaded base with hips low and arms ready as the attack develops."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Executes an explosive full-body layout in the sand to reach a ball well outside her midline."
+          },
+          {
+            "frame_index": 3,
+            "type": "issue",
+            "observation": "Platform wrists break slightly upward at impact, sending the ball high rather than flat toward the setter."
+          },
+          {
+            "frame_index": 5,
+            "type": "strength",
+            "observation": "Recovers off the chest instantly and turns to track the dug ball without losing dynamic balance."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Lock wrists through full-stretch contact",
+            "detail": "Focus on locking the wrists downward and flexing shoulder blades together during maximum emergency extensions in frame 3 to prevent loose platform pop.",
+            "target_metric": "platform_control",
+            "expected_gain": 6,
+            "difficulty": "moderate",
+            "timeframe": "1-2 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "dig-pursuit-roll-recovery",
+          "dig-wall-platform-reps"
+        ],
+        "summary": "Elite defensive mechanics shown through base posture, reading, emergency extension, and post-contact recovery. The primary point of refinement is holding wrist structure tight at full stretch in frame 3 to control high-speed rebound angles."
+      }
+    },
+    "v01-8k-finals-rally-beachvolleyballworld-p3": {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p3",
+      "skill": "pass",
+      "discipline": "beach",
+      "overall": 98,
+      "overalls": [
+        100,
+        100,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [78, 92]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [contact_control], got platform_angle"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": true,
+          "status": "pass",
+          "detail": "expected body_posture, got body_posture"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11712,
+          "output_tokens": 3101,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9749,
+          "output_tokens": 2113,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 11712,
+          "output_tokens": 2625,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        10111,
+        10128,
+        4225
+      ],
+      "analysis": {
+        "overall_score": 88,
+        "subject_check": {
+          "analyzed": "player in white sports bra and white shorts",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "platform_angle": {
+            "note": "Platform forms cleanly with locked elbows at contact in Frame 1, though hands join slightly late during the ball's final approach in Frame 0.",
+            "pointers": [
+              {
+                "key": "early_platform",
+                "status": "partial"
+              },
+              {
+                "key": "angled_to_target",
+                "status": "met"
+              },
+              {
+                "key": "elbows_locked",
+                "status": "met"
+              },
+              {
+                "key": "level_wrists",
+                "status": "met"
+              }
+            ]
+          },
+          "body_posture": {
+            "note": "Maintains a strong athletic base with knees bent and shoulders leaning forward over the sand throughout contact.",
+            "pointers": [
+              {
+                "key": "low_athletic_base",
+                "status": "met"
+              },
+              {
+                "key": "shoulders_forward",
+                "status": "met"
+              },
+              {
+                "key": "ball_played_in_front",
+                "status": "met"
+              },
+              {
+                "key": "quiet_upper_body",
+                "status": "met"
+              }
+            ]
+          },
+          "footwork_to_ball": {
+            "note": "Establishes a stable, grounded base in the sand before contact without lunging or reaching.",
+            "pointers": [
+              {
+                "key": "beats_ball",
+                "status": "met"
+              },
+              {
+                "key": "centered_midline",
+                "status": "met"
+              },
+              {
+                "key": "stopped_at_contact",
+                "status": "met"
+              },
+              {
+                "key": "moves_not_reaches",
+                "status": "met"
+              }
+            ]
+          },
+          "angle_to_target": {
+            "note": "Platform and shoulders are properly oriented to steer the ball cleanly toward the setting zone.",
+            "pointers": [
+              {
+                "key": "faces_ball_angles_target",
+                "status": "met"
+              },
+              {
+                "key": "inside_shoulder_drop",
+                "status": "met"
+              },
+              {
+                "key": "rebound_on_line",
+                "status": "met"
+              },
+              {
+                "key": "controlled_arc",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_control": {
+            "note": "Contacts flat on the mid-forearms with smooth leg extension to lift a soft, playable ball.",
+            "pointers": [
+              {
+                "key": "forearm_contact",
+                "status": "met"
+              },
+              {
+                "key": "pace_matched",
+                "status": "met"
+              },
+              {
+                "key": "hittable_arc",
+                "status": "met"
+              },
+              {
+                "key": "low_spin_off",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 1,
+        "focus": {
+          "frame_index": 0,
+          "label": "Early Platform Creation",
+          "why": "Hands are still joining as the ball arrives in Frame 0; locking the platform earlier provides complete control against unpredictable serves."
+        },
+        "insights": [
+          {
+            "frame_index": 0,
+            "type": "issue",
+            "observation": "Platform forms slightly late as hands lock right near contact rather than early in ball flight."
+          },
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Elbows lock fully straight with wrists pressed down to present a flat, solid passing surface."
+          },
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Strong forward body posture with loaded hips and bent knees absorbing pace in deep sand."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Build Platform Earlier in Flight",
+            "detail": "Lock forearms and wrists together as soon as footwork settles rather than bringing hands together during ball arrival in Frame 0.",
+            "target_metric": "platform_angle",
+            "expected_gain": 8,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "pass-live-serve-receive-read",
+          "pass-wall-platform-freeze"
+        ],
+        "summary": "Demonstrates high-level beach passing mechanics with a grounded athletic base, locked elbows, and precise target alignment. The primary refinement is building the platform earlier before contact to maintain maximum platform stability. Not visible in this clip: long-term trajectory and complete ball drop location."
+      }
+    },
+    "v01-8k-finals-rally-beachvolleyballworld-p4": {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p4",
+      "skill": "block",
+      "discipline": "beach",
+      "overall": 98,
+      "overalls": [
+        96,
+        98,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [74, 88]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [lateral_footwork], got hand_penetration"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": true,
+          "status": "pass",
+          "detail": "expected read_timing, got read_timing"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 6 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11745,
+          "output_tokens": 2313,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9794,
+          "output_tokens": 2696,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9794,
+          "output_tokens": 1666,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        4007,
+        3308,
+        2847
+      ],
+      "analysis": {
+        "overall_score": 86,
+        "subject_check": {
+          "analyzed": "Player in grey sleeveless top and light blue shorts at the net",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "read_timing": {
+            "note": "Exceptional reading of the attacker's approach and swing tempo, timing takeoff to reach peak height exactly at hitter contact.",
+            "pointers": [
+              {
+                "key": "eye_sequence",
+                "status": "met"
+              },
+              {
+                "key": "jumps_off_hitter",
+                "status": "met"
+              },
+              {
+                "key": "hands_at_peak",
+                "status": "met"
+              },
+              {
+                "key": "no_early_commit",
+                "status": "met"
+              }
+            ]
+          },
+          "hand_penetration": {
+            "note": "Hands penetrate well over the net tape with wide fingers, though wrists could flex down more aggressively toward the court.",
+            "pointers": [
+              {
+                "key": "hands_over_net",
+                "status": "met"
+              },
+              {
+                "key": "fingers_spread_firm",
+                "status": "met"
+              },
+              {
+                "key": "sealed_gap",
+                "status": "met"
+              },
+              {
+                "key": "press_down",
+                "status": "partial"
+              }
+            ]
+          },
+          "lateral_footwork": {
+            "note": "Establishes a balanced, loaded position at the net prior to jump with no lateral drifting during takeoff.",
+            "pointers": [
+              {
+                "key": "clean_pattern",
+                "status": "met"
+              },
+              {
+                "key": "square_on_arrival",
+                "status": "met"
+              },
+              {
+                "key": "off_the_net",
+                "status": "met"
+              },
+              {
+                "key": "loaded_before_jump",
+                "status": "met"
+              }
+            ]
+          },
+          "body_position": {
+            "note": "Maintains a strong vertical trunk and compact core throughout the air phase without touching the net.",
+            "pointers": [
+              {
+                "key": "vertical_jump",
+                "status": "met"
+              },
+              {
+                "key": "tight_core",
+                "status": "met"
+              },
+              {
+                "key": "arms_length_spacing",
+                "status": "met"
+              },
+              {
+                "key": "eyes_open_neutral",
+                "status": "met"
+              }
+            ]
+          },
+          "landing_recovery": {
+            "note": "Avoids net contact and quickly transitions off the net to stay involved in defense, though landing footwork is partially cut off between frames.",
+            "pointers": [
+              {
+                "key": "soft_two_foot",
+                "status": "not_visible"
+              },
+              {
+                "key": "balanced_off_net",
+                "status": "not_visible"
+              },
+              {
+                "key": "immediate_reload",
+                "status": "met"
+              },
+              {
+                "key": "no_net_touch",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 1,
+        "focus": {
+          "frame_index": 1,
+          "label": "Wrist Press Over Net",
+          "why": "At peak height in frame 1, pressing the wrists down-and-in creates a steeper angle to trap hits inside the line."
+        },
+        "insights": [
+          {
+            "frame_index": 0,
+            "type": "strength",
+            "observation": "Base position is stable and loaded, keeping eyes locked on the attacker's approach."
+          },
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Reaches maximum height right at contact with arms fully extended over the net."
+          },
+          {
+            "frame_index": 1,
+            "type": "issue",
+            "observation": "Hands are high over the tape but wrists remain somewhat upright rather than pressing aggressively downward."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "Transitions fluidly from blocking position into subsequent defensive coverage."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Flex Wrists Down at Peak",
+            "detail": "Focus on shrugging shoulders and actively flexing wrists downward over the net tape to penetrate into the hitter's court.",
+            "target_metric": "hand_penetration",
+            "expected_gain": 8,
+            "difficulty": "moderate",
+            "timeframe": "2-3 practices"
+          }
+        ],
+        "drill_slugs": [
+          "block-wall-press-holds",
+          "block-mirror-read"
+        ],
+        "summary": "Solid blocking rep featuring precise timing, vertical lift in deep sand, and steady posture over the net. Pressing the wrists down more aggressively at peak penetration will turn touches into hard block-kills. Not visible in this clip: the exact two-foot landing ground impact."
+      }
+    },
+    "v01-8k-finals-rally-beachvolleyballworld-p5": {
+      "id": "v01-8k-finals-rally-beachvolleyballworld-p5",
+      "skill": "attack",
+      "discipline": "beach",
+      "overall": 99,
+      "overalls": [
+        94,
+        98,
+        99
+      ],
+      "coherent_overall": 99,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "99 vs [78, 92]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected jump_timing, got approach_footwork"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 5,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 17577,
+          "output_tokens": 2745,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 17577,
+          "output_tokens": 3062,
+          "cache_read_input_tokens": 14202,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 17577,
+          "output_tokens": 3210,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        4755,
+        2587,
+        4630
+      ],
+      "analysis": {
+        "overall_score": 86,
+        "subject_check": {
+          "analyzed": "left-side hitter in white top and white shorts",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "approach_footwork": {
+            "note": "Clean directional approach and foot plant in the sand, driving explosive vertical lift into takeoff.",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "met"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Takeoff is well-timed to the set arc, allowing contact near peak jump height with control in the air.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High elbow draw and crisp bow-and-arrow loading lead into a fast whip through the ball.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "Contact occurs at high extension directly in front of the hitting shoulder.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Good core engagement driving power through the ball, with a complete arm swing finish.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "partial"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 7,
+        "focus": {
+          "frame_index": 6,
+          "label": "Bow-and-arrow position",
+          "why": "Frame 6 demonstrates ideal high-elbow draw and guide-arm tracking immediately preceding contact."
+        },
+        "insights": [
+          {
+            "frame_index": 5,
+            "type": "strength",
+            "observation": "Low, broad plant step creates deep hip loading for explosive vertical transfer."
+          },
+          {
+            "frame_index": 6,
+            "type": "strength",
+            "observation": "High elbow draw and tracking arm establish clear separation before initiating the swing."
+          },
+          {
+            "frame_index": 7,
+            "type": "strength",
+            "observation": "High point contact at full arm extension in front of the right shoulder."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maximize core trunk snap through contact",
+            "detail": "Initiate the swing by pulling the non-hitting arm firmly into the ribcage to accelerate hip and chest rotation through the ball.",
+            "target_metric": "power_followthrough",
+            "expected_gain": 5,
+            "difficulty": "moderate",
+            "timeframe": "1-2 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "attack-high-set-line-cross",
+          "attack-tossed-approach-timing"
+        ],
+        "summary": "The hitter demonstrates excellent attacking fundamentals with a synchronized approach, explosive jump, and clean bow-and-arrow arm draw. Contact is made at high extension in front of the hitting shoulder with strong wrist snap."
+      }
+    },
+    "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p1": {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p1",
+      "skill": "serve",
+      "discipline": "grass",
+      "overall": 98,
+      "overalls": [
+        95,
+        100,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [70, 84]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [body_alignment], got arm_swing"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected body_alignment, got toss_quality"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 5,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 16294,
+          "output_tokens": 2897,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 14338,
+          "output_tokens": 2587,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 16294,
+          "output_tokens": 2409,
+          "cache_read_input_tokens": 14193,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        2877,
+        3361,
+        2537
+      ],
+      "analysis": {
+        "overall_score": 85,
+        "subject_check": {
+          "analyzed": "female player in white crop top and dark blue leggings serving on grass",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "toss_quality": {
+            "note": "Smooth, controlled lift off the palm placing the ball consistently in front of the hitting shoulder with low spin.",
+            "pointers": [
+              {
+                "key": "consistent_toss",
+                "status": "met"
+              },
+              {
+                "key": "toss_in_front",
+                "status": "met"
+              },
+              {
+                "key": "lifted_no_spin",
+                "status": "met"
+              },
+              {
+                "key": "toss_arm_extends",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High-elbow draw with clean bow-and-arrow loading and crisp arm speed into contact.",
+            "pointers": [
+              {
+                "key": "high_elbow_load",
+                "status": "met"
+              },
+              {
+                "key": "bow_draw",
+                "status": "met"
+              },
+              {
+                "key": "arm_accelerates",
+                "status": "met"
+              },
+              {
+                "key": "wrist_snap",
+                "status": "partial"
+              }
+            ]
+          },
+          "contact_point": {
+            "note": "Contact made at high reach slightly ahead of the hitting shoulder with a solid open hand.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "contact_in_front",
+                "status": "met"
+              },
+              {
+                "key": "firm_open_hand",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "follow_through": {
+            "note": "Appropriate checked follow-through for a float serve, maintaining balance and forward momentum.",
+            "pointers": [
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              },
+              {
+                "key": "natural_deceleration",
+                "status": "met"
+              },
+              {
+                "key": "balanced_finish",
+                "status": "met"
+              },
+              {
+                "key": "weight_transfers",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Well-aligned posture starting side-on and rotating squarely into the court through contact.",
+            "pointers": [
+              {
+                "key": "side_on_start",
+                "status": "met"
+              },
+              {
+                "key": "hips_rotate",
+                "status": "met"
+              },
+              {
+                "key": "stable_head",
+                "status": "met"
+              },
+              {
+                "key": "square_finish",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "Contact Extension",
+          "why": "Frame 3 demonstrates full reach and high contact point over the right shoulder."
+        },
+        "insights": [
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Consistent toss trajectory lifted softly without unnecessary spin."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "High contact point achieved with clean bow-and-arrow shoulder loading."
+          },
+          {
+            "frame_index": 6,
+            "type": "strength",
+            "observation": "Controlled weight transfer allows immediate forward movement into base defense."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Firm Hand Contact",
+            "detail": "Lock the wrist and contact dead-center with a rigid palm to maximize unpredictability on outdoor float serves.",
+            "target_metric": "contact_point",
+            "expected_gain": 5,
+            "difficulty": "quick",
+            "timeframe": "1 practice"
+          }
+        ],
+        "drill_slugs": [
+          "serve-standing-float-zones",
+          "serve-toss-and-freeze"
+        ],
+        "summary": "The server demonstrates refined mechanics on grass with a steady toss, elevated contact point, and smooth body rotation. Transition into court positioning after the serve is clean and efficient. Locking the wrist firm at strike will optimize float trajectory in windy outdoor conditions."
+      }
+    },
+    "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p2": {
+      "id": "v02-aqowl8xfnirpswrq5w7ovan1srf5krblmulphdt1qvwr-p2",
+      "skill": "attack",
+      "discipline": "grass",
+      "overall": 100,
+      "overalls": [
+        100,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [68, 82]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [power_followthrough], got approach_footwork"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected jump_timing, got approach_footwork"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 0,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 10056,
+          "output_tokens": 1660,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12017,
+          "output_tokens": 1986,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 10056,
+          "output_tokens": 1783,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3275,
+        3587,
+        2902
+      ],
+      "analysis": {
+        "overall_score": 93,
+        "subject_check": {
+          "analyzed": "shirtless player in black-and-white plaid pants and pink shoes",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "approach_footwork": {
+            "note": "Explosive, smooth footwork accelerating into a deep plant at frame 3 with arms fully loaded back behind hips.",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "met"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Takeoff is cleanly synced to the high set, allowing peak contact at vertical apex in frame 4 without rushing or drifting.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High elbow draw and crisp bow-and-arrow arm loading, whipping through the ball cleanly at contact.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "Reaches high at full extension above and slightly in front of the hitting shoulder in frame 4.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Full kinetic chain drives torso rotation through impact with a controlled two-foot landing in frame 5.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 4,
+        "focus": {
+          "frame_index": 4,
+          "label": "Apex Contact Point",
+          "why": "Frame 4 shows peak vertical reach and clean high extension at contact."
+        },
+        "insights": [
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Excellent approach acceleration ending in a deep plant step with arms drawn well behind hips to maximize vertical lift."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "Contact is made at full extension near the apex of the jump in front of the hitting shoulder."
+          },
+          {
+            "frame_index": 5,
+            "type": "strength",
+            "observation": "Landing is balanced and cushioned on both feet after completing the full swing follow-through."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maximize Non-Hitting Arm Pull",
+            "detail": "Aggressively pull the left non-hitting arm down into the ribcage at contact to accelerate chest rotation and snap the hitting shoulder through even faster.",
+            "target_metric": "arm_swing",
+            "expected_gain": 5,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "attack-high-set-line-cross",
+          "attack-transition-bounce-finish"
+        ],
+        "summary": "This hitter demonstrates advanced, highly explosive attacking mechanics on grass. The approach footwork, jump timing, high reach, and landing mechanics are executed cleanly across all phases shown."
+      }
+    },
+    "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p1": {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p1",
+      "skill": "set",
+      "discipline": "grass",
+      "overall": 100,
+      "overalls": [
+        97,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [72, 86]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [body_alignment], got hand_shape"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected body_alignment, got hand_shape"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 3,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11987,
+          "output_tokens": 2584,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 11987,
+          "output_tokens": 2076,
+          "cache_read_input_tokens": 6966,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 13937,
+          "output_tokens": 1968,
+          "cache_read_input_tokens": 10123,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3206,
+        10118,
+        4183
+      ],
+      "analysis": {
+        "overall_score": 89,
+        "subject_check": {
+          "analyzed": "female player in black shirt, patterned shorts, grey cap, barefoot",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "hand_shape": {
+            "note": "Hands arrive high with a clear ball-shaped window over the forehead in Frame 3. Fingerpads load evenly with symmetric extension.",
+            "pointers": [
+              {
+                "key": "ball_shaped_window",
+                "status": "met"
+              },
+              {
+                "key": "fingerpad_contact",
+                "status": "met"
+              },
+              {
+                "key": "symmetric_hands",
+                "status": "met"
+              },
+              {
+                "key": "quiet_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "footwork": {
+            "note": "Beats the ball to the spot cleanly in Frame 2, bringing her feet underneath her center of gravity for a balanced plant on grass in Frame 3.",
+            "pointers": [
+              {
+                "key": "beats_ball",
+                "status": "met"
+              },
+              {
+                "key": "square_stop",
+                "status": "met"
+              },
+              {
+                "key": "right_foot_lead",
+                "status": "met"
+              },
+              {
+                "key": "still_at_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Hips and shoulders are squared to the target in Frame 3 with forehead directly underneath the ball at contact.",
+            "pointers": [
+              {
+                "key": "under_the_ball",
+                "status": "met"
+              },
+              {
+                "key": "hips_to_target",
+                "status": "met"
+              },
+              {
+                "key": "vertical_posture",
+                "status": "met"
+              },
+              {
+                "key": "still_head",
+                "status": "met"
+              }
+            ]
+          },
+          "release": {
+            "note": "Clean, quick extension through the arms in Frame 3, finishing with high hands pointing toward the hitter's window.",
+            "pointers": [
+              {
+                "key": "legs_through_hands",
+                "status": "met"
+              },
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "no_carry",
+                "status": "met"
+              },
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              }
+            ]
+          },
+          "tempo_decision": {
+            "note": "Delivers a high, readable outdoor set giving the hitter ample time to build an approach in Frame 4.",
+            "pointers": [
+              {
+                "key": "off_the_net",
+                "status": "met"
+              },
+              {
+                "key": "hitter_side_peak",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_arc",
+                "status": "met"
+              },
+              {
+                "key": "gives_hitter_time",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "High hand setup",
+          "why": "Frame 3 captures excellent hand symmetry and body alignment directly under the ball at contact."
+        },
+        "insights": [
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Transitions quickly across the grass to establish foot balance ahead of contact."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Positions hands symmetrically above the forehead for a clean overhead contact."
+          },
+          {
+            "frame_index": 3,
+            "type": "issue",
+            "observation": "Slight reliance on upper body push rather than driving full momentum from the lower legs."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Drive fully through lower body on release",
+            "detail": "Engage the legs fully through contact in Frame 3 to lift the set higher and counteract potential outdoor wind.",
+            "target_metric": "release",
+            "expected_gain": 6,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "set-wall-rhythm-sets",
+          "set-move-square-footwork"
+        ],
+        "summary": "The setter displays clean technical fundamentals on grass, arriving early underneath the ball and establishing a squared base. Hand position at contact in Frame 3 is high over the forehead with a balanced fingerpad shape and smooth release to the hitter. Continuing to emphasize strong leg drive will ensure consistent trajectory and high set consistency in windy outdoor conditions."
+      }
+    },
+    "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p2": {
+      "id": "v03-aqods4-loj5peh0b8jsf6m634r1gnhjk9hbabyz8tkwm-p2",
+      "skill": "set",
+      "discipline": "grass",
+      "overall": 100,
+      "overalls": [
+        98,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [74, 88]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected body_alignment, got hand_shape"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11720,
+          "output_tokens": 2805,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9770,
+          "output_tokens": 2494,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 9770,
+          "output_tokens": 2107,
+          "cache_read_input_tokens": 6739,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3681,
+        3279,
+        2618
+      ],
+      "analysis": {
+        "overall_score": 92,
+        "subject_check": {
+          "analyzed": "Male setter in black shirt, white cap, and patterned shorts near the net",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "hand_shape": {
+            "note": "Hands form a clean, symmetric triangle window high above the forehead with balanced fingerpad contact.",
+            "pointers": [
+              {
+                "key": "ball_shaped_window",
+                "status": "met"
+              },
+              {
+                "key": "fingerpad_contact",
+                "status": "met"
+              },
+              {
+                "key": "symmetric_hands",
+                "status": "met"
+              },
+              {
+                "key": "quiet_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "footwork": {
+            "note": "Beats the ball to the spot efficiently on grass and establishes a stable right-foot-lead base.",
+            "pointers": [
+              {
+                "key": "beats_ball",
+                "status": "met"
+              },
+              {
+                "key": "square_stop",
+                "status": "met"
+              },
+              {
+                "key": "right_foot_lead",
+                "status": "met"
+              },
+              {
+                "key": "still_at_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Remains square to the left-side target with vertical posture and clean head tracking.",
+            "pointers": [
+              {
+                "key": "under_the_ball",
+                "status": "met"
+              },
+              {
+                "key": "hips_to_target",
+                "status": "met"
+              },
+              {
+                "key": "vertical_posture",
+                "status": "met"
+              },
+              {
+                "key": "still_head",
+                "status": "met"
+              }
+            ]
+          },
+          "release": {
+            "note": "Smooth leg-to-arm kinetic sequence producing full upper extension and a clean outdoor arc.",
+            "pointers": [
+              {
+                "key": "legs_through_hands",
+                "status": "met"
+              },
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "no_carry",
+                "status": "met"
+              },
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              }
+            ]
+          },
+          "tempo_decision": {
+            "note": "Sets a consistent, high-opportunity ball off the net giving the attacker full approach timing.",
+            "pointers": [
+              {
+                "key": "off_the_net",
+                "status": "met"
+              },
+              {
+                "key": "hitter_side_peak",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_arc",
+                "status": "met"
+              },
+              {
+                "key": "gives_hitter_time",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "High Window Contact",
+          "why": "Demonstrates excellent hand entry high above the forehead with full body control before release."
+        },
+        "insights": [
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Beats the ball early and sets a balanced plant near the net."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Creates an ideal ten-finger window high over the forehead."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "Extends fully and symmetrically toward the target."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maintain High Hand Release",
+            "detail": "Keep continuing to contact the ball above the forehead to hide release cues against blocking defenses.",
+            "target_metric": "release",
+            "expected_gain": 4,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "set-wall-rhythm-sets",
+          "set-move-square-footwork"
+        ],
+        "summary": "High-level execution across all phases of the setting motion on grass. The setter arrives early, plants with a balanced base, sets a clean window over the forehead, and delivers an accurate, repeatable arc for the attacker. Not visible in this clip: defense reaction reading prior to set execution."
+      }
+    },
+    "v05-his-vertical-jump-is-p1": {
+      "id": "v05-his-vertical-jump-is-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "overall": 100,
+      "overalls": [
+        100,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [80, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": true,
+          "status": "pass",
+          "detail": "expected approach_footwork, got approach_footwork"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 0,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 12491,
+          "output_tokens": 2323,
+          "cache_read_input_tokens": 10114,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12491,
+          "output_tokens": 2982,
+          "cache_read_input_tokens": 10114,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12491,
+          "output_tokens": 3376,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3049,
+        1958,
+        4465
+      ],
+      "analysis": {
+        "overall_score": 92,
+        "subject_check": {
+          "analyzed": "Player in green jersey number 28 and dark shorts near the middle/wing",
+          "marker_match": "unmarked"
+        },
+        "rep_scores": [
+          {
+            "rep_index": 0,
+            "overall": 88,
+            "note": "First attack rep shows dynamic approach footwork and aggressive load (Frames 0-2)."
+          },
+          {
+            "rep_index": 1,
+            "overall": 94,
+            "note": "Second attack rep demonstrates explosive jump timing and ideal apex contact height (Frames 3-5)."
+          }
+        ],
+        "metrics": {
+          "approach_footwork": {
+            "note": "Demonstrates rapid transition footwork and explosive momentum transfer across both repetitions (Frames 0-1 and Frames 3-4).",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "met"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Takes off cleanly to meet the set precisely at peak vertical height in Frame 5, maintaining body control throughout.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High elbow draw and active non-hitting guide arm produce efficient whip motion and strong upper-body separation.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "High reach with complete elbow extension in front of the hitting shoulder at maximum jump apex (Frame 5).",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Strong core flexion through contact in Frame 5. Landing mechanics following final contact are cut off.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "not_visible"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 5,
+        "focus": {
+          "frame_index": 5,
+          "label": "Apex Contact Point",
+          "why": "Frame 5 demonstrates optimal contact mechanics with full arm extension high above the net."
+        },
+        "insights": [
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Explosive penultimate step creates excellent horizontal-to-vertical force transfer."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "Strong guide arm elevation and torso load position the body perfectly before takeoff."
+          },
+          {
+            "frame_index": 5,
+            "type": "strength",
+            "observation": "Peak reach achieved at contact with clean wrist snap and high shoulder alignment."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Complete Core Drive & Downward Snap",
+            "detail": "Maintain aggressive core flexion through contact in Frame 5 to drive a steep downward trajectory across all attack reps.",
+            "target_metric": "power_followthrough",
+            "expected_gain": 5,
+            "difficulty": "quick",
+            "timeframe": "1-2 sessions"
+          }
+        ],
+        "drill_slugs": [
+          "attack-transition-bounce-finish",
+          "attack-high-set-line-cross"
+        ],
+        "summary": "The hitter executes highly dynamic, high-level mechanics across both repetitions. Footwork, elevation, and high-reach contact at apex (Frame 5) are exceptional. Not visible in this clip: the landing phase following the second attack contact."
+      }
+    },
+    "v06-is-taylor-crabb-most-p1": {
+      "id": "v06-is-taylor-crabb-most-p1",
+      "skill": "block",
+      "discipline": "beach",
+      "overall": 98,
+      "overalls": [
+        98,
+        98,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [80, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected hand_penetration, got read_timing"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 0,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 12009,
+          "output_tokens": 1881,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 13960,
+          "output_tokens": 2287,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 13960,
+          "output_tokens": 2395,
+          "cache_read_input_tokens": 10124,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3938,
+        4207,
+        2730
+      ],
+      "analysis": {
+        "overall_score": 87,
+        "subject_check": {
+          "analyzed": "player in light blue top #1 with blonde hair at the net",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "read_timing": {
+            "note": "Excellent read on the setter and hitter path, timing takeoff so hands reach net height right at the attack frame.",
+            "pointers": [
+              {
+                "key": "eye_sequence",
+                "status": "met"
+              },
+              {
+                "key": "jumps_off_hitter",
+                "status": "met"
+              },
+              {
+                "key": "hands_at_peak",
+                "status": "met"
+              },
+              {
+                "key": "no_early_commit",
+                "status": "met"
+              }
+            ]
+          },
+          "hand_penetration": {
+            "note": "Hands are high with spread fingers, but wrists could press further across the net tape rather than vertically above it.",
+            "pointers": [
+              {
+                "key": "hands_over_net",
+                "status": "met"
+              },
+              {
+                "key": "fingers_spread_firm",
+                "status": "met"
+              },
+              {
+                "key": "sealed_gap",
+                "status": "met"
+              },
+              {
+                "key": "press_down",
+                "status": "partial"
+              }
+            ]
+          },
+          "lateral_footwork": {
+            "note": "Efficient movement along the net with a solid, balanced loaded plant prior to takeoff in sand.",
+            "pointers": [
+              {
+                "key": "clean_pattern",
+                "status": "met"
+              },
+              {
+                "key": "square_on_arrival",
+                "status": "met"
+              },
+              {
+                "key": "off_the_net",
+                "status": "met"
+              },
+              {
+                "key": "loaded_before_jump",
+                "status": "met"
+              }
+            ]
+          },
+          "body_position": {
+            "note": "Strong vertical lift with shoulders square to the net and core locked tight throughout the jump.",
+            "pointers": [
+              {
+                "key": "vertical_jump",
+                "status": "met"
+              },
+              {
+                "key": "tight_core",
+                "status": "met"
+              },
+              {
+                "key": "arms_length_spacing",
+                "status": "met"
+              },
+              {
+                "key": "eyes_open_neutral",
+                "status": "met"
+              }
+            ]
+          },
+          "landing_recovery": {
+            "note": "Soft, balanced landing on both feet with complete net clearance upon dismounting.",
+            "pointers": [
+              {
+                "key": "soft_two_foot",
+                "status": "met"
+              },
+              {
+                "key": "balanced_off_net",
+                "status": "met"
+              },
+              {
+                "key": "immediate_reload",
+                "status": "met"
+              },
+              {
+                "key": "no_net_touch",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 1,
+        "focus": {
+          "frame_index": 1,
+          "label": "Wrist Penetration",
+          "why": "Hands reach full height, but flexed wrists pressing deeper into the opponent's court will turn touches into direct blocks."
+        },
+        "insights": [
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Takeoff timing perfectly matches the attacker's contact phase."
+          },
+          {
+            "frame_index": 1,
+            "type": "issue",
+            "observation": "Hands extend straight up rather than pressing deep across the plane of the net tape."
+          },
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Landing is balanced and cushioned in the sand without drifting into the net."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Drive Wrists Deeper Over the Net Tape",
+            "detail": "At peak elevation in frame 1, shrug shoulders and press wrists forward and downward into the court to maximize area sealed over the net.",
+            "target_metric": "hand_penetration",
+            "expected_gain": 8,
+            "difficulty": "moderate",
+            "timeframe": "2-3 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "block-wall-press-holds",
+          "block-read-close-live"
+        ],
+        "summary": "Solid blocking mechanics with excellent read timing, body control, and footing in sand. The jump timing and vertical body positioning create a clean block face. Increasing wrist flex to press deeper across the tape will seal off high hits more effectively."
+      }
+    },
+    "v07-powerful-ace-volleyball-shorts-p1": {
+      "id": "v07-powerful-ace-volleyball-shorts-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "overall": 95,
+      "overalls": [
+        97,
+        95,
+        95
+      ],
+      "coherent_overall": 95,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "95 vs [80, 94]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [body_alignment], got toss_quality"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected contact_point, got arm_swing"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 10315,
+          "output_tokens": 3011,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 10315,
+          "output_tokens": 2487,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12271,
+          "output_tokens": 2705,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3636,
+        3337,
+        3500
+      ],
+      "analysis": {
+        "overall_score": 85,
+        "subject_check": {
+          "analyzed": "player in orange jersey and black shorts performing jump topspin serve",
+          "marker_match": "unmarked"
+        },
+        "rep_scores": [
+          {
+            "rep_index": 0,
+            "overall": 86,
+            "note": "Clean side angle showing deep approach and high contact reach."
+          },
+          {
+            "rep_index": 1,
+            "overall": 84,
+            "note": "Behind-court angle highlights slight rotational torque during mid-air follow-through."
+          }
+        ],
+        "metrics": {
+          "toss_quality": {
+            "note": "High, high-velocity toss placed consistently in front of the hitting shoulder, allowing strong forward jump penetration into the court.",
+            "pointers": [
+              {
+                "key": "consistent_toss",
+                "status": "met"
+              },
+              {
+                "key": "toss_in_front",
+                "status": "met"
+              },
+              {
+                "key": "lifted_no_spin",
+                "status": "partial"
+              },
+              {
+                "key": "toss_arm_extends",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "Fast, whip-like arm swing with a distinct high-elbow bow draw and forceful acceleration through impact.",
+            "pointers": [
+              {
+                "key": "high_elbow_load",
+                "status": "met"
+              },
+              {
+                "key": "bow_draw",
+                "status": "met"
+              },
+              {
+                "key": "arm_accelerates",
+                "status": "met"
+              },
+              {
+                "key": "wrist_snap",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_point": {
+            "note": "Strikes the ball at high vertical elevation out in front of the body with full arm extension.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "contact_in_front",
+                "status": "met"
+              },
+              {
+                "key": "firm_open_hand",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "follow_through": {
+            "note": "Full aggressive snap and deceleration, though hip twist in frame 5 pulls the finish slightly off-axis laterally.",
+            "pointers": [
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              },
+              {
+                "key": "natural_deceleration",
+                "status": "met"
+              },
+              {
+                "key": "balanced_finish",
+                "status": "partial"
+              },
+              {
+                "key": "weight_transfers",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Good initial hip-shoulder load, but torso over-rotates late in the swing frame causing sideward bodily torque.",
+            "pointers": [
+              {
+                "key": "side_on_start",
+                "status": "met"
+              },
+              {
+                "key": "hips_rotate",
+                "status": "met"
+              },
+              {
+                "key": "stable_head",
+                "status": "met"
+              },
+              {
+                "key": "square_finish",
+                "status": "partial"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 2,
+        "focus": {
+          "frame_index": 5,
+          "label": "Mid-air Hip Rotation",
+          "why": "Shows lateral trunk distortion and rotational torque through contact that compromises landing stability."
+        },
+        "insights": [
+          {
+            "frame_index": 0,
+            "type": "strength",
+            "observation": "Explosive approach and toss placement well in front of the body line to transfer linear momentum upward."
+          },
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Reaches peak vertical jump height with complete arm extension high above net level."
+          },
+          {
+            "frame_index": 5,
+            "type": "issue",
+            "observation": "Torso over-rotates laterally through contact, creating sideways tilt mid-air."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Control Trunk Rotation at Impact",
+            "detail": "Drive straight through the ball with chest driving toward the target zone rather than swinging laterally across the torso.",
+            "target_metric": "body_alignment",
+            "expected_gain": 6,
+            "difficulty": "moderate",
+            "timeframe": "2-3 weeks"
+          },
+          {
+            "title": "Stabilize Airborne Landing",
+            "detail": "Maintain core engagement through follow-through to ensure a balanced, forward-facing landing inside the baseline.",
+            "target_metric": "follow_through",
+            "expected_gain": 5,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "serve-jump-topspin-zone-attack",
+          "serve-jump-float-approach"
+        ],
+        "summary": "High-level jump serve mechanic featuring excellent lift height, strong arm velocity, and contact at maximum extension. The single key improvement area is keeping the upper torso square to the target through follow-through to eliminate mid-air side tilt. Not visible in this clip: initial stance setup prior to toss."
+      }
+    },
+    "v07-powerful-ace-volleyball-shorts-p2": {
+      "id": "v07-powerful-ace-volleyball-shorts-p2",
+      "skill": "serve",
+      "discipline": "indoor",
+      "overall": 100,
+      "overalls": [
+        100,
+        98,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [79, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [body_alignment], got toss_quality"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: no strongest_metric label",
+          "reason": "no strongest_metric label"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "strongest_metric"
+      ],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 12539,
+          "output_tokens": 3706,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12539,
+          "output_tokens": 2594,
+          "cache_read_input_tokens": 7009,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12539,
+          "output_tokens": 3139,
+          "cache_read_input_tokens": 7009,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3895,
+        2952,
+        3265
+      ],
+      "analysis": {
+        "overall_score": 85,
+        "subject_check": {
+          "analyzed": "player in orange jersey with black shoulders and shorts, wearing number 4",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "toss_quality": {
+            "note": "The toss allows a broad jump into the court with ball location well in front, though the initial arm lift and release are cut off prior to Frame 0.",
+            "pointers": [
+              {
+                "key": "consistent_toss",
+                "status": "not_visible"
+              },
+              {
+                "key": "toss_in_front",
+                "status": "met"
+              },
+              {
+                "key": "lifted_no_spin",
+                "status": "met"
+              },
+              {
+                "key": "toss_arm_extends",
+                "status": "not_visible"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "Fast, explosive arm speed with active wrist snap over the top of the ball shown at contact in Frame 0.",
+            "pointers": [
+              {
+                "key": "high_elbow_load",
+                "status": "met"
+              },
+              {
+                "key": "bow_draw",
+                "status": "not_visible"
+              },
+              {
+                "key": "arm_accelerates",
+                "status": "met"
+              },
+              {
+                "key": "wrist_snap",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_point": {
+            "note": "High contact point achieved near full vertical reach and well in front of the hitting shoulder in Frame 0.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "contact_in_front",
+                "status": "met"
+              },
+              {
+                "key": "firm_open_hand",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_contact",
+                "status": "not_visible"
+              }
+            ]
+          },
+          "follow_through": {
+            "note": "Deceleration is fluid with full drive across the body and a balanced landing inside the baseline in Frame 1.",
+            "pointers": [
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              },
+              {
+                "key": "natural_deceleration",
+                "status": "met"
+              },
+              {
+                "key": "balanced_finish",
+                "status": "met"
+              },
+              {
+                "key": "weight_transfers",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Hips and shoulders rotate into contact with strong forward momentum carrying into the court.",
+            "pointers": [
+              {
+                "key": "side_on_start",
+                "status": "not_visible"
+              },
+              {
+                "key": "hips_rotate",
+                "status": "met"
+              },
+              {
+                "key": "stable_head",
+                "status": "met"
+              },
+              {
+                "key": "square_finish",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 0,
+        "focus": {
+          "frame_index": 0,
+          "label": "Peak Contact Extension",
+          "why": "Frame 0 captures the high contact point and forward arm drive that drive the velocity on this jump serve."
+        },
+        "insights": [
+          {
+            "frame_index": 0,
+            "type": "strength",
+            "observation": "Extends fully at contact high above the net plane, driving heavy pace through the ball."
+          },
+          {
+            "frame_index": 0,
+            "type": "strength",
+            "observation": "Maintains contact well in front of the hitting shoulder with strong wrist snap over the top."
+          },
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "Transitions momentum smoothly into a controlled, balanced broad-jump landing inside the baseline."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Standardize Toss Lift Height and Placement",
+            "detail": "Lock in a precise toss release height and forward placement on every rep to ensure high contact height remains completely repeatable under match pressure.",
+            "target_metric": "toss_quality",
+            "expected_gain": 8,
+            "difficulty": "moderate",
+            "timeframe": "2-3 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "serve-jump-topspin-zone-attack",
+          "serve-toss-and-freeze"
+        ],
+        "summary": "The athlete demonstrates impressive jump serve mechanics with high extension at contact, aggressive wrist snap, and strong forward momentum through landing. Arm swing speed and contact height are at a high standard. Not visible in this clip: the toss release and initial approach steps prior to Frame 0."
+      }
+    },
+    "v08-taylor-crabbs-welcome-to-p1": {
+      "id": "v08-taylor-crabbs-welcome-to-p1",
+      "skill": "attack",
+      "discipline": "beach",
+      "overall": 100,
+      "overalls": [
+        100,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [80, 92]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [power_followthrough], got approach_footwork"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected jump_timing, got approach_footwork"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 6 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 0,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 17567,
+          "output_tokens": 3175,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 15606,
+          "output_tokens": 2070,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 15606,
+          "output_tokens": 2684,
+          "cache_read_input_tokens": 7209,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3616,
+        4389,
+        5172
+      ],
+      "analysis": {
+        "overall_score": 94,
+        "subject_check": {
+          "analyzed": "Player in black tank top, black shorts with 'PARTAIN' printed on the leg, wearing a backward cap and right arm sleeve.",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "approach_footwork": {
+            "note": "Explosive, smooth multi-step approach accelerating cleanly into the plant with a long penultimate step and strong arm drive.",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "met"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Takeoff is perfectly synced to the set's trajectory, allowing contact right at the peak of the jump with complete airborne control.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High elbow draw with clean bow-and-arrow torso loading and high hand acceleration through ball contact.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "Contact occurs at maximum reach directly in front of the hitting shoulder for an ideal downward vector.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Strong core engagement drives the torso through contact into a complete diagonal follow-through.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 9,
+        "focus": {
+          "frame_index": 9,
+          "label": "Peak contact height",
+          "why": "Frame 9 captures full arm extension at the absolute apex of the jump with the ball directly in front of the hitting shoulder."
+        },
+        "insights": [
+          {
+            "frame_index": 7,
+            "type": "strength",
+            "observation": "Explosive directional approach step builds forward linear momentum prior to plant."
+          },
+          {
+            "frame_index": 8,
+            "type": "strength",
+            "observation": "Deep penultimate step with both arms driven behind the hips converts horizontal speed into maximum height."
+          },
+          {
+            "frame_index": 9,
+            "type": "strength",
+            "observation": "Hit contact occurs at full extension at the highest reachable point with clear bow-and-arrow loading."
+          },
+          {
+            "frame_index": 10,
+            "type": "strength",
+            "observation": "Complete trunk flexion and wrist snap over the top generate heavy topspin and a clean follow-through."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Drive non-hitting arm down forcefully",
+            "detail": "Pulling the guide arm down faster into the torso right before contact will accelerate chest rotation and add power to the swing.",
+            "target_metric": "power_followthrough",
+            "expected_gain": 4,
+            "difficulty": "quick",
+            "timeframe": "1-2 practices"
+          }
+        ],
+        "drill_slugs": [
+          "attack-high-set-line-cross",
+          "attack-tossed-approach-timing"
+        ],
+        "summary": "The attacker demonstrates exemplary mechanics across all phases, featuring a dynamic footwork approach and high jump lift. Contact is struck cleanly at full vertical reach with proper wrist snap and hip-torso rotation."
+      }
+    },
+    "v09-power-behind-yuji-nishida-p1": {
+      "id": "v09-power-behind-yuji-nishida-p1",
+      "skill": "serve",
+      "discipline": "indoor",
+      "overall": 100,
+      "overalls": [
+        100,
+        100,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [80, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected arm_swing, got toss_quality"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 0,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 15872,
+          "output_tokens": 1982,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 15872,
+          "output_tokens": 2380,
+          "cache_read_input_tokens": 7225,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 15872,
+          "output_tokens": 2543,
+          "cache_read_input_tokens": 7225,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        5003,
+        4344,
+        4194
+      ],
+      "analysis": {
+        "overall_score": 98,
+        "subject_check": {
+          "analyzed": "player in dark jersey with number 1 and NISHIDA on the back",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "toss_quality": {
+            "note": "High, consistent jump topspin toss placed smoothly into the forward runway to allow full approach acceleration.",
+            "pointers": [
+              {
+                "key": "consistent_toss",
+                "status": "met"
+              },
+              {
+                "key": "toss_in_front",
+                "status": "met"
+              },
+              {
+                "key": "lifted_no_spin",
+                "status": "met"
+              },
+              {
+                "key": "toss_arm_extends",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "Exceptional whip-like swing speed leading from a high elbow and deep shoulder bow-draw sequence.",
+            "pointers": [
+              {
+                "key": "high_elbow_load",
+                "status": "met"
+              },
+              {
+                "key": "bow_draw",
+                "status": "met"
+              },
+              {
+                "key": "arm_accelerates",
+                "status": "met"
+              },
+              {
+                "key": "wrist_snap",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_point": {
+            "note": "Strikes the ball at peak vertical jump extension, firmly wrapped in front of the hitting shoulder.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "contact_in_front",
+                "status": "met"
+              },
+              {
+                "key": "firm_open_hand",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "follow_through": {
+            "note": "Dynamic follow-through across the torso into a clean, balanced landing well inside the court line.",
+            "pointers": [
+              {
+                "key": "finish_to_target",
+                "status": "met"
+              },
+              {
+                "key": "natural_deceleration",
+                "status": "met"
+              },
+              {
+                "key": "balanced_finish",
+                "status": "met"
+              },
+              {
+                "key": "weight_transfers",
+                "status": "met"
+              }
+            ]
+          },
+          "body_alignment": {
+            "note": "Full hip-to-shoulder rotation cleanly transfers momentum directly down the intended serve channel.",
+            "pointers": [
+              {
+                "key": "side_on_start",
+                "status": "met"
+              },
+              {
+                "key": "hips_rotate",
+                "status": "met"
+              },
+              {
+                "key": "stable_head",
+                "status": "met"
+              },
+              {
+                "key": "square_finish",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "Peak Extension Contact",
+          "why": "Frame 3 captures optimal reach at the apex of the jump, showing full kinetic transfer from core rotation to wrist snap."
+        },
+        "insights": [
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "High elbow bow-and-arrow load creates deep upper-body torque prior to acceleration."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Contact is made at maximum extension with full arm reach directly in front of the shoulder."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "Explosive follow-through carries weight forward into a controlled, single-foot landing inside the court."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maintain Toss Distance Precision",
+            "detail": "Keep the toss consistently projected 2-3 feet past the end line to guarantee forward kinetic momentum on every rep.",
+            "target_metric": "toss_quality",
+            "expected_gain": 2,
+            "difficulty": "quick",
+            "timeframe": "1 practice"
+          }
+        ],
+        "drill_slugs": [
+          "serve-jump-topspin-zone-attack"
+        ],
+        "summary": "An elite execution of the jump topspin serve featuring high elevation, explosive arm speed, and clean contact at full extension. The kinetic chain moves seamlessly from toss to approach, air time, and landing. Technique is high-level across all visual indicators."
+      }
+    },
+    "v10-what-an-amazing-spike-p1": {
+      "id": "v10-what-an-amazing-spike-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "overall": 100,
+      "overalls": [
+        100,
+        97,
+        100
+      ],
+      "coherent_overall": 100,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "100 vs [80, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [arm_swing], got approach_footwork"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected arm_swing, got approach_footwork"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 6 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 3,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 11642,
+          "output_tokens": 2402,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 11642,
+          "output_tokens": 2276,
+          "cache_read_input_tokens": 6930,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 11642,
+          "output_tokens": 3197,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        4585,
+        2949,
+        3847
+      ],
+      "analysis": {
+        "overall_score": 90,
+        "subject_check": {
+          "analyzed": "player in maroon jersey with yellow number 17",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "approach_footwork": {
+            "note": "Explosive multi-step approach accelerating into a dynamic plant at frame 3, loading hips and drawing arms back before driving vertically into takeoff at frame 4.",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "met"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Takeoff timing is exceptionally synced to the set arc; launches cleanly and meets the ball at peak apex elevation in frame 5 with strong aerial body control.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "High-elbow load with proper bow-and-arrow separation in frame 4, using the non-hitting arm to guide and pulling through with fast whip acceleration into contact at frame 5.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "Contact in frame 5 occurs at full arm extension well above the net tape and clearly in front of the hitting shoulder at the top of the reach window.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Torso snaps dynamically through contact in frame 5, followed by a full relaxed follow-through across the body and a balanced landing into frame 6.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 5,
+        "focus": {
+          "frame_index": 5,
+          "label": "Apex Contact Height",
+          "why": "Frame 5 captures peak vertical reach and full arm extension over the net tape at the precise moment of contact."
+        },
+        "insights": [
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Deep penultimate step and plant conversion allow for maximum vertical explosive force into the jump."
+          },
+          {
+            "frame_index": 4,
+            "type": "strength",
+            "observation": "High elbow bow-and-arrow load and non-hitting arm tracking set up high mechanical leverage."
+          },
+          {
+            "frame_index": 5,
+            "type": "strength",
+            "observation": "Contact occurs at the apex of the jump with complete arm extension high above the net."
+          },
+          {
+            "frame_index": 6,
+            "type": "strength",
+            "observation": "Controlled landing with stable body position reflects complete kinetic chain control."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maintain Explosive Penultimate Acceleration",
+            "detail": "Continue focusing on driving hard through the penultimate step to consistently maximize vertical bounce against tight block setups.",
+            "target_metric": "approach_footwork",
+            "expected_gain": 4,
+            "difficulty": "quick",
+            "timeframe": "1 practice"
+          }
+        ],
+        "drill_slugs": [
+          "attack-transition-bounce-finish",
+          "attack-high-set-line-cross"
+        ],
+        "summary": "The hitter demonstrates top-tier execution across all key metrics of the attack sequence. From the explosive plant at frame 3 to high extension at contact in frame 5, mechanical sequencing and elevation are excellent. The follow-through and landing into frame 6 remain fluid and fully controlled."
+      }
+    },
+    "v11-wild-rally-ends-in-p1": {
+      "id": "v11-wild-rally-ends-in-p1",
+      "skill": "dig",
+      "discipline": "beach",
+      "overall": 96,
+      "overalls": [
+        90,
+        94,
+        96
+      ],
+      "coherent_overall": 96,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "96 vs [80, 94]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "skipped",
+          "detail": "skipped: reviewer judged no weakest metric resolvable from this footage",
+          "reason": "reviewer judged no weakest metric resolvable from this footage"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected movement_pursuit, got ready_position"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 3,
+      "checks_skipped": [
+        "weakest_metric"
+      ],
+      "stability": {
+        "range": 6,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 16452,
+          "output_tokens": 1964,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 18402,
+          "output_tokens": 1839,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 18402,
+          "output_tokens": 1415,
+          "cache_read_input_tokens": 16235,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        4128,
+        3929,
+        3092
+      ],
+      "analysis": {
+        "overall_score": 86,
+        "subject_check": {
+          "analyzed": "defender in blue and pink patterned tank top with black shorts",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "ready_position": {
+            "note": "Maintains a wide, active athletic stance that allows rapid multi-directional movement in deep sand.",
+            "pointers": [
+              {
+                "key": "low_wide_base",
+                "status": "met"
+              },
+              {
+                "key": "weight_forward",
+                "status": "met"
+              },
+              {
+                "key": "arms_ready_apart",
+                "status": "met"
+              },
+              {
+                "key": "stopped_at_swing",
+                "status": "met"
+              }
+            ]
+          },
+          "read_anticipation": {
+            "note": "Reads line of attack early, enabling aggressive forward cut angles toward the ball trajectory.",
+            "pointers": [
+              {
+                "key": "reads_hitter_line",
+                "status": "met"
+              },
+              {
+                "key": "early_position",
+                "status": "met"
+              },
+              {
+                "key": "in_the_lane",
+                "status": "met"
+              },
+              {
+                "key": "no_guess_drift",
+                "status": "met"
+              }
+            ]
+          },
+          "platform_control": {
+            "note": "Forms a flat, extended platform in front of the body to direct the touch upward and target-bound.",
+            "pointers": [
+              {
+                "key": "early_platform",
+                "status": "met"
+              },
+              {
+                "key": "angle_to_target",
+                "status": "met"
+              },
+              {
+                "key": "absorbs_pace",
+                "status": "met"
+              },
+              {
+                "key": "forearm_contact",
+                "status": "met"
+              }
+            ]
+          },
+          "movement_pursuit": {
+            "note": "Displays explosive first-step drive and maximum physical extension to stay under low contacts.",
+            "pointers": [
+              {
+                "key": "quick_first_step",
+                "status": "met"
+              },
+              {
+                "key": "stays_low_moving",
+                "status": "met"
+              },
+              {
+                "key": "full_effort_extension",
+                "status": "met"
+              },
+              {
+                "key": "controlled_emergency",
+                "status": "met"
+              }
+            ]
+          },
+          "recovery": {
+            "note": "Spends extra time grounded after emergency layouts, slowing transition back into active defense.",
+            "pointers": [
+              {
+                "key": "up_quickly",
+                "status": "partial"
+              },
+              {
+                "key": "eyes_stay_on_ball",
+                "status": "met"
+              },
+              {
+                "key": "returns_to_base",
+                "status": "partial"
+              },
+              {
+                "key": "ready_for_next",
+                "status": "partial"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 3,
+        "focus": {
+          "frame_index": 3,
+          "label": "Full Extension Dig",
+          "why": "Frame 3 demonstrates textbook platform angle and body posture during maximum emergency layout extension."
+        },
+        "insights": [
+          {
+            "frame_index": 0,
+            "type": "strength",
+            "observation": "Maintains an explosive ready stance with weight balanced on the forefeet in deep sand."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Extends fully to form a flat forearm platform right at ball contact."
+          },
+          {
+            "frame_index": 8,
+            "type": "issue",
+            "observation": "Remains flat on the sand after contact, extending the time needed to reset into the play."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Faster ground-to-foot transition after diving",
+            "detail": "Push aggressively off hips and chest immediately upon chest-sliding to return to an upright defense base without delay.",
+            "target_metric": "recovery",
+            "expected_gain": 8,
+            "difficulty": "moderate",
+            "timeframe": "2-3 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "dig-pursuit-roll-recovery",
+          "dig-live-random-defense"
+        ],
+        "summary": "The defender demonstrates exceptional read timing, pursuit range, and platform stability during high-speed emergency touches. Pursuit and initial contacts are highly efficient, though ground recovery times slightly delay full multi-contact readiness."
+      }
+    },
+    "v12-videoplayback-mp4-p1": {
+      "id": "v12-videoplayback-mp4-p1",
+      "skill": "attack",
+      "discipline": "indoor",
+      "overall": 98,
+      "overalls": [
+        100,
+        100,
+        98
+      ],
+      "coherent_overall": 98,
+      "band": "Elite",
+      "checks": [
+        {
+          "name": "overall_in_range",
+          "ok": false,
+          "status": "fail",
+          "detail": "98 vs [80, 93]"
+        },
+        {
+          "name": "weakest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected one of [jump_timing], got approach_footwork"
+        },
+        {
+          "name": "strongest_metric",
+          "ok": false,
+          "status": "fail",
+          "detail": "expected contact_height, got jump_timing"
+        },
+        {
+          "name": "citations_valid",
+          "ok": true,
+          "status": "pass",
+          "detail": "all 5 valid"
+        }
+      ],
+      "verdict": "fail",
+      "pass": false,
+      "checks_fired": 4,
+      "checks_skipped": [],
+      "stability": {
+        "range": 2,
+        "ok": true
+      },
+      "usages": [
+        {
+          "input_tokens": 10530,
+          "output_tokens": 2300,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12491,
+          "output_tokens": 2841,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        },
+        {
+          "input_tokens": 12491,
+          "output_tokens": 2641,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 0
+        }
+      ],
+      "timings": [
+        3450,
+        4043,
+        3615
+      ],
+      "analysis": {
+        "overall_score": 93,
+        "subject_check": {
+          "analyzed": "player in black jersey #1 and black shorts attacking at the net",
+          "marker_match": "unmarked"
+        },
+        "metrics": {
+          "approach_footwork": {
+            "note": "Plant and lift mechanics in frame 0 show strong directional transition and momentum transfer, though early steps are partially cropped.",
+            "pointers": [
+              {
+                "key": "accelerating_steps",
+                "status": "partial"
+              },
+              {
+                "key": "long_penultimate",
+                "status": "met"
+              },
+              {
+                "key": "double_foot_plant",
+                "status": "met"
+              },
+              {
+                "key": "arms_back_on_plant",
+                "status": "met"
+              }
+            ]
+          },
+          "jump_timing": {
+            "note": "Jump sequence in frames 1-2 displays optimal sync with set arc, reaching full vertical elevation right at ball contact.",
+            "pointers": [
+              {
+                "key": "takeoff_behind_ball",
+                "status": "met"
+              },
+              {
+                "key": "meets_at_apex",
+                "status": "met"
+              },
+              {
+                "key": "synced_to_set",
+                "status": "met"
+              },
+              {
+                "key": "controlled_in_air",
+                "status": "met"
+              }
+            ]
+          },
+          "arm_swing": {
+            "note": "Frame 1 demonstrates high elbow load and clean bow-and-arrow torso separation, leading into a fast whip through impact.",
+            "pointers": [
+              {
+                "key": "high_elbow_draw",
+                "status": "met"
+              },
+              {
+                "key": "bow_and_arrow",
+                "status": "met"
+              },
+              {
+                "key": "guide_arm_up",
+                "status": "met"
+              },
+              {
+                "key": "fast_whip",
+                "status": "met"
+              }
+            ]
+          },
+          "contact_height": {
+            "note": "Frame 2 showcases full overhead extension slightly in front of the shoulder at peak jump elevation.",
+            "pointers": [
+              {
+                "key": "full_extension",
+                "status": "met"
+              },
+              {
+                "key": "in_front_of_shoulder",
+                "status": "met"
+              },
+              {
+                "key": "high_reach",
+                "status": "met"
+              },
+              {
+                "key": "repeatable_height",
+                "status": "met"
+              }
+            ]
+          },
+          "power_followthrough": {
+            "note": "Frame 3 shows strong core flexion driving through contact with a full diagonal arm finish and balanced landing.",
+            "pointers": [
+              {
+                "key": "torso_snap",
+                "status": "met"
+              },
+              {
+                "key": "topspin_snap",
+                "status": "met"
+              },
+              {
+                "key": "relaxed_finish",
+                "status": "met"
+              },
+              {
+                "key": "balanced_landing",
+                "status": "met"
+              }
+            ]
+          }
+        },
+        "contact_frame_index": 2,
+        "focus": {
+          "frame_index": 2,
+          "label": "Ideal Contact Apex",
+          "why": "Shows textbook full arm extension at maximum elevation in front of the hitting shoulder."
+        },
+        "insights": [
+          {
+            "frame_index": 1,
+            "type": "strength",
+            "observation": "High elbow load and non-hitting arm balance establish ideal torque before swing initiation."
+          },
+          {
+            "frame_index": 2,
+            "type": "strength",
+            "observation": "Peak jump contact achieved with complete vertical arm extension well above the block."
+          },
+          {
+            "frame_index": 3,
+            "type": "strength",
+            "observation": "Core flexing forcefully through contact drives maximum topspin and downward trajectory."
+          }
+        ],
+        "changes": [
+          {
+            "title": "Maximize Approach Acceleration",
+            "detail": "Maintain explosive speed through the last two steps to convert maximum horizontal momentum into vertical jump height.",
+            "target_metric": "approach_footwork",
+            "expected_gain": 6,
+            "difficulty": "moderate",
+            "timeframe": "2-3 weeks"
+          }
+        ],
+        "drill_slugs": [
+          "attack-transition-bounce-finish",
+          "attack-high-set-line-cross"
+        ],
+        "summary": "This attack rep demonstrates high-level mechanics across all phases, featuring explosive vertical jump timing, full arm extension at peak height, and powerful core flexion through follow-through. The arm draw and contact geometry in frames 1-2 create maximum height and power over the opposing block."
+      }
+    }
+  },
+  "finished_at": "2026-08-05T05:23:07.327Z"
+}

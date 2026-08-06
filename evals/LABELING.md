@@ -15,19 +15,28 @@ now; the scored run waits for the cap.
 
 ## 1. Label the 18 active cases (about two minutes each)
 
-Watch the rep, then record the decision. Two windows:
+Watch the rep, then record the decision. One window:
 
-- Watch: `node scripts/review-evals.mjs`, then open http://localhost:4750. Arrow
-  keys walk the reps (Left/Right within a video, Up/Down between videos). The case
-  id shown there is the id you label.
-- Label: `node scripts/label-case.mjs` (or `npm run eval:label`) walks every
-  unlabeled active case in the terminal. It asks your initials once, then per case:
-  - `weakest_metric`: the metric key whose fault most limits this rep. The valid
-    keys for the skill are printed for you.
-  - `unknown`: the footage genuinely does not isolate a single fault. This records
-    a reviewer-confirmed abstention, which is a real answer, not a coverage gap.
-  - `skip`: leave the case untouched for now.
-  - acceptable alternatives: up to two other keys you would also accept.
+`node scripts/label-evals.mjs` (or `npm run eval:label`), then open
+http://localhost:4751. It queues exactly the active cases that still need a
+decision, round-robin across skills, and puts the case's frames next to that
+skill's metric keys. Space plays the frames, arrows step them, `1`-`9` picks the
+weakest metric, `shift`+`1`-`9` marks an acceptable alternative, `u` abstains,
+`s` skips, `enter` saves and moves on. Each save writes its own case file, so
+stopping part-way keeps everything done so far. `--all` re-opens already-labeled
+cases to revise them; `--scratch` operates on local ingest scratch instead.
+
+The terminal path still exists and writes identical fields:
+`node scripts/label-case.mjs` (or `npm run eval:label:cli`) walks every unlabeled
+active case, pairing with `node scripts/review-evals.mjs` on http://localhost:4750
+for the footage. Either way the decisions are:
+
+- `weakest_metric`: the metric key whose fault most limits this rep. The valid
+  keys for the skill are shown for you.
+- `unknown`: the footage genuinely does not isolate a single fault. This records
+  a reviewer-confirmed abstention, which is a real answer, not a coverage gap.
+- `skip`: leave the case untouched for now.
+- acceptable alternatives: up to two other keys you would also accept.
 
 Label a single case with `node scripts/label-case.mjs <case-id>`. After a pass,
 re-check with `node scripts/eval-coverage.mjs`: the `weakest_metric` line should

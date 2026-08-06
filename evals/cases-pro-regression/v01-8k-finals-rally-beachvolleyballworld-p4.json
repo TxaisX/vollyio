@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 74,
     "overall_max": 88,
-    "weakest_metric": "",
+    "weakest_metric": "lateral_footwork",
     "strongest_metric": "read_timing",
-    "notes": "Featured net block: tall player rises with the red hitter, arms extended; side-distance shot can't resolve hand penetration over the seam."
+    "notes": "Featured net block: tall player rises with the red hitter, arms extended; side-distance shot can't resolve hand penetration over the seam.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

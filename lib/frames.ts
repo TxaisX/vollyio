@@ -275,7 +275,7 @@ async function seekAndSettle(video: HTMLVideoElement, time: number): Promise<voi
  * extraction element, and the last one to ask is the one that silently gets
  * no decoder and produces black (D-091).
  */
-function releaseVideo(video: HTMLVideoElement): void {
+export function releaseVideo(video: HTMLVideoElement): void {
   try {
     video.pause();
     video.removeAttribute("src");

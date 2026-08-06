@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 93,
-    "weakest_metric": "",
     "strongest_metric": "approach_footwork",
-    "notes": "Pro indoor back-row/pipe approach with explosive plant-to-lift and huge vertical; wide shot resolves footwork but not contact."
+    "notes": "Pro indoor back-row/pipe approach with explosive plant-to-lift and huge vertical; wide shot resolves footwork but not contact. | abstain: VNL Pro",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

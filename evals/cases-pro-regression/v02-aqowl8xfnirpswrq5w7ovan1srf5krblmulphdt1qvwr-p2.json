@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 68,
     "overall_max": 82,
-    "weakest_metric": "",
+    "weakest_metric": "power_followthrough",
     "strongest_metric": "jump_timing",
-    "notes": "Grass attack: man in plaid rises to a high ball, contact above the net; wide shot caps elbow/wrist cues."
+    "notes": "Grass attack: man in plaid rises to a high ball, contact above the net; wide shot caps elbow/wrist cues.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

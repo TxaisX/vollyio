@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vollyio - State of Play</title>
+<style>
+  :root{
+    --navy:#122a44; --ink:#1d3450;
+    --ivory:#f7f3ea; --paper:#fffdf7; --line:#e3dccb;
+    --gold:#b8912f; --gold-soft:#f1e6c8; --gold-deep:#8f6f1e;
+    --good:#2e6b4f; --bad:#9c3a2e; --muted:#5d6f85;
+    --serif: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+    --sans: Inter, "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    --mono: Consolas, "SF Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--ivory);
+    color:var(--ink); font-family:var(--sans);
+    font-size:15px; line-height:1.55; padding:44px 20px 80px;
+  }
+  main{max-width:1080px;margin:0 auto}
+  h1,h2,h3{font-family:var(--serif);color:var(--navy)}
+  h1{font-size:40px;line-height:1.12;font-weight:700;letter-spacing:-0.01em}
+  h2{font-size:25px;font-weight:700}
+  h3{font-size:17px;font-weight:600}
+  p{max-width:none}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:12px}
+  .lede{font-size:17px;max-width:830px;margin-top:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--muted)}
+  .chip.gold{background:var(--gold-soft);border-color:#e0cf9a;color:var(--gold-deep)}
+  .chip.stop{background:#f3ded9;border-color:#e3bdb4;color:var(--bad)}
+  section{margin-top:50px}
+  .sec-head{border-bottom:2px solid var(--navy);padding-bottom:9px;margin-bottom:20px}
+  .sec-num{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--gold-deep);margin-right:10px}
+  .sec-sub{color:var(--muted);font-size:14px;max-width:820px;margin-top:4px}
+  .tbl{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th{font-size:11.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 13px;border-bottom:2px solid var(--line);background:#fbf8ef}
+  td{padding:9px 13px;border-bottom:1px solid #efe9da;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{text-align:right;white-space:nowrap}
+  .up{color:var(--good);font-weight:600}
+  .dn{color:var(--bad);font-weight:600}
+  .new{background:var(--gold-soft);color:var(--gold-deep);font-weight:700;font-size:11px;padding:1px 7px;border-radius:999px}
+  .co-row{display:flex;flex-wrap:wrap;gap:13px;margin:18px 0}
+  .co{flex:1 1 196px;background:var(--navy);color:#eef1e9;border-radius:10px;padding:17px 19px}
+  .co .big{font-family:var(--serif);font-size:31px;font-weight:700;color:#e8c96a;line-height:1.1}
+  .co .lbl{font-size:12.5px;color:#b9c4d2;margin-top:5px}
+  .cards{display:flex;flex-wrap:wrap;gap:15px}
+  .card{flex:1 1 290px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:19px}
+  .card.hold{border-left:4px solid var(--bad)}
+  .card.go{border-left:4px solid var(--good)}
+  .card h3{margin-bottom:7px}
+  .card p{font-size:13.5px;margin-bottom:8px}
+  .card .tag{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:9px;display:block}
+  .tag.hold{color:var(--bad)}
+  .tag.go{color:var(--good)}
+  .note{background:var(--gold-soft);border:1px solid #e0cf9a;border-radius:10px;padding:17px 20px;font-size:14px;margin-top:16px}
+  .note b{color:var(--gold-deep)}
+  ol,ul{margin-left:20px}
+  li{margin-bottom:7px;font-size:14px}
+  .skillgrid{display:flex;flex-wrap:wrap;gap:15px;margin-top:16px}
+  .sk{flex:1 1 300px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .sk h3{font-size:15px;margin-bottom:9px}
+  .sk h3 small{font-size:11.5px;color:var(--muted);font-weight:400;font-family:var(--sans);float:right}
+  .sk td{padding:5px 6px;border-bottom:1px solid #f2ede1;font-size:12.5px}
+  code{font-family:var(--mono);font-size:12.5px;background:#f4efe2;padding:1px 5px;border-radius:4px}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="kicker">Vollyio &middot; State of Play</p>
+  <h1>Where the analysis engine<br>actually stands.</h1>
+  <p class="lede">Everything measured, decided, built and blocked across this work. Nothing here is committed and nothing is live: production still runs exactly what it ran yesterday. This is the map of what to do next and what it depends on.</p>
+  <div class="chips">
+    <span class="chip gold">2026-08-05</span>
+    <span class="chip stop">all background tasks stopped</span>
+    <span class="chip">production untouched, Opus on frames</span>
+    <span class="chip">everything uncommitted</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head">
+    <h2><span class="sec-num">01</span>The four findings</h2>
+    <p class="sec-sub">Each is measured from real data, not inferred. Each changes a decision.</p>
+  </div>
+
+  <div class="co-row">
+    <div class="co"><div class="big">36 / 36</div><div class="lbl">of your clips where Gemini scored above the shipped engine</div></div>
+    <div class="co"><div class="big">0.0%</div><div class="lbl">of pointers Gemini ever marked "cannot see it" across 108 runs</div></div>
+    <div class="co"><div class="big">32%</div><div class="lbl">of all 600 real pointer verdicts that came back unjudgeable</div></div>
+    <div class="co"><div class="big">5</div><div class="lbl">pointers never once marked "met", so they could only subtract</div></div>
+  </div>
+
+  <div class="cards">
+    <div class="card hold">
+      <span class="tag hold">Finding 1 &middot; blocks a shipment</span>
+      <h3>Gemini is a broken judge as prompted</h3>
+      <p>Median 97 on your real clips against the shipped engine's 65. Above your own labelled bands on 17 of 18 pro clips, eleven of them flat 100s. Never abstains, ever.</p>
+      <p><b>Consequence:</b> the provider switch must not ship. It was never committed and the production key was never set, so nothing live was affected. The eval caught it first.</p>
+    </div>
+    <div class="card go">
+      <span class="tag go">Finding 2 &middot; a genuine win</span>
+      <h3>Video works, and is 3x cheaper</h3>
+      <p>$0.032 per run against $0.096 for frames, same 5s latency, comparable stability, quality difference of just +2.1 points. The modality was never the problem.</p>
+      <p><b>Consequence:</b> video is the right direction once the judge is fixed. Token math confirms the provider samples about 1 fps, which is the open risk on contact timing.</p>
+    </div>
+    <div class="card hold">
+      <span class="tag hold">Finding 3 &middot; a live defect</span>
+      <h3>Coverage is reported dishonestly</h3>
+      <p>It counts checkpoints, not pointers. Median reported 100% against 80% actual. One analysis reported full coverage while judging 6 of 20 mechanics.</p>
+      <p><b>Consequence:</b> the low-confidence flag never fires, so a thin read reaches a player as a complete one. Your own draft prompt already specified the fix.</p>
+    </div>
+    <div class="card hold">
+      <span class="tag hold">Finding 4 &middot; the deep one</span>
+      <h3>A third of the rubric never worked</h3>
+      <p>32% of verdicts unjudgeable, in four categories: needs audio, needs multiple reps, needs ball-spin resolution, needs a camera angle phones do not give.</p>
+      <p><b>Consequence:</b> five pointers were a permanent invisible tax, heaviest on attack, your highest-volume and lowest-scoring skill. This triggered the full rebuild.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2><span class="sec-num">02</span>The rebuilt rubric</h2>
+    <p class="sec-sub">Six skills researched, drafted, adversarially challenged and revised. Status: proposal. Not wired into the product.</p>
+  </div>
+
+  <div class="co-row">
+    <div class="co"><div class="big">120</div><div class="lbl">pointers: 6 skills, 5 checkpoints each, 4 pointers each</div></div>
+    <div class="co"><div class="big">149</div><div class="lbl">problems found by the hostile reviewer</div></div>
+    <div class="co"><div class="big">54</div><div class="lbl">old pointers retired with stated reasons</div></div>
+    <div class="co"><div class="big">6 / 6</div><div class="lbl">drafts sent back for revision, none passed first time</div></div>
+  </div>
+
+  <p>Weights moved substantially, and every move carries a written rationale. NEW marks a checkpoint that did not exist before.</p>
+
+  <div class="skillgrid">
+    <div class="sk"><h3>Serve <small>12 retired</small></h3><table>
+      <tr><td>toss_quality</td><td class="num">14</td><td class="num dn">-8</td></tr>
+      <tr><td>approach_and_jump</td><td class="num">24</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>arm_swing</td><td class="num">25</td><td class="num up">+3</td></tr>
+      <tr><td>contact_point</td><td class="num">29</td><td class="num up">+5</td></tr>
+      <tr><td>follow_through</td><td class="num">8</td><td class="num dn">-6</td></tr>
+    </table></div>
+    <div class="sk"><h3>Pass <small>7 retired</small></h3><table>
+      <tr><td>contact_control</td><td class="num">24</td><td class="num up">+4</td></tr>
+      <tr><td>platform_angle</td><td class="num">22</td><td class="num">0</td></tr>
+      <tr><td>angle_to_target</td><td class="num">12</td><td class="num dn">-6</td></tr>
+      <tr><td>body_posture</td><td class="num">20</td><td class="num up">+2</td></tr>
+      <tr><td>footwork_to_ball</td><td class="num">22</td><td class="num">0</td></tr>
+    </table></div>
+    <div class="sk"><h3>Set <small>13 retired</small></h3><table>
+      <tr><td>footwork</td><td class="num">18</td><td class="num dn">-2</td></tr>
+      <tr><td>body_alignment</td><td class="num">32</td><td class="num up">+14</td></tr>
+      <tr><td>hands</td><td class="num">12</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>release</td><td class="num">20</td><td class="num up">+2</td></tr>
+      <tr><td>ball_flight</td><td class="num">18</td><td class="num"><span class="new">NEW</span></td></tr>
+    </table></div>
+    <div class="sk"><h3>Attack <small>6 retired, fully rebuilt</small></h3><table>
+      <tr><td>approach_plant</td><td class="num">15</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>takeoff_timing</td><td class="num">19</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>arm_swing</td><td class="num">18</td><td class="num dn">-6</td></tr>
+      <tr><td>contact_quality</td><td class="num">32</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>landing_recovery</td><td class="num">16</td><td class="num"><span class="new">NEW</span></td></tr>
+    </table></div>
+    <div class="sk"><h3>Block <small>6 retired</small></h3><table>
+      <tr><td>read_timing</td><td class="num">20</td><td class="num dn">-4</td></tr>
+      <tr><td>hand_penetration</td><td class="num">22</td><td class="num dn">-2</td></tr>
+      <tr><td>lateral_footwork</td><td class="num">23</td><td class="num up">+3</td></tr>
+      <tr><td>body_position</td><td class="num">22</td><td class="num up">+4</td></tr>
+      <tr><td>landing_recovery</td><td class="num">13</td><td class="num dn">-1</td></tr>
+    </table></div>
+    <div class="sk"><h3>Dig <small>10 retired, fully rebuilt</small></h3><table>
+      <tr><td>base_and_load</td><td class="num">14</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>read_and_reaction</td><td class="num">16</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>contact_position</td><td class="num">24</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>platform_and_delivery</td><td class="num">28</td><td class="num"><span class="new">NEW</span></td></tr>
+      <tr><td>control_after_contact</td><td class="num">18</td><td class="num"><span class="new">NEW</span></td></tr>
+    </table></div>
+  </div>
+
+  <h3 style="margin-top:26px">What the adversarial pass caught</h3>
+  <div class="tbl" style="margin-top:10px">
+  <table>
+    <tr><th>Catch</th><th>Why it matters</th></tr>
+    <tr><td>A draft re-admitted the retired <code>no_carry</code> under the new name <code>absorbs_the_ball</code></td><td>Killed with frame math: contact lasts 50 to 150ms, which is 1.5 to 4 frames at 30fps. The same reason the original failed at 67% unjudgeable.</td></tr>
+    <tr><td><code>shoulders_on_departure_line</code> rejected for set</td><td>A back set is a legal, high-level outcome where the shoulders deliberately are not square. The pointer would have penalised correct technique.</td></tr>
+    <tr><td>Two toss pointers were mutually exclusive by camera position</td><td>Each was unjudgeable exactly when its sibling was visible. Collapsed into one read that always scores.</td></tr>
+    <tr><td>A circular jump-serve classification</td><td>Serve family was decided from forward travel, then forward travel was judged, so anyone who travelled little was reclassified into a threshold they could pass.</td></tr>
+    <tr><td><code>can_only_subtract</code> fired 5 times</td><td>The exact tax measured in your data was being reinvented, and got caught before it shipped.</td></tr>
+  </table>
+  </div>
+
+  <div class="note"><b>Two honest caveats, written into the document.</b> Block carries only 3 high-visibility pointers against 17 medium, the weakest profile of any skill, which is what you would expect at the net. And the whole visibility forecast is a <b>prediction</b> by the designers, where the old catalog's 32% was <b>measured</b> over 600 real verdicts. The first labelled run is the test of that forecast, not a formality.</div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2><span class="sec-num">03</span>What is holding what</h2>
+    <p class="sec-sub">The dependency chain. Nothing below the labels can move until the labels exist.</p>
+  </div>
+
+  <div class="tbl">
+  <table>
+    <tr><th>Item</th><th>State</th><th>Blocked by</th></tr>
+    <tr><td><b>Your 36 clips labelled</b></td><td class="dn">0 of 36 done</td><td>You. About 2 min each. Everything else waits here.</td></tr>
+    <tr><td>Adopt the rebuilt rubric</td><td>Proposal, not wired in</td><td>Labels, to test the visibility forecast</td></tr>
+    <tr><td>Re-anchor the score scale</td><td>Deferred by evidence</td><td>Labels. Every candidate curve was refuted by your own bands</td></tr>
+    <tr><td>Provider switch to Gemini</td><td class="dn">On hold</td><td>Verdict discipline must be fixed and re-measured</td></tr>
+    <tr><td>Video in the product</td><td>Built in eval only</td><td>The provider decision above</td></tr>
+    <tr><td>Honest coverage reporting</td><td class="up">Ready, safe</td><td>Nothing. Changes no score, only the number shown</td></tr>
+    <tr><td>Citation-required verdicts</td><td class="up">Designed, not built</td><td>Nothing. Attacks the never-abstains failure directly</td></tr>
+    <tr><td><code>weakest_metric</code> inversion</td><td class="dn">Broken</td><td>Nothing. It makes all 18 verdicts read "fail" regardless</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2><span class="sec-num">04</span>What shipped into the working tree</h2>
+    <p class="sec-sub">Uncommitted. Gates green: policy lint, typecheck, 414 tests.</p>
+  </div>
+  <ul>
+    <li><b>Scale-version plumbing.</b> Scores and ratings now record which scale built them, and a rating re-seeds rather than blending across a recalibration. This is what makes any future scale change safe.</li>
+    <li><b>Two robustness fixes.</b> A failed database read no longer wipes a player's rating history, and the eval route no longer parses every case file per request.</li>
+    <li><b>Eval infrastructure.</b> A video arm, a concurrent resumable driver, a bridge that turns your stored clips into eval cases, and a score-band field in the labeller.</li>
+    <li><b>Documents.</b> The rebuilt catalog with its six-skill verification addendum, the archived comparison run, and the decision-log entry recording why the curve constants were deferred.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2><span class="sec-num">05</span>Recommended order</h2>
+  </div>
+  <ol>
+    <li><b>Label eight clips, not thirty-six.</b> The ones where the arms disagree most carry nearly all the information. Fifteen minutes, and it unblocks the rubric, the scale and the provider decision at once.</li>
+    <li><b>Ship the two free fixes</b> while you do: honest coverage reporting, and requiring a frame citation for every "I saw it" verdict.</li>
+    <li><b>Fix <code>weakest_metric</code></b>, which currently makes every verdict read as a failure and hides real signal.</li>
+    <li><b>Re-run the arms against your labels.</b> Then, and only then, decide provider and modality with numbers instead of inference.</li>
+    <li><b>Adopt the rubric and re-anchor the scale together</b>, in one version bump, since both change every score and doing them separately costs two migrations.</li>
+  </ol>
+  <div class="note">The through-line of all of it: <b>you are the only remaining source of ground truth.</b> The engine cannot grade itself, and I cannot supply the labels without becoming a contestant judging my own contest, since the shipped engine is the same model family I am. Eight clips of your own play is the whole bottleneck.</div>
+</section>
+
+<footer>
+  Vollyio internal, assembled 2026-08-05. Sources: evals/ab-2026-08-04 (measured arms), docs/pointer-catalog-rebuild.md (rebuilt rubric and addendum), docs/decisions.md D-093 and D-094, analyses.telemetry (measured cost). Estimates are labelled; everything else is counted or measured.
+</footer>
+
+</main>
+</body>
+</html>

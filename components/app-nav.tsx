@@ -75,7 +75,11 @@ const ICONS = {
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: ICONS.home, match: ["/dashboard", "/goals"] },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze, match: ["/analyze", "/analysis"] },
-  { href: "/plan", label: "Train", icon: ICONS.train, match: ["/plan", "/drills", "/learn"] },
+  // Train lands on /drills, not /plan: the weekly plan is hidden (2026-08-05,
+  // it was really a dietary check-in and is out of scope for now). /plan stays
+  // in `match` so the tab still highlights if anyone reaches the page directly
+  // by URL, which it remains reachable by.
+  { href: "/drills", label: "Train", icon: ICONS.train, match: ["/plan", "/drills", "/learn"] },
   { href: "/progress", label: "Progress", icon: ICONS.progress, match: ["/progress", "/history"] },
   { href: "/coach", label: "Coach", icon: ICONS.coach, match: ["/coach"] },
 ];

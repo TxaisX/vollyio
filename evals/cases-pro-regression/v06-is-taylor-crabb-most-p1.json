@@ -56,8 +56,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 93,
-    "weakest_metric": "",
     "strongest_metric": "hand_penetration",
-    "notes": "AVP beach block wins the net joust; hands penetrate over the tape and seal; wide net frame too coarse to isolate a fault."
+    "notes": "AVP beach block wins the net joust; hands penetrate over the tape and seal; wide net frame too coarse to isolate a fault. | abstain: AVP Pro so a little hard to determine the metrics since these people play as a career.",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

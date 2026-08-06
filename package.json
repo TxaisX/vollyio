@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test",
     "eval:coverage": "node scripts/eval-coverage.mjs",
-    "eval:label": "node scripts/label-case.mjs",
+    "eval:label": "node scripts/label-evals.mjs",
+    "eval:label:cli": "node scripts/label-case.mjs",
     "eval:run": "node scripts/run-evals.mjs",
     "eval:baseline": "node scripts/make-baseline.mjs"
   },

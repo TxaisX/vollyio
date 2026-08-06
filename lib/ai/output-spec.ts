@@ -46,9 +46,62 @@ const COACH_VOICE =
  * fixes as realistic return-on-effort changes. Kept out of the RUBRIC strings so
  * the six scoring prompts stay frozen and these rules stay consistent across skills.
  */
-export function outputSpec(skill: Skill): string {
+// Strict-evidence block (D-095), appended only when the caller asks for it.
+// Everything here is enforced in code by enforceEvidence(), so this text is
+// telling the model what the parser will do rather than asking it for a favor.
+// The physical limits are stated because a model that does not know the
+// athlete is a quarter of frame height will confidently report finger pads.
+const STRICT_EVIDENCE = [
+  "EVIDENCE REQUIREMENT (enforced after you reply, not a request)",
+  "Two SEPARATE questions. Answer them in order and never let the first decide the second.",
+  "1. CAN YOU SEE IT? Name the frame where the mechanic is resolvable, in that pointer's `frame` field. Every judged verdict needs one: met, partial and missed alike. A judged verdict whose `frame` is absent or outside the range of frames you were sent is REPLACED with not_visible before scoring.",
+  "2. WAS IT DONE WELL? Only now choose between met, partial and missed. Seeing a mechanic clearly is NOT a reason to mark it met. A perfectly visible flaw is `missed`. A perfectly visible but imperfect execution is `partial`.",
+  "",
+  "THE BAR FOR met",
+  "met means you would show this rep to another player as an example of the mechanic done CORRECTLY. Not merely present. Not roughly right. Correct.",
+  "partial is the honest verdict for a mechanic that is there but flawed, inconsistent, late, or approximate, and on real footage of real players it is the MOST COMMON verdict. A rep where most pointers are met is a rep with almost nothing left to coach, which is rare.",
+  "missed is for a mechanic the athlete visibly does not perform, in a phase that is on camera.",
+  "If you find yourself marking nearly every pointer met, re-read the rep against the bar above: you are grading visibility, not execution.",
+  "",
+  "WHAT THIS FOOTAGE PHYSICALLY CANNOT SHOW",
+  "The clip is a phone recording from the sideline. The athlete may occupy a quarter of the frame height, so a hand is tens of pixels and a finger is a few. Contact lasts 50 to 150 milliseconds, which is often less than one sampled frame. There is NO AUDIO: you receive images only.",
+  "Therefore: finger-pad versus palm contact, ball spin off the hands, limb velocity, and whether a contact was quiet or a carry are usually NOT resolvable. If you cannot point to a frame where the detail is genuinely legible, the honest verdict is not_visible.",
+  "A pointer asking whether something REPEATS cannot be answered from a single repetition. A pointer asking about SOUND cannot be answered from images at all. Both are forced to not_visible in code regardless of what you return.",
+  "",
+  "Abstaining is not a failure and never lowers the athlete's score: not_visible pointers are excluded from the arithmetic entirely. Over-claiming is the failure, because it credits an athlete for mechanics nobody saw.",
+].join("\n");
+
+/**
+ * Video-mode overrides (2026-08-05).
+ *
+ * The schema is frozen and every `*_frame_index` field stays an integer, so
+ * video re-purposes them to carry TENTHS OF A SECOND from clip start (2.4s ->
+ * 24). That is the convention the eval harness has used since 2026-08-04, and
+ * it keeps one schema, one derivation and one UI across both modalities.
+ *
+ * The sampling paragraph is the load-bearing part. Measured 2026-08-05, the
+ * provider ingests video at roughly one low-resolution image per second and
+ * there is no parameter that raises it. A contact lasting 50-150ms is therefore
+ * almost never IN the sample, and a model that has not been told this will
+ * confidently grade it anyway: D-094 measured 0.0% not_visible across 108 runs,
+ * which is the exact shape of a model answering questions it cannot see. Naming
+ * the limit is the only lever this prompt has over that.
+ */
+const VIDEO_MODE = [
+  "WHAT YOU ARE LOOKING AT, AND WHAT IT COSTS YOU",
+  "You receive this rep as VIDEO, not as a frame sequence. You do not see every frame: the clip is sampled at roughly ONE IMAGE PER SECOND at low resolution. A volleyball contact lasts 50 to 150 milliseconds, so the instant of contact is usually NOT among the images you received, however continuous the motion appears to you.",
+  "Judge what persists across the rep: approach rhythm, body shape, platform or hand position, extension, balance, landing. Those survive at one image per second. Do NOT judge what lives inside a single instant unless you can genuinely see it, and do not reconstruct it from what came before and after.",
+  "You will feel able to describe the contact. That feeling is not evidence. If the decisive instant was not in an image you actually received, the honest verdict is not_visible.",
+  "",
+  "HOW TO REPORT MOMENTS",
+  "Every field named *_frame_index carries TENTHS OF A SECOND from the start of the clip, not a frame number. A moment 2.4 seconds in is 24. A moment 0.7 seconds in is 7. The same applies to each pointer's `frame` field. Never report a value beyond the clip length you were told.",
+].join("\n");
+
+export function outputSpec(skill: Skill, strict = false, video = false): string {
   const keys = METRICS[skill].map((m) => m.key);
   return [
+    ...(video ? [VIDEO_MODE, ""] : []),
+    ...(strict ? [STRICT_EVIDENCE, ""] : []),
     STANDARD,
     "",
     COACH_VOICE,
@@ -65,10 +118,14 @@ export function outputSpec(skill: Skill): string {
     "When you can clearly distinguish more than one repetition in the frames, return rep_scores: one entry per rep in chronological order (rep_index from 0, an honest overall 0-100 for that rep alone on the same scale as the whole-clip score, and a short note naming what most separates this rep from the player's others). A single visible rep means you omit rep_scores entirely. Rep-to-rep consistency should also shape the whole-clip metric scores as the scoring rules describe.",
     "",
     "CONTACT FRAME",
-    `Set contact_frame_index to the frame index showing ${CONTACT_MOMENT[skill]}. If contact is not visible in any frame, choose the frame closest to it.`,
+    video
+      ? `Set contact_frame_index to WHEN ${CONTACT_MOMENT[skill].replace("the frame where", "")} occurs, in tenths of a second from clip start. Give your best estimate from the images you received; do not invent precision you do not have.`
+      : `Set contact_frame_index to the frame index showing ${CONTACT_MOMENT[skill]}. If contact is not visible in any frame, choose the frame closest to it.`,
     "",
     "FOCUS",
-    "Set focus to the SINGLE frame this athlete should study first to improve, usually the contact frame or the moment the key flaw is clearest. Give a 2-4 word label and a one-sentence why, tied to what that frame shows.",
+    video
+      ? "Set focus to the SINGLE moment this athlete should study first to improve, as tenths of a second from clip start, usually the contact or the moment the key flaw is clearest. Give a 2-4 word label and a one-sentence why, tied to what that moment shows."
+      : "Set focus to the SINGLE frame this athlete should study first to improve, usually the contact frame or the moment the key flaw is clearest. Give a 2-4 word label and a one-sentence why, tied to what that frame shows.",
     "",
     "CHANGES (realistic returns)",
     "Return 1 to 3 changes, ranked most-impactful first. The first change is the highest-leverage fix from your analysis.",
@@ -83,6 +140,8 @@ export function outputSpec(skill: Skill): string {
     pointerSpec(skill),
     "",
     "Judge the marked athlete's MECHANICS only. Never characterize the setting, occasion, or seriousness of the play (practice, pickup, recreational, casual, competitive) in any field: the same swing earns the same words and the same number on a championship court or a backyard one.",
-    "Base every field on the visible frames alone. Do not reference any tool, model, or provider.",
+    video
+      ? "Base every field on what you actually saw in the clip alone. Do not reference any tool, model, or provider."
+      : "Base every field on the visible frames alone. Do not reference any tool, model, or provider.",
   ].join("\n");
 }

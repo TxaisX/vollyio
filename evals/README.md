@@ -14,8 +14,10 @@ denominator. Run `node scripts/eval-coverage.mjs` before trusting any number.
    discipline, and record/upload a rep. The debug panel appears (no API call is
    spent). Click **Download eval case** to save the extracted frames as JSON.
    Keep pose tracking on so the export carries its `measurements` block.
-2. **Label** — `node scripts/label-case.mjs [case-id]` walks the decisions.
-   It never guesses; every value is typed by a person.
+2. **Label** — `node scripts/label-evals.mjs` serves the frames next to the
+   skill's metric keys at http://localhost:4751 and walks what still needs a
+   decision (`node scripts/label-case.mjs [case-id]` is the terminal equivalent).
+   Neither guesses; every value is typed by a person.
 3. **Add** — drop the file into `evals/cases/`.
 4. **Check coverage** — `node scripts/eval-coverage.mjs` (offline, free).
 5. **Run** — with the coaching key and a long random `EVAL_TOKEN` set,

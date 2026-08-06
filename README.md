@@ -20,8 +20,9 @@ Live: https://vollyio.com
   signed-in player.
 - The coaching service (a vision model) runs server-side only; the browser never
   sees its key. It is never vendor-named in the UI or docs; the vendor-named
-  strings in the repo are env var names and code paths (`ANTHROPIC_API_KEY`, the
-  `STRIPE_*` variables, `app/api/stripe/`), never anything a player reads.
+  strings in the repo are env var names and code paths (`ANTHROPIC_API_KEY`,
+  `OPENROUTER_API_KEY`, the model constants in `lib/ai/client.ts`, the `STRIPE_*`
+  variables, `app/api/stripe/`), never anything a player reads.
 - Tailwind v4 design tokens, hand-rolled motion, no chart/state/animation libraries.
 - Deployed on Vercel; a push to `master` auto-deploys production.
 

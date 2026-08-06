@@ -20,6 +20,11 @@ const PER_MTOK: Record<string, { input: number; output: number }> = {
   "claude-opus-5": { input: 5, output: 25 },
   "claude-opus-4-8": { input: 5, output: 25 },
   "claude-sonnet-5": { input: 3, output: 15 },
+  // The vision provider (D-093), read from the gateway's own model listing on
+  // 2026-08-04: $1.50 in / $7.50 out per MTok. Gateway spend is prepaid credit,
+  // so the account balance is the real ceiling and this rate only feeds the
+  // month-to-date estimate the budget guard prices.
+  "google/gemini-3.6-flash": { input: 1.5, output: 7.5 },
 };
 
 const CACHE_READ_MULTIPLIER = 0.1;

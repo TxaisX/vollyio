@@ -1,0 +1,60 @@
+cases compared: 36
+
+                         stored Opus  A frames+Gem  B video+Gem
+median overall                  65.0          97.0         97.0
+mean overall                    65.0          94.4         96.4
+3-run spread med/max             n/a        4.5/46       4.0/11
+
+pointer status mix (%%):    stored Opus  A frames+Gem  B video+Gem
+  met                             22.7          80.7         88.3
+  partial                         37.9          11.1         11.7
+  missed                           9.3           0.6          0.0
+  not_visible                     30.2           7.6          0.0
+
+score deltas: A - storedOpus median +27.0, mean +29.4; B - A median +0.5, mean +2.1
+cases where A > stored: 36/36; B > A: 18/36
+
+contact-moment |A-B| (s): median 0.6, p90 6.2, n=36
+
+per-run tokens  A: 49058 in / 3020 out -> $0.0962
+per-run tokens  B: 6395 in / 3028 out -> $0.0323
+latency p50 (s) A: 5.2   B: 4.7
+total Gemini spend this prod eval: $13.88 (216 runs)
+
+case            skill    stored  A med  B med A spr B spr
+prod-01657590   attack       76    100     89     2     3
+prod-01f707ac   set          65     92     98     4     3
+prod-02eb77fa   attack       63     92     94     4     9
+prod-0ff74323   set          68     98     97     3     8
+prod-10b14975   attack       52     96     96     8     8
+prod-13ee336b   attack       62    100    100     0     4
+prod-18dbaece   set          64     91     96    11     5
+prod-1d9c1409   attack       61     94     91     8     4
+prod-204a9569   attack        0     70     91     5     9
+prod-207a5a24   set          74     97     97     3     1
+prod-20b66ca2   attack       68     97    100     4     1
+prod-21f56a0c   serve        76     98     94     2     1
+prod-22bee58a   attack       86    100    100     0     0
+prod-2873531a   attack       48     97    100     6     4
+prod-2c82a59e   set          90     97     98     1     2
+prod-3858b2b4   pass         87     98     98     4     0
+prod-40ca3c40   attack       75    100     99     4     1
+prod-45f6ee8b   attack       48     96    100     2     0
+prod-4886ba9c   set          60     92     97     6     1
+prod-4e78b124   attack       70     94     99    46     1
+prod-5189ea5e   attack       42     97    100     7     4
+prod-5e3775e0   attack       53     70     97     0     3
+prod-67d7d515   attack       74     96     94     6     2
+prod-6d619200   attack       61     93     95     5     5
+prod-705fb8c9   attack       51    100     93    10     4
+prod-7f0fbc23   attack       81    100    100     2     0
+prod-910c0d77   attack       64     86     96    11     6
+prod-9435760b   attack       63     92     99     6    11
+prod-945b7103   attack       70     93     96     9     4
+prod-9c5ceb12   attack       63     99     88     0     8
+prod-cc267048   set          61     97     97     5     1
+prod-cda226e1   set          73     97     92     8     4
+prod-d9a34f8f   set          77     97     97     3     5
+prod-da4dd9e5   set          75     97     97     8     3
+prod-db19ba5c   set          75     93     97     4     8
+prod-ea2e536e   attack       65     92    100    12     4

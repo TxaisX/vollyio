@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clip corpus inventory</title>
+<style>
+:root{--navy:#0B1220;--navy-l:#131C2E;--navy-ll:#1A2438;--chalk:#E8ECF3;--dim:#93A0B5;--gold:#E3B341;--teal:#3FBFA8;--coral:#E06A5A;--line:#243149}
+*{box-sizing:border-box}
+body{margin:0;background:var(--navy);color:var(--chalk);font:16px/1.65 "Instrument Sans",-apple-system,Segoe UI,sans-serif;padding:48px 24px}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:"Space Grotesk",Segoe UI,sans-serif;font-weight:700;letter-spacing:-.01em}
+h1{font-size:34px;margin:0 0 6px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin:44px 0 14px}
+.sub{color:var(--dim);margin:0 0 8px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--navy-l);border:1px solid var(--line);border-radius:12px;padding:16px}
+.num{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700}
+.lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);border-bottom:1px solid var(--line);padding:8px 10px}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:hover td{background:var(--navy-l)}
+.bar{background:var(--navy-ll);height:8px;border-radius:4px;overflow:hidden;min-width:90px}
+.bar i{display:block;height:100%;background:var(--teal)}
+.score{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px}
+.hi{color:var(--teal)}.mid{color:var(--gold)}.lo{color:var(--coral)}
+details{margin:0}summary{cursor:pointer;color:var(--dim);font-size:13px}
+.pt{margin:6px 0 0;padding-left:14px}
+.pt li{margin:3px 0;font-size:13px;color:var(--dim)}
+.pt b{color:var(--chalk);font-weight:500}
+.note{background:var(--navy-l);border-left:3px solid var(--gold);border-radius:0;padding:14px 18px;margin:18px 0;color:var(--dim)}
+.note b{color:var(--chalk)}
+.hrow{display:flex;align-items:center;gap:10px;margin:3px 0}
+.hrow .k{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim);width:60px}
+footer{color:var(--dim);font-size:13px;margin-top:44px;border-top:1px solid var(--line);padding-top:16px}
+</style></head><body><div class="wrap">
+
+<h1>Clip corpus inventory</h1>
+<p class="sub">Every clip currently held, scored by the video path. Generated 2026-08-05.</p>
+<p class="sub mono" style="font-size:12px">google/gemini-3.6-flash &middot; holistic rubric (lib/ai/simple-rubric.ts) &middot; no player level injected</p>
+
+<h2>What we hold</h2>
+<div class="grid">
+  <div class="card"><div class="lbl">Clips</div><div class="num">38</div></div>
+  <div class="card"><div class="lbl">Footage</div><div class="num">365s</div></div>
+  <div class="card"><div class="lbl">On disk</div><div class="num">109 MB</div></div>
+  <div class="card"><div class="lbl">Skills covered</div><div class="num">4 of 6</div></div>
+  <div class="card"><div class="lbl">Cost to score all</div><div class="num">$0.44</div></div>
+</div>
+
+<h2>Score distribution</h2>
+<div class="card">
+<div class="hrow"><span class="k">0-9</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">10-19</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">20-29</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">30-39</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">40-49</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">50-59</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<div class="hrow"><span class="k">60-69</span><div class="bar"><i style="width:3.7037037037037033%"></i></div><span class="mono" style="font-size:12px">1</span></div>
+<div class="hrow"><span class="k">70-79</span><div class="bar"><i style="width:100%"></i></div><span class="mono" style="font-size:12px">27</span></div>
+<div class="hrow"><span class="k">80-89</span><div class="bar"><i style="width:37.03703703703704%"></i></div><span class="mono" style="font-size:12px">10</span></div>
+<div class="hrow"><span class="k">90-99</span><div class="bar"><i style="width:0%"></i></div><span class="mono" style="font-size:12px">0</span></div>
+<p class="sub" style="margin:14px 0 0;font-size:13px">min 65 &middot; p25 74 &middot; median 78 &middot; p75 81 &middot; max 89 &middot; 11 distinct values</p>
+</div>
+
+<div class="note"><b>The corpus is bunched.</b> Every clip here is a competent rep by a similar population, so the spread reflects the footage as much as the rubric. Nothing sits below 65, which means the low end of the scale is still unexercised and cannot be trusted yet. One genuinely poor rep would tell us more than another twenty of these.</div>
+
+<h2>Coverage by skill</h2>
+<table><thead><tr><th>Skill</th><th>Clips</th><th></th><th>Low</th><th>Median</th><th>High</th><th>Spread</th></tr></thead><tbody>
+<tr><td>Attacking</td><td class="mono">24</td><td style="width:180px"><div class="bar"><i style="width:100%"></i></div></td><td class="mono">65</td><td class="mono">78</td><td class="mono">89</td><td class="mono">24</td></tr>
+<tr><td>Passing <span class="lo mono" style="font-size:11px">thin</span></td><td class="mono">1</td><td style="width:180px"><div class="bar"><i style="width:4.166666666666666%"></i></div></td><td class="mono">81</td><td class="mono">81</td><td class="mono">81</td><td class="mono">0</td></tr>
+<tr><td>Serving <span class="lo mono" style="font-size:11px">thin</span></td><td class="mono">1</td><td style="width:180px"><div class="bar"><i style="width:4.166666666666666%"></i></div></td><td class="mono">74</td><td class="mono">74</td><td class="mono">74</td><td class="mono">0</td></tr>
+<tr><td>Setting</td><td class="mono">12</td><td style="width:180px"><div class="bar"><i style="width:50%"></i></div></td><td class="mono">71</td><td class="mono">78</td><td class="mono">81</td><td class="mono">10</td></tr>
+</tbody></table>
+<div class="note"><b>Coverage is lopsided.</b> Attacking and Setting carry the corpus; Passing and Serving have one clip each, which is enough to prove the prompt runs and nothing else. A single clip has no spread, so those two rows say nothing about whether the scale behaves for that skill.</div>
+<div class="note"><b>Missing entirely: Blocking, Defense.</b> No footage at all, so the rubric for those skills has never been exercised on a real clip and is entirely unvalidated.</div>
+
+<h2>Reliability of the read</h2>
+<div class="grid">
+  <div class="card"><div class="lbl">Scored</div><div class="num">38</div></div>
+  <div class="card"><div class="lbl">Abstained</div><div class="num">0</div></div>
+  <div class="card"><div class="lbl">Failed</div><div class="num">0</div></div>
+</div>
+
+<div class="note"><b>Two runs of the same 38 clips disagreed with each other.</b> The first pass produced 1 abstention and 2 outright failures; the second produced none of either, and individual scores moved by up to 14 points. Abstention and failure are both stochastic here, so neither a refusal nor a clean run tells you anything on its own. Treat any single reading of this table as one sample.</div>
+
+<h2>Every clip</h2>
+<table><thead><tr><th>Clip</th><th>Skill</th><th>Length</th><th>Score</th><th>Read</th></tr></thead><tbody>
+<tr><td><span class="mono" style="font-size:12px">prod-40ca3c40</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">An explosive, high-contact attack rep that can be further refined by holding your non-dominant guide hand up longer for maximum reach and stability.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You extend fully at the top of your jump, contacting the ball near maximum vertical reach to attack over and around the double block.</li><li><b>Explosive approach rhythm</b> &mdash; Your closing steps are fast and aggressive, converting forward momentum into impressive vertical elevation.</li><li><b>Fast arm swing and snap</b> &mdash; You draw your elbow high and accelerate your hand through contact with quick wrist extension to drive the ball down.</li></ul>
+           <ul class="pt"><li><b>Sustain non-dominant hand guide</b> &mdash; Keep your non-dominant arm extended toward the ball slightly longer to prevent premature shoulder rotation and keep your contact height as high as possible. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Absorb landing through both knees</b> &mdash; Focus on flexing deeply through both knees upon landing to cushion the impact and protect your joints after high vertical jumps. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">18.5s<br><span class="lbl">3.7 MB</span></td>
+      <td><span class="score hi">89</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.3s<br><span class="lbl">3248 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-4e78b124</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">An elite attack rep featuring high elevation and clean mechanics; hold your guide arm up longer to optimize power and placement consistency.</p>
+           <ul class="pt"><li><b>Exceptional vertical elevation</b> &mdash; Explosive footwork on the closing approach allows full conversion of horizontal momentum into vertical jump height, contact point far above the net height.</li><li><b>High, fully extended reach</b> &mdash; Draws the arm high with full shoulder extension at the peak of the jump, contact point is clean and well over the double block.</li><li><b>Balanced landing mechanics</b> &mdash; Lands squarely on both feet under control, absorbing force safely through knees without drifting into the net or center line.</li></ul>
+           <ul class="pt"><li><b>Sustain guide arm elevation longer</b> &mdash; Hold your non-hitting arm up toward the ball a fraction longer prior to contact to improve shoulder tilt and track the set against the defense. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Maximize wrist snap finish</b> &mdash; Follow through with a aggressive wrist snap over the top of the ball at full reach to drive heavy topspin down into deep court zones. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">18.5s<br><span class="lbl">3.7 MB</span></td>
+      <td><span class="score hi">89</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.0s<br><span class="lbl">3248 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-7f0fbc23</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">An explosive high-contact attack over the block that can gain even more power by quickening your arm draw and shoulder rotation.</p>
+           <ul class="pt"><li><b>Explosive vertical jump</b> &mdash; You drive hard off your plant step to elevate well above the top of the net, giving you a massive advantage over the blocking hands.</li><li><b>High contact point</b> &mdash; Contact is made at full arm extension near the peak of your reach, allowing you to hit steep down angles over the block.</li><li><b>Balanced landing</b> &mdash; You absorb your landing cleanly on both feet under control, protecting your joints and keeping you ready to transition.</li></ul>
+           <ul class="pt"><li><b>Quick elbow draw back</b> &mdash; Load your hitting elbow back slightly faster during takeoff to increase kinetic whip and add more ball velocity. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li><li><b>Active guide-hand tuck</b> &mdash; Pull your non-hitting arm firmly into your ribs at contact to snap your shoulders through faster for maximum torque. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">18.5s<br><span class="lbl">3.7 MB</span></td>
+      <td><span class="score hi">89</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.6s<br><span class="lbl">3248 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-5e3775e0</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Dynamic, high-flying swing with excellent contact reach and wrist snap that drives the ball straight down.</p>
+           <ul class="pt"><li><b>Explosive approach and lift</b> &mdash; You attack the set with strong momentum, converting your closing steps into an impressive vertical leap that elevates your contact height well over the net.</li><li><b>High arm extension</b> &mdash; Your high elbow draw and full arm reach at contact allow you to strike the ball at the peak of your reach with a whip-like arm swing.</li><li><b>Sharp downward contact angle</b> &mdash; Fast wrist snap at the top drives the ball sharply downward into the opponent's court, making it extremely difficult to defend.</li></ul>
+           <ul class="pt"><li><b>Balanced two-foot landing</b> &mdash; Focus on absorbing your impact evenly across both feet upon landing to protect your knees and get back into position for the next transition quicker. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Track with non-hitting shoulder</b> &mdash; Keep your non-hitting guide hand extended toward the ball a fraction longer to hold your chest open before aggressively pulling it to your hip. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">15.0s<br><span class="lbl">4.0 MB</span></td>
+      <td><span class="score hi">88</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">9.8s<br><span class="lbl">2975 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-18dbaece</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean, well-positioned hand set that sets up a clean attack, which could be made even stronger with more consistent lower-body drive.</p>
+           <ul class="pt"><li><b>Gets directly under the ball</b> &mdash; You read the trajectory early, set your feet, and got yourself positioned directly beneath the ball drop rather than setting on the move.</li><li><b>High forehead contact point</b> &mdash; Your hands shape up above your forehead with clean, symmetrical extension that keeps the contact legal and smooth.</li><li><b>Hitter-friendly set location</b> &mdash; You put the ball high enough and close to the net line, giving your hitter time to approach and attack comfortably.</li></ul>
+           <ul class="pt"><li><b>Engage more leg drive</b> &mdash; Incorporate a slightly deeper knee flex and drive upward through your legs as you set. This takes strain off your wrists and gives your sets consistent distance on grass. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Hold square finish longer</b> &mdash; Ensure your shoulders and hips freeze facing your target through the entire follow-through to prevent the set from drifting inside. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.1 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.4s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-207a5a24</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">This is a clean, well-controlled set off a high pass, and driving more through your legs will give you effortless depth and power.</p>
+           <ul class="pt"><li><b>Great positioning under the ball</b> &mdash; You tracked the high pass early, moved smoothly into position, and got your hips and shoulders set under the ball before contact.</li><li><b>Clean, high contact point</b> &mdash; You set the ball symmetrically above your forehead with quick, clean wrist extension and no deep dish or hold.</li><li><b>Accurate set to hitter's window</b> &mdash; The ball delivered cleanly with good height into your hitter's attacking window, allowing them a comfortable, full swing.</li></ul>
+           <ul class="pt"><li><b>Engage stronger leg drive</b> &mdash; Incorporate more upward extension through your legs and core as you contact the ball, rather than pushing primarily from your upper body and hands. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Hold extension toward target</b> &mdash; Follow through by extending your arms fully high toward the target pin to increase accuracy and consistency on longer outdoor sets. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.1 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">9.2s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-20b66ca2</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, well-timed outside attack with high contact above the net, which can be further improved by opening your shoulders fully to generate more swing torque.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You reached full arm extension at the peak of your jump, hitting the ball clearly above the net and giving yourself clear angles past the block.</li><li><b>Explosive vertical jump</b> &mdash; Your final acceleration steps into your plant converted forward momentum smoothly into good vertical height.</li><li><b>Safe landing mechanics</b> &mdash; You landed cleanly on both feet on your side of the court, avoiding net violations and maintaining balance after the swing.</li></ul>
+           <ul class="pt"><li><b>Maximize shoulder turn</b> &mdash; Open your chest fully to the setter on your plant step so you can rotate through contact and generate maximum power from your core. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Track with non-hitting arm</b> &mdash; Keep your guide arm reaching high toward the ball slightly longer to stabilize your vision and hold your elevation through the stroke. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">11.1s<br><span class="lbl">0.8 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.3s<br><span class="lbl">2545 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-22bee58a</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong and explosive sand attack that can be enhanced further by snapping your wrist at contact for controlled topspin.</p>
+           <ul class="pt"><li><b>Aggressive approach rhythm</b> &mdash; You accelerate smoothly into your last two steps, transferring your forward momentum efficiently into vertical lift on soft sand.</li><li><b>Full double-arm draw</b> &mdash; Your arms swing back deeply behind your hips during the footwork closing, setting up maximal height and power.</li><li><b>High contact point</b> &mdash; You extend well through your hitting arm to contact the ball above net height with strong downward trajectory.</li></ul>
+           <ul class="pt"><li><b>Snap wrist for topspin</b> &mdash; Snap your wrist forward through contact to generate consistent topspin, helping high-speed attacks drop down inside the back line. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Hold guide arm high</b> &mdash; Keep your non-dominant arm extended upward toward the ball longer before arm swing initiation to maintain elevated shoulders. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">5.5s<br><span class="lbl">0.5 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.0s<br><span class="lbl">2147 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-3858b2b4</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A balanced, well-executed forearm pass that delivers an accurate ball to your target, which you can make even more repeatable by freezing your platform through contact.</p>
+           <ul class="pt"><li><b>Balanced base before contact</b> &mdash; You set your feet early, wide, and low on the grass, giving yourself a stable foundation to handle the incoming ball cleanly.</li><li><b>Clean platform alignment</b> &mdash; Your elbows are fully extended with hands locked, directing the platform angle straight toward the target zone near the net.</li><li><b>Controlled weight transfer</b> &mdash; You guide the ball upward smoothly using your lower body rather than swinging your arms, keeping the pass soft and high for your setter.</li></ul>
+           <ul class="pt"><li><b>Freeze platform after contact</b> &mdash; Hold your platform flat toward the target for a split second after contact instead of dropping your arms immediately. Freezing the shape ensures the ball stays on line every time. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Maintain low posture through hit</b> &mdash; Stay down in your hips through the entire contact phase rather than rising up slightly, which keeps your platform angle consistent on harder-driven balls. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Passing<br><span class="lbl">grass</span></td>
+      <td class="mono">15.8s<br><span class="lbl">2.7 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">10.8s<br><span class="lbl">3067 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-d9a34f8f</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Clean and well-executed setting form with great hands; driving more through your legs will make your set depth effortless.</p>
+           <ul class="pt"><li><b>High contact above forehead</b> &mdash; You consistently bring your hands up early and make contact directly above your hairline with clean, symmetrical hand shape.</li><li><b>Quick feet under the ball</b> &mdash; You move into position well before the ball arrives, establishing a stable balanced base on the grass.</li><li><b>Smooth hand release</b> &mdash; Your wrists extend cleanly through the target without holding or dipping the ball low into your face.</li></ul>
+           <ul class="pt"><li><b>Drive fully through legs</b> &mdash; Push more consistently with your lower body on high sets so your upper body doesn't have to push extra hard to generate distance. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Hold square alignment through finish</b> &mdash; Keep your shoulders and hips locked on your target until the ball is fully off your fingers to keep high-hanging sets on target. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">15.8s<br><span class="lbl">2.7 MB</span></td>
+      <td><span class="score hi">81</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.4s<br><span class="lbl">3071 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-13ee336b</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, elevated attack with a high contact point that can become even more lethal with a faster final step acceleration and sharper wrist snap.</p>
+           <ul class="pt"><li><b>High arm extension</b> &mdash; You reach high at full jump height, contacting the ball above the tape to maximize your downward angle into the court.</li><li><b>High elbow pull-back</b> &mdash; Your hitting arm draws back with a high elbow, creating good shoulder torque and a quick swing path through the ball.</li><li><b>Controlled two-foot landing</b> &mdash; You land balanced on both feet under control, staying clear of the net and absorbing impact safely.</li></ul>
+           <ul class="pt"><li><b>Drive aggressive wrist snap</b> &mdash; Focus on snapping your wrist cleanly over the top of the ball at contact to direct your hits consistently into sharp court zones rather than floating deep. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Accelerate final approach steps</b> &mdash; Speed up your final right-left plant steps to transfer horizontal momentum into even greater vertical bounce before contact. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">8.7s<br><span class="lbl">2.3 MB</span></td>
+      <td><span class="score mid">79</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">12.2s<br><span class="lbl">2419 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-67d7d515</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, well-timed attack off a high set; opening your torso earlier in the air will add top-end velocity to your swing.</p>
+           <ul class="pt"><li><b>Aggressive approach build</b> &mdash; You accelerated well into your final plant steps, transferring forward momentum cleanly into vertical lift on the sand.</li><li><b>High contact point</b> &mdash; You hit the ball near peak height with a fully extended right arm, giving yourself a good angle over the net.</li><li><b>Controlled landing balance</b> &mdash; You landed softly on two feet after contact without drifting forward or touching the net.</li></ul>
+           <ul class="pt"><li><b>Open chest earlier pre-swing</b> &mdash; Rotate your shoulders and open your torso fully toward the setter during your jump to generate more rotational power through torque. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Track longer with guide hand</b> &mdash; Keep your non-dominant arm pointed at the ball longer before pulling it down into your ribcage to maintain shoulder elevation through contact. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">7.4s<br><span class="lbl">0.6 MB</span></td>
+      <td><span class="score mid">79</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">6.5s<br><span class="lbl">2250 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-9435760b</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">You executed a high, aggressive contact with a stable landing; pulling your hitting elbow back earlier on the drawdown will give you significantly more torque.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You reached up at full arm extension near peak height, allowing you to hit down into the opponent's court over the net.</li><li><b>Balanced dual-foot landing</b> &mdash; You absorbed your landing cleanly on both feet, maintaining control without drifting into the net or landing awkwardly.</li></ul>
+           <ul class="pt"><li><b>Draw hitting elbow earlier</b> &mdash; Pull your draw elbow back into a high bow-and-arrow position as you lift into your jump to generate maximum rotational power on the ball. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Accelerate into plant steps</b> &mdash; Drive faster through your final two steps of the approach so you convert more horizontal momentum into vertical bounce. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">79</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">7.7s<br><span class="lbl">1977 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-db19ba5c</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean, well-positioned hand set that gave your attacker a great swing; focus on squaring up early and extending through your legs for even higher accuracy.</p>
+           <ul class="pt"><li><b>Good positioning under ball</b> &mdash; You moved quickly to get your body directly under the pass, creating a balanced stance to execute the set.</li><li><b>High forehead contact point</b> &mdash; Contacting the ball high above your forehead allowed a clean, soft dish that landed right in your hitter's hitting window.</li></ul>
+           <ul class="pt"><li><b>Square shoulders early to target</b> &mdash; Set your feet and square your shoulders directly toward your target antenna before contact so the set stays consistent under pressure. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Engage full leg drive</b> &mdash; Drive up evenly through your legs and hips through release to lift the ball effortlessly rather than relying mostly on arm push. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.2 MB</span></td>
+      <td><span class="score mid">79</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.4s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-ea2e536e</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid, well-timed attack rep with great extension at contact, which can become even more dynamic by accelerating your final approach steps.</p>
+           <ul class="pt"><li><b>High Reach at Contact</b> &mdash; You extended fully at the peak of your jump, contacting the ball above tape level to hit downhill into the opponent court.</li><li><b>Clean Swing Follow-Through</b> &mdash; Your right arm whipped completely through the ball, finishing across your body to transfer maximum energy into the shot.</li><li><b>Controlled Balanced Landing</b> &mdash; You landed evenly on both feet clear of the net, keeping you safe and ready for transition.</li></ul>
+           <ul class="pt"><li><b>Explode Through Closing Steps</b> &mdash; Accelerate your final directional plant steps (right-left) to turn more momentum into vertical jump height. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Load Hitting Shoulder Earlier</b> &mdash; Draw your hitting elbow high and back as your plant feet land so you can generate more hip-to-shoulder torque before contact. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">79</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.1s<br><span class="lbl">1977 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-02eb77fa</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid sand attack rep with high contact and strong approach timing; focus on opening your chest earlier to generate more hitting power.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You reached up high at peak elevation, contacting the ball with an extended arm above the tape rather than letting it drop into your chest.</li><li><b>Aggressive approach rhythm</b> &mdash; You accelerated smoothly through your final plant steps, transferring your horizontal speed into a solid vertical jump in the sand.</li><li><b>Controlled, balanced landing</b> &mdash; You landed softly on both feet with good balance, avoiding any net contact or loss of body control.</li></ul>
+           <ul class="pt"><li><b>Open chest and draw elbow back</b> &mdash; Pull your hitting elbow back higher and open your shoulder earlier as you jump to generate more rotational power through contact. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li><li><b>Drive guide arm upward</b> &mdash; Reach your non-hitting arm up aggressively toward the ball to lift your height and set a steady sightline before snapping through. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">5.5s<br><span class="lbl">0.5 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.9s<br><span class="lbl">2147 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-10b14975</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean, well-timed outside attack that hits over the block, which can gain even more power with a quicker final step explosion and deeper elbow draw.</p>
+           <ul class="pt"><li><b>High, extended contact</b> &mdash; You reached high at contact over the net, allowing you to hit smoothly down into the opponent's court over the blocker.</li><li><b>Balanced, safe landing</b> &mdash; You landed cleanly on both feet with good body control, staying safely clear of the net and centerline.</li><li><b>Smooth approach timing</b> &mdash; Your approach rhythm matched the trajectory of the set nicely, placing you in a comfortable hitting position.</li></ul>
+           <ul class="pt"><li><b>Deeper elbow draw</b> &mdash; Draw your hitting elbow higher and further back during your plant phase to load your shoulder fully and produce more whip on your swing. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Explosive final steps</b> &mdash; Accelerate more aggressively through your last two steps to drive stronger vertical lift into your jump. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">6.4s<br><span class="lbl">0.9 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">7.5s<br><span class="lbl">2119 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-2873531a</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, fluid attack rep on grass with solid elevation and contact height that would benefit from more rotational torso load.</p>
+           <ul class="pt"><li><b>Seamless transition to approach</b> &mdash; You transition smoothly from your pass straight into your attack footwork, carrying good momentum through takeoff.</li><li><b>High reach at contact</b> &mdash; You extend fully near the peak of your jump, contacting the ball above the tape to give yourself good court angles.</li><li><b>Controlled landing balance</b> &mdash; You land softly on both feet with good knee flexion, keeping yourself balanced and well clear of the net.</li></ul>
+           <ul class="pt"><li><b>Extend non-hitting guide hand</b> &mdash; Reach your non-hitting arm higher toward the ball during takeoff to elevate your left shoulder and set up a stronger kinetic stretch. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Increase hip-shoulder torque</b> &mdash; Rotate your non-hitting shoulder back fully at the top of your approach so you can drive your hips and core into the swing rather than relying on upper arm effort. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">10.0s<br><span class="lbl">4.8 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">12.2s<br><span class="lbl">2524 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-2c82a59e</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean, well-positioned outdoor set that can be made even more consistent by loading your legs more deeply before contact.</p>
+           <ul class="pt"><li><b>High contact above forehead</b> &mdash; You bring your hands up early and make contact clean and high above your forehead, avoiding any deep dish or low catch.</li><li><b>Good target alignment</b> &mdash; You track the incoming pass well and get your shoulders squared up toward your hitter before contact.</li><li><b>Symmetric wrist follow-through</b> &mdash; Your hands release evenly through the ball, producing a clean trajectory without excess spin.</li></ul>
+           <ul class="pt"><li><b>Engage dynamic leg drive</b> &mdash; Bend your knees more deeply as you arrive so your legs propel the ball high on sand, keeping your hands relaxed and soft. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Beat the ball to set feet</b> &mdash; Hurry your last step so your feet are planted firmly beneath you before your hands extend, maximizing consistency under wind or uneven ground. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.1s<br><span class="lbl">0.7 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.4s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-45f6ee8b</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">An explosive, well-timed outdoor swing that can get even more power by opening your chest wider during the arm draw.</p>
+           <ul class="pt"><li><b>Explosive approach and takeoff</b> &mdash; You transition quickly off your pass and convert forward momentum into solid vertical height despite uneven grass.</li><li><b>High reach at contact</b> &mdash; You extend fully at the top of your jump, contacting the ball high above the tape to maximize your downward angle.</li><li><b>Balanced two-foot landing</b> &mdash; You absorb your landing cleanly on both feet without shifting into the net or losing balance.</li></ul>
+           <ul class="pt"><li><b>Open non-hitting shoulder</b> &mdash; Track the ball with your non-hitting arm higher and open your chest to the setter before rotating through to generate peak shoulder torque. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Deeper bow-and-arrow draw</b> &mdash; Pull your hitting elbow higher and further back during takeoff so your swing wrist starts behind your head for maximum snap. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">10.0s<br><span class="lbl">4.8 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.4s<br><span class="lbl">2524 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-4886ba9c</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A smooth, well-footed setting rep that put the ball right into your hitter's attack window, which can be improved with more leg drive.</p>
+           <ul class="pt"><li><b>Great footwork under ball</b> &mdash; You moved efficiently to get fully behind and beneath the pass, establishing a stable base before contact.</li><li><b>High, clean contact point</b> &mdash; Hands were positioned high above your forehead with clean, symmetric extension that delivered a smooth, high-loft set.</li><li><b>Squared body position</b> &mdash; Your hips and shoulders were fully aligned to your target pin, giving your hitter a predictable ball in her hitting window.</li></ul>
+           <ul class="pt"><li><b>Engage lower body drive</b> &mdash; Relying mostly on wrist extension limits distance on long sets; push up through your knees to push ball smoothly to the pins. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Hold extension finish</b> &mdash; Freeze your hands high towards the target after release rather than dropping them instantly to maintain consistency. <span class="mono" style="font-size:11px">(quick, 2-3 practices)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.1 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.5s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-5189ea5e</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong jump with high contact point; driving your tracking arm up earlier will add power and consistency to your swing.</p>
+           <ul class="pt"><li><b>Strong Explosive Vertical Lift</b> &mdash; You convert your approach momentum cleanly into height, getting well above the top tape for a clear view into the court.</li><li><b>High Contact Point</b> &mdash; You contact the ball near full arm extension, allowing you to snap through the ball and drive it downward.</li><li><b>Controlled Two-Foot Landing</b> &mdash; You absorb the landing smoothly on two feet without drifting into the net or losing balance.</li></ul>
+           <ul class="pt"><li><b>Drive Lead Arm Higher</b> &mdash; Bring your non-dominant tracking arm up forcefully toward the ball earlier to load your shoulders and create more rotational torque. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Accelerate Final Plant Steps</b> &mdash; Increase the closing speed on your final two steps to maximize kinetic transfer from your approach into your jump height. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">8.7s<br><span class="lbl">1973 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-9c5ceb12</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, powerful attack rep with good vertical lift that would improve further by keeping the ball slightly more in front of the shoulder at contact.</p>
+           <ul class="pt"><li><b>Explosive penultimate plant</b> &mdash; Drives aggressively into the sand on the final two steps, effectively converting forward momentum into vertical lift.</li><li><b>Full arm draw</b> &mdash; Loads both arms back behind the hips during the jump preparation, generating good upper-body torque and elevation.</li><li><b>High contact point</b> &mdash; Extends fully through the hitting shoulder to strike the ball cleanly at the peak of the jump above net height.</li></ul>
+           <ul class="pt"><li><b>Keep set further in front</b> &mdash; Approaching slightly too close to the set forces contact over or slightly behind the head rather than 30cm in front of the shoulder, reducing leverage and downward angle. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Delay approach entry slightly</b> &mdash; Wait a fraction of a second longer to read the set path so you can plant with the ball clearly out in front of your shoulder window. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">9.9s<br><span class="lbl">1.2 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.7s<br><span class="lbl">2520 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-cda226e1</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">You have a clean contact point high above your forehead; focus on fully squaring your shoulders to your target before contact to boost consistency.</p>
+           <ul class="pt"><li><b>Early hand preparation</b> &mdash; You get both hands up early above your forehead before the ball arrives, giving you clean touch and control.</li><li><b>Balanced extension</b> &mdash; You extend fully through your elbows and wrists while maintaining control of your body through the finish.</li></ul>
+           <ul class="pt"><li><b>Square fully to target</b> &mdash; Ensure your shoulders and hips are completely squared to your outside hitter at contact so the trajectory stays tight to the net. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Drive through your legs</b> &mdash; Integrate a more dynamic right-left foot step and leg push to push higher trajectory balls effortless without overworking your upper body. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">indoor</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.0s<br><span class="lbl">1978 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">downloads-clip</span><br><span class="lbl">D:\Downloads</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong, explosive beach attack with a high reach and clean arm draw that could be further elevated by a faster closing approach rhythm.</p>
+           <ul class="pt"><li><b>High bow-and-arrow arm draw</b> &mdash; You pull your hitting elbow high and back while opening your shoulders, creating strong hip-shoulder separation for powerful contact.</li><li><b>Strong vertical takeoff on sand</b> &mdash; You drive well off the deep sand to get your hitting shoulder high above the tape and maintain good air time.</li><li><b>High contact point</b> &mdash; You keep your reach tall at contact rather than dropping your arm, letting you attack ball angles down into the court.</li></ul>
+           <ul class="pt"><li><b>Accelerate final closeout steps</b> &mdash; Speed up your penultimate and final plant steps to convert your approach momentum into maximum vertical explosion and consistent timing. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Snap non-hitting arm through finish</b> &mdash; Drive your non-hitting arm down toward your hip as you swing to guide shoulder rotation and maintain dynamic landing balance. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">5.5s<br><span class="lbl">24.1 MB</span></td>
+      <td><span class="score mid">78</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">13.9s<br><span class="lbl">2068 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-204a9569</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Strong attack rep with high contact point over the net; opening your chest more during loading will add swing power.</p>
+           <ul class="pt"><li><b>High extension at contact</b> &mdash; You reach fully with your swing arm, contacting the ball at maximum elevation over the top of the net.</li><li><b>Balanced, net-safe landing</b> &mdash; You stick a stable landing on both feet in the sand without drifting forward into the net or crossing under.</li><li><b>Dynamic approach acceleration</b> &mdash; You track the set well and build momentum smoothly through your final steps into takeoff.</li></ul>
+           <ul class="pt"><li><b>Load hitting shoulder deeper</b> &mdash; Draw your right shoulder and elbow back earlier during your swing preparation to create shoulder-hip separation and add rotational force. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li><li><b>Snap wrist over top</b> &mdash; Work on snapping through the top half of the ball at contact to generate heavy topspin and keep tight downward trajectories in play. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">5.5s<br><span class="lbl">1.5 MB</span></td>
+      <td><span class="score mid">76</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.7s<br><span class="lbl">2068 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-945b7103</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A strong outside attack with good approach speed and reach, which can generate even more power by opening your chest fully before swinging.</p>
+           <ul class="pt"><li><b>Dynamic approach momentum</b> &mdash; You accelerate smoothly into your last two steps, converting forward speed into vertical height efficiently.</li><li><b>High contact reach</b> &mdash; You extend well at the top of your jump, hitting near full extension to clear the opposing block.</li><li><b>Controlled balanced landing</b> &mdash; You land softly on both feet without drifting into the net or crossing the center line.</li></ul>
+           <ul class="pt"><li><b>Maximize shoulder hip torque</b> &mdash; Open your chest more toward the setter as you jump so you can drive through contact with core rotation rather than relying purely on arm speed. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li><li><b>Active wrist snap follow-through</b> &mdash; Snap your wrist through the ball at contact to generate heavy topspin, keeping deep line and cross-court attacks inside the court boundaries. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">13.1s<br><span class="lbl">1.1 MB</span></td>
+      <td><span class="score mid">76</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.8s<br><span class="lbl">2468 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-0ff74323</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean set that gives your hitter a great swing, which can be improved further by fully squaring your hips to the target prior to contact.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You take the ball cleanly above your forehead with wrists ready, allowing for a quick release without dropping your hands down to your chest.</li><li><b>Good footwork under pass</b> &mdash; You read the trajectory off the pass early and position your body directly beneath the ball before initiating contact.</li><li><b>Hittable set location</b> &mdash; The set has good height and falls right into your hitter's attacking window near the net for a clean swing.</li></ul>
+           <ul class="pt"><li><b>Square hips to target</b> &mdash; Your upper body drifts slightly sideways during release. Focus on planting your right foot and squaring your hips fully toward your left antenna before contact. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Complete arm and leg extension</b> &mdash; Follow through evenly with both hands pointing straight to your target after contact to maximize set consistency. <span class="mono" style="font-size:11px">(quick, 1 practice)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.2 MB</span></td>
+      <td><span class="score mid">74</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">9.5s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-1d9c1409</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid jump and high contact point over the net, which can be made even more powerful by opening your chest and tracking higher with your non-hitting arm.</p>
+           <ul class="pt"><li><b>Dynamic vertical jump</b> &mdash; You drive smoothly out of the sand and get excellent vertical elevation relative to the net height.</li><li><b>High contact extension</b> &mdash; You reach well overhead at maximum reach, allowing you to hit down over the top tape.</li><li><b>Controlled two-foot landing</b> &mdash; You absorb the landing cleanly in the sand while maintaining full balance and remaining clear of the net.</li></ul>
+           <ul class="pt"><li><b>Track with guide arm</b> &mdash; Keep your left arm extended higher towards the ball during takeoff to lift your shoulders and improve contact timing. <span class="mono" style="font-size:11px">(quick, 1 practice)</span></li><li><b>Open chest on draw</b> &mdash; Draw your right elbow back higher and open your torso earlier in the air to create more power through shoulder rotation. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">5.5s<br><span class="lbl">1.5 MB</span></td>
+      <td><span class="score mid">74</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">7.6s<br><span class="lbl">2068 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-21f56a0c</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid serve mechanics with high contact and full arm extension, but stabilizing your toss placement will increase your consistency and power output.</p>
+           <ul class="pt"><li><b>High Contact Point</b> &mdash; You reach full arm extension above your hitting shoulder, driving the ball down into the court with good vertical reach.</li><li><b>Active Arm Draw</b> &mdash; Your hitting shoulder opens up well during the swing phase, setting up a strong mechanical chain into impact.</li></ul>
+           <ul class="pt"><li><b>Consistent Toss Placement</b> &mdash; Toss the ball consistently 30cm in front of your hitting shoulder so you can consistently drive forward without reaching backward. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Forward Landing Momentum</b> &mdash; Focus on landing forward into the court after contact to fully translate your approach speed into serve velocity. <span class="mono" style="font-size:11px">(quick, 2-3 practices)</span></li></ul></details></td>
+      <td>Serving<br><span class="lbl">indoor</span></td>
+      <td class="mono">26.7s<br><span class="lbl">6.6 MB</span></td>
+      <td><span class="score mid">74</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">9.5s<br><span class="lbl">4061 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-6d619200</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A clean, high-contact attack rep that could gain significantly more power with better upper-body shoulder rotation.</p>
+           <ul class="pt"><li><b>High reach at contact</b> &mdash; You extended your arm high at the peak of your jump, contacting the ball near maximum reach above the net height.</li><li><b>Controlled vertical approach</b> &mdash; You converted your forward momentum into good height in deep sand without drifting into the net or losing balance.</li><li><b>Balanced dual-foot landing</b> &mdash; You landed cleanly on both feet in the sand, maintaining body control immediately after swing completion.</li></ul>
+           <ul class="pt"><li><b>Open chest and draw non-hitting arm</b> &mdash; Raise and hold your non-hitting arm high longer during your plant to open your shoulders before rotating through contact for extra power. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li><li><b>Snapping wrist through top of ball</b> &mdash; Focus on aggressive wrist snap over the top of the ball at contact to generate top spin and keep deep attacks inside the baseline. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">8.0s<br><span class="lbl">1.8 MB</span></td>
+      <td><span class="score mid">74</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">8.3s<br><span class="lbl">2341 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-910c0d77</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A solid attack with good timing and high reach that can generate more power by loading your hitting elbow earlier into a full arm draw.</p>
+           <ul class="pt"><li><b>High extension at contact</b> &mdash; You reached high through contact, letting you attack the ball over the net tape cleanly rather than dropping your hitting shoulder.</li><li><b>Well-timed approach steps</b> &mdash; You waited patiently for the set to reach its peak before accelerating into your jump, keeping the ball properly positioned in front of your hitting shoulder.</li></ul>
+           <ul class="pt"><li><b>Load elbow back earlier</b> &mdash; Draw your hitting elbow high and back into a full bow-and-arrow posture during your jump. Loading early will help generate torque through your core and whip into your swing for more power. <span class="mono" style="font-size:11px">(moderate, 2-3 practices)</span></li><li><b>Cushion your two-foot landing</b> &mdash; Focus on landing softly with equal weight on both feet and flexed knees. Soft landings on grass reduce joint stress and keep you ready for defense or transition. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">4.1s<br><span class="lbl">4.2 MB</span></td>
+      <td><span class="score mid">74</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">10.4s<br><span class="lbl">1877 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-01f707ac</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A solid, clean overhead set that gets your hitter a swing, which could be made more consistent by fully squaring your shoulders to the target before release.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You take the ball well above your forehead with wrists ready, keeping the contact clean and avoiding a deep catch.</li><li><b>Quick footwork to position</b> &mdash; You recognize the pass early and hurry to place yourself directly under the flight of the ball before starting your set.</li><li><b>Hittable set trajectory</b> &mdash; You deliver a high, manageable arc that gives your hitter plenty of time to approach and attack over the net.</li></ul>
+           <ul class="pt"><li><b>Square shoulders to target</b> &mdash; Square your chest fully to your target pin before releasing the ball rather than fading sideways, which will keep your sets from drifting tight to the net. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Drive evenly through legs</b> &mdash; Push straight up through both feet simultaneously instead of leaning back during release, giving you consistent height on out-of-system sets. <span class="mono" style="font-size:11px">(quick, 2-3 practices)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">8.2s<br><span class="lbl">1.1 MB</span></td>
+      <td><span class="score mid">73</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">10.2s<br><span class="lbl">2346 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-01657590</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid jump and aggressive swing over the net, which can be further improved by driving your guide arm higher during your approach.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You reached full extension above the net, contacting the ball at the peak of your jump rather than letting it drop into your shoulder.</li><li><b>Aggressive arm speed</b> &mdash; You accelerated your hitting arm quickly through the ball, creating plenty of pace over the net.</li><li><b>Safe landing balance</b> &mdash; You controlled your momentum upon landing, staying well clear of the net and avoiding any center-line fault.</li></ul>
+           <ul class="pt"><li><b>Drive guide arm higher</b> &mdash; Throw your non-dominant arm up towards the ball during your plant step. This improves your vertical lift and helps anchor your shoulder axis for maximum power. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Sharpen top-spin wrist snap</b> &mdash; Finish your swing with a aggressive wrist snap over the top of the ball to create topspin and pull deep attacks down inside the boundary lines. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">grass</span></td>
+      <td class="mono">8.6s<br><span class="lbl">0.7 MB</span></td>
+      <td><span class="score mid">72</span><br><span class="lbl">high</span></td>
+      <td class="mono" style="font-size:12px">7.9s<br><span class="lbl">2422 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-cc267048</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Solid positioning and high contact delivered a hittable ball, which will get even more consistent by squaring your shoulders fully before the set.</p>
+           <ul class="pt"><li><b>Good position under the ball</b> &mdash; You tracked the high drop quickly, getting your feet planted under the ball rather than reaching away from your body.</li><li><b>High contact point</b> &mdash; You contacted the ball clean and high above your forehead, keeping your hand shape consistent without letting it drop low.</li><li><b>Hittable set location</b> &mdash; The set gave your attacker enough height and distance off the net to make a full approach and swing.</li></ul>
+           <ul class="pt"><li><b>Square shoulders to target</b> &mdash; Turn your hips and shoulders fully toward the pin before contact so you do not rely on wrist drift to push the set wide. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Deeper leg drive</b> &mdash; Bend your knees slightly lower as you set to use your lower body for push power instead of pushing primarily with your upper body. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">grass</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">72</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">7.7s<br><span class="lbl">1982 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">live-setter-demo</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">A solid overhead set with high contact, where squaring up earlier to your target will sharpen your placement consistency.</p>
+           <ul class="pt"><li><b>High contact point</b> &mdash; You take the ball cleanly above your forehead with well-shaped hands, giving yourself optimal vision of the court and a natural release angle.</li><li><b>Active leg drive</b> &mdash; You extend through your hips and legs during release, using your lower body to push the ball upward rather than relying entirely on arm strength.</li></ul>
+           <ul class="pt"><li><b>Square shoulders to target</b> &mdash; Turn your chest and shoulders fully toward your intended target before contact to ensure both hands deliver equal force and eliminate subtle drift. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Sustain high follow-through</b> &mdash; Finish with palms facing the target and hold your high hand position briefly after release to keep the trajectory repeatable and avoid pulling the ball down. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">beach</span></td>
+      <td class="mono">2.2s<br><span class="lbl">0.4 MB</span></td>
+      <td><span class="score mid">71</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">7.2s<br><span class="lbl">1800 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-da4dd9e5</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">Clean overhead set with good movement under the ball that will get even better by fully squaring your hips to the target.</p>
+           <ul class="pt"><li><b>High hands above forehead</b> &mdash; You bring your hands up early above your forehead, creating a solid soft contact pocket that keeps your touch clean.</li><li><b>Good footwork to ball</b> &mdash; You track the trajectory well and get your body positioned directly under the ball rather than setting on the move or reaching across your body.</li><li><b>Complete arm extension</b> &mdash; Your arms extend smoothly through contact to push the ball high into a hittable zone for your teammate.</li></ul>
+           <ul class="pt"><li><b>Square hips to target</b> &mdash; Finish with your belly button and shoulders pointing directly at your left-side hitter before contact to prevent sets from drifting off the net. <span class="mono" style="font-size:11px">(quick, 1-2 practices)</span></li><li><b>Engage lower body drive</b> &mdash; Bend your knees slightly as you step under the ball and bend soundly into the set so your legs push the height, taking pressure off your wrist push. <span class="mono" style="font-size:11px">(moderate, 2-3 weeks)</span></li></ul></details></td>
+      <td>Setting<br><span class="lbl">indoor</span></td>
+      <td class="mono">4.1s<br><span class="lbl">2.6 MB</span></td>
+      <td><span class="score mid">71</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">8.0s<br><span class="lbl">1978 tok</span></td></tr>
+<tr><td><span class="mono" style="font-size:12px">prod-705fb8c9</span><br><span class="lbl">evals/clips</span>
+      <details><summary>detail</summary><p class="sub" style="font-size:13px;margin:4px 0 8px">You demonstrate strong arm speed and high contact point, but working off partner tosses will allow you to build full approach timing and vertical drive.</p>
+           <ul class="pt"><li><b>High point contact</b> &mdash; You reach up high and extend cleanly through the ball, striking it at near peak reach to generate downward trajectory.</li><li><b>Decisive arm draw</b> &mdash; Your right elbow pulls back high and clear of your torso before accelerating through contact.</li></ul>
+           <ul class="pt"><li><b>Transition to tossed sets</b> &mdash; Self-tossing forces you to hold back your approach momentum. Work with a feeder or partner tossing from the setter position so you can accelerate through a complete 3-step approach. <span class="mono" style="font-size:11px">(moderate, 1-2 weeks)</span></li><li><b>Balanced two-foot landing</b> &mdash; Ensure you land cleanly on both feet simultaneously after contact to distribute impact evenly and preserve joint longevity. <span class="mono" style="font-size:11px">(quick, 1 practice)</span></li></ul></details></td>
+      <td>Attacking<br><span class="lbl">indoor</span></td>
+      <td class="mono">26.7s<br><span class="lbl">6.6 MB</span></td>
+      <td><span class="score mid">65</span><br><span class="lbl">medium</span></td>
+      <td class="mono" style="font-size:12px">12.9s<br><span class="lbl">4060 tok</span></td></tr>
+</tbody></table>
+
+<footer>
+Scores are one run each and run-to-run spread is roughly 7 points, so treat any single number as approximate.
+No clip here carries a human rating, so this measures the model's ordering, not its accuracy.
+See <span class="mono">docs/corpus-plan.md</span> for how these become reference points.
+</footer>
+</div></body></html>

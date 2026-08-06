@@ -1,3 +1,5 @@
+import { SCALE_VERSION } from "./ai/pointers.ts";
+
 // Asymmetric on purpose (D-079). Skill does not vanish in a day but it does
 // jump when a fix lands, so the estimator trusts upward evidence more: one
 // 50-scoring rep under a 75 rating is far more likely fatigue, a bad angle, or
@@ -24,6 +26,24 @@ export function updateRating(
   const w = Math.max(0, Math.min(1, coveragePct / 100));
   const alpha = score >= prev ? ALPHA_UP : ALPHA_DOWN;
   return Math.round((prev + alpha * w * (score - prev)) * 10) / 10;
+}
+
+// The rating a new analysis leaves behind, scale-aware (D-094). A rating is an
+// EWMA of scores, so it is only meaningful while every blended score sits on
+// the same scale. When the stored rating was built under a different
+// SCALE_VERSION, blending would average two different units, so the rating
+// re-seeds from the new score instead. A stored version of null predates
+// versioning and means version 1, not "unknown": treating it as unknown would
+// re-seed every existing player's rating the day this ships, for no reason.
+export function nextRating(
+  prev: { rating: number | null; scale_version: number | null } | null,
+  score: number,
+  coveragePct = 100,
+): number {
+  if (prev == null || prev.rating == null) return score;
+  const prevVersion = prev.scale_version ?? 1;
+  if (prevVersion !== SCALE_VERSION) return score;
+  return updateRating(prev.rating, score, coveragePct);
 }
 
 export function overallScore(ratings: (number | null)[]): number | null {

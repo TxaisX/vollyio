@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 74,
     "overall_max": 88,
-    "weakest_metric": "",
     "strongest_metric": "body_alignment",
-    "notes": "Grass jump set near the net: airborne hands in a symmetric window, squared to target; fine cues unresolvable at distance."
+    "notes": "Grass jump set near the net: airborne hands in a symmetric window, squared to target; fine cues unresolvable at distance.",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

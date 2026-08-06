@@ -26,6 +26,12 @@ export function analysisSchema(skill: Skill) {
           z.object({
             key: z.string(),
             status: z.string(),
+            // Where the model says it can SEE this mechanic (D-095). Optional
+            // for back-compat: older stored replies carry none, and a reply
+            // that omits it is not a failure. Under strict mode the route
+            // downgrades an uncited met/missed to not_visible, which is what
+            // turns "I saw it" from a free claim into one that costs something.
+            frame: z.number().int().optional(),
           }),
         )
         .max(8),

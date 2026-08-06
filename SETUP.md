@@ -19,7 +19,8 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | no | public by design |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | anon/publishable key; row security is what enforces access |
-| `ANTHROPIC_API_KEY` | **yes** | the coaching service; server-side only |
+| `ANTHROPIC_API_KEY` | **yes** | the coaching service (coach chat, weekly plan, written reports); server-side only |
+| `OPENROUTER_API_KEY` | **yes** | the vision provider that runs the frame read for `/api/analyze` and `/api/players` (D-093); server-side only. Prepaid credit: the balance is the ceiling |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone; its two importers (payment webhook; analyze telemetry/refund, D-065) are recorded in `docs/security.md` rule 10. Absent means the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | **yes** | the payment provider API key |
 | `STRIPE_WEBHOOK_SECRET` | **yes** | the endpoint signing secret. Absent means every event is rejected and no plan is ever written |

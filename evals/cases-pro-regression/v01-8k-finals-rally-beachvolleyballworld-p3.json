@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 78,
     "overall_max": 92,
-    "weakest_metric": "",
+    "weakest_metric": "contact_control",
     "strongest_metric": "body_posture",
-    "notes": "Featured forearm pass of a high ball: low loaded base, platform joined early under the ball; wide shot can't resolve fine platform angle."
+    "notes": "Featured forearm pass of a high ball: low loaded base, platform joined early under the ball; wide shot can't resolve fine platform angle.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

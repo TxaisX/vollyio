@@ -48,8 +48,10 @@
   "expected": {
     "overall_min": 80,
     "overall_max": 94,
-    "weakest_metric": "",
+    "weakest_metric": "body_alignment",
     "strongest_metric": "contact_point",
-    "notes": "Airborne jump serve from deep: full approach, high in-front toss, full-reach contact above the net; wide rear shot caps fine detail."
+    "notes": "Airborne jump serve from deep: full approach, high in-front toss, full-reach contact above the net; wide rear shot caps fine detail.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

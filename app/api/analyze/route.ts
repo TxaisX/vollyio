@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, ANALYZE_MODEL, ANALYZE_EFFORT } from "@/lib/ai/client";
+import { VISION_MODEL } from "@/lib/ai/client";
+import { readFrames, VisionError } from "@/lib/ai/vision";
 import { classifyCoachingError } from "@/lib/ai/errors";
 import { shouldEnforceFreeTier } from "@/lib/billing";
 import { analysisSchema } from "@/lib/ai/schema";
@@ -10,7 +9,8 @@ import { getRubric } from "@/lib/ai/rubrics";
 import { outputSpec } from "@/lib/ai/output-spec";
 import { mockResult } from "@/lib/ai/mock";
 import { drillSlugs } from "@/content/drills";
-import { updateRating } from "@/lib/ratings";
+import { nextRating } from "@/lib/ratings";
+import { SCALE_VERSION } from "@/lib/ai/pointers";
 import { deriveResult } from "@/lib/ai/derive";
 import { awardXp } from "@/lib/progression";
 import {
@@ -220,93 +220,54 @@ export async function POST(req: NextRequest) {
     result = mockResult(skill, timeAt);
   } else {
     try {
-      const content = frames.flatMap((f) => [
-        {
-          type: "text" as const,
-          text: f.time_s != null ? `Frame ${f.index}, t=${f.time_s}s` : `Frame ${f.index}`,
-        },
-        {
-          type: "image" as const,
-          source: { type: "base64" as const, media_type: "image/jpeg" as const, data: f.data },
-        },
-      ]);
-
       const markerAt = parsedBody.data.marker_frame_index;
       const focusBlock = parsedBody.data.focus_marker
         ? [
-            {
-              type: "text" as const,
-              text:
-                `The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete${markerAt != null ? ` in frame ${markerAt}` : " in one frame"}. ` +
-                "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
-            },
+            `The player marked exactly who to analyze: a hollow gold ring is drawn around the focus athlete${markerAt != null ? ` in frame ${markerAt}` : " in one frame"}. ` +
+              "That ringed person is the subject in EVERY frame: follow the same individual across the whole sequence by kit, build, and court position. Every score, metric note, insight, and change refers to them alone. Ignore every other person, and ignore the ring itself when judging form (it is a marker, not part of the athlete or the scene).",
           ]
         : [];
 
-      const startedAt = Date.now();
-      const response = await coach().messages.parse({
-        model: ANALYZE_MODEL,
-        max_tokens: 4096,
-        // Stated, not inherited. Opus 4.8 ran with no reasoning at all when
-        // `thinking` was absent (D-027); Opus 5 thinks by default (D-070). Naming
-        // it keeps this call's reasoning independent of whichever default the
-        // pinned model happens to carry.
-        thinking: { type: "adaptive" },
-        system: [
-          {
-            type: "text",
-            text: getRubric(skill, discipline),
-            cache_control: { type: "ephemeral" },
-          },
-          {
-            type: "text",
-            text: outputSpec(skill),
-            cache_control: { type: "ephemeral" },
-          },
+      // The frame read runs on the vision provider (D-093), not the coaching
+      // service. Same rubric, same output spec, same schema, same derivation
+      // below: only the model that looks at the pixels changed.
+      const read = await readFrames({
+        model: VISION_MODEL,
+        system: [getRubric(skill, discipline), outputSpec(skill)],
+        frames: frames.map((f) => ({
+          index: f.index,
+          time_s: f.time_s,
+          data: f.data,
+        })),
+        instructions: [
+          ...focusBlock,
+          `Discipline: ${discipline}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
         ],
-        messages: [
-          {
-            role: "user",
-            content: [
-              ...content,
-              ...focusBlock,
-              {
-                type: "text",
-                text: `Discipline: ${discipline}. Analyze this ${SKILL_LABEL[skill].toLowerCase()} rep sequence across the whole clip.`,
-              },
-            ],
-          },
-        ],
-        output_config: {
-          effort: ANALYZE_EFFORT,
-          format: zodOutputFormat(analysisSchema(skill)),
-        },
-      },
-      // Exponential backoff on 429/5xx from the coaching service (CS-7); the
-      // SDK honors Retry-After and jitters between attempts. Both numbers are
-      // bounded by `maxDuration = 120`: the SDK's default per-attempt timeout
-      // is ~10 minutes, so a hung provider connection used to end with the
-      // platform killing the function, which skips the refund below and the
-      // entitlement release in the outer finally, silently costing the player
-      // an hourly slot. 90s per attempt never cuts a legitimately slow call
-      // (the read runs 30-60s), and one retry keeps the common failure (a
-      // fast 429/529, then success) inside the platform budget where five
-      // attempts could not be.
-      { maxRetries: 1, timeout: 90_000 },
-    );
+        schema: analysisSchema(skill),
+        // Above the 4096 the coaching service ran with: a reply truncated at
+        // the ceiling arrives as unparseable JSON, which reads as "couldn't
+        // read that clip" and costs the player nothing but their time.
+        maxTokens: 8192,
+        // Both numbers are bounded by `maxDuration = 120`. 90s per attempt
+        // never cuts a legitimately slow read, and one retry keeps the common
+        // failure (a fast 429/5xx, then success) inside the platform budget.
+        // Without a bound here a hung connection ends with the platform killing
+        // the function, which skips the refund below and the entitlement
+        // release in the outer finally, silently costing the player a slot.
+        timeoutMs: 90_000,
+        maxRetries: 1,
+      });
 
-      const usage = response.usage;
       telemetry = {
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
-        duration_ms: Date.now() - startedAt,
-        model: ANALYZE_MODEL,
-        effort: ANALYZE_EFFORT,
+        input_tokens: read.usage.input_tokens,
+        output_tokens: read.usage.output_tokens,
+        cache_read_input_tokens: read.usage.cache_read_input_tokens,
+        cache_creation_input_tokens: read.usage.cache_creation_input_tokens,
+        duration_ms: read.ms,
+        model: VISION_MODEL,
       };
 
-      const raw = response.parsed_output;
+      const raw = read.parsed;
       if (!raw) {
         return NextResponse.json(
           { error: "The coaching service couldn't read that clip. Try again." },
@@ -363,11 +324,11 @@ export async function POST(req: NextRequest) {
       // Log the real cause server-side only. The client message stays generic
       // and vendor-neutral (no-vendor-names rule); an opaque 502 with a bare
       // `catch` hid whatever the coaching call actually threw.
-      const apiErr = err instanceof Anthropic.APIError ? err : null;
+      const apiErr = err instanceof VisionError ? err : null;
       const message = apiErr?.message ?? (err instanceof Error ? err.message : String(err));
-      console.error("[analyze] coaching call failed", {
+      console.error("[analyze] vision call failed", {
         status: apiErr?.status,
-        requestId: apiErr?.requestID,
+        requestId: apiErr?.requestId,
         message,
       });
       const kind = classifyCoachingError({ status: apiErr?.status ?? null, message });
@@ -401,6 +362,10 @@ export async function POST(req: NextRequest) {
   }
 
   result.discipline = discipline;
+  // Which calibration of the pointer-to-score mapping produced these numbers
+  // (D-094). Read by nothing today; it exists so a future recalibration can
+  // tell new-scale rows from old ones instead of guessing from dates.
+  result.scale_version = SCALE_VERSION;
   // Clip time per sent frame, keyed by frame index, so viewers can place
   // per-frame data on the clip timeline (client data, not model output; the
   // response schema stays frozen).
@@ -444,7 +409,7 @@ export async function POST(req: NextRequest) {
     stored_frame_paths: storedFramePaths,
     overall_score: result.overall_score,
     result,
-    model: process.env.AI_MOCK === "true" ? "mock" : ANALYZE_MODEL,
+    model: process.env.AI_MOCK === "true" ? "mock" : VISION_MODEL,
   });
   if (insertError) {
     if (insertError.message.includes("analysis rate limit exceeded")) {
@@ -525,25 +490,39 @@ export async function POST(req: NextRequest) {
   // measurement gap, not a failure, and the analysis returns exactly the same.
   await recordAnalysisTelemetry(createServiceClient(), analysisId, telemetry);
 
-  const { data: prev } = await supabase
+  const { data: prev, error: prevError } = await supabase
     .from("skill_ratings")
-    .select("rating, analyses_count")
+    .select("rating, analyses_count, scale_version")
     .eq("user_id", user.id)
     .eq("skill", skill)
     .eq("discipline", discipline)
     .maybeSingle();
 
-  await supabase.from("skill_ratings").upsert(
-    {
-      user_id: user.id,
-      skill,
-      discipline,
-      rating: updateRating(prev?.rating ?? null, result.overall_score, result.coverage_pct ?? 100),
-      analyses_count: (prev?.analyses_count ?? 0) + 1,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,skill,discipline" },
-  );
+  // A failed read is not a missing row. Upserting on top of an unread rating
+  // would re-seed the EWMA from this one score and reset the count, silently
+  // wiping the trend a transient database error had nothing to do with. A
+  // stale rating beats a reset one: skip the update and let the next analysis
+  // move it normally. The analysis itself is already saved either way.
+  if (prevError) {
+    console.error("[analyze] skill_ratings read failed; rating left unchanged", {
+      analysisId,
+    });
+  } else {
+    await supabase.from("skill_ratings").upsert(
+      {
+        user_id: user.id,
+        skill,
+        discipline,
+        // Scale-aware blend (D-094): a rating built under a different score
+        // scale re-seeds from this score instead of averaging two units.
+        rating: nextRating(prev ?? null, result.overall_score, result.coverage_pct ?? 100),
+        analyses_count: (prev?.analyses_count ?? 0) + 1,
+        scale_version: SCALE_VERSION,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,skill,discipline" },
+    );
+  }
 
   // The row was inserted above, which is what award_xp re-checks before paying
   // (D-071). Returns the amount, or 0 when this analysis already paid.

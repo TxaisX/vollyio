@@ -68,8 +68,10 @@
   "expected": {
     "overall_min": 78,
     "overall_max": 92,
-    "weakest_metric": "",
     "strongest_metric": "jump_timing",
-    "notes": "Featured attack: hitter elevates and swings over the net vs a red blocker, contact above net height; wide shot can't resolve elbow/wrist."
+    "notes": "Featured attack: hitter elevates and swings over the net vs a red blocker, contact above net height; wide shot can't resolve elbow/wrist. | abstain: The reason is because this is a targeted attack in shotting it to particular areas where the opponent are not.",
+    "weakest_metric_unknown": true,
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }

@@ -64,8 +64,10 @@
   "expected": {
     "overall_min": 70,
     "overall_max": 84,
-    "weakest_metric": "",
+    "weakest_metric": "body_alignment",
     "strongest_metric": "body_alignment",
-    "notes": "Grass serve: woman loads a squared athletic base, ball in front of the shoulder; toss/contact apex not isolable in the grid."
+    "notes": "Grass serve: woman loads a squared athletic base, ball in front of the shoulder; toss/contact apex not isolable in the grid.",
+    "labeled_by": "TX",
+    "labeled_at": "2026-08-03"
   }
 }
