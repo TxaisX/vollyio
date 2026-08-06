@@ -260,10 +260,13 @@ export default async function AnalysisDetail({
     {
       count: strengthCount,
       label: strengthCount === 1 ? "strength" : "strengths",
-      // Whichever section this row actually renders them in. A v1 row lists
-      // strengths on the timeline; a video row has no timeline and names them
-      // under their own heading, so a fixed anchor would scroll to nothing.
-      href: (result.insights?.length ?? 0) > 0 ? "#timeline" : "#strengths",
+      // One anchor for both shapes now: the breakdown reads a v1 row's
+      // strength insights into the same "What worked" column a video row
+      // fills directly, so #strengths exists whenever this count is above
+      // zero. It used to point at #timeline for a v1 row, which would now
+      // scroll to nothing at all: the timeline moved behind the breakdown's
+      // Advanced switch and is display:none until someone asks for it.
+      href: "#strengths",
     },
     { count: fixCount, label: fixCount === 1 ? "fix" : "fixes", href: "#changes" },
     { count: drillCount, label: drillCount === 1 ? "drill" : "drills", href: "#drills" },
@@ -423,8 +426,21 @@ export default async function AnalysisDetail({
           1024px and every tablet got the clip stacked on top of the scores,
           which is most of the screens this page is actually read on. The clip
           column is capped well under half the row so the breakdown text keeps
-          the wider side: the clip is the evidence, the scores are the product. */}
-      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] md:items-start md:gap-8">
+          the wider side: the clip is the evidence, the scores are the product.
+
+          The cap TIGHTENED from a flat 30rem on 2026-08-06, for two reasons.
+          It was not honouring its own sentence: at a 1280px viewport, once the
+          sidebar and the page padding are gone, the row is about 59rem, so
+          30rem was 51% of it and the clip had quietly taken the wider side on
+          the commonest laptop width. And the breakdown's own two columns turn
+          on at 36rem of container (components/breakdown-body.tsx), which that
+          left unreachable below roughly 1536px, so "what worked" and "what to
+          change" stacked on exactly the screens the side-by-side layout was
+          asked for. 22rem clears 36rem for the breakdown from 1280px up, and
+          2xl gives the clip room back once there is genuinely enough to share.
+          These three numbers move together or the columns silently stop
+          splitting; lib/breakdown-contract.test.ts pins the pair. */}
+      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-start md:gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         {/* Player: right column from tablet up, first thing on a phone */}
         <div className="md:order-2 md:sticky md:top-8">
           <Reveal delay={80}>

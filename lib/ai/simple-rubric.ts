@@ -65,6 +65,26 @@ band: 67 and 73 are both available and they mean different things. Give a whole
 number, and do not round to a multiple of five or ten just because it looks
 tidy. A score of 71 is a more honest answer than 70 if that is what you saw.`;
 
+// MEASURED, AND ONLY PARTLY SOLVED. The "HOW BIG IS THE PLAYER IN THE FRAME"
+// block below was added 2026-08-06 to stop the model claiming joint-level detail
+// it cannot resolve at sideline distance. It did NOT move the number it was
+// aimed at: across five real reads of the same clip before and after, every one
+// still marked all five checkpoints visible, and elbow-level claims still
+// appear. What DOES work is the physical case, where a checkpoint is out of
+// frame entirely: three of three reads of a deliberately cropped clip marked the
+// hidden checkpoint not visible and returned 3 strengths and 1 improvement
+// instead of padding to 3 and 2.
+//
+// So the honest state is: the abstain lane fires on "not in the picture" and not
+// on "in the picture but too far to read". The text stays because it is correct
+// guidance and costs nothing, not because it was shown to work. The residual is
+// bounded by design rather than by prompt: no checkpoint carries a score and
+// none feeds `overall_score`, so an over-claimed observation costs the player
+// one misleading sentence, where the version D-094 rejected fed the same
+// over-claiming into a derivation that told them they were 97 out of 100.
+// Anyone revisiting this should measure against real sideline footage, not this
+// one clip, and should treat a prompt-only fix as unproven until they do.
+//
 // What the video path can honestly judge, per skill: gross mechanics that
 // persist across a second or more. Deliberately NOT the pointer catalog.
 const FOCUS: Record<Skill, string> = {
@@ -103,16 +123,25 @@ export const simpleRatingSchema = z.object({
   // Free-form, not an enum: a mis-worded confidence must weaken the signal,
   // never fail the analysis.
   confidence: z.string(),
-  strengths: z.array(z.object({ title: z.string(), detail: z.string() })),
+  // `key` names the checkpoint this point is about (D-099), because both lists
+  // are now a RANKING over the observed checkpoints rather than free-form
+  // praise and criticism. Optional in the SCHEMA and mandatory in the PROMPT,
+  // which is this file's posture everywhere: a reply that forgets a key is a
+  // wording miss and must cost the player the link, never the whole analysis
+  // and a second paid read.
+  strengths: z.array(
+    z.object({ key: z.string().optional(), title: z.string(), detail: z.string() }),
+  ),
   // Deliberately shaped like `Change` in lib/analysis-types.ts rather than as a
   // second bespoke type, because that is what lets the EXISTING breakdown UI
   // render this path unchanged: the numbered-changes section, the priority-fix
   // card and the drills list all read these two fields and need no branch.
-  // `target_metric` and `expected_gain` are omitted, not faked: both are
-  // per-checkpoint quantities and this rubric has no checkpoints. They are
-  // optional on the stored type for exactly that reason.
+  // `expected_gain` is still omitted, not faked: it is a claim about how many
+  // POINTS a change is worth, and nothing on this path scores a checkpoint, so
+  // there is no measurement it could come from.
   improvements: z.array(
     z.object({
+      key: z.string().optional(),
       title: z.string(),
       detail: z.string(),
       difficulty: z.string(),
@@ -124,6 +153,29 @@ export const simpleRatingSchema = z.object({
   // frame path already does.
   drill_slugs: z.array(z.string()),
   summary: z.string(),
+  // The named checkpoints of the skill, OBSERVED and never scored (D-099).
+  //
+  // Structure and types only, like everything else here: `key` is a plain
+  // string rather than an enum because a key the model invents must be dropped
+  // by the route, exactly as an invented drill slug is, and not fail the whole
+  // analysis. There is deliberately no score, no rating and no met/partial/
+  // missed verdict on this object. Scoring each checkpoint is what
+  // ceiling-pegged the frame path (D-094): 90-100% of cues came back "met" and
+  // the derived median was 97. Nothing here feeds `overall_score`.
+  //
+  // Optional, because a reply that omits it entirely is still a usable
+  // analysis: the route fills the missing checkpoints in as not visible rather
+  // than losing the score, the strengths and the improvements over a section
+  // that is additional to all three.
+  checkpoints: z
+    .array(
+      z.object({
+        key: z.string(),
+        visible: z.boolean(),
+        observation: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type SimpleRating = z.infer<typeof simpleRatingSchema>;
@@ -186,16 +238,126 @@ export function notRatableMessage(reason: string | undefined): string {
   return `${why} Nothing was counted against your limit. Check that you picked the right skill and that the whole rep is in frame, then try again.`;
 }
 
+/**
+ * One checkpoint of the skill, as the prompt needs to name it.
+ *
+ * PASSED IN rather than imported, and that is deliberate. This module's only
+ * import is ../skills.ts because the test runner resolves no `@/` alias, and
+ * the catalog these come from (lib/ai/metrics.ts) and the prose that describes
+ * them (content/technique.ts) both sit behind that alias. The caller already
+ * holds both, so it composes the descriptors and this file stays loadable by
+ * `node --test`.
+ */
+export type RubricCheckpoint = {
+  /** A METRICS[skill] key. The model is told to echo it back exactly. */
+  key: string;
+  label: string;
+  /** The authored plain-language "what this is", from content/technique.ts. */
+  what: string;
+};
+
 export function simpleRubric(
   skill: Skill,
   discipline: Discipline,
   drills: readonly string[] = [],
+  checkpoints: readonly RubricCheckpoint[] = [],
 ): string {
   const surface = disciplineGroup(discipline) === "indoor" ? "indoor" : "outdoor sand or grass";
   const drillGuidance =
     drills.length > 0
       ? `Recommend 1 to 3 drills, each a slug chosen ONLY from this list: ${drills.join(", ")}. Pick the ones that train the improvements you named. If none fit, return an empty list rather than inventing a slug.`
       : "Return an empty drill_slugs list.";
+  // Observations, not verdicts. The section names each checkpoint, tells the
+  // model to echo the key verbatim so the route can resolve the label, the
+  // weight and the teaching prose from the catalog, and then spends most of its
+  // words on the two ways this goes wrong: grading a checkpoint (which is the
+  // ceiling-pegging of D-094 arriving through a different door) and describing
+  // one the footage never showed. `visible: false` is stated as the expected
+  // answer rather than as a failure, because a model that treats abstaining as
+  // a fault abstains at 0%, which is exactly what D-094 measured.
+  const checkpointGuidance =
+    checkpoints.length > 0
+      ? `THE CHECKPOINTS OF THIS SKILL
+A coach watching this skill looks at the same named parts of it every time. On a
+${SKILL_LABEL[skill].toLowerCase()} rep they are:
+${checkpoints.map((c) => `- ${c.key} (${c.label}): ${c.what}`).join("\n")}
+
+Return one entry in checkpoints for EACH of those, and use the key EXACTLY as
+written above, character for character. In observation, describe what you saw of
+that checkpoint in THIS rep, in one or two sentences, the way you would say it
+to the player while you were both watching the clip back.
+
+DO NOT SCORE, RATE OR GRADE A CHECKPOINT. Do not say whether it was met,
+missed, partial, good, correct or fine, and do not attach a number, a mark or a
+verdict of any kind to one. The rating for this rep is judged separately from
+the whole clip, so a checkpoint is an OBSERVATION and nothing else: say what the
+footage shows and leave the judging to the rating.
+
+If the clip does not show a checkpoint clearly enough to describe it, set
+visible to false and leave observation as an empty string. That is the honest
+answer and it is expected on most clips: roughly one image per second cannot
+show every part of every rep, and one camera angle hides some of them
+completely. Do not fill the gap with what usually happens at this level, do not
+infer a checkpoint from the outcome of the rep, and do not confirm one you did
+not actually watch happen. An empty checkpoint costs this player nothing. An
+invented one is the only thing here that can mislead them.`
+      : "Return an empty checkpoints list.";
+
+  // Three strengths and two improvements, which reads like the quota this file
+  // used to refuse and is not one.
+  //
+  // The old rule ("HOW MANY IMPROVEMENTS IS AN HONEST ANSWER, NOT A QUOTA")
+  // existed because padding is real: asked for three good things about a rep,
+  // a model will produce three, and the third is a generality. What changes the
+  // risk is the ANCHOR, not the count. "Give me three strengths" is generative
+  // and can be padded from nothing; "of these five checkpoints you just
+  // observed, which three were strongest" is a RANKING over a fixed candidate
+  // set, so there is nothing to pad with: every answer names something already
+  // written down and visible in the same reply.
+  //
+  // It is also the operation this model is measurably good at. The 2026-08-05
+  // corpus work re-anchored the scale end to end, moving the median 55 -> 78 ->
+  // 97, and rank correlation held at 0.708 across the whole move: ORDER survives
+  // what absolute judgement does not. So ask for the order.
+  //
+  // The valve is the eligibility rule below, and it is the load-bearing half.
+  // Three plus two is five, which is every checkpoint of the skill, and a clip
+  // does not always show five. Ranking is therefore restricted to checkpoints
+  // the model itself marked visible, and returning fewer than five points is
+  // stated as the correct answer rather than as a failure. Without that, "I
+  // could not see a fault in it" becomes "it was a strength", which is the
+  // exact substitution that produced a median of 97 in D-094.
+  const rankingRule =
+    checkpoints.length > 0
+      ? `THREE AND TWO IS A RANKING, NOT A QUOTA
+Do not go hunting for three good things and two bad ones. You have already
+described the named checkpoints above. Now put them in order: the 3 you would
+praise first become the strengths, and the 2 that most need work become the
+improvements. The candidates are fixed, so there is nothing to pad with, and
+ordering what you just watched is a steadier question than inventing points
+about the rep at large.
+
+Every strength and every improvement carries the key of the checkpoint it is
+about, spelled exactly as it appears in the list above. No checkpoint may appear
+twice: it is one of the 3 or one of the 2, never both.
+
+RANK ONLY WHAT YOU COULD SEE. A checkpoint is eligible only if you marked it
+visible: true. If the clip showed four of them, return 3 and 1, or 2 and 2, and
+stop there. If it showed two, name two points in total. Returning fewer is the
+correct answer and it is expected. NEVER move a checkpoint into the strengths
+because you could not find a fault in it, when the reason you found no fault is
+that the footage never showed it. Not seeing a mistake is not the same as
+seeing something done well, and treating those two as the same is how a report
+ends up telling every player they are near-perfect.`
+      : `HOW MANY IMPROVEMENTS IS AN HONEST ANSWER, NOT A QUOTA. A genuinely strong rep
+often has exactly ONE thing left worth fixing, and naming it alone is more
+useful than padding to a count. If you find yourself writing a second or third
+point that you would not actually raise with this player on the court, stop at
+the ones you would. A weak rep will naturally have three.`;
+  const counts =
+    checkpoints.length > 0
+      ? `Give 3 strengths and 2 improvements, drawn from the checkpoints above.`
+      : "Give 2 to 4 strengths and 1 to 3 improvements.";
   return `You are an experienced volleyball coach reviewing one ${SKILL_LABEL[
     skill
   ].toLowerCase()} rep filmed ${surface === "indoor" ? "indoors" : "on " + surface}.
@@ -214,6 +376,23 @@ do not report timestamps, and do not describe a detail that would only be
 visible in a high-speed frame. If a mechanic you would normally weigh is not
 visible, leave it out and lower your confidence rather than guessing at it.
 
+HOW BIG IS THE PLAYER IN THE FRAME? Ask this before every observation, because
+most clips here are filmed from the sideline or the stands and the athlete is
+small. Out of frame is not the only way to be unable to see something. A player
+who is thirty feet away and a few hundred pixels tall is IN frame and still too
+small to read a wrist angle, an elbow height, a hand shape or where exactly on
+the hand the ball landed. Body-sized movement survives that distance: where they
+moved, whether they got under the ball, whether they jumped, how they landed,
+whether they were balanced. Joint-level detail does not.
+
+So: if the athlete is small, distant, blurred, or blocked by another player or
+the net at the moment that matters, say what you can see at the scale you can
+actually see it, and mark the rest not visible. Never name a joint angle you are
+inferring from what usually happens on a rep that looks like this one. The test
+is simple and you should apply it honestly: if this same clip were shown to you
+again, would you describe that detail the same way, or did you fill it in? If
+you would not bet on repeating it, you did not see it.
+
 WHEN NOT TO RATE
 Set ratable to false and explain briefly in not_ratable_reason if: the clip does
 not show a ${SKILL_LABEL[skill].toLowerCase()} rep at all, the player is too far
@@ -221,15 +400,13 @@ away or too obscured to judge, the rep is cut off before or after the key
 moment, or the footage is too dark or shaky. Do not rate a clip you cannot see.
 An honest refusal is worth more to this player than an invented number.
 
-HOW TO WRITE IT
-Give 2 to 4 strengths and 1 to 3 improvements. Every one needs a short title
-(under 6 words) and a detail of one or two sentences.
+${checkpointGuidance}
 
-HOW MANY IMPROVEMENTS IS AN HONEST ANSWER, NOT A QUOTA. A genuinely strong rep
-often has exactly ONE thing left worth fixing, and naming it alone is more
-useful than padding to a count. If you find yourself writing a second or third
-point that you would not actually raise with this player on the court, stop at
-the ones you would. A weak rep will naturally have three.
+HOW TO WRITE IT
+${counts} Every one needs a short title (under 6 words) and a
+detail of one or two sentences.
+
+${rankingRule}
 
 Be specific in the way a coach in the gym is specific. Name what you actually
 saw and why it matters to the outcome: where the ball ended up, what it let the

@@ -9,9 +9,12 @@ import {
   notRatableMessage,
   simpleRatingSchema,
   simpleRubric,
+  type RubricCheckpoint,
 } from "@/lib/ai/simple-rubric";
 import { mockResult } from "@/lib/ai/mock";
+import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
+import { metricKnowledge } from "@/content/technique";
 import { updateRating } from "@/lib/ratings";
 import { awardXp } from "@/lib/progression";
 import {
@@ -20,11 +23,12 @@ import {
   type AllowanceDetail,
 } from "@/lib/entitlements";
 import { MONTHLY_ALLOWANCE, PLAN_LABEL, isPlan, type Plan } from "@/lib/plans";
-import { SKILL_LABEL } from "@/lib/skills";
+import { SKILL_LABEL, type Discipline, type Skill } from "@/lib/skills";
 import {
   MAX_BODY_BYTES,
   MAX_CLIP_BYTES,
   RESULT_VERSION_VIDEO,
+  type AnalysisCheckpoint,
   type AnalysisResult,
 } from "@/lib/analysis-types";
 import { analyzeRequestSchema } from "@/lib/analyze-request";
@@ -46,6 +50,60 @@ const CLIP_MIME: Record<string, string> = {
   webm: "video/webm",
   mov: "video/quicktime",
 };
+
+// The named checkpoints of a skill, composed for the prompt (D-099). The key
+// and the label come from the metric catalog and the plain-language "what this
+// is" from the authored knowledge core, so the model is told what each
+// checkpoint means in the same words the player will read next to its
+// observation. It is passed as an argument because lib/ai/simple-rubric.ts
+// imports nothing behind the `@/` alias, which is what keeps it loadable by the
+// test runner.
+function checkpointCatalog(skill: Skill, discipline: Discipline): RubricCheckpoint[] {
+  return METRICS[skill].map((m) => ({
+    key: m.key,
+    label: m.label,
+    what: metricKnowledge(skill, discipline, m.key)?.what ?? m.label,
+  }));
+}
+
+// One or two sentences is what the prompt asks for; this is the ceiling that
+// holds when it does not. Long enough that a real observation is never cut.
+const MAX_OBSERVATION_CHARS = 400;
+
+/**
+ * The reply's checkpoints, projected onto the catalog.
+ *
+ * Projected rather than copied, which is what enforces all three rules at once:
+ * a key the model invented is not in the catalog so it never appears, the order
+ * is the catalog's rather than the reply's, and a checkpoint the model skipped
+ * entirely comes back `visible: false` so the section always renders the whole
+ * set of five for the skill. Same posture as the drill slugs above.
+ *
+ * `visible` is ANDed with having actually said something. "I saw it" with no
+ * observation is not an observation, and rendering an empty visible checkpoint
+ * would show the player a heading with nothing under it.
+ */
+function checkpointsFrom(
+  catalog: readonly RubricCheckpoint[],
+  reply: readonly { key: string; visible: boolean; observation: string }[] | undefined,
+): AnalysisCheckpoint[] {
+  const byKey = new Map<string, string>();
+  for (const entry of reply ?? []) {
+    // First one wins: a repeated key is a wording miss, not a second reading.
+    if (byKey.has(entry.key)) continue;
+    const flat = entry.observation.replace(/\s+/g, " ").trim();
+    let observation = flat.slice(0, MAX_OBSERVATION_CHARS);
+    if (observation.length < flat.length) {
+      const lastSpace = observation.lastIndexOf(" ");
+      if (lastSpace > MAX_OBSERVATION_CHARS / 2) observation = observation.slice(0, lastSpace);
+    }
+    byKey.set(entry.key, entry.visible === true ? observation.trim() : "");
+  }
+  return catalog.map((c) => {
+    const observation = byKey.get(c.key) ?? "";
+    return { key: c.key, visible: observation.length > 0, observation };
+  });
+}
 
 // Per attempt, and the whole route is bounded by `maxDuration = 120`. The video
 // read is a much smaller request than the frame read it replaces (about ten
@@ -279,11 +337,12 @@ export async function POST(req: NextRequest) {
         `Discipline: ${discipline}. Rate this ${SKILL_LABEL[skill].toLowerCase()} rep across the whole clip.`,
       ];
 
+      const catalog = checkpointCatalog(skill, discipline);
       const startedAt = Date.now();
       const readOnce = () =>
         readVideo({
           model: VISION_MODEL,
-          system: [simpleRubric(skill, discipline, drillSlugs(skill))],
+          system: [simpleRubric(skill, discipline, drillSlugs(skill), catalog)],
           video: {
             data: clipBytes.toString("base64"),
             mime: CLIP_MIME[clipPathFinalExt],
@@ -407,6 +466,12 @@ export async function POST(req: NextRequest) {
         // drop any it invents so drill lookups can't 404.
         drill_slugs: raw.drill_slugs.filter((s) => drillSlugs(skill).includes(s)),
         summary: raw.summary,
+        // Observations, never scores (D-099). Nothing here reaches
+        // overall_score above, and nothing here is a verdict: the label, the
+        // weight and the teaching prose all render from the catalog, so the
+        // only thing stored from the reply is what was seen of each checkpoint
+        // in this rep, or nothing at all when the footage did not show it.
+        checkpoints: checkpointsFrom(catalog, raw.checkpoints),
       };
     } catch (err) {
       // Log the real cause server-side only. The client message stays generic

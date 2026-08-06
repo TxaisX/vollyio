@@ -75,11 +75,12 @@ test("a rating parses with the fields the route reads, and abstention is one of 
   assert.equal(abstained.success, true);
 });
 
-// The frame path's Change carries target_metric and expected_gain. This one
-// must not: they are per-checkpoint quantities and this rubric has no
-// checkpoints, so a value there is a number the player would act on that
-// nothing measured.
-test("an improvement carries no checkpoint it cannot have measured", () => {
+// The frame path's Change carries target_metric and expected_gain, which
+// together promise that a named checkpoint's SCORE will rise by that many
+// points. This rubric names checkpoints (D-099) but scores none of them, so
+// that pair must stay absent: a number there is one the player would act on
+// that nothing measured. `key` is the weaker, honest claim and is separate.
+test("an improvement makes no numeric promise about a checkpoint", () => {
   const parsed = simpleRatingSchema.parse({
     ratable: true,
     overall_score: 71,
@@ -93,6 +94,163 @@ test("an improvement carries no checkpoint it cannot have measured", () => {
   });
   assert.equal("target_metric" in parsed.improvements[0], false);
   assert.equal("expected_gain" in parsed.improvements[0], false);
+});
+
+// The checkpoint section (D-099). Passed in rather than imported, because this
+// module resolves no `@/` alias, so the test composes them exactly as the route
+// does from METRICS and the knowledge core.
+const SET_CHECKPOINTS = [
+  { key: "hand_shape", label: "Hand shape", what: "The shape and symmetry of your hands at contact." },
+  { key: "footwork", label: "Footwork", what: "How you get under and behind the ball." },
+  { key: "body_alignment", label: "Body alignment", what: "How square you are to your target." },
+  { key: "release", label: "Release", what: "How the ball leaves your hands." },
+  { key: "tempo_decision", label: "Tempo & decision", what: "The speed and choice of the set." },
+];
+
+test("the rubric names every checkpoint it was given, by key and by label", () => {
+  const text = simpleRubric("set", "indoor", [], SET_CHECKPOINTS);
+  for (const c of SET_CHECKPOINTS) {
+    assert.ok(text.includes(c.key), `rubric omits the key "${c.key}"`);
+    assert.ok(text.includes(c.label), `rubric omits the label "${c.label}"`);
+    assert.ok(text.includes(c.what), `rubric omits what "${c.key}" means`);
+  }
+  assert.match(text, /use the key EXACTLY as/i);
+});
+
+// The whole point of D-099: the checkpoints came back WITHOUT a score because
+// scoring them is what ceiling-pegged D-094. A prompt that lets the model grade
+// a checkpoint rebuilds the thing that was removed, one field to the left.
+test("the rubric forbids scoring or grading a checkpoint", () => {
+  const text = simpleRubric("set", "indoor", [], SET_CHECKPOINTS);
+  assert.match(text, /DO NOT SCORE, RATE OR GRADE A CHECKPOINT/);
+  assert.match(text, /do not say whether it was met/i);
+  assert.match(text, /a checkpoint is an OBSERVATION/i);
+  // And the abstain lane one level down: a checkpoint the footage hides has to
+  // have somewhere to go other than a confident description of it.
+  assert.match(text, /visible to false/i);
+  assert.match(text, /not actually watch happen/i);
+});
+
+// 3 and 2 is a fixed count, which is the thing this file's old anti-quota rule
+// refused. It is safe only because it is a RANKING over the five checkpoints
+// the same reply just observed: a fixed candidate set cannot be padded, and
+// order is the property that survived the 2026-08-05 re-anchor (rank
+// correlation 0.708 while the median moved 55/78/97).
+test("the rubric asks for a ranking of the checkpoints, not a hunt for three good things", () => {
+  const text = simpleRubric("set", "indoor", [], SET_CHECKPOINTS);
+  assert.match(text, /THREE AND TWO IS A RANKING, NOT A QUOTA/);
+  assert.match(text, /Give 3 strengths and 2 improvements/);
+  assert.match(text, /carries the key of the checkpoint it is/i);
+  assert.match(text, /never both/i);
+  // And the old free-form quota rule is gone, or the model is being told two
+  // different things about how many points to write.
+  assert.doesNotMatch(text, /HOW MANY IMPROVEMENTS IS AN HONEST ANSWER/);
+});
+
+// The honesty valve, and the half that decides whether a fixed count is safe.
+// Three plus two is every checkpoint of the skill, and a clip does not always
+// show five, so an ineligible checkpoint must fall out rather than be promoted.
+test("the rubric ranks only visible checkpoints and refuses to praise what it could not see", () => {
+  const text = simpleRubric("set", "indoor", [], SET_CHECKPOINTS);
+  assert.match(text, /RANK ONLY WHAT YOU COULD SEE/);
+  assert.match(text, /eligible only if you marked it/i);
+  assert.match(text, /Returning fewer is the/i);
+  assert.match(text, /Not seeing a mistake is not the same as/i);
+});
+
+test("with no checkpoints given the rubric asks for an empty list, not an invented one", () => {
+  const text = simpleRubric("set", "indoor", []);
+  assert.match(text, /empty checkpoints list/i);
+  assert.doesNotMatch(text, /THE CHECKPOINTS OF THIS SKILL/);
+  // Nothing to rank, so the fixed count would be a bare quota. The old rule is
+  // what applies in that case.
+  assert.doesNotMatch(text, /THREE AND TWO IS A RANKING/);
+  assert.match(text, /HOW MANY IMPROVEMENTS IS AN HONEST ANSWER/);
+});
+
+// The key is mandatory in the PROMPT and optional in the SCHEMA, which is this
+// file's posture everywhere: a reply that forgets it loses the link to the
+// checkpoint, never the whole analysis and a second paid read.
+test("strengths and improvements carry the checkpoint key, and parse without it", () => {
+  const keyed = simpleRatingSchema.parse({
+    ratable: true,
+    overall_score: 66,
+    confidence: "medium",
+    strengths: [{ key: "hand_shape", title: "Clean window", detail: "Hands above the forehead." }],
+    improvements: [
+      {
+        key: "footwork",
+        title: "Get under it earlier",
+        detail: "Arrive before the ball.",
+        difficulty: "quick",
+        timeframe: "1-2 practices",
+      },
+    ],
+    drill_slugs: [],
+    summary: "Workable set.",
+    checkpoints: [{ key: "hand_shape", visible: true, observation: "A clean window." }],
+  });
+  assert.equal(keyed.strengths[0].key, "hand_shape");
+  assert.equal(keyed.improvements[0].key, "footwork");
+  const unkeyed = simpleRatingSchema.safeParse({
+    ratable: true,
+    overall_score: 66,
+    confidence: "medium",
+    strengths: [{ title: "Clean window", detail: "Hands above the forehead." }],
+    improvements: [
+      { title: "Get under it", detail: "Arrive earlier.", difficulty: "quick", timeframe: "1-2 practices" },
+    ],
+    drill_slugs: [],
+    summary: "Workable set.",
+  });
+  assert.equal(unkeyed.success, true);
+});
+
+test("a reply carrying checkpoints parses, observations and all", () => {
+  const parsed = simpleRatingSchema.parse({
+    ratable: true,
+    overall_score: 68,
+    confidence: "medium",
+    strengths: [{ title: "Square to target", detail: "Shoulders faced the antenna." }],
+    improvements: [
+      { title: "Get under the ball", detail: "Arrive earlier.", difficulty: "quick", timeframe: "1-2 practices" },
+    ],
+    drill_slugs: [],
+    summary: "Workable set.",
+    checkpoints: [
+      { key: "hand_shape", visible: true, observation: "Hands formed a window above the forehead." },
+      { key: "footwork", visible: false, observation: "" },
+    ],
+  });
+  assert.equal(parsed.checkpoints?.length, 2);
+  assert.equal(parsed.checkpoints?.[1].visible, false);
+  // No score, no verdict, no weight: the shape itself must not have anywhere to
+  // put one, or the derivation that ceiling-pegged D-094 can come back.
+  for (const c of parsed.checkpoints ?? []) {
+    for (const field of ["score", "status", "met", "rating", "weight"]) {
+      assert.equal(field in c, false, `a checkpoint carries ${field}`);
+    }
+  }
+});
+
+// The older shape. A reply that predates this section, or one that simply skips
+// it, is still a scored analysis with strengths and improvements in it, and
+// losing all of that over an optional section would be the worst trade in the
+// route.
+test("a reply with no checkpoints at all still parses", () => {
+  const parsed = simpleRatingSchema.safeParse({
+    ratable: true,
+    overall_score: 71,
+    confidence: "medium",
+    strengths: [],
+    improvements: [
+      { title: "Toss in front", detail: "About 30cm.", difficulty: "quick", timeframe: "1-2 practices" },
+    ],
+    drill_slugs: [],
+    summary: "Solid rep.",
+  });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data?.checkpoints, undefined);
 });
 
 test("the focus instruction places the athlete in thirds, never in a false decimal", () => {

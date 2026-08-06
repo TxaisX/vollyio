@@ -58,10 +58,14 @@ export type Focus = {
   time_s: number | null;
 };
 
-// target_metric and expected_gain are optional because the VIDEO path has no
-// checkpoints to target or to move (D-097). They are omitted there rather than
-// filled with a plausible-looking metric key, because a change that claims to
-// raise a checkpoint nothing measured is a number the player would act on.
+// target_metric and expected_gain are optional because the VIDEO path makes no
+// numeric promise about a checkpoint (D-097, amended D-099). The video path DOES
+// name checkpoints now, but through `key` below, which says only which of the
+// five dimensions a change is about. `target_metric` paired with `expected_gain`
+// meant something stronger and different: that a specific checkpoint SCORE would
+// rise by that many points. Nothing on this path measures a per-checkpoint
+// score, so that pair stays absent rather than being filled with a
+// plausible-looking metric key and a number the player would act on.
 export type Change = {
   title: string;
   detail: string;
@@ -69,6 +73,38 @@ export type Change = {
   expected_gain?: number;
   difficulty: "quick" | "moderate" | "long-term" | string;
   timeframe: string;
+  // Which named checkpoint this change is about (D-099), as a METRICS[skill]
+  // key. Distinct from `target_metric`, which was the frame path's claim that a
+  // specific checkpoint SCORE would rise by `expected_gain`. This one makes no
+  // numeric promise; it only says which of the five dimensions the point is
+  // about, so the breakdown can tie the "what to change" column back to the
+  // checkpoint that explains it.
+  //
+  // Optional because rows written before this shipped have none, including the
+  // ones already in production. Readers must render without it.
+  key?: string;
+};
+
+/**
+ * One named checkpoint of a skill, as the video path can honestly report it.
+ *
+ * `key` is a METRICS[skill] key, so the label, the weight and the authored
+ * "what 90 looks like" all resolve from the catalog. A key the model invents is
+ * dropped by the route rather than stored.
+ *
+ * `visible` is the honest half. About ten low-resolution stills cannot show
+ * every mechanic of every rep, and a checkpoint the footage hides has to be
+ * able to say so instead of being described anyway. It is the same abstain lane
+ * `ratable` gives the whole clip, one level down.
+ *
+ * There is deliberately no score and no met/missed verdict. See `checkpoints`
+ * on AnalysisResult for why.
+ */
+export type AnalysisCheckpoint = {
+  key: string;
+  visible: boolean;
+  /** What was seen of this checkpoint in this rep. Empty when not visible. */
+  observation: string;
 };
 
 export type RepScore = {
@@ -123,7 +159,39 @@ export type AnalysisResult = {
   summary: string;
   // Video path only: what the player did well. The frame path expresses this
   // through per-metric notes and `insights`, so it has none.
-  strengths?: { title: string; detail: string }[];
+  //
+  // Three of these against two `changes` (D-099), and the asymmetry is the
+  // product decision: five checkpoints, ranked into the three that were
+  // strongest and the two that most need work. `key` names which checkpoint
+  // each one is about, which is what lets the breakdown tie a verdict back to
+  // the observation and the "what 90 looks like" that explains it.
+  //
+  // The fixed count is safe ONLY because it is a ranking over a fixed set. Ask
+  // for three strengths in the abstract and a model will pad with generalities;
+  // ask which three of five observed checkpoints were strongest and there is
+  // nothing to invent. It is also the operation this model is good at: rank
+  // correlation held at 0.708 across a re-anchor while the median moved
+  // 55/78/97 (docs/model-findings-2026-08-05.md). Ordering survives what
+  // absolute judgement does not. Counts come back lower when the clip did not
+  // show enough of the rep, and that is correct rather than a bug.
+  strengths?: { title: string; detail: string; key?: string }[];
+  // The named checkpoints of the skill, observed rather than scored (D-099).
+  //
+  // This is deliberately NOT `Metric`. A Metric carries a 0-100 `score` derived
+  // in code from per-pointer verdicts (lib/ai/pointers.ts), and that derivation
+  // is exactly what ceiling-pegged on video: the model marked 90-100% of
+  // pointers "met" and the arithmetic turned that into a median of 97 (D-094).
+  // The verdict and the number were one bug, so the number is gone and with it
+  // the pressure to inflate: nothing here feeds `overall_score`, which still
+  // comes from the calibrated holistic read.
+  //
+  // What survives is what players actually wanted from that section: the names
+  // of the things a coach looks at on this skill, and what was seen of each in
+  // THIS rep. The cue text, the weights and the "what 90 looks like" prose are
+  // authored content (lib/ai/metrics.ts, content/technique.ts) and are rendered
+  // from the catalog, never from the reply, so they cost nothing and cannot be
+  // hallucinated.
+  checkpoints?: AnalysisCheckpoint[];
   // The model's own confidence in the read, free-form. Video only.
   confidence?: string;
   // Clip time of each sent frame by index, echoed from the request so viewers

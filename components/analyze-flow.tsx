@@ -197,20 +197,51 @@ async function burnMark(
         const H = canvas.height;
         const cx = mark.x * W;
         const cy = mark.y * H;
-        const r = Math.max(18, Math.min(W, H) * 0.055);
-        // Dark halo first so the ring reads on any background.
-        ctx.lineCap = "round";
+        // A SOFT GLOW, not a ring.
+        //
+        // This was a hollow gold circle, and it was drawn hollow so the body
+        // underneath stayed visible: the mark has to identify the athlete
+        // without hiding the thing being judged. That constraint has not
+        // changed, but the ring was a heavy way to meet it. It had to be large
+        // enough to contain a player, so on a phone it read as a bulky sticker
+        // sitting on top of the footage, and its hard edge competed with the
+        // very body it was pointing at.
+        //
+        // A radial gradient meets the same constraint more quietly. It is
+        // brightest slightly off centre and falls to nothing at the rim, so the
+        // athlete is lit rather than enclosed and nothing is occluded at any
+        // point. `lighter` composites it as added light, which is why the
+        // player stays fully legible underneath instead of being tinted.
+        //
+        // Radius is a little wider than the old ring, because a gradient needs
+        // room to fall off; it reads smaller regardless, since the eye takes
+        // the bright core as the mark rather than the outer edge.
+        const r = Math.max(26, Math.min(W, H) * 0.085);
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        glow.addColorStop(0, gold);
+        glow.addColorStop(0.45, gold);
+        glow.addColorStop(1, gold);
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        // The falloff lives in alpha rather than in the colour stops, so the
+        // glow keeps one hue and simply fades. Stopping at 0.52 keeps the core
+        // short of blowing out to white on light sand or a bright gym floor.
+        ctx.globalAlpha = 0.52;
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        // One faint dark ring at the very rim, well outside the glow's bright
+        // core. Not decoration: on pale footage an added-light glow can wash out
+        // almost entirely, and this keeps the mark findable without returning to
+        // a hard outline. `navy` is the app's own background colour, so it reads
+        // as a shadow rather than as a second marker.
         ctx.strokeStyle = navy;
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = Math.max(6, r * 0.34);
+        ctx.globalAlpha = 0.22;
+        ctx.lineWidth = Math.max(2, r * 0.06);
         ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.strokeStyle = gold;
-        ctx.globalAlpha = 0.95;
-        ctx.lineWidth = Math.max(3.5, r * 0.2);
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r * 0.98, 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalAlpha = 1;
         resolve(canvas.toDataURL("image/jpeg", 0.7));
