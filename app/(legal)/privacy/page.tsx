@@ -118,6 +118,28 @@ export default function PrivacyPage() {
           frames, or your analysis history. The email provider receives your
           email address and the message we are sending you, and nothing else.
         </p>
+        {/* Required disclosure, not optional. Cloudflare makes referencing the
+            Turnstile Privacy Addendum a CONDITION of running the widget in
+            invisible mode, which is the mode vollyio uses (D-104). If the
+            widget mode ever changes away from invisible this paragraph should
+            still stay, because the processing it describes still happens. */}
+        <p>
+          Our sign-up and log-in pages run an invisible bot check from
+          Cloudflare (Turnstile) to stop automated accounts. It runs silently,
+          asks you to do nothing, and never sees your film or your analysis
+          history. To decide whether a visitor is automated it reads signals
+          from your browser such as your IP address and browser identifiers.
+          Cloudflare describes exactly what it collects and why in its{" "}
+          <a
+            href="https://www.cloudflare.com/turnstile-privacy-policy/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          >
+            Turnstile Privacy Addendum
+          </a>
+          .
+        </p>
       </Section>
 
       <Section title="Retention and deletion">
