@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   CONFIRM_SENT_MESSAGE,
+  OAUTH_FAILED_MESSAGE,
   RESET_SENT_MESSAGE,
   loginErrorMessage,
   resetRequestErrorMessage,
@@ -16,6 +17,7 @@ import {
   parseResetInput,
   parseSignupInput,
 } from "@/lib/auth-input";
+import { enabledOAuthProviders, isOAuthProvider } from "@/lib/oauth";
 import { SITE_URL } from "@/lib/site";
 
 export async function login(formData: FormData) {
@@ -65,7 +67,14 @@ export async function signup(formData: FormData) {
       // scripts/auth-preflight.mjs checks all of this against the live project.
       emailRedirectTo: `${SITE_URL}/auth/callback`,
       data: {
-        display_name: parsed.data.display_name,
+        // No display_name: the form no longer asks for one, and the onboarding
+        // flow collects it a moment later at no cost. Sending an empty string
+        // here would write a blank name over nothing and make `/welcome`
+        // greet the player by no one.
+        //
+        // Consent is still recorded. Submitting the form IS the assent now,
+        // disclosed directly above the button, so the timestamp means exactly
+        // what it meant when a checkbox produced it.
         terms_accepted_at: new Date().toISOString(),
       },
     },
@@ -86,6 +95,41 @@ export async function signup(formData: FormData) {
     redirect(`/login?message=${encodeURIComponent(CONFIRM_SENT_MESSAGE)}`);
   }
   redirect("/welcome");
+}
+
+/**
+ * Hand the player off to an identity provider.
+ *
+ * The submitted provider is checked against the deployment's OWN enabled list,
+ * not merely against the set of names the auth service understands. The form
+ * field is caller-supplied, so without that second check a crafted post could
+ * aim the round trip at any provider the project happens to have keys for.
+ *
+ * There is no email confirmation on this path and that is the entire point: an
+ * address vouched for by Google or Apple arrives already verified, so the
+ * player goes straight from one tap to a session, with no trip through an
+ * inbox. That inbox round trip is where a quarter of our signups have died.
+ */
+export async function signInWithProvider(formData: FormData) {
+  const requested = formData.get("provider");
+  const enabled = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
+  if (!isOAuthProvider(requested) || !enabled.includes(requested)) {
+    redirect(`/login?error=${encodeURIComponent(OAUTH_FAILED_MESSAGE)}`);
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: requested,
+    options: { redirectTo: `${SITE_URL}/auth/callback` },
+  });
+
+  // `signInWithOAuth` on the server does not redirect; it returns the URL to
+  // send the browser to. No URL means the provider is not configured on the
+  // project, which is the one failure this cannot recover from.
+  if (error || !data?.url) {
+    redirect(`/login?error=${encodeURIComponent(OAUTH_FAILED_MESSAGE)}`);
+  }
+  redirect(data.url);
 }
 
 export async function requestPasswordReset(formData: FormData) {

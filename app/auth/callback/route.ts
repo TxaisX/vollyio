@@ -18,8 +18,16 @@ const OTP_TYPES = new Set<EmailOtpType>([
 // whose password they still do not know. The destination is derived from the
 // link type rather than from a query parameter on purpose, so there is no
 // caller-supplied redirect target to validate or abuse.
+//
+// Everything else lands on `/welcome` rather than `/dashboard`, because this
+// route is now also where SOCIAL sign-in arrives, and a player who signed in
+// with one tap never passed through the onboarding funnel at all. `/welcome`
+// is the right target for both cases without a branch: it counts the player's
+// analyses and forwards anyone who has run one straight to the dashboard, so a
+// returning player pays one query and a redirect, and a brand new one gets the
+// ramp they would otherwise have skipped.
 function destination(type: EmailOtpType | null): string {
-  return type === "recovery" ? "/reset-password" : "/dashboard";
+  return type === "recovery" ? "/reset-password" : "/welcome";
 }
 
 export async function GET(request: NextRequest) {

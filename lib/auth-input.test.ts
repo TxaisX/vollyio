@@ -25,33 +25,50 @@ test("login input normalizes email and caps password length", () => {
   assert.equal(parseLoginInput(oversized).success, false);
 });
 
-test("signup requires bounded identity fields and terms assent", () => {
+test("signup is two fields, normalized and bounded", () => {
   const valid = new FormData();
-  valid.set("display_name", "  Player One  ");
   valid.set("email", "PLAYER@EXAMPLE.COM");
   valid.set("password", "eight-or-more");
-  valid.set("terms", "on");
   assert.deepEqual(parseSignupInput(valid), {
     success: true,
     data: {
-      display_name: "Player One",
       email: "player@example.com",
       password: "eight-or-more",
-      terms: true,
     },
   });
 
-  const missingTerms = new FormData();
-  missingTerms.set("email", "player@example.com");
-  missingTerms.set("password", "eight-or-more");
-  assert.equal(parseSignupInput(missingTerms).success, false);
+  const tooShort = new FormData();
+  tooShort.set("email", "player@example.com");
+  tooShort.set("password", "short");
+  assert.equal(parseSignupInput(tooShort).success, false);
 
-  const longName = new FormData();
-  longName.set("display_name", "x".repeat(81));
-  longName.set("email", "player@example.com");
-  longName.set("password", "eight-or-more");
-  longName.set("terms", "on");
-  assert.equal(parseSignupInput(longName).success, false);
+  const junkEmail = new FormData();
+  junkEmail.set("email", "not-an-email");
+  junkEmail.set("password", "eight-or-more");
+  assert.equal(parseSignupInput(junkEmail).success, false);
+});
+
+test("signup ignores a name or terms field rather than requiring one", () => {
+  // Both were required until the funnel work. A stale cached form, or a bot
+  // replaying the old shape, must not be refused for sending extra fields, and
+  // must not be able to smuggle either one back into the parsed account data.
+  const legacyShape = new FormData();
+  legacyShape.set("display_name", "Player One");
+  legacyShape.set("terms", "on");
+  legacyShape.set("email", "player@example.com");
+  legacyShape.set("password", "eight-or-more");
+  const parsed = parseSignupInput(legacyShape);
+  assert.equal(parsed.success, true);
+  assert.deepEqual(parsed.data, {
+    email: "player@example.com",
+    password: "eight-or-more",
+  });
+
+  // And the new shape succeeds with neither field present at all.
+  const minimal = new FormData();
+  minimal.set("email", "player@example.com");
+  minimal.set("password", "eight-or-more");
+  assert.equal(parseSignupInput(minimal).success, true);
 });
 
 test("a reset request normalizes the email the same way login does", () => {

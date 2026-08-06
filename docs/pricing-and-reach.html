@@ -1,0 +1,336 @@
+<title>vollyio — Pricing, Cost, and Reach</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  :root{
+    --navy:#0f212c; --navy-light:#16303f; --navy-lighter:#1e3d4e;
+    --chalk:#f2efe6; --chalk-dim:#b9c4c9;
+    --gold:#e8b93b; --gold-dim:#c79c2e;
+    --teal:#6fbfae; --coral:#e2604f;
+    --line:rgb(242 239 230 / 0.12);
+    --display:'Space Grotesk',sans-serif; --sans:'Instrument Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--navy);color:var(--chalk);font-family:var(--sans);line-height:1.65;font-size:16.5px;
+       background-image:radial-gradient(1100px 520px at 70% -8%, rgb(232 185 59 / 0.06), transparent 60%)}
+  .wrap{max-width:1000px;margin:0 auto;padding:64px 28px 96px}
+  header{margin-bottom:44px}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+  h1{font-family:var(--display);font-size:clamp(30px,5vw,44px);line-height:1.12;font-weight:700;letter-spacing:-.01em}
+  h1 .dim{color:var(--chalk-dim);font-weight:500}
+  .sub{color:var(--chalk-dim);margin-top:14px;max-width:66ch}
+  h2{font-family:var(--display);font-size:24px;font-weight:600;margin:56px 0 6px;letter-spacing:-.005em}
+  h2 .n{font-family:var(--mono);font-size:13px;color:var(--gold);margin-right:12px;vertical-align:2px}
+  h3{font-family:var(--display);font-size:17px;font-weight:600;margin:28px 0 8px;color:var(--chalk)}
+  p{margin:12px 0;color:var(--chalk)}
+  p.dim, li.dim{color:var(--chalk-dim)}
+  ul,ol{margin:12px 0 12px 22px}
+  li{margin:7px 0}
+  .rule{height:1px;background:var(--line);margin:10px 0 18px}
+  .verdict{border:1px solid rgb(232 185 59 / 0.35);background:linear-gradient(135deg, var(--navy-light), rgb(30 61 78 / 0.5));
+           border-radius:14px;padding:26px 28px;margin:32px 0 8px}
+  .verdict .tag{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  .verdict p{font-size:18.5px;font-family:var(--display);font-weight:500;line-height:1.5;margin-top:10px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px;min-width:520px}
+  th{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk-dim);
+     text-align:left;padding:10px 14px 10px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--chalk)}
+  td.dim{color:var(--chalk-dim)}
+  .num{font-family:var(--mono);font-size:14px;white-space:nowrap}
+  .good{color:var(--teal)} .bad{color:var(--coral)} .warn{color:var(--gold)}
+  .tag{font-family:var(--mono);font-size:11.5px;padding:2px 9px;border-radius:99px;white-space:nowrap;display:inline-block}
+  .t-measured{background:rgb(111 191 174 / 0.12);color:var(--teal);border:1px solid rgb(111 191 174 / 0.3)}
+  .t-derived{background:rgb(232 185 59 / 0.12);color:var(--gold);border:1px solid rgb(232 185 59 / 0.3)}
+  .t-assumed{background:rgb(226 96 79 / 0.14);color:var(--coral);border:1px solid rgb(226 96 79 / 0.32)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:22px 0}
+  .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:linear-gradient(160deg, var(--navy-light), rgb(15 33 44 / 0.6))}
+  .card .v{font-family:var(--display);font-size:27px;font-weight:700;color:var(--gold);line-height:1.15}
+  .card .l{color:var(--chalk-dim);font-size:13.5px;margin-top:7px}
+  .kill{border:1px solid rgb(226 96 79 / 0.3);border-radius:12px;padding:18px 22px;margin:16px 0;background:rgb(226 96 79 / 0.05)}
+  .kill .kh{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--coral);margin-bottom:6px}
+  .note{border-left:2px solid var(--gold);padding:4px 0 4px 18px;margin:18px 0;color:var(--chalk-dim)}
+  code, .m{font-family:var(--mono);font-size:.9em;color:var(--teal)}
+  .q{border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:12px 0;background:rgb(30 61 78 / 0.28)}
+  .q .qh{font-family:var(--display);font-weight:600;color:var(--gold)}
+  footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--line);color:var(--chalk-dim);font-size:13.5px;font-family:var(--mono)}
+  @media (max-width:640px){ .wrap{padding:40px 18px 72px} td,th{font-size:13.5px} }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="kicker">vollyio · pricing &amp; reach · 2026-08-06</div>
+  <h1>What it costs, what to charge, <span class="dim">and how anyone finds us</span></h1>
+  <p class="sub">Built from live production data pulled today: the Supabase telemetry rows, the Vercel analytics for the last 30 days, the org billing plans, and the shipped model layer. Every number below is tagged
+  <span class="tag t-measured">measured</span> <span class="tag t-derived">derived</span> or <span class="tag t-assumed">assumed</span>.
+  Nothing here is copied forward from the July plan, because most of the July plan's arithmetic is now wrong.</p>
+</header>
+
+<div class="verdict">
+  <div class="tag" style="border:0;background:none;padding:0">The short version</div>
+  <p>Serving cost fell about 10× when the model moved to the gateway, so Pro at $9.99 now runs a ~94% margin and the entire business breaks even at <strong>roughly 8 paying subscribers</strong>. Pricing is therefore not a survival problem — it is a growth lever. The actual constraint is reach: 219 visitors in 30 days, and the single highest-yielding channel we have is a share link that nobody planned.</p>
+</div>
+
+<h2><span class="n">01</span>Where we actually stand</h2>
+<div class="rule"></div>
+<p>Pulled from production, 2026-08-06. This is the whole business, stated honestly.</p>
+
+<div class="cards">
+  <div class="card"><div class="v">4</div><div class="l">total accounts (first signup 2026-07-17)</div></div>
+  <div class="card"><div class="v">1</div><div class="l">paying Pro subscriber</div></div>
+  <div class="card"><div class="v">42</div><div class="l">analyses ever run, by 3 users</div></div>
+  <div class="card"><div class="v">219</div><div class="l">unique visitors, last 30 days</div></div>
+</div>
+
+<p class="dim">All four numbers are <span class="tag t-measured">measured</span>. They are small enough that every ratio derived from them is directional, not statistical. A 25% free-to-paid conversion rate on a base of four accounts means one friend subscribed.</p>
+
+<h2><span class="n">02</span>What we spend</h2>
+<div class="rule"></div>
+
+<h3>Fixed, every month regardless of usage</h3>
+<div class="scroll">
+<table>
+  <tr><th>Line</th><th>Cost</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Supabase Pro</td><td class="num">$25.00/mo</td><td><span class="tag t-measured">measured</span></td><td class="dim">Org <code>VolleyballAI</code> confirmed on the <code>pro</code> plan. Includes 100 GB storage, 250 GB egress, 8 GB database.</td></tr>
+  <tr><td>Vercel Pro</td><td class="num">$20.00/mo</td><td><span class="tag t-assumed">assumed</span></td><td class="dim"><strong>Confirm this.</strong> A team account exists; Hobby is free but its terms forbid commercial use, so a revenue-generating site should be on Pro. If we are still on Hobby, that is a terms problem to fix before any marketing push, not a cost saving.</td></tr>
+  <tr><td>Apple Developer Program</td><td class="num">$8.25/mo</td><td><span class="tag t-derived">derived</span></td><td class="dim">$99/yr, amortized. In progress.</td></tr>
+  <tr><td>vollyio.com domain</td><td class="num">$1.25/mo</td><td><span class="tag t-assumed">assumed</span></td><td class="dim">~$15/yr typical renewal.</td></tr>
+  <tr><td>Resend (email)</td><td class="num">$0.00</td><td><span class="tag t-assumed">assumed</span></td><td class="dim">Free tier covers 3,000 emails/mo. Welcome mail and owner alerts only.</td></tr>
+  <tr><td>Google Play registration</td><td class="num">$25 once</td><td><span class="tag t-measured">measured</span></td><td class="dim">One-time, not recurring. In progress.</td></tr>
+  <tr style="border-top:2px solid var(--line)"><td><strong>Fixed total</strong></td><td class="num warn"><strong>~$54.50/mo</strong></td><td></td><td class="dim">Plus $25 once.</td></tr>
+</table>
+</div>
+
+<h3>Variable, per unit of use</h3>
+<p>This is where the July plan is most wrong. It priced an analysis at <code>$0.10–0.20</code>, and <code>docs/billing.md</code> later revised that up to <code>$0.234</code> on Opus 5. Both predate the gateway migration that shipped yesterday. The four analyses run on the live model tell a very different story.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Model era</th><th>Avg input</th><th>Avg output</th><th>Cost / analysis</th><th>n</th></tr>
+  <tr><td class="dim">claude-opus-4-8 (Jul 21–23)</td><td class="num">21,253</td><td class="num">2,257</td><td class="num">$0.163</td><td class="num">11</td></tr>
+  <tr><td class="dim">claude-opus-5 (Jul 31–Aug 3)</td><td class="num">22,633</td><td class="num">2,315</td><td class="num">$0.171</td><td class="num">19</td></tr>
+  <tr><td><strong>google/gemini-3.6-flash (live)</strong></td><td class="num">3,250</td><td class="num">1,539 <span class="dim">+1,001 reasoning</span></td><td class="num good"><strong>$0.024</strong></td><td class="num">4</td></tr>
+</table>
+</div>
+
+<p><span class="tag t-derived">derived</span> from <span class="tag t-measured">measured</span> token counts at the rates in <code>lib/ai/pricing.ts</code>. Two honest caveats:</p>
+<ul>
+  <li class="dim"><strong>$0.024 is the conservative read.</strong> It assumes reasoning tokens bill <em>on top of</em> output tokens. If the gateway already counts reasoning inside <code>output_tokens</code>, the true figure is <code>$0.016</code>. Worst single row observed was <code>$0.027</code>. Plan on $0.024; nothing downstream breaks if it is really $0.016.</li>
+  <li class="dim"><strong>n = 4.</strong> The handoff records that one model id served eight distinct upstreams across this work, with reasoning draws from 0 to 2,309 tokens. Size any ceiling from the worst draw. This number will move.</li>
+  <li class="dim"><strong>Clip length does not change the price.</strong> Input tokens held at ~2,445 from a 4.3 MB clip to a 21.4 MB one, because video bills per second of footage, not per byte. A longer analysis window costs more; a bigger file does not.</li>
+</ul>
+
+<div class="note">
+Coach chat and the weekly plan run on <code>deepseek/deepseek-v4-flash</code> at $0.09/$0.18 per MTok — roughly <strong>$0.0003 a message</strong>, effectively free. But neither writes a telemetry row, so that figure is <span class="tag t-assumed">assumed</span>, and their spend is invisible to <code>/api/usage</code> and to the budget guard. Four surfaces now draw on one prepaid balance and only one of them reports what it took. Fixing that is cheap and should happen before we invite traffic.
+</div>
+
+<h3>The one cost that grows without a ceiling</h3>
+<div class="kill">
+  <div class="kh">Storage has no retention policy</div>
+  <p>History is kept forever — <code>docs/plan-matrix.md</code> confirms no retention job exists anywhere in the repo — and every analysis stores the original clip at up to 100 MB plus 24 frames. Supabase Pro includes 100 GB. At a ~10 MB average that is about 10,000 stored analyses before overage begins at $0.021/GB stored and $0.09/GB egress.</p>
+  <p class="dim">Model spend scales with <em>use</em> and is trivial. Storage scales with <em>cumulative history</em> and never falls. At 10,000 accounts averaging 7 analyses each, storage is roughly 700 GB and becomes a larger line item than the AI. This is the only cost that can surprise us, and it is invisible until it isn't.</p>
+</div>
+
+<h2><span class="n">03</span>What it takes to be profitable</h2>
+<div class="rule"></div>
+
+<h3>Unit economics of the plan we already sell</h3>
+<div class="scroll">
+<table>
+  <tr><th></th><th>Old math (billing.md)</th><th>Actual, today</th></tr>
+  <tr><td>Pro price</td><td class="num">$9.99</td><td class="num">$9.99</td></tr>
+  <tr><td>Net after Stripe (2.9% + $0.30)</td><td class="num">$9.40</td><td class="num">$9.40</td></tr>
+  <tr><td>Serving cost at full 24 analyses</td><td class="num bad">$5.62</td><td class="num good">$0.58</td></tr>
+  <tr><td>Gross margin at full use</td><td class="num bad">40%</td><td class="num good">94%</td></tr>
+  <tr><td>Gross margin at typical use (8/mo)</td><td class="num">76%</td><td class="num good">98%</td></tr>
+  <tr><td>Cost of a free account, per month</td><td class="num">$0.23</td><td class="num good">$0.024</td></tr>
+  <tr><td>Free accounts carried by one Pro</td><td class="num">22.5</td><td class="num good">~367</td></tr>
+  <tr><td>Break-even conversion rate</td><td class="num bad">4.3%</td><td class="num good">~0.3%</td></tr>
+</table>
+</div>
+
+<p class="dim">One correction to the left column, for the record: <code>docs/billing.md</code> quotes 52% gross margin, but that was computed against an 18-analysis allowance ($0.234 × 18 = $4.21). Pro has sold 24 since D-085, so the honest old figure is $5.62 and <strong>40%</strong> — the stale math was worse than the stale doc admitted. The right column is what is actually true today.</p>
+
+<p>The consequence is worth stating plainly, because it inverts the strategic question. Under the old numbers the free tier was an expensive bet that needed a 4.3% conversion rate to survive — inside the normal freemium band, but only just. Under the real numbers a free account costs about <strong>two and a half cents a month</strong>. The free tier is no longer a liability to be rationed. It is the cheapest advertising channel available, and the generosity dial should be turned <em>up</em>, not down.</p>
+
+<h3>The break-even that actually matters</h3>
+<p>Not conversion rate — subscriber count against fixed cost. Contribution per Pro subscriber is $9.40 net minus $0.58 serving = <strong>$8.82</strong>.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Free accounts</th><th>Their monthly cost</th><th>Total monthly cost</th><th>Pro subs needed to break even</th></tr>
+  <tr><td class="num">100</td><td class="num">$2.40</td><td class="num">$56.90</td><td class="num good">7</td></tr>
+  <tr><td class="num">500</td><td class="num">$12.00</td><td class="num">$66.50</td><td class="num good">8</td></tr>
+  <tr><td class="num">2,000</td><td class="num">$48.00</td><td class="num">$102.50</td><td class="num">12</td></tr>
+  <tr><td class="num">10,000</td><td class="num">$240.00</td><td class="num">$294.50 <span class="dim">+ storage</span></td><td class="num">34</td></tr>
+</table>
+</div>
+
+<p class="dim"><span class="tag t-derived">derived</span>. Assumes free accounts run their 1/month allowance in full, which overstates cost — most will not. Excludes storage overage above ~10,000 lifetime analyses and excludes the one-time $0.14 signup grant per new account.</p>
+
+<div class="verdict">
+  <div class="tag" style="border:0;background:none;padding:0">Break-even</div>
+  <p>Eight paying subscribers covers everything: hosting, database, Apple, domain, and the AI for five hundred free users. We have one. The gap between here and profitable is seven people, not a pricing model.</p>
+</div>
+
+<h2><span class="n">04</span>The pricing question you actually asked</h2>
+<div class="rule"></div>
+<p>Weekly and annual plans are worth adopting, but for a reason that has nothing to do with cost recovery. At a 94% margin, price is not defending the business — it is choosing which customer we get and how much cash arrives up front. Here is what each billing cycle really nets.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Cycle &amp; price</th><th>Stripe fee</th><th>Net</th><th>Fee drag</th><th>Annualized net</th><th>Via App Store IAP (15%)</th></tr>
+  <tr><td><strong>$4.99 / week</strong></td><td class="num">$0.44</td><td class="num">$4.55</td><td class="num bad">8.9%</td><td class="num good">$236</td><td class="num">$4.24 <span class="dim">(15.0%)</span></td></tr>
+  <tr><td><strong>$9.99 / month</strong> <span class="dim">(live today)</span></td><td class="num">$0.59</td><td class="num">$9.40</td><td class="num">5.9%</td><td class="num">$113</td><td class="num">$8.49 <span class="dim">(15.0%)</span></td></tr>
+  <tr><td>$12.99 / month</td><td class="num">$0.68</td><td class="num">$12.31</td><td class="num">5.2%</td><td class="num">$148</td><td class="num">$11.04</td></tr>
+  <tr><td>$59.99 / year</td><td class="num">$2.04</td><td class="num">$57.95</td><td class="num good">3.4%</td><td class="num">$58</td><td class="num">$50.99</td></tr>
+  <tr><td><strong>$99 / year</strong></td><td class="num">$3.17</td><td class="num">$95.83</td><td class="num good">3.2%</td><td class="num">$96</td><td class="num">$84.15</td></tr>
+</table>
+</div>
+
+<h3>Three things that table tells us</h3>
+<ol>
+  <li><strong>Weekly extracts the most revenue per retained user and the most fee drag.</strong> $4.99/wk annualizes to $236 net against $113 for the current monthly plan — more than double. But Stripe's fixed 30 cents lands 52 times a year instead of 12, so 8.9% of the money evaporates versus 3.2% on annual. Weekly is a bet that the user churns before they notice the annualized price, which is precisely why VolleyVision's 10-SKU paywall drew resentment worth undercutting.</li>
+  <li><strong>Apple's cut hurts least exactly where weekly lives.</strong> At $99/yr, Stripe costs 3.2% and IAP costs 15% — a 12-point penalty. At $4.99/wk the gap narrows to 6 points. If we ship weekly pricing in the mobile apps, the store tax is at its most tolerable; if we push annual through IAP, we hand Apple $12 a head.</li>
+  <li><strong>Annual is the best deal for us and the honest one for the buyer.</strong> Lowest fee drag, cash up front, and it removes the churn machinery entirely. It is also the plan that already has a home: <code>docs/billing.md</code> §4.3 reserved the lookup key <code>vollyio_pro_annual</code> at $99 and never built it.</li>
+</ol>
+
+<h3>The ladder I would put up</h3>
+<div class="scroll">
+<table>
+  <tr><th>Tier</th><th>Price</th><th>Allowance</th><th>Job it does</th></tr>
+  <tr><td>Free</td><td class="num">$0</td><td class="num">6 to start, then 1/mo</td><td class="dim">Unchanged. Costs 2.4¢/month to serve. This is the ad budget.</td></tr>
+  <tr><td><strong>Week pass</strong></td><td class="num">$4.99</td><td class="num">8 analyses</td><td class="dim">Tournament weekend, one clinic, a player who wants an answer now. Non-renewing by default is the honest version and it is the version nobody complains about.</td></tr>
+  <tr><td><strong>Pro monthly</strong></td><td class="num">$9.99</td><td class="num">24/mo</td><td class="dim">Live today. Leave the price alone; it is not the bottleneck.</td></tr>
+  <tr><td><strong>Pro annual</strong></td><td class="num">$79–99</td><td class="num">24/mo</td><td class="dim">Season-length commitment. Anchor: two thirds of a single private lesson for a whole club season.</td></tr>
+</table>
+</div>
+
+<p class="dim">$79/yr reads as "under $7 a month" and prices at a 34% discount to monthly; $99 is the round number already reserved in Stripe and matches what the July plan assumed. Either works. The one to avoid is pricing annual above 10× monthly, which makes the discount invisible.</p>
+
+<div class="kill">
+  <div class="kh">Do not ship a 10-SKU paywall</div>
+  <p>The competitive recon on VolleyVision recorded an "aggressive 10-SKU paywall ($4.99/wk to $59.99/yr)" and named paywall resentment as the thing to undercut. Adding weekly and annual takes us from 2 SKUs to 4. That is a ladder. Going further turns it into the thing we said we would beat, and at a 94% margin we have no financial reason to.</p>
+</div>
+
+<h2><span class="n">05</span>The app store layer</h2>
+<div class="rule"></div>
+<p>Getting authorized on both stores changes the pricing math in ways worth deciding before the apps ship, not after.</p>
+<ul>
+  <li><strong>Both stores charge 15%, not 30%, at our scale.</strong> Apple's Small Business Program covers developers under $1M in annual proceeds; Google Play applies 15% to auto-renewing subscriptions from day one with no enrollment. At our revenue this is simply the rate.</li>
+  <li><strong>Apple requires IAP for digital subscriptions bought inside the app.</strong> A web-only checkout reachable from the app is what gets rejected under guideline 3.1.1.</li>
+  <li><strong>The US external-link situation is real but unsettled.</strong> Following the Epic contempt ruling, US-storefront apps may currently show a web-checkout button and pay Apple nothing on those sales. The Ninth Circuit vacated the outright commission ban in December 2025 and remanded for the district court to set a fee "reasonably tied to Apple's actual costs." So the 0% is temporary and the number is unknown. It is also US-only: the same code path is a rejectable violation in most other storefronts.</li>
+</ul>
+
+<div class="note">
+The practical read: ship IAP because it is required, offer web checkout alongside it where permitted, and set expectations at 15%. Do <em>not</em> build a business case on the external-link loophole — it has a court date. And note that an existing subscriber who signed up on the web keeps paying through Stripe; the store tax only applies to purchases made through the store.
+</div>
+
+<h3>What the stores mean for the price itself</h3>
+<p>At 15%, $9.99 nets $8.49 against $9.40 on the web — a 91 cent difference on a plan that costs 58 cents to serve. It is affordable. The question is whether to price the same on both surfaces or mark up in-app to recover the cut. <strong>Price the same.</strong> Two different prices for the same product is the thing users screenshot, and 91 cents does not justify it.</p>
+
+<h2><span class="n">06</span>Reach: what we know, and where the leak is</h2>
+<div class="rule"></div>
+<p>Vercel analytics, last 30 days, <span class="tag t-measured">measured</span>.</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Source</th><th>Visitors</th><th>Read</th></tr>
+  <tr><td>Direct / unknown referrer</td><td class="num">185</td><td class="dim">Mostly us, plus anyone typing the domain. Not a channel.</td></tr>
+  <tr><td><strong>reddit.com + Reddit app</strong></td><td class="num good">32</td><td class="dim">The only real acquisition channel currently firing, and it came from organic posting.</td></tr>
+  <tr><td>vercel.com</td><td class="num">15</td><td class="dim">Deploy dashboard. Us.</td></tr>
+  <tr><td>Stripe billing/checkout</td><td class="num">8</td><td class="dim">Return traffic from payment. Us.</td></tr>
+  <tr><td>Facebook</td><td class="num">3</td><td class="dim">Noise.</td></tr>
+  <tr><td>Bing</td><td class="num">1</td><td class="dim">Search is contributing essentially nothing.</td></tr>
+</table>
+</div>
+
+<h3>The finding that should set the strategy</h3>
+<div class="verdict">
+  <div class="tag" style="border:0;background:none;padding:0">One share link</div>
+  <p>A single <code>/share/…</code> URL drew <strong>74 visitors</strong> — a third of all traffic in 30 days, and more than the homepage's 113 relative to the effort behind it. The July plan's bet that "the analyzed clip is the ad" is no longer a thesis. It is the only channel with measured yield.</p>
+</div>
+
+<p>Everything follows from that. The share card is currently a link; the July plan already specified upgrading it to a <strong>video export</strong> — the clip with the score, the one-line fix, and a wordmark — and that remains the highest-leverage unbuilt thing in the product. A share link that yields 74 visitors as a static page yields more as something a teenager posts to TikTok without editing.</p>
+
+<h3>Where the funnel actually leaks</h3>
+<div class="scroll">
+<table>
+  <tr><th>Step</th><th>Count</th><th>Rate</th><th>Verdict</th></tr>
+  <tr><td>Visitors</td><td class="num">219</td><td class="dim">—</td><td class="dim">The real ceiling on everything below.</td></tr>
+  <tr><td>Reached the homepage</td><td class="num">113</td><td class="dim">52%</td><td class="dim">Normal.</td></tr>
+  <tr><td>Reached <code>/signup</code></td><td class="num bad">13</td><td class="num bad">11.5% of homepage</td><td class="bad">This is the leak.</td></tr>
+  <tr><td>Created an account</td><td class="num">4</td><td class="num good">31% of signup views</td><td class="good">Healthy. The signup form is not the problem.</td></tr>
+  <tr><td>Subscribed</td><td class="num">1</td><td class="dim">n too small</td><td class="dim">Not a rate. One person.</td></tr>
+</table>
+</div>
+
+<p>Nine of every ten people who see the homepage leave without ever reaching signup, while a third of the people who do reach it convert. <strong>The homepage is the bottleneck, not the price and not the paywall.</strong> Any money or effort spent on pricing packaging before fixing that is spent on the wrong end of the funnel.</p>
+
+<h3>Channels, in order of evidence</h3>
+<ol>
+  <li><strong>Shareable analyzed clips.</strong> 74 visitors from one link, zero cost. Build the video export. This is the whole strategy until something outperforms it.</li>
+  <li><strong>Reddit.</strong> 32 visitors from organic posting, unpaid. r/volleyball is 292K members. It is already working at small scale and costs nothing but time.</li>
+  <li><strong>Coach seeding and creator partnerships.</strong> Unproven for us. The July plan named specific creators at 100–400K followers and recommended rev-share over flat sponsorship. Correct order — but do this <em>after</em> the homepage converts, or we pay for traffic that leaks at 88%.</li>
+  <li><strong>App store listings.</strong> New, in progress. Worth having; nobody in the comparable set won on ASO alone.</li>
+  <li><strong>Paid ads.</strong> Not yet. At 219 visitors we have no conversion baseline to optimize against, so spend would buy the lesson we can learn for free.</li>
+</ol>
+
+<h2><span class="n">07</span>What has to be corrected before any of this goes public</h2>
+<div class="rule"></div>
+
+<div class="kill">
+  <div class="kh">The differentiator in the July plan is no longer true</div>
+  <p>That plan's central marketing claim was <em>"Not an AI guessing from pixels. Real biomechanics, measured on your phone"</em>, resting on an on-device pose engine and measured per-checkpoint values. <strong>That engine is gone.</strong> There are no pose, ONNX, MediaPipe, or ML dependencies left in <code>package.json</code> — the runtime dependency list is Supabase, Next, React, Resend and Zod. Analysis is now a vision-model read of the video with holistic checkpoint <em>observations</em> and no per-checkpoint numbers, deliberately (D-099).</p>
+  <p>By its own definition the product is now closer to what that plan called the competitors' "VLM narrative" pattern. Shipping the old line would be a false claim about how the product works. It has to be rewritten before any campaign, landing page, or store listing uses it.</p>
+</div>
+
+<h3>The good news buried in that</h3>
+<p>Phase 0 of the July plan listed an engine license swap as a <em>blocking</em> gate: the shipped <code>rtm-body7</code> weights carried non-commercial training data and gated the ability to charge at all. Removing the engine removed the blocker. That gate is closed by deletion.</p>
+
+<h3>What we can honestly claim instead</h3>
+<ul>
+  <li><strong>Breadth.</strong> Six skills, indoor and outdoor. Every direct competitor found in recon does one skill or narrates generically; VolleyIQ was hitting-only.</li>
+  <li><strong>It remembers you.</strong> Ratings, XP, goals, and the journey system that lets the coach answer "am I getting better at attacking?" from your own analysis history. This is genuinely hard to copy and nobody in the field has it.</li>
+  <li><strong>It admits what it cannot see.</strong> The abstain lane, no per-checkpoint scores, no fabricated point deltas. A competitor's app that scores every rep 97 is the failure mode we measured and rejected (D-094). "It will tell you when the camera angle wasn't good enough" is a real, differentiated, defensible promise.</li>
+  <li><strong>Ranked feedback, not a number salad.</strong> Three strengths and two changes, ordered — because ordering is what survived re-anchoring while absolute scores moved.</li>
+</ul>
+
+<h3>Stale artifacts to fix</h3>
+<div class="scroll">
+<table>
+  <tr><th>File</th><th>What is wrong</th></tr>
+  <tr><td><code>docs/billing.md</code> §1</td><td class="dim">Margin math built on $0.234/analysis (Opus 5). Real figure is ~$0.024. Every derived number — 52% margin, 22.5 free accounts per Pro, 4.3% break-even — is wrong by roughly 10×, in our favour.</td></tr>
+  <tr><td><code>docs/vollyio-commercialization.html</code></td><td class="dim">Prices at $14.99/mo (live price is $9.99), quotes $0.10–0.20 per analysis, and rests on the biomechanics claim that no longer holds.</td></tr>
+  <tr><td><code>docs/plan-matrix.md</code> §1</td><td class="dim">Says coach chat is "off for everyone" and may not be sold. It shipped ON by default yesterday. The row and the copy rule both need updating — this is now a feature we <em>can</em> talk about.</td></tr>
+  <tr><td><code>docs/post-cap-validation.md</code></td><td class="dim">Carries the same stale $0.15–0.20 range, flagged and unowned.</td></tr>
+  <tr><td>Stripe product metadata</td><td class="dim">Still says <code>monthly_analyses=18</code>; the product sells 24. Display-only, but fix it on the next console visit.</td></tr>
+</table>
+</div>
+
+<h2><span class="n">08</span>Sequence</h2>
+<div class="rule"></div>
+<ol>
+  <li><strong>Correct the record.</strong> Update the four stale docs above and retire the biomechanics claim everywhere it appears. Nothing should go out under numbers we know to be wrong. Half a day.</li>
+  <li><strong>Confirm the Vercel plan</strong> and add telemetry rows for coach chat and the weekly plan so all four surfaces report their spend. Small, and it closes the only blind spot in the cost model.</li>
+  <li><strong>Fix the homepage.</strong> 11.5% of homepage visitors reach signup. This is the single highest-leverage number in the business and it needs no pricing decision to fix.</li>
+  <li><strong>Build the share video export.</strong> The one measured channel, made portable.</li>
+  <li><strong>Add annual, then weekly.</strong> Annual first: better margin, cash up front, price object already reserved. Weekly after, framed as a non-renewing week pass rather than a subscription trap.</li>
+  <li><strong>Ship the store apps at IAP parity pricing.</strong> Same prices as the web. Expect 15%.</li>
+  <li><strong>Only then buy reach.</strong> Creators and coach seeding, once the funnel holds what it is given.</li>
+</ol>
+
+<h2><span class="n">09</span>Open decisions — these are yours</h2>
+<div class="rule"></div>
+
+<div class="q"><div class="qh">Annual at $79 or $99?</div><p class="dim">$79 reads as "under $7/month" and discounts 34%. $99 is already reserved in Stripe and matches the July anchor. I lean $79 — at a 94% margin the extra $20 buys less than the conversion it costs.</p></div>
+
+<div class="q"><div class="qh">Is the week pass renewing or one-shot?</div><p class="dim">Auto-renewing weekly is worth more per user and is the model the direct competitor uses. Non-renewing is the version consistent with everything else recorded in the decision log about not shipping dark patterns. I lean non-renewing, and I think it is a marketing asset: "a week pass that actually ends."</p></div>
+
+<div class="q"><div class="qh">Does free stay at 1/month?</div><p class="dim">It was set to 1 when an analysis cost $0.234 and the free tier was a real liability. At $0.024 the same generosity costs a tenth as much. Raising free to 2 or 3 a month is now nearly free and directly attacks the funnel leak. This is the pricing change with the best expected value, and it is a one-line constant plus a migration.</p></div>
+
+<div class="q"><div class="qh">Do we turn on bot protection before marketing?</div><p class="dim"><code>docs/billing.md</code> §6 recommended it before any public push, on the reasoning that a monthly-resetting free tier plus open signup is a metered coaching API. The exposure is 10× smaller than when that was written — 500 farmed accounts is now ~$12/month, not $285 — but the recommendation stands and the work is already scoped.</p></div>
+
+<footer>
+vollyio · pricing &amp; reach map · 2026-08-06 · production data pulled live (Supabase telemetry, Vercel analytics 30d, org billing plans) · supersedes the unit economics in docs/billing.md §1 and docs/vollyio-commercialization.html §03–04
+</footer>
+</div>

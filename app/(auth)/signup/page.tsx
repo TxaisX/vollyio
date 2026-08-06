@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
+import { enabledOAuthProviders } from "@/lib/oauth";
 import { SIGNUP_GRANT } from "@/lib/plans";
 import { signup } from "../actions";
+import { FunnelBeacon } from "../funnel-beacon";
+import { OAuthButtons } from "../oauth-buttons";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
@@ -22,6 +25,7 @@ export default async function Signup({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const providers = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
@@ -31,6 +35,7 @@ export default async function Signup({
           <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.12} />
         </div>
       </div>
+      <FunnelBeacon event="auth_signup_view" data={{ oauth: providers.length }} />
       <Reveal className="relative w-full max-w-sm">
         <Link
           href="/"
@@ -51,24 +56,8 @@ export default async function Signup({
               {error}
             </p>
           )}
+          <OAuthButtons providers={providers} />
           <form action={signup} className="mt-6 flex flex-col gap-4">
-            <div>
-              <label
-                htmlFor="display_name"
-                className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim"
-              >
-                Name
-              </label>
-              <input
-                id="display_name"
-                name="display_name"
-                type="text"
-                maxLength={80}
-                autoComplete="name"
-                placeholder="What your team calls you"
-                className="input-field text-sm"
-              />
-            </div>
             <div>
               <label
                 htmlFor="email"
@@ -110,42 +99,45 @@ export default async function Signup({
                 className="input-field text-sm"
               />
             </div>
-            <label
-              htmlFor="terms"
-              className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-relaxed text-chalk-dim"
-            >
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-gold"
-              />
-              <span>
-                I am at least 13 years old and agree to the{" "}
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  rel="noopener"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
-                >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="/privacy"
-                  target="_blank"
-                  rel="noopener"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
-                >
-                  Privacy Policy
-                </Link>
-                .
-              </span>
-            </label>
+            {/*
+              Consent by submission, disclosed immediately above the button that
+              gives it, which is where it is actually read. The checkbox this
+              replaced was a required tap that produced no information: nobody
+              who wanted an account ever answered it "no", and everyone who
+              missed it got an error telling them to agree to something they had
+              already decided to agree to.
+
+              The age statement stays a STATEMENT rather than being softened
+              into the Terms link. It is a COPPA line on a product built for
+              youth athletes, so it has to be legible on the page, not one click
+              away inside a legal document.
+            */}
+            <p className="text-xs leading-relaxed text-chalk-dim">
+              By creating an account you confirm you are at least 13 years old and
+              agree to the{" "}
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener"
+                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener"
+                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
             <SubmitButton
               idleLabel="Start your first breakdown"
               pendingLabel="Creating your account…"
+              trackEvent="auth_signup_submit"
             />
             <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
               No card. Your first breakdown in about a minute.

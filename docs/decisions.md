@@ -4083,3 +4083,83 @@ per-account quotas bound one player, never the aggregate.
 because D-050 cites `scripts/ab-*.mjs` and `scripts/kgb-run.mjs` as the A/B
 evidence behind a decision, and deleting cited evidence to tidy a grep is the
 wrong trade.
+
+## D-102 - The signup funnel loses people before the form, and inside it to an inbox
+
+Measured on 2026-08-06, from Vercel analytics over 30 days and the `auth.users`
+table, not from taste:
+
+- 219 visitors, 113 of them on the landing page, **13 reaching `/signup`**. Nine
+  of every ten people who saw the pitch never reached the form.
+- Of the 13 who did, **4 created an account (31%)**. The form itself converts
+  fine. It was never the problem.
+- Of those 4, **1 never confirmed their email** and never returned. On n=4 that
+  is directional, not statistical, but it is the only step in the flow that
+  requires leaving the product entirely.
+
+Six changes, in the order their evidence supports.
+
+**The inbox round trip is the longest gap, so delete it rather than shorten it.**
+`signInWithOAuth` for Google and Apple returns an address the provider has
+already verified, so a social signup goes from one tap to a session with no
+confirmation mail at all. This is the whole of the fix for anyone who takes it;
+the password lane still exists underneath for anyone who does not.
+
+**A provider button is fail-closed.** `OAUTH_PROVIDERS` defaults to empty and
+`enabledOAuthProviders` drops names it does not recognise, because the failure
+mode of guessing is worse than the missing feature: a player taps the fastest
+looking path, the auth service answers `validation_failed` for a provider with
+no keys, and they learn only that the app is broken. The list is server-only,
+and `signInWithProvider` validates the SUBMITTED provider against it again, so a
+crafted post cannot aim the round trip somewhere the deployment never enabled.
+
+**Email confirmation stays a Supabase toggle, not a code branch.** The signup
+action already handles both worlds: `if (!data.session)` sends the player to
+`/login` with the check-your-email message, and simply stops firing when
+confirmation is off. Turning it off is therefore a dashboard change with no
+deploy, and turning it back on is the same. What that buys is the 1-in-4 who
+never came back; what it costs is the free-tier exposure in `docs/billing.md`
+section 6, which is **an order of magnitude smaller than when that section was
+written**: a farmed account is now worth about $0.024 a month rather than
+$0.234, so 500 of them is roughly $12 a month, not $285. It is still the case
+that bot protection belongs on before a marketing push.
+
+**Consent by submission, disclosure kept.** The required terms checkbox produced
+no information -- nobody who wanted an account ever answered it "no" -- while
+costing a tap and generating a validation error for people who had already
+decided to agree. Consent is now given by submitting, disclosed directly above
+the button, and `terms_accepted_at` is still written to the account, so the
+stored fact means exactly what it meant before. **The age line stays a legible
+statement on the page** rather than being folded into the Terms link: it is a
+COPPA attestation on a product built for youth athletes, and moving it one click
+away inside a legal document would be a legal change wearing a layout change's
+clothes.
+
+**The name field left signup for onboarding.** It was optional and it was FIRST,
+which made a two-field form read as a three-field one. The onboarding flow
+collects it a moment later, where the player is already answering questions and
+it costs nothing. `signup` now sends no `display_name` at all rather than an
+empty string, because writing a blank over nothing would leave `/welcome`
+greeting no one.
+
+**The landing CTAs stopped pointing at seven questions.** Every primary button
+on the site sent players to `/start`, which is a 7-step funnel that runs BEFORE
+an account exists and parks its answers in `localStorage`. Account first,
+questions after: the CTAs now point at `/signup`, and `/auth/callback` lands
+everything except a recovery link on `/welcome`, which counts the player's
+analyses and forwards anyone who has run one to the dashboard. That one
+destination serves the new social user who skipped the funnel and the returning
+user who does not need it, without a branch. `/start` still exists and is still
+indexed; it is simply no longer the front door.
+
+**And the funnel is now instrumented, because none of the above could be read.**
+`FunnelBeacon` and the submit button emit `auth_signup_view`,
+`auth_signup_submit` and `auth_oauth_start`. Until these, the gap between 13
+arrivals and 4 accounts was unknowable -- abandonment, the social lane, and a
+death in the confirmation mail were the same absence of data -- so every fix was
+a guess. A week of these events replaces the guess.
+
+**What this does not fix, and it is the bigger number.** All six changes act on
+the step that already converts at 31%. The 11.5% of landing-page visitors who
+reach the form at all is worth several times more, and no amount of signup speed
+touches it.

@@ -3,7 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
+import { enabledOAuthProviders } from "@/lib/oauth";
 import { login } from "../actions";
+import { OAuthButtons } from "../oauth-buttons";
 import { SubmitButton } from "../submit-button";
 
 export const metadata: Metadata = {
@@ -18,6 +20,7 @@ export default async function Login({
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { error, message } = await searchParams;
+  const providers = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16">
@@ -50,6 +53,7 @@ export default async function Login({
               {error}
             </p>
           )}
+          <OAuthButtons providers={providers} />
           <form action={login} className="mt-6 flex flex-col gap-4">
             <div>
               <label
@@ -109,7 +113,7 @@ export default async function Login({
         <p className="mt-5 text-center text-sm text-chalk-dim">
           New here?{" "}
           <Link
-            href="/start"
+            href="/signup"
             className="text-gold underline-offset-4 transition-colors hover:underline"
           >
             Create an account

@@ -90,3 +90,9 @@ export const DEAD_LINK_MESSAGE =
 // Shown on /login after a signup that still needs confirming.
 export const CONFIRM_SENT_MESSAGE =
   "Check your email and click the link to confirm your account. If you signed up more than once, only the newest email works.";
+
+// A social sign-in that never got as far as the provider. This is ours to fix,
+// not the player's, so the copy points at the path that always works rather
+// than asking them to retry the thing that just failed.
+export const OAUTH_FAILED_MESSAGE =
+  "That sign-in option isn't working right now. Use your email and password below, and we'll get it fixed.";

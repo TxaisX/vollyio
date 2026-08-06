@@ -127,7 +127,7 @@ export function LandingNav() {
           >
             Log in
           </Link>
-          <Link href="/start" className="btn-primary min-h-11 px-4 py-2.5 text-sm">
+          <Link href="/signup" className="btn-primary min-h-11 px-4 py-2.5 text-sm">
             Analyze your first rep
           </Link>
         </div>
@@ -190,7 +190,7 @@ export function LandingNav() {
                 Log in
               </Link>
               <Link
-                href="/start"
+                href="/signup"
                 onClick={() => close()}
                 className="btn-primary py-3"
               >
