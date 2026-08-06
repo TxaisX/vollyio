@@ -160,7 +160,7 @@ production. Live at https://vollyio.com.
 `AGENTS.md` + `docs/security.md` + `docs/decisions.md` D-001 bind every change. No
 attribution trailers; no vendor names in UI/docs (the AI layer is "the coaching
 service", the payment layer is "the payment provider"; vendor strings survive only
-as env var names and code paths, `ANTHROPIC_API_KEY`, `STRIPE_*`,
+as env var names, model ids and code paths, `OPENROUTER_API_KEY`, `STRIPE_*`,
 `app/api/stripe/`, never in anything a player reads); design tokens
 locked in `app/globals.css @theme`; middleware is `proxy.ts`; dependency budget
 gated by the 10.5 viability gate. Every route handler and server action

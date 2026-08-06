@@ -19,7 +19,7 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | no | public by design |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | anon/publishable key; row security is what enforces access |
-| `ANTHROPIC_API_KEY` | **yes** | the coaching service; server-side only |
+| `OPENROUTER_API_KEY` | **yes** | the coaching service; server-side only. One key for every model call the app makes: the clip read, player spotting, coach chat and the weekly plan. It is prepaid, so the balance is the ceiling and the app cannot see it |
 | `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone; its two importers (payment webhook; analyze telemetry/refund, D-065) are recorded in `docs/security.md` rule 10. Absent means the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | **yes** | the payment provider API key |
 | `STRIPE_WEBHOOK_SECRET` | **yes** | the endpoint signing secret. Absent means every event is rejected and no plan is ever written |
@@ -29,11 +29,10 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 | `OWNER_ALERT_EMAIL` | no | where the spend-backstop alert goes. Unset means the alert is silent, not that the backstop is off |
 | `ANALYZE_MONTHLY_BUDGET_USD` | no | platform-wide monthly spend ceiling in dollars. Unset disables the guard; a value that is not a positive number also disables it and logs once. Once set, a usage total that cannot be read is treated as tripped and returns the calm capacity 503 |
 | `AI_MOCK` | no | `true` runs the whole flow on canned coaching results at no cost |
-| `EVAL_TOKEN` | **yes** | bearer token for the local-only eval route; leave unset in hosted environments |
 
 `.env.example` now lists every variable including billing and is the complete reference; the table above is the annotated tour and loses to it if the two ever disagree.
 
-Mirror the same variables to Vercel: `vercel env add <NAME> production` (and `preview`). Model routing and reasoning effort are **not** environment variables - they are checked-in constants in `lib/ai/client.ts` (D-004, D-027).
+Mirror the same variables to Vercel: `vercel env add <NAME> production` (and `preview`). Model routing is **not** an environment variable - the two ids are checked-in constants in `lib/ai/client.ts` (D-004, D-098). There is no reasoning-effort setting any more; it was a parameter only the old coaching SDK had.
 
 ## 3. Run
 ```

@@ -3920,3 +3920,166 @@ start jumping on a rep where he jumped.
 **Still on the coaching service after this**: `/api/players`, the weekly plan,
 and `/api/eval`. The scoring path, which is the reason the order was forced, is
 off it.
+
+## D-098 - One provider, and the three things that fell out of removing the other
+
+**Date**: 2026-08-06. **Status**: written, gates green, migration 054 applied to
+production. The owner set `OPENROUTER_API_KEY` in production and preview before
+any of this deployed, which is the precondition D-096 recorded and the one that
+cannot be fixed after the fact.
+
+Anthropic is out of the application. `grep -ri anthropic app/ lib/ components/`
+returns only tests asserting its absence. `coach()`, `ANALYZE_MODEL`,
+`COACH_MODEL`, `ANALYZE_EFFORT`, `COACH_EFFORT`, `ANTHROPIC_API_KEY` and the SDK
+dependency are all gone. `lib/ai/client.ts` is now two constants and a warning.
+
+Two ids remain and they divide by INPUT, not by output shape or by route:
+`VISION_MODEL` reads pixels (the clip for `/api/analyze`, one frame for
+`/api/players`) and `CHAT_MODEL` writes text (coach chat, the weekly plan).
+
+**`/api/players` moved with its guards intact and one deliberate addition.**
+Every existing bound is unchanged: the `coach`-scope quota, the 1.5 MB
+JPEG-signature check, the six-candidate cap, the kit-and-position labels that
+are never names (D-036), and the empty-list-at-200 failure posture that keeps
+tap-anywhere working. What was added is a `hasChatKey`-style `hasVisionKey()`
+check BEFORE the quota, for the reason D-096 gives for coach chat: without it a
+deployment missing the credential burns a player's hourly unit every time the
+framing card opens, for a call that cannot leave the building. What was FORCED
+is the retry count dropping from the SDK's 2 to 1: three attempts at a 12s
+ceiling do not fit inside `maxDuration = 30`. If spotting reliability ever
+matters more than latency, the lever is `maxDuration`, not `maxRetries`.
+
+**The weekly plan needed a third call shape, and it went in `chat.ts`.** It is
+text, so it does not belong in a module whose whole documented contract is that
+it reads pixels; but it asks for one schema-bound object and does not stream, so
+`streamChat` could not serve it. `completeObject()` is therefore new in
+`lib/ai/chat.ts`, with the request shape copied from `vision.ts` rather than
+shared: `unfence` and `usageFrom` are duplicated, `isRetryable` and `backoffMs`
+were already there and are reused. A third module holding common gateway
+plumbing is the tidier answer and is the right move the next time either file is
+opened for its own reasons. Taking it in this change would have meant editing
+the path that scores real players' film in the same commit that swaps a model on
+an unrelated one.
+
+Retiring the plan instead of moving it was the alternative on the table, and it
+was not taken: moving it reaches the same goal without deleting a feature, and
+retiring stays available. The claim semantics are untouched (D-072, migration
+038): the row is still claimed before the call, so two tabs spend once between
+them.
+
+**`/api/eval` was deleted rather than ported.** Its stated contract was that it
+replays labeled cases through the SAME scoring path as `/api/analyze`, and D-097
+made that false: it replays FRAME cases against the 120-pointer catalog and the
+product does neither. Keeping it would have meant keeping the SDK to run a
+harness that measures nothing shipped, and worse, producing numbers someone
+could mistake for production behaviour. The valuable half survives untouched:
+the labeled cases, the expectations, `lib/eval-score.ts`, `lib/eval-coverage.ts`
+and the offline `scripts/eval-coverage.mjs`. `evals/README.md` now opens with
+what a video-path harness would actually need, which is a different program:
+clips rather than frame sets, and checks that do not assume per-checkpoint
+verdicts or a contact instant. That belongs to `corpus-plan.md`.
+
+### The bug the swap uncovered, which was ours and was costing players money
+
+`lib/ai/vision.ts` read its response body with `res.json().catch(() => null)`.
+Two agents hit it independently, on two different routes, and the second
+diagnosed the mechanism: on a non-streaming request this gateway returns its 200
+within a second and then **pads the body with whitespace until the upstream
+finishes**. Headers arrived at 0.1 to 3.0 seconds; bodies completed at 10 to 38.
+`AbortSignal.timeout` therefore fires during the BODY READ, after `fetch()` has
+already resolved, and that `.catch` turned it into `parsed: null`.
+
+What that meant downstream: the retry never fired, because a timeout was not on
+the throw path at all; and `/api/analyze` read it as "the model returned
+something unparseable", spent a SECOND paid read on the re-try, and then answered
+502, when the truth was a timeout `classifyCoachingError` would have called
+`busy` and REFUNDED. A player lost an analysis slot to a network stall. Measured
+at 1 in 19 draws on the frame path and 3 in 21 on the plan path.
+
+The body is now read as text inside its own guard, and a body-read failure is
+the retryable transport error it always was. A genuine JSON syntax error still
+degrades to `parsed: null`, because that one really is a reply the model got
+wrong and whether to spend another paid read on it is the caller's decision.
+`lib/ai/vision.test.ts` pins both halves. The stuck case does not recover if
+given longer, which is why the ceilings are short with retries rather than long
+and patient: two draws were still padding at 60 seconds and one at 170.
+
+### The landmine the swap armed, which nobody hit yet
+
+D-097 changed `analyses.model` to write `VISION_MODEL`, and `lib/ai/pricing.ts`
+still knew only the retired coaching tiers. `estimateCostUsd` throws on a model
+with no rate row, deliberately, because a silent zero would understate spend in
+the one direction an estimate must never err in. Nothing failed, because
+`ANALYZE_MONTHLY_BUDGET_USD` is unset in production (D-077) so the guard never
+priced anything. Setting that one variable, an act of caution, would have made
+`checkAnalyzeBudget` throw on the first real row, and the guard fails CLOSED: a
+calm 503 for every player at once.
+
+Both gateway ids now carry rows, read from the gateway's own model listing on
+2026-08-06 rather than hand-copied: $1.50/$7.50 per MTok for the vision id, and
+$0.09/$0.18 rounded up from a listed 0.0882/0.1764 for the text id, because an
+estimate may overstate and must never understate. The retired `claude-*` rows
+STAY, because telemetry rows already in the database name them and dropping them
+would make the month-to-date read throw on history rather than price it.
+`lib/ai/pricing.test.ts` now reads the model constants out of `client.ts` source
+and asserts each has a row, so a new id cannot ship without its rate again.
+
+### Two smaller things the swap made visible
+
+**The weekly plan had no route budget.** A server action inherits its route
+segment's config, and `app/(app)/plan/page.tsx` declared none, so generation ran
+against an undeclared platform default while its own worst case is three 50
+second attempts plus backoff. `maxDuration = 180` now bounds it, so the timeout
+that fires is ours, with a message, rather than the platform's. A platform kill
+is survivable but not free: the row is already claimed, so the player waits out
+the ten minute expiry.
+
+**The model puts long dashes in copy a player reads.** `headline` is the only
+model-authored string in the plan rendered as a heading, and draws returned both
+`"Serve Toss Week [en dash] Outside Hitter"` and a 240-character paragraph in a
+slot sized for a title. The schema stays a bare string on purpose, matching the
+posture in `lib/ai/schema.ts` and `simple-rubric.ts` that value constraints live
+in the prompt so a slightly wrong reply degrades instead of failing the week as
+an outage. So the prompt now asks for a title under 60 characters with no long
+dash, and `planHeadline()` cleans what arrives anyway: long dashes to a hyphen,
+collapsed whitespace, trailing punctuation dropped, cut at a word boundary at
+72. The policy lint caught the literal dash characters in the fix itself, which
+is the rule working; they are written as escapes.
+
+### What was measured, and what it does not establish
+
+Real calls through the real modules, not paraphrases.
+
+- **Spotting, 19 runs on one real frame.** 18 correct, 1 empty (the body-read
+  bug above). Coordinates stable to plus or minus 0.03. Zero labels tripped the
+  name-shaped guard. Reasoning ran 401 to 813 tokens before any content, which
+  is why `max_tokens` is 8192 and not the 1024 it was: the old ceiling was
+  roughly one bad draw from returning nothing.
+- **The weekly plan, 25 draws by one agent plus 4 independent.** All parsed. One
+  draw in 25 invented a drill slug and the existing catalog filter dropped it,
+  which is exactly what that guard is for.
+- **The clip read, 6 runs (D-097).** 66, 76, 71 as an attack; abstained 3 of 3
+  when the same footage was submitted as a serve.
+
+**The routing lottery is now measured rather than asserted.** Across these runs
+the gateway resolved the two ids across at least eight distinct upstreams:
+`Google` and `Google AI Studio` on the vision id, pricing the identical frame at
+1418 and 1236 input tokens; and `DeepInfra`, `CoreWeave`, `Cloudflare`,
+`Parasail`, `Baidu` and `AtlasCloud` on the text id. Reasoning tokens were 0 on
+DeepInfra, CoreWeave and Cloudflare, and 1147, 2205 and 2309 on the others,
+spent before any content. That is D-096 reproducing exactly, and it is why every
+ceiling in this app is sized from the worst observed reasoning draw and why no
+conclusion here rests on a single run.
+
+What none of this establishes is reliability over time. The samples are tens of
+runs on a handful of inputs, the abstention rate on a real corpus is still
+unmeasured (D-097), and the balance that pays for all of it is prepaid and
+invisible to the app: one credential now serves four surfaces, and the
+per-account quotas bound one player, never the aggregate.
+
+**Still referencing the removed SDK**: eight one-off probe scripts under
+`scripts/` (`ab-run`, `kgb-run`, `spot-check`, `flow-check`, `hit1-*`,
+`park-full`, `maya-full`). They cannot run. They were kept rather than deleted
+because D-050 cites `scripts/ab-*.mjs` and `scripts/kgb-run.mjs` as the A/B
+evidence behind a decision, and deleting cited evidence to tidy a grep is the
+wrong trade.

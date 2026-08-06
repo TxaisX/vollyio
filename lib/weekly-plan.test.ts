@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   PLAN_DAYS,
+  PLAN_HEADLINE_MAX,
   planDayIndex,
+  planHeadline,
   planIsCurrent,
   planPrompt,
   weekStartKey,
@@ -113,4 +115,38 @@ test("the prompt carries the minor-safety constraints, which are not optional", 
   assert.match(prompt, /supplement/i);
   assert.match(prompt, /rest or mobility day/i);
   assert.match(prompt, /one-rep max/i);
+});
+
+// `headline` is the only model-authored string in the plan that the page
+// renders as a heading. Both failures below were observed on real draws during
+// the vendor swap (D-098), and neither is worth refusing a week over.
+test("a headline loses the long dashes the house style forbids", () => {
+  assert.equal(
+    planHeadline("Serve Toss Week \u2013 Outside Hitter"),
+    "Serve Toss Week - Outside Hitter",
+  );
+  assert.equal(planHeadline("Contact at Full Extension \u2014 Week 1"), "Contact at Full Extension - Week 1");
+  // Tight against the word, which is how the model actually emits it.
+  assert.equal(planHeadline("Reach\u2013Snap Week"), "Reach - Snap Week");
+  assert.doesNotMatch(planHeadline("a \u2013 b \u2014 c"), /[\u2013\u2014]/);
+});
+
+test("an over-long headline is cut at a word boundary, not mid-word", () => {
+  const long = "Rebuilding Your Outside Swing Through Full Extension Contact And Faster Approach Rhythm Across The Whole Week";
+  const out = planHeadline(long);
+  assert.ok(out.length <= PLAN_HEADLINE_MAX, `${out.length} > ${PLAN_HEADLINE_MAX}`);
+  assert.ok(long.startsWith(out), "the cut must be a prefix of what the model wrote");
+  assert.doesNotMatch(out, /\s$/, "no trailing space");
+  // The cut landed between words, so the last word is intact.
+  assert.ok(long.slice(out.length).match(/^\s/), "cut fell mid-word");
+});
+
+test("a headline that is already fine is left alone", () => {
+  const fine = "Full Extension Week";
+  assert.equal(planHeadline(fine), fine);
+});
+
+test("a headline loses trailing punctuation and collapsed whitespace", () => {
+  assert.equal(planHeadline("  Serve   Week.  "), "Serve Week");
+  assert.equal(planHeadline("Block Week:"), "Block Week");
 });

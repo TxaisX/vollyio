@@ -274,7 +274,50 @@ async function postChat<T extends z.ZodType>(
       );
     }
 
-    const payload = await res.json().catch(() => null);
+    // Read the body as TEXT first, and treat a failure here as a transport
+    // failure rather than as a model that answered badly.
+    //
+    // This was `res.json().catch(() => null)`, and that swallowed a real and
+    // measurable failure. `AbortSignal.timeout` aborts the response BODY STREAM,
+    // not just the connection, so a 200 whose body stalls past the deadline
+    // rejects HERE, after the status line has already arrived. The catch turned
+    // that rejection into `parsed: null`, which means:
+    //   - the retry above never fired, because a timeout was not on the throw
+    //     path at all;
+    //   - `/api/analyze` read it as "the model returned something unparseable",
+    //     spent a second paid read on the re-try, and then answered 502, when
+    //     the truth was a timeout that `classifyCoachingError` would have called
+    //     `busy` and REFUNDED. The player lost an analysis slot to a network
+    //     stall.
+    // Measured at roughly 1 in 19 live reads, so it is a routine event and not
+    // a corner case.
+    //
+    // A genuine JSON SYNTAX error still resolves to `parsed: null`, because that
+    // one really is a reply the model got wrong and a second attempt at it is
+    // the caller's decision, not this layer's.
+    let bodyText: string;
+    try {
+      bodyText = await res.text();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (attempt >= maxRetries) {
+        throw new VisionError(`vision request failed: ${message}`, null, requestId);
+      }
+      await new Promise((r) => setTimeout(r, backoffMs(attempt, null)));
+      continue;
+    }
+
+    let payload: {
+      usage?: unknown;
+      provider?: unknown;
+      error?: { message?: unknown; code?: unknown };
+      choices?: { message?: { content?: unknown } }[];
+    } | null = null;
+    try {
+      payload = JSON.parse(bodyText);
+    } catch {
+      payload = null;
+    }
     const ms = Date.now() - started;
     const usage = usageFrom(payload?.usage, payload?.provider);
 

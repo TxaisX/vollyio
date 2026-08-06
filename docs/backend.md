@@ -8,10 +8,10 @@ coaching-service call discipline, and the scoring pipeline.
 
 No vendor name reaches a user-visible string. The AI layer is "the coaching
 service", and the half of it that reads pixels is "the vision provider";
-`ANTHROPIC_API_KEY` and `OPENROUTER_API_KEY` (both server-only), the model
-constants in `lib/ai/client.ts`, and the gateway endpoint, which appears twice,
-in `lib/ai/vision.ts` for the frame read (D-093) and in `lib/ai/chat.ts` for
-coach chat (D-096), are the only vendor-named tokens in the repo. All three
+`OPENROUTER_API_KEY` (server-only), the two model ids in `lib/ai/client.ts`, and
+the gateway endpoint, which appears twice, in `lib/ai/vision.ts` for the clip
+and frame reads (D-093, D-097) and in `lib/ai/chat.ts` for coach chat and the
+weekly plan (D-096, D-098), are the only vendor-named tokens in the repo. All three
 modules are `server-only`, so a client import is a build error. RLS, not app
 code, is the tenant boundary. There is no on-device machine learning: a
 server-side vision model does the entire read (D-033), on the provider D-093
@@ -105,10 +105,9 @@ All are `runtime = "nodejs"`; the proxy does not cover them, so each self-auths.
 | Route | Purpose | Boundary |
 |---|---|---|
 | `POST /api/analyze` | Validate the frame sequence, consume the hourly quota, reserve the entitlement, call the coaching service, derive scores, persist the analysis + frames + rating + XP + telemetry | Same-origin, verified user, atomic 20/hr, atomic entitlement, 4 MB body |
-| `POST /api/coach` | Streaming grounded chat (`text/plain`, `no-store`), session-scoped, persists both turns; runs on `CHAT_MODEL` through the gateway (`lib/ai/chat.ts`, D-096), not on the coaching SDK | Same-origin, verified user, atomic 20/hr plus 30/24h, 16 KB body, 600-char message, session ownership |
+| `POST /api/coach` | Streaming grounded chat (`text/plain`, `no-store`), session-scoped, persists both turns; runs on `CHAT_MODEL` through the gateway (`lib/ai/chat.ts`, D-096) | Same-origin, verified user, atomic 20/hr plus 30/24h, 16 KB body, 600-char message, session ownership |
 | `POST /api/players` | Coach-spotted candidates (D-036): one frame returns up to six kit-and-position descriptions with torso points; shares the coach quota, fails open to empty | Same-origin, verified user |
 | `POST /api/account/delete` | Purge own storage, then `delete_own_account()` cascade | Same-origin, verified user, atomic 3/hr |
-| `GET /api/eval` | Dev-only harness replaying `evals/cases/*.json` through the production scoring path | 404 in production, off loopback, or without the `EVAL_TOKEN` bearer |
 
 `GET /auth/callback` exchanges an OAuth code or verifies an OTP, redirecting to
 `/dashboard` or `/login?error=`. Server actions (login/signup/logout, goals,
@@ -127,19 +126,22 @@ frame read goes through `lib/ai/vision.ts` (D-093) and coach chat through
 modules are deliberately separate files: `vision.ts` reads pixels and binds every
 request to a JSON schema, `chat.ts` streams prose with no schema at all.
 
-- **Model + effort (D-004 / D-027 / D-070 / D-093 / D-096).** `ANALYZE_MODEL` and
-  `ANALYZE_EFFORT = "low"` describe the pre-D-093 read; the live frame read runs
-  `VISION_MODEL` through the gateway, and `ANALYZE_MODEL` now has one importer
-  left, the dev eval route, which defaults to it and takes any coaching-service
-  model by query parameter. `COACH_MODEL` at
-  `COACH_EFFORT = "medium"` now has exactly one importer, the weekly plan
-  (`app/(app)/plan/actions.ts`); the effort cap stays because that tier defaults
-  to high and fabricated detail above medium. Coach chat runs `CHAT_MODEL`, which
-  takes no effort parameter because only the coaching service has one. Both
-  gateway ids carry a slash the coaching SDK would 404 on, which is the intended
-  tripwire against passing either to `coach()`. The run is recorded in
-  `analyses.model` (or `"mock"`); chat records nothing, so its spend is invisible
-  to `/api/usage` and to the budget guard.
+- **Model (D-004 / D-093 / D-096 / D-097 / D-098).** Two ids, both on the
+  gateway, and nothing else. `VISION_MODEL` reads pixels: the whole clip for
+  `/api/analyze` (D-097) and one frame for `/api/players`. `CHAT_MODEL` writes
+  text: coach chat and the weekly plan (D-098). Neither takes an effort
+  parameter, because effort was a parameter only the coaching service had;
+  `ANALYZE_EFFORT` and `COACH_EFFORT` went with the SDK. The run is recorded in
+  `analyses.model` (or `"mock"`); chat and the weekly plan record nothing, so
+  their spend is invisible to `/api/usage` and to the budget guard.
+- **One id is not one behaviour.** The gateway resolves each id across several
+  upstreams that differ measurably, and reasoning bills against `max_tokens`
+  BEFORE any content, so every ceiling here is sized for the worst observed
+  reasoning draw rather than for the answer (D-096). Measured on the frame read:
+  the same id drew both `Google` and `Google AI Studio` across 19 runs, pricing
+  the identical image at 1418 and 1236 input tokens. The video read is the one
+  path that pins its upstream, because that upstream choice decides whether a
+  base64 clip is accepted at all.
 - **Mock mode.** `AI_MOCK=true` returns deterministic output with no key and no
   spend, on the chat path as well.
 - **Retries.** Per call site: the frame read passes `maxRetries: 1`, the weekly

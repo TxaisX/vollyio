@@ -321,10 +321,11 @@ export async function POST(req: NextRequest) {
             await new Promise((r) => setTimeout(r, 40));
           }
         } else {
-          // Chat runs on the gateway now, not the coaching service (D-096).
-          // The weekly plan still uses COACH_MODEL and the SDK: it asks for one
-          // schema-bound object, where this streams prose. `effort` went with
-          // the move, being a parameter only the coaching service has.
+          // Chat runs on the gateway (D-096), as everything does now (D-098).
+          // It shares CHAT_MODEL with the weekly plan but not this call shape:
+          // the plan asks for one schema-bound object through completeObject(),
+          // where this streams prose and binds to no schema at all. `effort` is
+          // gone entirely; it was a parameter only the old coaching service had.
           for await (const text of streamChat({
             model: CHAT_MODEL,
             system,

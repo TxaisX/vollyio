@@ -8,8 +8,11 @@ browser visit; the thinking is already done._
 ## Pre-checks (runnable today, no model calls)
 
 All three passed 2026-07-21; re-run them on the day to confirm nothing rotted.
-`EVAL_TOKEN` must be set (any long random string, in `.env.local` or the
-environment) and the dev server running on the eval port:
+
+> **The first two commands below no longer run (D-098).** `/api/eval` was
+> removed with the Anthropic SDK, and `EVAL_TOKEN` with it. They tested the
+> dev-only gate, not the cap, so the cap checks further down still stand. What
+> replaced the harness is described at the top of `evals/README.md`.
 
 ```sh
 npm run dev -- -p 3222

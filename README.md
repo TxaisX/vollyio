@@ -18,10 +18,12 @@ Live: https://vollyio.com
   analyze route's telemetry and quota-refund calls) are each recorded with
   their reason in `docs/security.md` rule 10. Every other request runs as the
   signed-in player.
-- The coaching service (a vision model) runs server-side only; the browser never
-  sees its key. It is never vendor-named in the UI or docs; the vendor-named
-  strings in the repo are env var names and code paths (`ANTHROPIC_API_KEY`, the
-  `STRIPE_*` variables, `app/api/stripe/`), never anything a player reads.
+- The coaching service runs server-side only; the browser never sees its key.
+  One credential now covers every model call, reading and writing both. It is
+  never vendor-named in the UI or docs; the vendor-named strings in the repo are
+  env var names, model ids and code paths (`OPENROUTER_API_KEY`, the two ids in
+  `lib/ai/client.ts`, the `STRIPE_*` variables, `app/api/stripe/`), never
+  anything a player reads.
 - Tailwind v4 design tokens, hand-rolled motion, no chart/state/animation libraries.
 - Deployed on Vercel; a push to `master` auto-deploys production.
 

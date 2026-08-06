@@ -92,6 +92,46 @@ export type PlanSeed = {
   allowedSlugs: string[];
 };
 
+/**
+ * The plan's title, made safe to render.
+ *
+ * `headline` is the only model-authored string in the weekly plan that is shown
+ * to a player as a heading rather than as body copy, and the schema types it as
+ * a bare string on purpose: value constraints live in the prompt so a slightly
+ * wrong reply degrades instead of failing the whole week as a coaching-service
+ * outage. This is the degrading.
+ *
+ * Two things are actually wrong in practice and both were measured on real
+ * draws. The model reaches for a long dash as a separator, which is against
+ * house style everywhere copy is written, and it occasionally answers with a
+ * paragraph: one draw returned 240 characters into a slot the page renders as a
+ * heading. Neither is worth refusing a plan over and neither may reach the page.
+ */
+export function planHeadline(raw: string): string {
+  const cleaned = raw
+    // En and em dash, with or without surrounding spaces, become a plain hyphen.
+    // Written as escapes because the policy lint forbids the literal
+    // characters in source, which is the same rule this line enforces on copy.
+    .replace(/\s*[\u2013\u2014]\s*/g, " - ")
+    .replace(/\s+/g, " ")
+    .replace(/[.,;:\s]+$/, "")
+    .trim();
+  if (cleaned.length <= PLAN_HEADLINE_MAX) return cleaned;
+  // Cut at a word boundary rather than mid-word, and only fall back to a hard
+  // slice if the first "word" is somehow longer than the whole budget.
+  const cut = cleaned.slice(0, PLAN_HEADLINE_MAX);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > PLAN_HEADLINE_MAX / 2 ? cut.slice(0, lastSpace) : cut).replace(
+    /[.,;:\s-]+$/,
+    "",
+  );
+}
+
+// The prompt asks for under 60. This is the ceiling the page will actually
+// render without wrapping past two lines on a phone, with room for a model that
+// runs slightly over rather than wildly over.
+export const PLAN_HEADLINE_MAX = 72;
+
 export function planPrompt(seed: PlanSeed): string {
   const ratings =
     seed.ratings.length > 0
@@ -123,6 +163,7 @@ export function planPrompt(seed: PlanSeed): string {
     "- `minutes` is realistic for someone with a job or school: 20 to 60 on training days, 10 to 20 on recovery days.",
     "- `drill_slug` must be one of the slugs listed below, or null for rest, film review, and match days. Never invent a slug.",
     "- `why` must reference their actual numbers. If nothing has been measured, say that plainly instead of inventing a rationale.",
+    "- `headline` is a title, not a sentence: under 60 characters, no trailing punctuation. Use a plain hyphen if you need a break, never a long dash.",
     "",
     `ALLOWED DRILL SLUGS: ${seed.allowedSlugs.join(", ")}`,
   ].join("\n");

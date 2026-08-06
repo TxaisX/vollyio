@@ -12,11 +12,26 @@ export type UsageTokens = {
   cache_creation_input_tokens: number;
 };
 
-// claude-opus-4-8 stays priced after the D-070 switch: telemetry rows written
-// before it carry that model string, and estimateCostUsd throws on a model with
-// no row, so dropping it would make the month-to-date spend read throw on
-// history rather than price it.
 const PER_MTOK: Record<string, { input: number; output: number }> = {
+  // The two live ids (D-098), read from the gateway's own model listing on
+  // 2026-08-06 rather than hand-copied from a pricing page. Gateway spend is
+  // PREPAID, so the account balance is the real ceiling and these rates only
+  // feed the month-to-date estimate; the app cannot see the balance at all.
+  //
+  // Adding a model id to lib/ai/client.ts without adding its row here is a
+  // production outage waiting for someone to set ANALYZE_MONTHLY_BUDGET_USD:
+  // the throw below is deliberate, the budget guard fails CLOSED on a spend it
+  // cannot price, and the symptom is a calm 503 for every player at once. That
+  // very gap shipped once, between the analyze route moving to the gateway and
+  // this row landing. lib/ai/pricing.test.ts now pins the two together.
+  "google/gemini-3.6-flash": { input: 1.5, output: 7.5 },
+  // Rounded up from the listed 0.0882 / 0.1764: an estimate must never
+  // understate, and the sub-cent precision buys nothing at this scale.
+  "deepseek/deepseek-v4-flash": { input: 0.09, output: 0.18 },
+  // The retired coaching-service tiers stay priced. Telemetry rows written
+  // before D-098 carry these model strings, and estimateCostUsd throws on a
+  // model with no row, so dropping them would make the month-to-date spend read
+  // throw on history rather than price it.
   "claude-opus-5": { input: 5, output: 25 },
   "claude-opus-4-8": { input: 5, output: 25 },
   "claude-sonnet-5": { input: 3, output: 15 },

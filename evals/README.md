@@ -1,8 +1,24 @@
 # Analysis eval harness
 
+> **DORMANT as of 2026-08-05 (D-098). The runner cannot run.** This harness
+> replays FRAME cases against the 120-pointer catalog, and `/api/analyze` no
+> longer does either: it reads the whole clip once against
+> `lib/ai/simple-rubric.ts` (D-097). The dev-only `/api/eval` route was deleted
+> with the Anthropic SDK it depended on, so `scripts/run-evals.mjs` has nothing
+> to call. Everything else here is intact and still worth having: the labeled
+> cases, the expectations, `lib/eval-score.ts`, `lib/eval-coverage.ts`, and
+> `node scripts/eval-coverage.mjs`, which is offline and free and still works.
+>
+> Reviving it is not a port. A video-path harness needs CLIPS rather than frame
+> sets, so the case format changes, and it needs checks that do not assume
+> per-checkpoint verdicts or a contact instant, because the video path can
+> produce neither. That work belongs to `docs/corpus-plan.md`, not to a patch of
+> this file. What is written below describes the frame-path loop as it was, and
+> is kept as the record of it.
+
 Measure coaching-analysis quality instead of eyeballing it. Each **case** is a
-real frame set plus an expert **expectation**; the dev-only runner replays cases
-through the exact scoring path as `/api/analyze` and reports agreement.
+real frame set plus an expert **expectation**; the dev-only runner replayed
+cases through the exact scoring path as `/api/analyze` and reported agreement.
 
 **A check that never ran is never reported as a check that passed.** Unlabeled
 cases come back `unverified`, not `pass`, and are excluded from the pass-rate
