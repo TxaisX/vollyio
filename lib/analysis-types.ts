@@ -203,14 +203,45 @@ export type AnalysisResult = {
 // has to date-guess which shape it is holding.
 export const RESULT_VERSION_VIDEO = 2;
 
-// The clip the video read is performed on, base64'd into one request. Bounded
-// here rather than only at the storage policy because the route builds the
-// base64 string in function memory: 8 MB of MP4 is ~10.7 MB of base64, and a
-// clip larger than that is a memory failure inside a paid request rather than
-// a refusal before one. MAX_CLIP_SECONDS at the client's 2.5 Mbps ceiling puts
-// a full-length window near 3 MB, so this leaves better than a 2x margin for a
-// forwarded phone recording.
-export const MAX_CLIP_BYTES = 8_000_000;
+// The clip the video read is performed on, base64'd into one request.
+//
+// RAISED FROM 8 MB (D-100). The old number assumed every clip had been trimmed
+// in the browser first, where a full-length window re-encodes to about 3 MB. A
+// browser that cannot DECODE the clip cannot trim it either, and refusing those
+// players was the dead end this constant helped create: an untrimmed phone
+// recording is the whole file, and 1080p HEVC off an iPhone runs 8 to 10 Mbps,
+// so ten seconds is already past 8 MB before anything has gone wrong.
+//
+// 20 MB is MEASURED, not assumed. Six real reads on 2026-08-06 walked the size
+// up until the gateway refused: 21.4 MB of MP4 (28.6 MB base64) was accepted
+// and scored, 25.4 MB (33.9 MB base64) was refused. The wall is a 32 MB request
+// cap, and it fails badly: the connection is refused about a second in, before
+// the upload completes, so it surfaces as a bare transport error rather than as
+// anything a player could act on. That is the reason for a cap at all. 20 MB
+// raw is 26.7 MB encoded, which leaves real margin under the wall for the JSON
+// envelope and the rubric.
+//
+// An earlier draft of this comment said the limit was 20 MB per REQUEST and set
+// the cap at 14 MB on that basis. That was wrong, and measuring it back was
+// worth four minutes: it cost players roughly six megabytes of headroom.
+//
+// Worth knowing before anyone tries to buy more room by shrinking clips: SIZE
+// IS NOT WHAT COSTS. Input tokens measured 2445 on every one of those reads,
+// from 4.3 MB to 21.4 MB, because the provider bills per SECOND of footage at
+// about 89 tokens. A bigger file of the same clip costs the same to read. What
+// it costs is the player's upload time and this function's wall clock.
+//
+// It is a byte cap standing in for a duration cap, because a browser that
+// cannot decode cannot tell us the duration either. That is a real limitation
+// and the copy on the untrimmed path says so: keep it to one rep. A long clip
+// is a quality problem independently of size, since the rubric asks about a
+// single rep and has been measured silently picking one out of a 32 second
+// multi-rep video without abstaining.
+//
+// This number is MIRRORED BY A STORAGE POLICY (migration 055). The two move
+// together or a player uploads successfully and is then refused by the route
+// that reads it; lib/security-contract.test.ts ties them.
+export const MAX_CLIP_BYTES = 20_000_000;
 
 // Dense continuous coverage (D-041), shaped to the movement (D-061). Raised
 // 40 -> 64 without growing the request: context frames render at 640 while

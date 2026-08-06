@@ -6,6 +6,7 @@ import { classifyCoachingError } from "@/lib/ai/errors";
 import { shouldEnforceFreeTier } from "@/lib/billing";
 import {
   focusInstruction,
+  focusLabelInstruction,
   notRatableMessage,
   simpleRatingSchema,
   simpleRubric,
@@ -206,7 +207,8 @@ export async function POST(req: NextRequest) {
   if (!parsedBody.success) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const { skill, discipline, source, duration_s, focus_point } = parsedBody.data;
+  const { skill, discipline, source, duration_s, focus_point, focus_label } =
+    parsedBody.data;
 
   // The clip the read is performed on. It is already in storage under the
   // caller's own pending prefix, because the platform's 4.5 MB request cap
@@ -330,10 +332,20 @@ export async function POST(req: NextRequest) {
     result = mockResult(skill, timeAt);
   } else {
     try {
+      // Who to analyze, by whichever route the player had available. The tap
+      // wins when both arrive: it is the player pointing at a picture they were
+      // looking at, where a label is the player agreeing with a description
+      // somebody else wrote. Only one of the two is ever sent in practice,
+      // because a device that can render the poster to tap never reaches the
+      // list, but stating the precedence here means a client that sends both
+      // cannot make the subject ambiguous.
+      const marker = focus_point
+        ? focusInstruction(focus_point.x, focus_point.y, focus_point.t_s)
+        : focus_label
+          ? focusLabelInstruction(focus_label)
+          : null;
       const instructions = [
-        ...(focus_point
-          ? [focusInstruction(focus_point.x, focus_point.y, focus_point.t_s)]
-          : []),
+        ...(marker ? [marker] : []),
         `Discipline: ${discipline}. Rate this ${SKILL_LABEL[skill].toLowerCase()} rep across the whole clip.`,
       ];
 

@@ -168,8 +168,17 @@ function sampleFractions(duration: number): number[] {
 // Frames are pulled client side, so playability is a property of the BROWSER
 // the player is standing in, not of the file. The same iPhone clip that fails
 // in desktop Chrome plays fine in Safari, because Chrome ships no HEVC decoder
-// on most platforms. So these messages name the browser and give the two fixes
-// that actually work, rather than blaming the clip.
+// on most platforms.
+//
+// THESE STRINGS NO LONGER REACH A PLAYER, and nothing new may surface one
+// (D-100). Every caller of loadVideo and extractFrames now treats a decode
+// failure as a missing PREVIEW rather than a missing analysis: the clip is
+// uploaded whole and read on the other side, where the container decodes fine,
+// so telling somebody to change browser sends them somewhere that helps with
+// nothing. They survive as the text of internal Errors, which is why they are
+// still specific: a log line naming the decoder that failed is worth having.
+// Anything shown to a player belongs in components/analyze-flow.tsx, where the
+// no-preview copy lives together and says what happens next.
 
 type Rvfc = HTMLVideoElement & {
   requestVideoFrameCallback?: (
@@ -697,10 +706,10 @@ export async function extractFramesFromVideo(
   return sampleDense(video, opts?.debug ?? false, win, markT, opts?.skill, sourceFps);
 }
 
-// The user-facing end of the line, reached only after BOTH extraction passes
-// produced nothing. House rule for these messages: the browser is the broken
-// part, name it, give fixes that actually work, and say plainly that nothing
-// was spent, this throw happens before any request exists to count.
+// The end of the line, reached only after BOTH extraction passes produced
+// nothing. NOT user-facing any more (D-100): the caller catches this and keeps
+// going, because the cut clip is what the read is performed on and it is
+// already in hand by the time this can throw. Left specific for the log.
 const BLANK_CLIP_MESSAGE =
   "This browser handed back only black frames for that clip, so there was nothing to analyze and nothing was counted. Close other tabs or apps that are playing video and try again, or use Safari on iPhone, Chrome on Android. If it keeps happening, re-export the clip as MP4.";
 

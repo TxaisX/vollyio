@@ -36,7 +36,17 @@ import {
   type TrimWindow,
 } from "@/lib/frame-select";
 import { scaledSize, SPOT_FRAME_DIM } from "@/lib/frame-scale";
-import type { AnalyzeRequest } from "@/lib/analysis-types";
+import { MAX_CLIP_BYTES } from "@/lib/analysis-types";
+// TYPE-ONLY, both of them, so neither zod nor the request schema is pulled into
+// the browser bundle. The body is typed from the SCHEMA the route validates
+// against rather than from AnalyzeRequest in lib/analysis-types.ts, because the
+// schema is what actually decides whether a request is accepted: focus_label
+// (D-100) is a wire field the route reads and nothing stores, and typing the
+// body off the validator is what stops the client and the route drifting.
+import type { z } from "zod";
+import type { analyzeRequestSchema } from "@/lib/analyze-request";
+
+type AnalyzeBody = z.infer<typeof analyzeRequestSchema>;
 
 type Status =
   | { kind: "idle" | "reading" | "sending" }
@@ -264,12 +274,65 @@ async function burnMark(
 // so there is no case left where a file extension knows better. The three
 // values are the closed set the storage policy and the request schema both
 // enforce, and an unrecognised one is a bug rather than a default.
-function clipExtOf(mime: string): "mp4" | "webm" | "mov" | null {
+type ClipExt = "mp4" | "webm" | "mov";
+
+function clipExtOf(mime: string): ClipExt | null {
   if (mime === "video/mp4") return "mp4";
   if (mime === "video/webm") return "webm";
   if (mime === "video/quicktime") return "mov";
   return null;
 }
+
+// The MIME declared on an upload, from the container the file turned out to be.
+// The storage policy checks the two against each other, so they are derived
+// from one place rather than read off the file twice.
+const CLIP_MIME: Record<ClipExt, string> = {
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+/**
+ * The container of a file about to be forwarded untouched, or null when it is
+ * not one of the three the storage policy and the request schema both admit.
+ *
+ * The MIME the picker reports comes first, because it is what the platform
+ * actually knows. The FILENAME is the fallback and not a guess: some Android
+ * pickers hand back a File with an empty type, and an iPhone .mov arriving
+ * through a share sheet can come through as a generic binary type. In both
+ * cases the extension is the only container evidence there is, and refusing on
+ * a missing MIME would dead-end a player over a field their picker chose not to
+ * fill in. Anything still unrecognised is refused rather than relabelled: this
+ * function decides the MIME the upload declares, so a wrong answer here would
+ * hand the read a container that is not what it says it is.
+ */
+function uploadExtOf(file: File | Blob): ClipExt | null {
+  const type = (file.type || "").toLowerCase();
+  if (type.includes("quicktime")) return "mov";
+  if (type.includes("mp4")) return "mp4";
+  if (type.includes("webm")) return "webm";
+  const name = (file instanceof File ? file.name : "").toLowerCase();
+  if (name.endsWith(".mov")) return "mov";
+  if (name.endsWith(".mp4") || name.endsWith(".m4v")) return "mp4";
+  if (name.endsWith(".webm")) return "webm";
+  return null;
+}
+
+// COPY FOR THE NO-PREVIEW PATH (D-100), collected here because it is the whole
+// product surface of that path and it is easy to get wrong.
+//
+// The house rule for every string below: the player filmed a rep and did
+// nothing wrong, so none of them may read as "your device is broken", none of
+// them names a format, a codec or a vendor (neither is actionable for someone
+// standing in a gym holding a phone), and each one says what is happening and
+// what to do next. The refusal at the top is the ONLY remaining hard stop on
+// this path, so it names the one thing that fixes it.
+const CLIP_TOO_LARGE_MESSAGE =
+  `That clip is bigger than ${Math.round(MAX_CLIP_BYTES / 1_000_000)} MB, which is more than can be sent, ` +
+  "and it can't be shortened here. Film a shorter one, about one rep and a few seconds long, and pick that instead.";
+
+const CLIP_TYPE_MESSAGE =
+  "That clip's file type can't be sent for analysis. Film the rep with your phone's camera app and pick that recording instead.";
 
 // Calibrated against the 16 live analyses on record (2026-08-03): the coaching
 // call runs 34-56s, p50 45.4s, p90 54.4s. Its length is set by the ~2,300
@@ -467,9 +530,25 @@ export function AnalyzeFlow({
   // This is the request's whole payload now, so a submit without one has
   // nothing to send.
   const trimmedRef = useRef<TrimmedClip | null>(null);
+  // The player's own upload, forwarded byte for byte because this browser could
+  // not decode it and therefore could not cut it (D-100). Set only on the
+  // no-preview path; the trimmed clip above is still what every other upload
+  // sends.
+  const untrimmedRef = useRef<{ blob: Blob; ext: ClipExt } | null>(null);
   // The tap, in the trimmed clip's own time base. Absolute source seconds would
   // point past the end of a window that does not start at zero.
   const focusRef = useRef<{ x: number; y: number; t_s: number } | null>(null);
+  // The athlete the player picked off a text list when there was no picture to
+  // tap. A ref for the same reason focusRef is one: the queued submit closure
+  // runs before the next render.
+  const labelRef = useRef<string | null>(null);
+  // A clip already sitting in the caller's pending prefix, uploaded for the
+  // clip-spotting call. Reused by the submit that follows so an untrimmed
+  // upload, which is the whole recording and runs to MAX_CLIP_BYTES, is sent
+  // once rather than twice. Consumed on use: the route moves the object out of the
+  // prefix on success and the client removes it on every failure, so a second
+  // attempt always uploads afresh.
+  const pendingRef = useRef<{ id: string; path: string; ext: ClipExt } | null>(null);
   const stepSkillRef = useRef<HTMLHeadingElement>(null);
   const prevDisciplineRef = useRef<Discipline | null>(discipline);
   const stepTwoRef = useRef<HTMLHeadingElement>(null);
@@ -506,6 +585,29 @@ export function AnalyzeFlow({
   // past the longest analyzable span slides the other handle along, so the
   // window is always valid and long clips become usable by trimming.
   const [trim, setTrim] = useState<TrimWindow | null>(null);
+  // THE NO-PREVIEW PATH (D-100). Set when this browser could not render a frame
+  // from the clip, or could not cut one, which used to be a dead stop. Nothing
+  // about the ANALYSIS needs a local decode: the clip goes to storage and is
+  // read whole on the other side. Only the poster, the filmstrip and the trim
+  // need pixels here, and all three are conveniences.
+  //
+  // `candidates` are descriptions of the people in the clip, read off the clip
+  // itself by /api/players, because the marking D-062 made mandatory still has
+  // to happen: an unmarked read on multi-person footage analyses whoever the
+  // model picks and never tells the player.
+  //
+  // `marked` is the other way in: the player DID mark an athlete on a frame
+  // they could see, and only a later step failed, so there is nothing left to
+  // choose and no reason to ask again. `whole` says whether the untrimmed file
+  // is what goes up, which is the difference between a clip that never decoded
+  // and one that decoded, cut, and only failed to render a preview strip.
+  const [noPreview, setNoPreview] = useState<{
+    candidates: string[];
+    chosen: string | null;
+    spotting: boolean;
+    marked: boolean;
+    whole: boolean;
+  } | null>(null);
 
   // Seed the trim window at the clip's head, capped at the longest analyzable
   // span so long clips begin valid.
@@ -592,6 +694,138 @@ export function AnalyzeFlow({
     } finally {
       setSpotting(false);
     }
+  }
+
+  // Put a clip in the caller's own pending prefix and return what names it.
+  // The path is composed from the VERIFIED user id and a fresh UUID, which is
+  // what the storage policy matches on, so nothing here can address a folder
+  // that is not the caller's. A fresh id per upload: the policies grant
+  // create-only semantics and never replacement, so a reused id collides.
+  async function uploadPendingClip(
+    blob: Blob,
+    ext: ClipExt,
+  ): Promise<{ id: string; path: string; ext: ClipExt } | null> {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.assign("/login");
+      return null;
+    }
+    const id = crypto.randomUUID();
+    const path = `${user.id}/pending/${id}/clip.${ext}`;
+    const { error } = await supabase.storage
+      .from("clips")
+      .upload(path, blob, { contentType: CLIP_MIME[ext], upsert: false });
+    if (error) return null;
+    return { id, path, ext };
+  }
+
+  // Drop a pending clip nothing is going to analyze. The orphan sweep is the
+  // backstop, so nothing here is worth failing a retry for; this only stops a
+  // player who re-picks four files from leaving four clips behind meanwhile.
+  async function dropPendingClip(path: string) {
+    try {
+      await createClient().storage.from("clips").remove([path]);
+    } catch {
+      // The sweep collects it on age.
+    }
+  }
+
+  // Spot the athletes in a clip that is already in storage. Descriptions only:
+  // the player asking cannot see the clip, so there is nothing to put a
+  // coordinate on. An empty list is a valid answer and never an error, exactly
+  // as it is on the frame path.
+  async function spotFromClip(pendingId: string, ext: ClipExt): Promise<string[]> {
+    try {
+      const res = await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_clip_id: pendingId, clip_ext: ext }),
+      });
+      if (!res.ok) return [];
+      const { players } = await res.json();
+      if (!Array.isArray(players)) return [];
+      return players
+        .map((p: { label?: unknown }) =>
+          typeof p?.label === "string" ? p.label.replace(/\s+/g, " ").trim() : "",
+        )
+        // The same bounds lib/analyze-request.ts enforces on focus_label. A
+        // label outside them would be refused by the route as a bad request
+        // AFTER the player had chosen it, which reads as the analysis failing;
+        // filtering here means every button on screen is one that works. The
+        // number is written out rather than imported so this component does not
+        // pull the request schema and its validator into the browser bundle.
+        .filter((label: string) => label.length >= 3 && label.length <= 80)
+        .slice(0, 6);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * The no-preview path: analyze a clip this browser cannot decode.
+   *
+   * Reached three ways, all of which used to be a dead stop: the browser has no
+   * way to cut a clip at all, the opening frame came back null, or the cut
+   * itself failed after the player had already marked their athlete. The last
+   * one arrives with `mark` set and skips the spotting entirely, because the
+   * player has already answered the question it asks.
+   *
+   * The size check is the ONE refusal left on this path and it is honest: there
+   * is no decoder here, so there is nothing that could trim the file down for
+   * them, and saying "try a different browser" would be sending them somewhere
+   * that cannot help either.
+   */
+  async function startNoPreview(file: File | Blob, mark?: Mark) {
+    // A clip that could not be DECODED cannot be played either, so the preview
+    // element would render nothing but its own error icon. A clip that decoded
+    // and only failed to CUT still plays, and arrives here with a mark, so its
+    // preview is left alone.
+    if (!mark && videoUrl) setVideoUrl(null);
+    const ext = uploadExtOf(file);
+    if (!ext) {
+      setStatus({ kind: "error", message: CLIP_TYPE_MESSAGE });
+      return;
+    }
+    if (file.size > MAX_CLIP_BYTES) {
+      setStatus({ kind: "error", message: CLIP_TOO_LARGE_MESSAGE });
+      return;
+    }
+    untrimmedRef.current = { blob: file, ext };
+    // The tap survives a failed cut untouched. It was taken against the source
+    // clip's own time base, and the source clip is exactly what is being sent
+    // now, so there is no window offset left to rebase it onto.
+    focusRef.current = mark ? { x: mark.x, y: mark.y, t_s: mark.t } : null;
+    labelRef.current = null;
+    setFrames([]);
+    setMarkerShown(false);
+    if (mark) {
+      setNoPreview({ candidates: [], chosen: null, spotting: false, marked: true, whole: true });
+      setStatus({ kind: "idle" });
+      return;
+    }
+    setNoPreview({ candidates: [], chosen: null, spotting: true, marked: false, whole: true });
+    setStatus({ kind: "idle" });
+    const uploaded = await uploadPendingClip(file, ext);
+    if (!uploaded) {
+      // The upload failed, so there is nothing to spot from. Not a stop: the
+      // submit below uploads again and reports its own failure if it recurs,
+      // and a player who cannot be shown a list can still be analyzed unmarked.
+      setNoPreview({ candidates: [], chosen: null, spotting: false, marked: false, whole: true });
+      return;
+    }
+    pendingRef.current = uploaded;
+    const candidates = await spotFromClip(uploaded.id, ext);
+    setNoPreview({
+      candidates,
+      // One candidate is not a choice. Pre-select it rather than making the
+      // player confirm the only thing on the list.
+      chosen: candidates.length === 1 ? candidates[0] : null,
+      spotting: false,
+      marked: false, whole: true,
+    });
   }
 
   // Render the framing video's current moment as a JPEG for spotting.
@@ -803,7 +1037,7 @@ export function AnalyzeFlow({
     dur: number | null,
     isRetry = false,
   ) {
-    if (!skill || !discipline || payloadFrames.length === 0) return;
+    if (!skill || !discipline) return;
     // One-time training-data question before the first analysis ever runs.
     // While the answered-check is still in flight (null), the submit waits for
     // it; skipping ahead here is how the question used to get lost entirely.
@@ -814,15 +1048,24 @@ export function AnalyzeFlow({
       if (consentAnsweredRef.current === false) setConsentOpen(true);
       return;
     }
+    // What actually goes up: the cut window on every browser that could make
+    // one, or the player's own file on the browsers that could not (D-100).
+    // Both end as the same three fields, so nothing below this line branches.
     const trimmed = trimmedRef.current;
-    const ext = trimmed ? clipExtOf(trimmed.mime) : null;
-    if (!trimmed || !ext) {
+    const untrimmed = untrimmedRef.current;
+    const source = trimmed
+      ? { blob: trimmed.blob, ext: clipExtOf(trimmed.mime), duration_s: trimmed.duration_s }
+      : untrimmed
+        ? { blob: untrimmed.blob, ext: untrimmed.ext, duration_s: null }
+        : null;
+    if (!source || !source.ext) {
       setStatus({
         kind: "error",
         message: "That clip couldn't be prepared for analysis. Pick it again and retry.",
       });
       return;
     }
+    const ext = source.ext;
     setRetrying(isRetry);
     setStatus({ kind: "sending" });
 
@@ -832,22 +1075,24 @@ export function AnalyzeFlow({
     // (D-097, migration 054), which is owner-scoped, so this path is only
     // writable by the account it names.
     //
-    // A fresh id per attempt. Reusing one would collide on a retry, because the
-    // storage policies grant create-only semantics and never replacement.
-    const supabase = createClient();
-    const pendingId = crypto.randomUUID();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.assign("/login");
-      return;
-    }
-    const pendingPath = `${user.id}/pending/${pendingId}/clip.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("clips")
-      .upload(pendingPath, trimmed.blob, { contentType: trimmed.mime, upsert: false });
-    if (uploadError) {
+    // A fresh id per attempt (uploadPendingClip mints one). Reusing an id would
+    // collide on a retry, because the storage policies grant create-only
+    // semantics and never replacement.
+    //
+    // The one exception is a clip that is ALREADY up, because the no-preview
+    // path uploaded this same file to spot the athletes in it. Reused rather
+    // than re-uploaded: that file is the whole untrimmed recording and the
+    // player is on the device least able to send it twice. Consumed either way,
+    // since the route moves the object out of the prefix when it succeeds and
+    // every failure below removes it, so a retry finds nothing here and uploads
+    // afresh.
+    const reusable = pendingRef.current;
+    pendingRef.current = null;
+    const uploaded =
+      reusable && reusable.ext === ext
+        ? reusable
+        : await uploadPendingClip(source.blob, ext);
+    if (!uploaded) {
       setRetrying(false);
       setStatus({
         kind: "error",
@@ -855,25 +1100,24 @@ export function AnalyzeFlow({
       });
       return;
     }
+    const pendingId = uploaded.id;
+    const pendingPath = uploaded.path;
     // Remove the uploaded clip on any path that does not hand it to an
     // analysis. The orphan sweep would collect it eventually, but a player who
     // retries four times should not leave four clips behind in the meantime.
-    const dropPending = async () => {
-      try {
-        await supabase.storage.from("clips").remove([pendingPath]);
-      } catch {
-        // The sweep is the backstop. Nothing here is worth failing a retry for.
-      }
-    };
+    const dropPending = () => dropPendingClip(pendingPath);
 
-    const body: AnalyzeRequest = {
+    const body: AnalyzeBody = {
       skill,
       discipline,
       source: "video",
-      duration_s: trimmed.duration_s ?? dur,
+      duration_s: source.duration_s ?? dur,
       pending_clip_id: pendingId,
       clip_ext: ext,
       focus_point: focusRef.current ?? undefined,
+      // Only ever set when there was no frame to tap, and the route prefers the
+      // tap when both somehow arrive.
+      focus_label: labelRef.current ?? undefined,
     };
     try {
       const res = await fetch("/api/analyze", {
@@ -946,15 +1190,25 @@ export function AnalyzeFlow({
     target?: Mark,
     window?: TrimWindow,
   ) {
+    // Cut first. Its failure is the one that decides WHICH clip gets sent, so
+    // finding out before the extraction spends the player's time is the
+    // difference between one clear state and a filmstrip that leads nowhere.
+    let cut: TrimmedClip;
     try {
-      // Cut first. It is the only step whose failure means there is nothing to
-      // analyze, so finding out before the extraction spends the player's time
-      // is the difference between one message and a filmstrip that leads
-      // nowhere.
-      const cut = await trimClip(blob, {
+      cut = await trimClip(blob, {
         startS: window?.startS ?? 0,
         endS: window?.endS ?? Number.POSITIVE_INFINITY,
       });
+    } catch {
+      // The cut failed, and it used to end here with "pick the clip again",
+      // which sent the player back to re-do the one thing that had worked. The
+      // ORIGINAL bytes are still analyzable on the other side and the mark is
+      // still valid against them, so the whole file goes instead (D-100).
+      // Nothing is lost but the trim window itself, and the player is told.
+      await startNoPreview(blob, target);
+      return;
+    }
+    try {
       trimmedRef.current = cut;
       // The tap, rebased onto the cut. A window that starts at 3s makes an
       // absolute 4.2s tap 1.2s into what the model is shown, and handing over
@@ -996,66 +1250,93 @@ export function AnalyzeFlow({
         return;
       }
       setStatus({ kind: "idle" });
-    } catch (err) {
-      setStatus({
-        kind: "error",
-        message: err instanceof Error ? err.message : "Couldn't read that clip.",
+    } catch {
+      // THE FILMSTRIP IS A PREVIEW, and only a preview. Since D-097 the frames
+      // do not travel: the read is performed on the cut clip, which succeeded
+      // above and is already in hand, and the player's mark is already rebased
+      // onto it. So a render pass that produced nothing costs a picture, not an
+      // analysis, and stopping here used to throw away a good upload and a good
+      // mark over a decoder that would not hand back pixels twice in a row.
+      //
+      // `whole: false` because the CUT window is what goes up here, not the
+      // original file. `marked: true` because confirmFraming is the only way in
+      // and it cannot get here without a tap.
+      setNoPreview({
+        candidates: [],
+        chosen: null,
+        spotting: false,
+        marked: true,
+        whole: false,
       });
+      // The message that used to be shown here named the browser and told the
+      // player to close other tabs and try again. It was accurate and it is no
+      // longer worth saying, because nothing they do about it changes what
+      // happens next: the analysis runs either way.
+      setStatus({ kind: "idle" });
     }
   }
 
   // Entry for uploaded clips: pause on the opening frame so the player can
-  // mark who to analyze before any analysis runs. Marking is mandatory
-  // (D-062), so a clip this browser cannot render a frame from is a dead stop
-  // and says so, rather than quietly analyzing whoever the model picks.
-  async function handleVideo(blob: Blob) {
-    // Asked BEFORE the framing card opens, not when the cut is attempted. The
-    // analysis IS the clip now, so a browser that cannot cut one cannot analyze
-    // at all, and finding that out after the player has picked their athlete
-    // and pressed the button turns a clear message into a dead end.
-    if (!canTrimVideo()) {
-      setStatus({
-        kind: "error",
-        message:
-          "This browser can't prepare a clip for analysis. On iPhone open Vollyio in Safari; on Android try Chrome.",
-      });
-      return;
-    }
+  // mark who to analyze before any analysis runs.
+  //
+  // A browser that cannot decode the clip gets the no-preview path instead of
+  // the refusal that used to live here (D-100). The refusal was wrong on the
+  // facts: NOTHING about the analysis needs a local decode, since the clip is
+  // uploaded whole and read on the other side, and only the poster, the
+  // filmstrip and the trim need pixels in this browser. Marking is still
+  // mandatory in substance (D-062); it moves to a list of descriptions read off
+  // the clip server-side, because an unmarked read on multi-person footage
+  // analyses whoever the model picks and never says so.
+  async function handleVideo(file: File | Blob) {
     setStatus({ kind: "reading" });
     setFrameDebug(null);
     setOpeningPick(null);
     setLastOpening(null);
+    setNoPreview(null);
     trimmedRef.current = null;
+    untrimmedRef.current = null;
     focusRef.current = null;
-    clipRef.current = blob;
-    setVideoUrl(URL.createObjectURL(blob));
+    labelRef.current = null;
+    // A clip left over from a previous pick is now an orphan nothing will
+    // analyze. Drop it before the reference is overwritten.
+    const stale = pendingRef.current;
+    pendingRef.current = null;
+    if (stale) void dropPendingClip(stale.path);
+    clipRef.current = file;
+    // Asked BEFORE anything else. A browser with no way to cut a clip has no
+    // way to decode one either, so there would be no poster to tap and no
+    // filmstrip to show.
+    if (!canTrimVideo()) {
+      await startNoPreview(file);
+      return;
+    }
     try {
-      const opening = await openingFrame(blob);
+      const opening = await openingFrame(file);
       if (!opening) {
-        clipRef.current = null;
-        setVideoUrl(null);
-        setStatus({
-          kind: "error",
-          message:
-            "This browser couldn't read a frame from that clip, so there's no way to mark your player. On iPhone open Vollyio in Safari (iPhones record HEVC, which other browsers often can't decode); on Android try Chrome. Or re-export the clip as MP4 and try again.",
-        });
+        // The file loaded or it did not; either way this browser produced no
+        // frame from it, and that says nothing about whether the clip can be
+        // analyzed. Send it whole.
+        await startNoPreview(file);
         return;
       }
+      // Only now is there a preview worth showing. Setting this earlier put an
+      // undecodable clip into a <video> that could only render an error.
+      setVideoUrl(URL.createObjectURL(file));
       // Long clips get the card too: the trim window makes them analyzable.
       setFrames([]);
       markedRef.current = false;
       markerIndexRef.current = null;
       setMarkerShown(false);
       setDuration(opening.duration_s);
-      const pick = { ...opening, blob };
+      const pick = { ...opening, blob: file };
       setLastOpening(pick);
       setOpeningPick(pick);
       setStatus({ kind: "idle" });
-    } catch (err) {
-      setStatus({
-        kind: "error",
-        message: err instanceof Error ? err.message : "Couldn't read that clip.",
-      });
+    } catch {
+      // openingFrame swallows its own failures, so reaching here means the
+      // decode died somewhere this browser did not report. Same answer: the
+      // clip is still analyzable, it just cannot be previewed.
+      await startNoPreview(file);
     }
   }
 
@@ -1075,6 +1356,18 @@ export function AnalyzeFlow({
     setOpeningPick(null);
     setStatus({ kind: "reading" });
     void runVideoExtraction(opening.blob, { x: picked.x, y: picked.y, t }, win);
+  }
+
+  // The no-preview path's one button. The subject is settled before it fires:
+  // a kept mark, the single candidate the list pre-selected, the one the player
+  // pressed, or nothing at all when the clip showed nobody pickable. Only the
+  // last of those is an unmarked read, and the card says so above this button
+  // rather than letting the player find out from the analysis.
+  function confirmNoPreview() {
+    if (!noPreview || busy) return;
+    if (noPreview.candidates.length > 1 && !noPreview.chosen) return;
+    labelRef.current = noPreview.marked ? null : noPreview.chosen;
+    void submit([], null);
   }
 
   async function onVideoPicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1294,6 +1587,125 @@ export function AnalyzeFlow({
                   preload="metadata"
                   className="block max-h-[60vh] w-full"
                 />
+              </div>
+            )}
+
+            {/* The no-preview path (D-100). No poster, no filmstrip, no trim
+                bar: none of them can be drawn here, and none of them is what
+                the analysis runs on. What survives is the part that matters,
+                choosing who gets watched, moved from a tap on a picture to a
+                pick from a list the coach read off the clip itself. */}
+            {noPreview && (
+              <div className="card mb-3 p-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                  No preview, full analysis
+                </p>
+                <p className="mt-1 text-xs text-chalk-dim">
+                  {!noPreview.marked
+                    ? "There's no preview of this clip here, so there's nothing to tap. That's only the preview: the coach reads the clip itself, so your rep is analyzed in full."
+                    : noPreview.whole
+                      ? "This clip can't be shortened here, so the whole recording is sent. Your marked player is kept, and the coach reads the clip itself."
+                      : "The frame-by-frame strip couldn't be built here. Nothing else changed: your window and your marked player are exactly as you set them, and the coach reads the clip itself."}
+                </p>
+
+                {noPreview.spotting && (
+                  <p className="mt-3 flex items-center gap-2.5 font-mono text-xs text-teal">
+                    <WorkingDots /> Looking for players in your clip…
+                  </p>
+                )}
+
+                {!noPreview.spotting && noPreview.candidates.length > 1 && (
+                  <div className="mt-3 space-y-1.5">
+                    <p className="text-xs text-chalk-dim">
+                      Here&rsquo;s who the coach can see in your clip. Pick the
+                      player you want analyzed.
+                    </p>
+                    {noPreview.candidates.map((label, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-pressed={noPreview.chosen === label}
+                        onClick={() =>
+                          setNoPreview({ ...noPreview, chosen: label })
+                        }
+                        className={`chip block min-h-11 w-full text-left text-xs ${
+                          noPreview.chosen === label ? "chip-active" : ""
+                        }`}
+                      >
+                        <span className="mr-2 font-mono text-gold">{i + 1}</span>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* One candidate is not a choice, so it is stated rather than
+                    asked. Stated all the same: this is the only place the
+                    player learns who the coach is about to watch. */}
+                {!noPreview.spotting &&
+                  !noPreview.marked &&
+                  noPreview.candidates.length === 1 && (
+                    <p className="mt-3 text-xs text-chalk-dim">
+                      One player showed up in your clip:{" "}
+                      <span className="text-chalk">{noPreview.candidates[0]}</span>. That&rsquo;s
+                      who gets analyzed.
+                    </p>
+                  )}
+
+                {/* The honest version of an unmarked read. D-062 made marking
+                    mandatory because an unmarked analysis of multi-person
+                    footage picks somebody and never says who; it stays refused
+                    silently, and is said out loud here instead. */}
+                {!noPreview.spotting &&
+                  !noPreview.marked &&
+                  noPreview.candidates.length === 0 && (
+                    <p className="mt-3 text-xs text-chalk-dim">
+                      Nobody could be picked out of this clip, so the coach will
+                      analyze whoever is doing the rep. If more than one person
+                      is playing, film a clip with just your rep in it and you
+                      will get a sharper read.
+                    </p>
+                  )}
+
+                {!outOfAnalyses && (
+                  <>
+                    <button
+                      type="button"
+                      aria-busy={busy}
+                      aria-describedby={
+                        noPreview.candidates.length > 1 && !noPreview.chosen
+                          ? "no-preview-pick-reason"
+                          : undefined
+                      }
+                      disabled={
+                        busy ||
+                        noPreview.spotting ||
+                        (noPreview.candidates.length > 1 && !noPreview.chosen)
+                      }
+                      onClick={confirmNoPreview}
+                      className="btn-primary mt-4 min-h-11 w-full disabled:opacity-40"
+                    >
+                      {busy ? (
+                        <>
+                          <WorkingDots /> Analyze my rep
+                        </>
+                      ) : status.kind === "error" || status.kind === "unavailable" ? (
+                        "Send it again"
+                      ) : (
+                        "Analyze my rep"
+                      )}
+                    </button>
+                    {noPreview.candidates.length > 1 && !noPreview.chosen && (
+                      <p
+                        id="no-preview-pick-reason"
+                        aria-live="polite"
+                        className="mt-2 text-center text-xs text-chalk-dim"
+                      >
+                        Pick the player you want analyzed to continue.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -1526,7 +1938,10 @@ export function AnalyzeFlow({
                   )}
                 </div>
               </div>
-            ) : (
+            ) : noPreview ? null : (
+              // Suppressed on the no-preview path: there are no frames coming,
+              // and promising a filmstrip that can never render is the kind of
+              // small lie that makes a player think something broke.
               <div className="card border-dashed border-line p-10 text-center text-xs text-chalk-dim">
                 {busy
                   ? "Reading your rep…"
