@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Reveal } from "@/components/motion";
+import { resolveCoachLink, type CoachLinkMap } from "@/lib/coach-links";
+import { stripLongDashes } from "@/lib/coach-text";
 
 type ChatMessage = {
   id: string;
@@ -29,24 +32,44 @@ function timeLabel(iso: string) {
 const INLINE =
   /(\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`]+)`)/g;
 
-function renderInline(text: string, keyBase: string): ReactNode[] {
+// Every fragment of coach prose passes through here on its way to the screen,
+// so there is exactly one place a long dash can be removed and none it can slip
+// past. See lib/coach-text.ts for why the prompt rule is not enough alone.
+const plain = (text: string) => stripLongDashes(text);
+
+function renderInline(text: string, keyBase: string, links: CoachLinkMap): ReactNode[] {
   const nodes: ReactNode[] = [];
   let last = 0;
   let i = 0;
   let m: RegExpExecArray | null;
   INLINE.lastIndex = 0;
   while ((m = INLINE.exec(text)) !== null) {
-    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m.index > last) nodes.push(plain(text.slice(last, m.index)));
     if (m[2] !== undefined || m[3] !== undefined) {
+      const label = m[2] ?? m[3];
+      // The coach is told to name drills exactly as the catalog does, so the
+      // phrase it just emphasised is usually a page. When it is, the emphasis
+      // becomes the way in; when it is not, this renders exactly as before.
+      const href = resolveCoachLink(links, label);
       nodes.push(
-        <strong key={`${keyBase}-b${i}`} className="font-bold">
-          {m[2] ?? m[3]}
-        </strong>,
+        href ? (
+          <Link
+            key={`${keyBase}-b${i}`}
+            href={href}
+            className="font-bold text-gold underline decoration-gold/40 underline-offset-2 transition-colors hover:decoration-gold"
+          >
+            {plain(label)}
+          </Link>
+        ) : (
+          <strong key={`${keyBase}-b${i}`} className="font-bold">
+            {plain(label)}
+          </strong>
+        ),
       );
     } else if (m[4] !== undefined || m[5] !== undefined) {
       nodes.push(
         <em key={`${keyBase}-i${i}`} className="italic">
-          {m[4] ?? m[5]}
+          {plain(m[4] ?? m[5])}
         </em>,
       );
     } else if (m[6] !== undefined) {
@@ -55,18 +78,18 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
           key={`${keyBase}-c${i}`}
           className="rounded bg-navy px-1 py-0.5 font-mono text-[0.9em]"
         >
-          {m[6]}
+          {plain(m[6])}
         </code>,
       );
     }
     last = m.index + m[0].length;
     i++;
   }
-  if (last < text.length) nodes.push(text.slice(last));
+  if (last < text.length) nodes.push(plain(text.slice(last)));
   return nodes;
 }
 
-function AssistantContent({ text }: { text: string }) {
+function AssistantContent({ text, links }: { text: string; links: CoachLinkMap }) {
   const blocks = text.split(/\n{2,}/).filter((b) => b.trim() !== "");
   return (
     <div className="flex flex-col gap-2 text-body leading-relaxed break-words">
@@ -79,7 +102,7 @@ function AssistantContent({ text }: { text: string }) {
             <ul key={bi} className="ml-4 list-disc space-y-1">
               {lines.map((l, li) => (
                 <li key={li}>
-                  {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${bi}-${li}`)}
+                  {renderInline(l.replace(/^\s*[-*]\s+/, ""), `${bi}-${li}`, links)}
                 </li>
               ))}
             </ul>
@@ -90,7 +113,7 @@ function AssistantContent({ text }: { text: string }) {
             <ol key={bi} className="ml-4 list-decimal space-y-1">
               {lines.map((l, li) => (
                 <li key={li}>
-                  {renderInline(l.replace(/^\s*\d+\.\s+/, ""), `${bi}-${li}`)}
+                  {renderInline(l.replace(/^\s*\d+\.\s+/, ""), `${bi}-${li}`, links)}
                 </li>
               ))}
             </ol>
@@ -101,7 +124,7 @@ function AssistantContent({ text }: { text: string }) {
             {lines.map((l, li) => (
               <span key={li}>
                 {li > 0 && <br />}
-                {renderInline(l, `${bi}-${li}`)}
+                {renderInline(l, `${bi}-${li}`, links)}
               </span>
             ))}
           </p>
@@ -114,9 +137,13 @@ function AssistantContent({ text }: { text: string }) {
 export function CoachChat({
   activeSessionId,
   initialMessages,
+  links,
 }: {
   activeSessionId: string | null;
   initialMessages: ChatMessage[];
+  /** Built on the server so the drill and injury catalogs stay out of this
+   *  bundle; see lib/coach-links.ts. */
+  links: CoachLinkMap;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -128,23 +155,36 @@ export function CoachChat({
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  // The transcript, which is the ONLY thing on this page that scrolls. The
+  // heading above it and the composer below it are fixed in place, so a player
+  // mid-conversation never loses the box they are typing into.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const pinnedRef = useRef(true);
   // The conversation this chat writes into; a fresh chat adopts the id the
   // server mints on the first message.
   const sessionRef = useRef<string | null>(activeSessionId);
 
+  // "Am I still following the conversation?" Measured against the TRANSCRIPT,
+  // not the window. It used to read document scroll, which stopped describing
+  // anything once the page itself became fixed: `window.scrollY` is 0 forever
+  // now, so the old check reported "pinned" permanently and would have yanked a
+  // player back to the bottom while they were reading something further up.
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
     const onScroll = () => {
-      const doc = document.documentElement;
-      pinnedRef.current =
-        doc.scrollHeight - window.innerHeight - window.scrollY < 120;
+      pinnedRef.current = el.scrollHeight - el.clientHeight - el.scrollTop < 120;
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Setting scrollTop directly rather than scrollIntoView: the latter walks up
+  // to whichever ancestor happens to scroll, which is the behaviour that let
+  // the whole page jump instead of the message list.
   useEffect(() => {
-    if (pinnedRef.current) endRef.current?.scrollIntoView({ block: "end" });
+    const el = scrollRef.current;
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, waiting]);
 
   async function send(text: string, appendUser = true) {
@@ -262,8 +302,14 @@ export function CoachChat({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col gap-4 py-6">
+    // min-h-0 on both, which is the whole trick: a flex child defaults to
+    // min-height:auto and refuses to shrink below its content, so without it
+    // the transcript grows the page instead of scrolling inside it.
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain py-6"
+      >
         {messages.length === 0 && (
           <Reveal>
             <div className="card p-5">
@@ -308,7 +354,7 @@ export function CoachChat({
                   {m.role === "user" ? "You:" : "Coach:"}
                 </span>
                 {m.role === "assistant" ? (
-                  <AssistantContent text={m.content} />
+                  <AssistantContent text={m.content} links={links} />
                 ) : (
                   <p className="whitespace-pre-wrap break-words">{m.content}</p>
                 )}
@@ -348,7 +394,10 @@ export function CoachChat({
         <div ref={endRef} />
       </div>
 
-      <div className="sticky bottom-20 z-10 mt-auto bg-navy pb-1 pt-2 md:bottom-4">
+      {/* Was `sticky bottom-20`, which only looked pinned because the window
+          was the scroller. Now it is an ordinary flex child that cannot move,
+          because nothing around it scrolls. */}
+      <div className="shrink-0 border-t border-line bg-navy pb-1 pt-3">
         {error && (
           <div role="alert" className="mb-2 flex items-center gap-3">
             <span className="text-sm text-coral">{error}</span>

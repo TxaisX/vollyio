@@ -91,6 +91,53 @@ test("the coaching voice is single, per D-053", () => {
   // carried the old beginner/intermediate/expert/pro record, and merging it
   // would have resurrected a reversed decision, so pin the reversal.
   const prompt = coachSystemPrompt(context());
-  assert.match(prompt, /high-performance coach/);
   assert.doesNotMatch(prompt, /patient teaching coach|club coach\./);
+});
+
+// The voice was correct and cold: "high-performance coach, high bar, no praise
+// padding" produced verdicts with nobody behind them. The bar does not move.
+// What was added is that a real coach is on the player's side while holding it,
+// because a player just told their attack sits at 61 has to want to come back.
+test("the voice is warm AND exacting, with the banned register still banned", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /courtside/i);
+  assert.match(prompt, /on their side/i);
+  assert.match(prompt, /never soften a number/i);
+  // The things warmth must not become.
+  assert.match(prompt, /No praise padding, no therapy language, no hype/i);
+});
+
+// The old rule was NEGATIVE: "never mention being an AI, you are simply their
+// coach". A denial is still a topic, and the model duly said "I'm your coach,
+// not a model", which raises in the player's head the exact question the rule
+// existed to keep out of it.
+test("what the coach is, is not a subject it may discuss or deny", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /denying it is discussing it/i);
+  assert.match(prompt, /do not answer the question and do not refuse either/i);
+  // The phrasing that produced the defensive line must not come back.
+  assert.doesNotMatch(prompt, /You are simply their coach\./);
+});
+
+// The data was already required; LEADING with it was not, and a coach who waits
+// to be asked the right question is a search box.
+test("the coach opens on what the player's own numbers say is costing them", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /Lead with what their own numbers say is costing them most/i);
+  assert.match(prompt, /weakest measured skill/i);
+  assert.match(prompt, /never a generic explanation of the sport/i);
+  assert.match(prompt, /Every answer ends somewhere they can go/i);
+});
+
+// Bold is load-bearing, not decoration: components/coach-chat.tsx resolves an
+// emphasised phrase against the catalogs and links the ones that match, so
+// emphasis on the wrong words costs the player the way in.
+test("emphasis is reserved for the names that resolve to a page", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /Put \*\*bold\*\* around the exact name/i);
+  assert.match(prompt, /Do not bold anything else/i);
+});
+
+test("the coach is told not to write the dashes the renderer strips", () => {
+  assert.match(coachSystemPrompt(context()), /Never use an em dash or an en dash/i);
 });

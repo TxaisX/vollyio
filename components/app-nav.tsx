@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { COACH_ENABLED } from "@/lib/flags";
 
-// Five primary destinations, one player question each: Home is "what do I do
-// today", Analyze is "how was that rep", Train is "what do I practice",
-// Progress is "is it working", Coach is "can I ask someone". Everything else
-// the old eleven-item nav carried now lives inside one of these (goals on the
-// dashboard, drills and learn under Train, history under Progress) or in the
-// chrome (settings), so the mobile bar holds every tab on screen at once with
-// nothing to scroll and nothing hidden off the edge.
+// Five primary destinations, one player question each, in the order they are
+// listed below: Home is "what do I do today", Progress is "is it working",
+// Analyze is "how was that rep", Coach is "can I ask someone", Train is "what
+// do I practice". Everything else the old eleven-item nav carried now lives
+// inside one of these (goals on the dashboard, drills and learn under Train,
+// history under Progress) or in the chrome (settings), so the mobile bar holds
+// every tab on screen at once with nothing to scroll and nothing hidden off
+// the edge.
 type NavItem = {
   href: string;
   label: string;
@@ -72,16 +73,25 @@ const ICONS = {
   ),
 } as const;
 
+// ORDER IS OWNER-SET (2026-08-06) and is not alphabetical, not by frequency,
+// and not the order these were built in. Analyze sits in the MIDDLE on purpose:
+// it is the one thing a player comes here to do, and the centre slot is the
+// easiest reach on a phone held one-handed. The two that answer "how am I
+// doing" sit to its left, the two that answer "what next" to its right.
+//
+// The array is the single source for both surfaces. `SideNavLinks` renders the
+// desktop sidebar from it and `TabBar` renders the phone bar from it, through
+// the same `visibleNav` filter, so an order change lands on both or on neither.
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: ICONS.home, match: ["/dashboard", "/goals"] },
+  { href: "/progress", label: "Progress", icon: ICONS.progress, match: ["/progress", "/history"] },
   { href: "/analyze", label: "Analyze", icon: ICONS.analyze, match: ["/analyze", "/analysis"] },
+  { href: "/coach", label: "Coach", icon: ICONS.coach, match: ["/coach"] },
   // Train lands on /drills, not /plan: the weekly plan is hidden (2026-08-05,
   // it was really a dietary check-in and is out of scope for now). /plan stays
   // in `match` so the tab still highlights if anyone reaches the page directly
   // by URL, which it remains reachable by.
   { href: "/drills", label: "Train", icon: ICONS.train, match: ["/plan", "/drills", "/learn"] },
-  { href: "/progress", label: "Progress", icon: ICONS.progress, match: ["/progress", "/history"] },
-  { href: "/coach", label: "Coach", icon: ICONS.coach, match: ["/coach"] },
 ];
 
 function isActive(pathname: string, item: NavItem) {

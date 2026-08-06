@@ -44,6 +44,18 @@ test("coach is a primary destination on both navs", () => {
   assert.match(NAV, /COACH_ENABLED \? items : items\.filter/);
 });
 
+// OWNER-SET ORDER (2026-08-06). Not alphabetical, not by frequency, not the
+// order these were built in, so nothing about the code makes it self-evident
+// and a refactor that re-sorts the array would look harmless. Analyze is
+// deliberately the middle of five: it is the thing players come here to do, and
+// the centre slot is the easiest reach on a phone held one-handed.
+test("the five tabs are in the order the owner set", () => {
+  const labels = [...NAV.matchAll(/label: "([^"]+)", icon: ICONS\./g)].map((m) => m[1]);
+  assert.deepEqual(labels, ["Home", "Progress", "Analyze", "Coach", "Train"]);
+  // Both surfaces read this one array, so the order cannot differ between them.
+  assert.equal([...NAV.matchAll(/const NAV: NavItem\[\]/g)].length, 1);
+});
+
 // The weekly plan stays hidden, deliberately. The route still resolves by URL
 // and the Train tab still HIGHLIGHTS on it, so someone deep-linked in is not
 // left wondering which tab they are inside; there is simply no way in from the
