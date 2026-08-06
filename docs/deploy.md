@@ -20,7 +20,8 @@ Set in `.env.local` for dev and mirrored to Vercel (`vercel env add <NAME> produ
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | public | no | read client + build time |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | no | anon/publishable key; RLS enforces access |
-| `ANTHROPIC_API_KEY` | server only | **yes** | the coaching service; never prefix `NEXT_PUBLIC` |
+| `ANTHROPIC_API_KEY` | server only | **yes** | the coaching service. As of D-096 this is the weekly plan and `/api/eval` only: coach chat moved to the gateway. Never prefix `NEXT_PUBLIC` |
+| `OPENROUTER_API_KEY` | server only | **yes** | the gateway, now serving THREE routes: the frame read behind `/api/analyze` and `/api/players` (D-093) and coach chat (D-096). **Ordering hazard: this must exist in the target environment BEFORE the code that reads it**, because serverless env is snapshotted at deploy time. Absent, analyze and spotting fail as a provider outage does and count nothing, and coach chat returns 503 before spending quota. All three draw down ONE prepaid balance, so chat traffic can starve analysis and the balance is the real ceiling |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | **yes** | bypasses row security on every table. `lib/supabase/service.ts` is the only reader; its two importers are the payment webhook and the analyze route's telemetry/refund calls (D-065), each recorded with its reason in `docs/security.md` rule 10. A third importer is a security change, not a refactor. Absent, the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | server only | **yes** | payment provider API key. Read only by `lib/stripe.ts` |
 | `STRIPE_WEBHOOK_SECRET` | server only | **yes** | endpoint signing secret. Absent, the webhook returns 500 and applies nothing; there is deliberately no unverified branch |
@@ -143,6 +144,23 @@ Still owner-only in the dashboard, and both matter before recruiting:
 - Hit the production URL and confirm 200 on landing + the new/changed routes.
 - Confirm the middot title separator and OG image render (no em dashes user-facing).
 - Spot-check an authed route drives cleanly (session-gated surfaces are not reachable headless).
+
+### Coach chat, after D-096
+Coach chat is auth-gated and streams, so a curl of the route proves nothing. Log
+in, open `/coach`, send one message, and watch it. Three outcomes and what each
+means:
+
+- **Text streams in progressively.** Working.
+- **503, rendered as the calm unavailable state.** `hasChatKey()` fired: the
+  gateway key is missing from that environment. This is the designed failure and
+  it costs the player nothing, because the check runs before either quota is
+  consumed.
+- **"The coach didn't answer."** The stream opened and produced zero content.
+  The key is present, so this is the provider: either the upstream refused, or
+  the reply spent its whole `max_tokens` budget on reasoning before emitting
+  text. Note that both quota units are already spent here and there is no refund
+  on this route. Check `maxTokens` in `app/api/coach/route.ts` against D-096
+  before assuming an outage.
 
 ## Rollback
 Vercel keeps every deployment immutable. To roll back, promote the last-good deployment in the Vercel dashboard (or `vercel rollback`), then reconcile the git tip. No destructive git action is required.

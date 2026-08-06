@@ -63,6 +63,29 @@ test("an injection attempt lands inside the fence rather than beside the rules",
   );
 });
 
+test("the range-framing rule ships with its single-score guard", () => {
+  // These two rules must travel together. Asked to reason in ranges, a model
+  // holding ONE setting score of 74 invented "high 70s when your legs fire,
+  // mid-to-low 60s when you stand tall" and coached against numbers that were
+  // never in the data (observed 2026-08-05, DeepSeek v4 Flash). A fabricated
+  // range reads exactly like insight, which makes it worse than a fabricated
+  // single number, and the guard is the only thing standing between the two.
+  const prompt = coachSystemPrompt(context());
+
+  const range = prompt.search(/TWO OR MORE scores/);
+  const guard = prompt.search(/NEVER infer a range/);
+  assert.ok(range > -1, "the range-framing rule is gone");
+  assert.ok(
+    guard > -1,
+    "the range-framing rule shipped without its guard, which is how invented ranges get coached as insight",
+  );
+  assert.ok(guard > range, "the guard must follow the rule it constrains");
+
+  // The guard is worthless if it does not say WHY, because a rule with no
+  // stated reason is the first thing trimmed when the prompt is shortened.
+  assert.match(prompt, /fabricating data/i);
+});
+
 test("the coaching voice is single, per D-053", () => {
   // D-053 deleted the per-level voice selector. An unmerged branch still
   // carried the old beginner/intermediate/expert/pro record, and merging it

@@ -39,6 +39,13 @@ methodology that reproduces them lives in `scripts/benchmark/`.
   "D-027 through D-041 is the ONLY accurate description of the current system",
   which was true when written and is now 36 decisions out of date, so running it
   as written would brief an agent on a system that no longer exists.
+- **scoreboard-d088/** - The match-tracker UI removed by **D-088** on 2026-08-03:
+  `scoreboard/page.tsx`, its `actions.ts` and `loading.tsx`, `components/scoreboard.tsx`,
+  and a stray `goals-loading.tsx`. It sat in a `_to_delete/` folder at the repo root
+  until 2026-08-05, where it broke `next build` and put two permanent errors in every
+  typecheck run, because the root is inside `tsconfig.json`'s `include` and `archive/`
+  is not. Moved here rather than deleted: the `games` table and its rows still exist
+  (see `docs/security.md`), so the code that wrote them is worth being able to read.
 - **misc/** - One-off scratch (`.mcp.json.bak`, an old restart note).
 - **handoff-history.md** - Session-log entries from before D-027, moved out of
   `HANDOFF.md` when it was rewritten to the current system on 2026-07-20.

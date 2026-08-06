@@ -7,10 +7,15 @@ spine: the Supabase clients, the tables and buckets, the API routes, the
 coaching-service call discipline, and the scoring pipeline.
 
 No vendor name reaches a user-visible string. The AI layer is "the coaching
-service"; `ANTHROPIC_API_KEY` (server-only) is the sole vendor-named token in the
-repo. RLS, not app code, is the tenant boundary. There is no on-device machine
-learning: the coaching service (a server-side vision model) does the entire read
-(D-033).
+service", and the half of it that reads pixels is "the vision provider";
+`ANTHROPIC_API_KEY` and `OPENROUTER_API_KEY` (both server-only), the model
+constants in `lib/ai/client.ts`, and the gateway endpoint, which appears twice,
+in `lib/ai/vision.ts` for the frame read (D-093) and in `lib/ai/chat.ts` for
+coach chat (D-096), are the only vendor-named tokens in the repo. All three
+modules are `server-only`, so a client import is a build error. RLS, not app
+code, is the tenant boundary. There is no on-device machine learning: a
+server-side vision model does the entire read (D-033), on the provider D-093
+splits it out to.
 
 ## 1. Supabase clients
 
@@ -100,7 +105,7 @@ All are `runtime = "nodejs"`; the proxy does not cover them, so each self-auths.
 | Route | Purpose | Boundary |
 |---|---|---|
 | `POST /api/analyze` | Validate the frame sequence, consume the hourly quota, reserve the entitlement, call the coaching service, derive scores, persist the analysis + frames + rating + XP + telemetry | Same-origin, verified user, atomic 20/hr, atomic entitlement, 4 MB body |
-| `POST /api/coach` | Streaming grounded chat (`text/plain`, `no-store`), session-scoped, persists both turns | Same-origin, verified user, atomic 60/hr, session ownership |
+| `POST /api/coach` | Streaming grounded chat (`text/plain`, `no-store`), session-scoped, persists both turns; runs on `CHAT_MODEL` through the gateway (`lib/ai/chat.ts`, D-096), not on the coaching SDK | Same-origin, verified user, atomic 20/hr plus 30/24h, 16 KB body, 600-char message, session ownership |
 | `POST /api/players` | Coach-spotted candidates (D-036): one frame returns up to six kit-and-position descriptions with torso points; shares the coach quota, fails open to empty | Same-origin, verified user |
 | `POST /api/account/delete` | Purge own storage, then `delete_own_account()` cascade | Same-origin, verified user, atomic 3/hr |
 | `GET /api/eval` | Dev-only harness replaying `evals/cases/*.json` through the production scoring path | 404 in production, off loopback, or without the `EVAL_TOKEN` bearer |
@@ -115,18 +120,35 @@ server-side token.
 
 ## 4. Coaching-service call discipline
 
-One lazily-cached SDK client (`lib/ai/client.ts`), server-only.
+Three call paths, not one. The lazily-cached SDK client (`lib/ai/client.ts`,
+server-only) is now reached only by the weekly plan and the dev eval route; the
+frame read goes through `lib/ai/vision.ts` (D-093) and coach chat through
+`lib/ai/chat.ts` (D-096), both plain fetch against the gateway. The two gateway
+modules are deliberately separate files: `vision.ts` reads pixels and binds every
+request to a JSON schema, `chat.ts` streams prose with no schema at all.
 
-- **Model + effort (D-004 / D-027 / D-070).** `ANALYZE_MODEL` runs the vision read
-  at `ANALYZE_EFFORT = "low"` with adaptive thinking set explicitly rather than
-  inherited: the tier's default flipped between Opus 4.8 (no reasoning when the
-  parameter is absent) and Opus 5 (reasoning on), so the call names it. `COACH_MODEL` runs chat at
-  `COACH_EFFORT = "medium"`, a cap because the conversational tier defaults to high
-  and fabricated detail above medium. Both are checked-in constants; the run is
-  recorded in `analyses.model` (or `"mock"`).
+- **Model + effort (D-004 / D-027 / D-070 / D-093 / D-096).** `ANALYZE_MODEL` and
+  `ANALYZE_EFFORT = "low"` describe the pre-D-093 read; the live frame read runs
+  `VISION_MODEL` through the gateway, and `ANALYZE_MODEL` now has one importer
+  left, the dev eval route, which defaults to it and takes any coaching-service
+  model by query parameter. `COACH_MODEL` at
+  `COACH_EFFORT = "medium"` now has exactly one importer, the weekly plan
+  (`app/(app)/plan/actions.ts`); the effort cap stays because that tier defaults
+  to high and fabricated detail above medium. Coach chat runs `CHAT_MODEL`, which
+  takes no effort parameter because only the coaching service has one. Both
+  gateway ids carry a slash the coaching SDK would 404 on, which is the intended
+  tripwire against passing either to `coach()`. The run is recorded in
+  `analyses.model` (or `"mock"`); chat records nothing, so its spend is invisible
+  to `/api/usage` and to the budget guard.
 - **Mock mode.** `AI_MOCK=true` returns deterministic output with no key and no
-  spend.
-- **Retries.** Both calls pass `{ maxRetries: 4 }`; the SDK honors `Retry-After`.
+  spend, on the chat path as well.
+- **Retries.** Per call site: the frame read passes `maxRetries: 1`, the weekly
+  plan `2` (SDK, honors `Retry-After`), chat `3`. Chat's retries stop at the first
+  byte by construction, because the route streams each chunk to the player and
+  concatenates the same chunks into what it stores, so resuming a started answer
+  would splice two replies together and then save the result. A stream that
+  produced nothing falls through to the client's existing "the coach didn't
+  answer" path, and both quota units stay spent (see `docs/security.md`).
 - **Quotas + entitlement.** Atomic per-endpoint quotas run before the paid call and
   fail closed (503 if the quota store is missing). The analyze entitlement reserves
   atomically and is released in a `finally` on every path.
@@ -134,13 +156,22 @@ One lazily-cached SDK client (`lib/ai/client.ts`), server-only.
   capacity, busy, or unknown. A credit/spend-cap outage refunds the hourly quota
   (`refund_api_quota`, migration `016`) and returns a distinct honest 503 telling
   the player their clip was not counted; the client renders that as a calm
-  `unavailable` state, not a failure.
+  `unavailable` state, not a failure. The refund is analyze-only: migration `033`
+  narrowed `refund_api_quota` to that scope and to `service_role`, so a coach turn
+  that fails keeps both spent quota units (D-096).
 - **Telemetry (D-043).** A server-set `analyses.telemetry` jsonb column records
   real token counts, wall-clock, model, and effort per analysis. It is never read
   by a client surface.
 - **Grounding.** Coach context is assembled from parallel reads, history trimmed to
   a valid Messages shape, and the system prompt forbids inventing data or naming a
-  vendor.
+  vendor. Player-authored text (display name, goal titles) sits inside the
+  `PLAYER_DATA` markers and everything between them is data, never instructions;
+  `lib/ai/coach-prompt.test.ts` asserts both markers survive a refactor, because a
+  fence that quietly stops being emitted looks exactly like one that works. The
+  `COACHING_CRAFT` block (D-096) sits above the markers, and its range-framing
+  rule ships with a guard forbidding a range, trend, high or low inferred from a
+  single score; the test asserts the guard follows the rule and keeps its stated
+  reason.
 
 ## 5. Scoring pipeline
 

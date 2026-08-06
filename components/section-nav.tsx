@@ -12,8 +12,13 @@ import Link from "next/link";
 // Suspense boundary.
 type SectionNavItem = { key: string; href: string; label: string };
 
+// "This week" (/plan) is hidden as of 2026-08-05. It was built as a weekly
+// training plan but is wanted as a dietary check-in instead, so it is out of
+// scope until that is designed. The route, its server action and
+// `weekly_plans` are all untouched and the page still renders if reached by
+// URL; only the ways in are gone. Restoring it is re-adding this one entry and
+// pointing the Train tab in components/app-nav.tsx back at /plan.
 export const TRAIN_NAV: SectionNavItem[] = [
-  { key: "week", href: "/plan", label: "This week" },
   { key: "drills", href: "/drills", label: "Drills" },
   { key: "technique", href: "/learn", label: "Technique" },
   { key: "recovery", href: "/learn?tab=rehab", label: "Recovery" },

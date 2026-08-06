@@ -455,17 +455,10 @@ export default async function Dashboard({
             )}
           </div>
 
-          <Reveal delay={140}>
-            <p className="mt-3">
-              <Link
-                href="/plan"
-                className="relative font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim transition-colors hover:text-gold"
-              >
-                See this week&rsquo;s plan
-                <LinkPending />
-              </Link>
-            </p>
-          </Reveal>
+          {/* The "See this week's plan" link is hidden as of 2026-08-05, with
+              the rest of the weekly plan's entry points: it was built as a
+              training plan and is wanted as a dietary check-in instead. See
+              components/section-nav.tsx for what restoring it takes. */}
 
           <Reveal delay={160}>
             <div className="score-stage card spot mt-4 flex flex-wrap items-center justify-center gap-6 p-6">

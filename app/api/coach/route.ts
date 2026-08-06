@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { coach, COACH_MODEL, COACH_EFFORT } from "@/lib/ai/client";
+import { CHAT_MODEL } from "@/lib/ai/client";
+import { streamChat, hasChatKey } from "@/lib/ai/chat";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
 import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
@@ -101,6 +102,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
   const { message, session_id } = parsed.data;
+
+  // Fail closed on a missing provider credential BEFORE any quota is spent.
+  // Without this the deployment charges the player an hourly AND a daily unit,
+  // then returns 200 with an empty body, because streamChat throws inside the
+  // stream after the response head has gone out and the catch there is silent.
+  // The player sees "the coach didn't answer" and paid for it, and this route
+  // deliberately has no refund path. Same 503 the quota-storage failure uses,
+  // so the client's existing calm state covers it.
+  if (process.env.AI_MOCK !== "true" && !hasChatKey()) {
+    return NextResponse.json(
+      { error: "The coaching service is unavailable. Try again." },
+      { status: 503 },
+    );
+  }
 
   // Quota first among the things that cost something: the session insert below
   // writes a row and everything after it can reach the coaching service, and an
@@ -306,30 +321,41 @@ export async function POST(req: NextRequest) {
             await new Promise((r) => setTimeout(r, 40));
           }
         } else {
-          const events = coach().messages.stream(
-            {
-              model: COACH_MODEL,
-              // Half the old budget: coaching answers land in 2-4 paragraphs;
-              // anything longer was cost, not coaching (D-047).
-              max_tokens: 512,
-              // Sonnet 5 defaults to high effort, where it fabricated detail the
-              // frames contradict. Medium was the last correct setting (D-027).
-              output_config: { effort: COACH_EFFORT },
-              system,
-              messages: chatMessages,
-            },
-            // Exponential backoff on 429/5xx from the coaching service (CS-7);
-            // the SDK honors Retry-After and jitters between attempts.
-            { maxRetries: 4 },
-          );
-          for await (const event of events) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              reply += event.delta.text;
-              controller.enqueue(encoder.encode(event.delta.text));
-            }
+          // Chat runs on the gateway now, not the coaching service (D-096).
+          // The weekly plan still uses COACH_MODEL and the SDK: it asks for one
+          // schema-bound object, where this streams prose. `effort` went with
+          // the move, being a parameter only the coaching service has.
+          for await (const text of streamChat({
+            model: CHAT_MODEL,
+            system,
+            messages: chatMessages,
+            // NOT the answer length. D-047 set this to 512 because coaching
+            // answers land in 2-4 paragraphs and anything longer was cost
+            // rather than coaching, and on a non-reasoning model that was the
+            // same thing as a length cap. It is not the same thing here.
+            //
+            // The gateway routes one model id across several upstreams and they
+            // do not behave alike (measured 2026-08-05): DeepInfra returns 0
+            // reasoning tokens, GMICloud returns up to ~4,000, and reasoning
+            // bills against this ceiling BEFORE a single character of content.
+            // A heavy-reasoning draw at 512 therefore spends the whole budget
+            // thinking and streams nothing, which the client renders as "the
+            // coach didn't answer" while both quota units are already spent.
+            // Same failure shape vision.ts pinned its provider to avoid: the
+            // request succeeds or fails by routing luck.
+            //
+            // So this is sized for the worst observed reasoning draw, not for
+            // the answer. Length stays the prompt's job, and it does the job:
+            // replies measured 900-1,900 characters at 512, 3,000 and 6,000
+            // alike, all finishing on `stop` rather than the ceiling.
+            maxTokens: 6000,
+            // Retries stop at the first byte by construction; see lib/ai/chat.ts
+            // for why resuming a started answer would splice two replies
+            // together and then store the result.
+            maxRetries: 3,
+          })) {
+            reply += text;
+            controller.enqueue(encoder.encode(text));
           }
         }
       } catch {
