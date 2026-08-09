@@ -4521,7 +4521,7 @@ analysis. It has no bearing on an individual's progression, which is what
 `lib/journey.ts` and `lib/progress-series.ts` exist for. Revisit only if player
 feedback asks for it.
 
-## D-110 - The day becomes the wall: 3 a day free, 18 a day Pro (DECIDED, NOT YET BUILT)
+## D-110 - The day becomes the wall: 3 a day free, 18 a day Pro
 
 The allowance moves from a monthly count to a daily one. **Free goes from 1 a
 month to 3 a day. Pro goes from 24 a month to 18 a day**, which is three reads
@@ -4582,12 +4582,30 @@ eight upstreams behind two ids - says a prompt reordering is a behaviour change
 until an eval says otherwise. Ship it behind the same bar as any other change to
 the read, not as a config tweak.
 
-**Status: decided, not built.** The implementation is a vertical, not a
-constant. `lib/plans.ts` and a migration restating the allowance cluster are
-drafted and were reverted rather than half-landed, because the daily wall also
-requires: `lib/entitlements.ts` to normalize a new `day_exhausted` reason,
-`app/api/analyze/route.ts` to map it, `lib/analyze-status.ts` to type it, and
-`lib/allowance.ts` to stop saying "this month" in eight places of paywall copy
-that are pinned by tests. Landing the numbers without the copy would tell a
-player who used three today that their next ninety unlock on the first of the
-month, which is false in both halves.
+**SHIPPED `dd0f49e`, migration 057 applied and verified in production.** The
+implementation was a vertical rather than a constant: `lib/plans.ts` gained
+`DAILY_ALLOWANCE` and `dailyAllowance()`, migration 057 restated the whole
+allowance cluster in one file (because `lib/plans.test.ts` reads the newest
+migration defining `plan_monthly_allowance` and asserts the cluster against that
+single file), and the refusal had to be carried the whole way down:
+`lib/entitlements.ts` normalizes `day_exhausted`, `app/api/analyze/route.ts`
+maps it to `free_day_exhausted`/`plan_day_exhausted`, `lib/analyze-status.ts`
+types it, and `lib/allowance.ts` renders it through the existing copy with one
+noun swapped. The monthly wording was left byte-identical, so this added a case
+rather than rewriting strings that were already correct. Verified live:
+`plan_daily_allowance` answers 18/3 and falls to 3 on an unrecognized plan;
+`reserve_analysis_entitlement` contains the daily wall and contains no reference
+to `consume_api_quota`.
+
+**A correction, recorded because the first version of this entry was wrong.**
+This decision originally claimed that putting the instructions first would
+recover the 22%. It does not. Three identical probe requests reordered that way
+cached nothing and billed identically, `cached_tokens` 0 every time. The
+breakpoint is what opens the cache: the same three requests with
+`cache_control: {type: "ephemeral"}` on the trailing instruction block cached
+3,241 of 3,842 input tokens and cut that probe's bill by 60%. Ordering is
+necessary and not sufficient, because a breakpoint only caches what precedes it
+and only if that prefix is byte-identical across calls. Both shipped together in
+`instructionBlocks()`. The read-quality question the reordering raises is still
+open and still owed an eval; the change is confined to one array in
+`lib/ai/vision.ts` so it can be reverted alone.
