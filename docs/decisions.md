@@ -4346,3 +4346,177 @@ Migration 056 adds `goals.note`, nullable and unconstrained, because it is
 model-authored and every read must treat absent as ordinary. It renders on the
 goal card only when present, with no reserved space, so an account without one
 looks exactly as it always did.
+
+## D-106 - An analysis costs $0.0164, and every document that said $0.024 was wrong
+
+The number every pricing argument rests on had never been read back out of
+production. It has now, from `analyses.telemetry`, and it was wrong by 46%.
+
+**The rows split into two eras and the average of all of them is meaningless.**
+Thirty rows carry no `provider` field and predate 2026-08-06: they average
+22,127 input and 2,294 output tokens, which is **$0.0504** an analysis. Four
+rows carry `provider: Google` and are the build actually serving players: they
+average 3,250 input and 1,539 output, which is **$0.0164**, worst row $0.0185.
+The gateway migration cut the cost of a read by **67%** and no document
+followed it. Averaging across the boundary produces $0.046 and describes a
+system that no longer exists.
+
+**`VIDEO_TOKENS_PER_SECOND = 89` in `lib/ai/vision.ts` is stale; the figure is
+60.** Two independent confirmations. A direct probe against the gateway priced a
+10s and a 60s clip at 645 and 3,645 input tokens, a clean 60 tokens per second
+of footage with about 43 fixed. Production agrees without being asked: 3,250
+input tokens on a 10s clip, less roughly 2,650 of fixed prompt, leaves 600 for
+the footage. The constant should be corrected, and anything sized from it
+resized.
+
+**Output is where the money goes.** At 1,539 output tokens against $7.50/M, the
+written half of a read is $0.0115 of the $0.0164 - about **70% of the cost** -
+while footage is only 600 of 3,250 input tokens, roughly 18% of the input and
+under a tenth of the total. Any future cost reduction comes from what the model
+writes, not from what it is shown. This matters for D-108, which meters the
+cheap component on purpose.
+
+**The caveat is the sample.** Four analyses, all by the owner, spanning $0.0141
+to $0.0185. Tight and internally consistent, but four. Treat $0.0185 as the
+planning figure until a stranger's clips widen it.
+
+`docs/billing.md` §1 still carries $0.234 and derives a 52% margin and a 4.3%
+break-even from it. It is wrong by roughly 14x in our favour and remains
+unfixed.
+
+## D-107 - No annual plan: a week pass, a month, and one downsell
+
+Four SKUs become three. Free, a **$9.99 non-renewing week**, **$29.99 a month**,
+and a **$19.99 downsell** shown when the paywall is dismissed. The $79-over-$99
+annual of the pricing document is withdrawn, as is the $59.99/$39.99 annual that
+briefly replaced it.
+
+**Annual was removed because of what it does to the customer count.** A year of
+monthly at $29.99 collects far more than any annual price a competitor-adjacent
+market would bear, and every annual variant modelled pushed break-even from
+about 3 subscribers to between 11 and 21. Annual buys cash upfront and kills
+monthly churn; at zero customers neither is the binding problem, and the number
+of humans required to cover fixed cost is.
+
+**The ladder has to stay monotonic, and the first proposal did not.** A month is
+4.345 weeks, so a $59.99 month against a $9.99 week costs **$13.81 a week, 38%
+more than simply buying weekly passes**, and the $39.99 downsell landed at $9.20
+a week, 8% under. Monthly could never be the rational choice at those numbers.
+The shipped set fixes it: $9.99 a week, $6.90 a week at the month price (-31%),
+$4.60 at the downsell (-54%). Commitment must always lower the weekly rate, or
+the more expensive plan is a trap the customer eventually notices.
+
+**The downsell is the real price.** It fires on paywall dismiss, which is the
+common path, and unlike an annual commitment it is a permanent monthly rate.
+$29.99 is the anchor; plan the business on $19.99 and treat anything above it as
+upside.
+
+**Margin is a bad instrument here.** At $0.0164 an analysis the margin is above
+60% at every price considered, including the ones that were structurally broken.
+Break-even subscriber count and the per-week ladder are what discriminate
+between these options; margin percentage does not.
+
+## D-108 - Quota is minutes of footage, and the period is a month
+
+The unit changes from analyses to minutes. **Free gets 3 minutes a month, Pro
+gets 60.**
+
+**Minutes are legible and analyses are not.** "24 analyses a month" requires the
+player to know what an analysis is before the number means anything; "60 minutes
+of footage" is self-describing, and it is the unit the rest of the category
+already uses.
+
+**Per day was the original request and it is unfundable.** At $0.098 a minute -
+six analyses to the minute at the 10.0s clips production actually receives - 3
+minutes a day is **$8.82 a month from an account that pays nothing**, and 60
+minutes a day is **$176 a month against $28.22 of net revenue**. The prepaid
+balance of $80.92 is about nine maxed free accounts for a single month, after
+which every analysis fails for every player with no in-app warning, because the
+app cannot read its own balance. A competitor advertises 60 minutes a day on the
+same model and the same gateway; it survives only because nobody redeems it, and
+copying a promise that depends on being ignored is not a strategy.
+
+**Per month, the same two numbers work and both tiers get more generous.** Free
+3 minutes costs $0.30 and rises from 1 analysis a month to about 18. Pro 60
+minutes costs $5.90, roughly 23% of net at $29.99 and 34% at the downsell, and
+rises from 24 analyses to about 360. Break-even holds at 3 subscribers, 4 to 5
+on the downsell. This also finally executes the long-deferred "raise Free above
+1 a month", which had been the best-value unmade change since the era when an
+analysis cost $0.234.
+
+**The quota meters the cheap component, knowingly.** Cost tracks requests, not
+duration: 60 minutes arriving as one long clip costs about $0.33, and as 360
+ten-second reps costs $5.90, a spread of roughly 18x for identical footage.
+`MAX_CLIP_BYTES` at 20 MB makes long clips impossible in practice, so short reps
+are the normal case and every allowance here is sized from them. The imprecision
+is accepted because the unit has to be explicable to a player; the guard is that
+allowances are sized from the expensive end, never the average.
+
+**Coach is not tiered and is now the largest line on a free account.**
+`consume_api_quota` caps chat at 20 an hour and 30 a day for everyone, free and
+paid alike. At roughly $0.0006 a message on `deepseek-v4-flash` that is $0.54 a
+month, against $0.30 of analysis - so a maxed free account is **$0.84**, and one
+Pro carries about 26 free accounts rather than the hundreds the old
+analyses-based quota implied. Tiering `coach_daily` down to 5-10 a day for free
+accounts is proposed and undecided; it would halve the cost of a free account
+and make the coach a reason to upgrade rather than the most expensive thing
+given away.
+
+**Coach, weekly plan and onboarding still write no telemetry.** Only
+`analyses.telemetry` exists, so every text-side figure above is derived from
+published token prices rather than measured. That gap is why the coach line
+could be wrong in a way the analysis line cannot.
+
+## D-109 - What a competitor teardown changed, and what it did not
+
+A 3m17s screen recording of VolleyVision, a shipping competitor, was read frame
+by frame. Most of what it produced was reassurance rather than instruction, and
+that is itself the finding.
+
+**They run our exact stack.** Their production build leaks it in a settings
+dialog: `Active: openrouter [google/gemini-3.6-flash]`. Same gateway, same
+model. There is no model advantage available to anyone in this category, ours
+included, and any positioning that implies one is false.
+
+**They ship the two things this codebase deliberately refused.** A `80/100
+ELITE` overall score on a radial dial with five sub-scores, which is the shape
+D-094 abandoned when the 120-pointer returned a median of 97; and feedback
+attached to timestamps like `0:03s`, on a model measured here answering between
+0.27s and 0.60s for a contact hand-verified at 3.42s. Both are almost certainly
+inflated and fabricated respectively, and both are what a buyer sees first.
+The honest version is harder to sell and remains the right one, but it must be
+made **visible** rather than merely true - a claim nobody can evaluate before
+paying is not a differentiator.
+
+**Neither product has computer vision.** No skeleton overlay, no joint angles,
+no ball tracking anywhere in the recording. The July commercialization claim -
+"real biomechanics, not AI guessing from pixels" - is false against our own
+`package.json`, which carries zero pose or ML dependencies, and it is now also
+demonstrably a claim nobody in the category can make. It must not ship.
+
+**Most of their feature set already exists here, and in better form.** Their
+`START HERE` sample clip is one canned demo; `/samples` is three real breakdowns
+at 87, 77 and 63, deliberately including a middling one, linked from the
+homepage and indexed. Their reports name drills that lead nowhere;
+`components/breakdown-body.tsx` already links `/drills/[slug]`. They have a
+priority fix; so does the breakdown and the share card. They have chat
+suggestion chips; so does the coach.
+
+**One real gap.** `linkDrills` is disabled on `/share/*` because `/drills` is
+auth-gated, so a stranger arriving through the single channel that has ever
+worked - one share link drew 74 of 219 lifetime visitors - reads drill names as
+dead text. Making `/drills/[slug]` publicly readable is a routing change, not a
+feature, and it converts the best channel from a dead end into a funnel.
+
+**Rejected outright**, and recorded so they are not re-proposed: the fake
+countdown ("Data Reset Notice 23:47:21"), the fake personalization loader, the
+75%-vs-30% projection chart, the score dial with sub-scores, timestamped
+feedback, and exposing the provider or model string in the UI. The first three
+are lies about the product's own behaviour; adopting any of them costs the only
+position this product has.
+
+**Their live scoreboard was considered and declined.** It tracks a match, not a
+player - teams, points, sets, a clock - and nothing it records reaches their
+analysis. It has no bearing on an individual's progression, which is what
+`lib/journey.ts` and `lib/progress-series.ts` exist for. Revisit only if player
+feedback asks for it.
