@@ -72,6 +72,49 @@ export function checkpointStanding(
   return standing;
 }
 
+/**
+ * The five checkpoints, ordered strongest to weakest.
+ *
+ * This is the honest answer to "where did my score come from", and it is the
+ * ONLY one available: `overall_score` is a single judgement the model returns
+ * about the whole rep and is not derived from these rows (see the note above
+ * `checkpoints` in lib/ai/simple-rubric.ts). Putting a number on each row would
+ * describe a sum that does not happen, and it is the same move that
+ * ceiling-pegged the frame path at a median of 97 (D-094).
+ *
+ * The ORDER, by contrast, is the part D-099 measured as reliable: rank
+ * correlation held at 0.708 across a re-anchor that moved the median 55 -> 78
+ * -> 97. So the ranking is shown and the magnitudes are not.
+ *
+ * Strengths keep the order the model ranked them in, improvements keep theirs,
+ * and anything it did not rank sits between the two: unranked means "not among
+ * the best or the worst here", which is exactly the middle.
+ */
+export function checkpointRank(
+  skill: Skill,
+  result: AnalysisResult,
+): string[] {
+  const known = metricKeys(skill);
+  const standing = checkpointStanding(skill, result);
+  const rankedWorked = workedItems(result)
+    .map((s) => s.key)
+    .filter((k): k is string => k != null && known.includes(k));
+  const rankedChanges = (result.changes ?? [])
+    .map((c) => c.key)
+    .filter((k): k is string => k != null && known.includes(k));
+  const seen = new Set<string>();
+  const push = (keys: string[]) => keys.filter((k) => !seen.has(k) && seen.add(k));
+  return [
+    ...push(rankedWorked),
+    ...push(known.filter((k) => standing[k] == null)),
+    ...push(rankedChanges),
+    // Anything the catalog names that somehow escaped the three passes above.
+    // All five rows render on every rep whatever the clip showed, and that
+    // promise outranks the ordering.
+    ...known.filter((k) => !seen.has(k)),
+  ];
+}
+
 /** True only for a key the catalog actually names, so an unknown key renders
  *  no label at all rather than raw machine text. */
 export function isKnownCheckpoint(skill: Skill, key?: string): key is string {

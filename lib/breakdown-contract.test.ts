@@ -301,8 +301,15 @@ test("the switch needs no JavaScript to work", () => {
   assert.match(SWITCH, /export const DETAIL_SCOPE = "group"/);
 });
 
-test("all five checkpoints render from the catalog, in catalog order", () => {
-  assert.match(CHECKPOINTS, /metricKeys\(skill\)\.map\(/);
+test("all five checkpoints render from the catalog, ranked when a ranking exists", () => {
+  // Order changed 2026-08-09: strongest to weakest via `checkpointRank`, with
+  // catalog order as the fallback that every row stored before the ranking
+  // existed still renders in. The ORDER is what answers "where did my score
+  // come from"; a per-row NUMBER would answer it falsely, because
+  // `overall_score` is one judgement about the whole rep and nothing in this
+  // list feeds it. D-099 measured ordering as reliable and absolute level as
+  // not, which is exactly why one is shown and the other is not.
+  assert.match(CHECKPOINTS, /order\?\.length \? order : metricKeys\(skill\)/);
   // Never from the stored result: the teaching prose is authored content.
   assert.match(CHECKPOINTS, /metricKnowledge\(skill, discipline, key\)/);
   assert.match(CHECKPOINTS, /knowledge\.elite_marker/);

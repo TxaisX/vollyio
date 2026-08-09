@@ -25,6 +25,7 @@ export function CheckpointList({
   discipline,
   checkpoints,
   standing = {},
+  order,
 }: {
   skill: Skill;
   discipline: Discipline;
@@ -32,12 +33,16 @@ export function CheckpointList({
   /** Keyed by METRICS key. Empty on a row stored before the columns carried
    *  their checkpoint key, which is every row already in production. */
   standing?: CheckpointStanding;
+  /** The five keys, strongest to weakest (`checkpointRank`). Falls back to
+   *  catalog order, which is what every row stored before the ranking existed
+   *  still renders in. */
+  order?: string[];
 }) {
   const seen = new Map(checkpoints.map((c) => [c.key, c]));
 
   return (
     <ul className="card p-0">
-      {metricKeys(skill).map((key) => {
+      {(order?.length ? order : metricKeys(skill)).map((key) => {
         const label = metricLabel(skill, key);
         const found = seen.get(key);
         // Two different silences read as one to the player, deliberately. A

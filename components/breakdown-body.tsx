@@ -16,6 +16,7 @@ import {
 import { CheckpointList } from "@/components/checkpoint-list";
 import {
   checkpointStanding,
+  checkpointRank,
   isKnownCheckpoint,
   workedItems,
 } from "@/components/breakdown-shape";
@@ -292,16 +293,31 @@ export function BreakdownBody({
           {/* Names the skill by way of the page heading rather than in this
               sentence: SKILL_LABEL is a gerund ("Serving", "Attacking"), so
               every article that would fit here reads wrong for some skill. */}
+          {/* Says what the number is NOT, because that is the question this
+              section actually gets asked: a player reads 87, counts five
+              checkpoints, and assumes one is the total of the other. It is not.
+              `overall_score` is a single judgement about the whole rep and
+              nothing here feeds it (lib/ai/simple-rubric.ts). Scoring these
+              rows to imply the sum is what ceiling-pegged the frame path at a
+              median of 97 (D-094), so the ORDER is offered instead: D-099
+              measured ordering as the reliable signal while absolute level was
+              not. */}
           <p className="mb-3 text-sm text-chalk-dim">
-            The five things a coach watches on this rep. The notes above are
-            labelled with the one they are about. Open any of them for what it
-            is and what 90 looks like.
+            The five things a coach watches on this rep, strongest first. The
+            notes above are labelled with the one they are about. Open any of
+            them for what it is and what 90 looks like.
+          </p>
+          <p className="mb-3 text-sm text-chalk-dim">
+            The score above is one judgement about the whole rep, not a total of
+            these five. They are what was watched, in the order this rep did
+            them best to worst.
           </p>
           <CheckpointList
             skill={skill}
             discipline={discipline}
             checkpoints={checkpoints}
             standing={standing}
+            order={checkpointRank(skill, result)}
           />
         </Reveal>
       )}
