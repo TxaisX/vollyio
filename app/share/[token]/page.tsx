@@ -26,10 +26,25 @@ export async function generateMetadata({
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
   const label = SKILL_LABEL[shared.skill];
+  const title = `${label} breakdown, ${shared.overall_score}/100`;
+  const description = `A ${label.toLowerCase()} rep scored ${shared.overall_score} out of 100 on Vollyio. Priority fix: ${shared.result.priority_fix.title}`;
+  // openGraph and twitter are restated rather than left to inherit `title` and
+  // `description` above. The ROOT layout sets openGraph.title explicitly, and an
+  // explicit parent value wins over a child's plain `title`, so every shared
+  // breakdown unfurled as the site-wide "Vollyio · Volleyball Form Coach" while
+  // the browser tab correctly read "Passing breakdown, 87/100".
+  //
+  // That is the whole first impression of the one channel that has ever brought
+  // this product visitors: a share link accounted for 74 of the first 219. The
+  // card already carried the real score and the real priority fix in its IMAGE;
+  // the headline beside it was a generic pitch, which reads as an advert in a
+  // place where the specific number reads as a person sharing a rep.
   return {
-    title: `${label} breakdown, ${shared.overall_score}/100`,
-    description: `A ${label.toLowerCase()} rep scored ${shared.overall_score} out of 100 on Vollyio. Priority fix: ${shared.result.priority_fix.title}`,
+    title,
+    description,
     robots: { index: false, follow: false },
+    openGraph: { type: "article", siteName: "Vollyio", title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
