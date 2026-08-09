@@ -12,7 +12,7 @@ import {
   resetDateOf,
   type Allowance,
 } from "./allowance.ts";
-import { MONTHLY_ALLOWANCE, PRO_PRICE_LABEL } from "./plans.ts";
+import { MONTHLY_ALLOWANCE, DAILY_ALLOWANCE, PRO_PRICE_LABEL } from "./plans.ts";
 
 const GOOD = {
   plan: "free",
@@ -48,7 +48,7 @@ test("a good reply becomes the counter, and asks for nothing but its own row", a
     grantRemaining: null,
     monthlyRate: null,
     grant: null,
-    lifetimeUsed: null,
+    lifetimeUsed: null, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   });
   assert.equal(name, "analysis_allowance");
   assert.equal(args, undefined);
@@ -144,7 +144,7 @@ test("the counter line reports plainly at three, one, and none", () => {
     grantRemaining: null,
     monthlyRate: null,
     grant: null,
-    lifetimeUsed: null,
+    lifetimeUsed: null, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   });
 
   assert.equal(allowanceCopy(at(1)), "2 of 3 left this month");
@@ -175,7 +175,7 @@ test("the reset date is read in UTC, because the window is a UTC month", () => {
     grantRemaining: null,
     monthlyRate: null,
     grant: null,
-    lifetimeUsed: null,
+    lifetimeUsed: null, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   };
   // Midnight UTC on the 1st is still the previous evening in every zone west of
   // Greenwich. The player is told the month it belongs to, not the local clock.
@@ -212,7 +212,7 @@ const counter = (
   grantRemaining: null,
   monthlyRate: null,
   grant: null,
-  lifetimeUsed: null,
+  lifetimeUsed: null, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
 });
 
 test("the tone follows the remaining count and nothing else", () => {
@@ -427,7 +427,7 @@ test("while the signup grant is live the counter reports lifetime, not the month
     grantRemaining: 30,
     monthlyRate: 18,
     grant: 50,
-    lifetimeUsed: 20,
+    lifetimeUsed: 20, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   };
 
   assert.equal(allowanceCopy(granted), "20 of 50 used");
@@ -437,7 +437,7 @@ test("while the signup grant is live the counter reports lifetime, not the month
 
   // A fresh free account on the six-skill grant.
   const fresh = { ...granted, plan: "free" as const, allowance: 6, used: 0,
-    remaining: 6, grantRemaining: 6, monthlyRate: 1, grant: 6, lifetimeUsed: 0 };
+    remaining: 6, grantRemaining: 6, monthlyRate: 1, grant: 6, lifetimeUsed: 0, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null };
   assert.equal(allowanceCopy(fresh), "0 of 6 used");
 });
 
@@ -451,7 +451,7 @@ test("once the grant is spent the counter goes back to speaking about the month"
     grantRemaining: 0,
     monthlyRate: 1,
     grant: 6,
-    lifetimeUsed: 6,
+    lifetimeUsed: 6, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   };
   // The monthly rate is what binds now, so the month is the honest frame.
   assert.equal(allowanceCopy(spent), "1 analysis this month");
@@ -472,7 +472,77 @@ test("a database that cannot report the grant falls back rather than guessing", 
     grantRemaining: 4,
     monthlyRate: 1,
     grant: null,
-    lifetimeUsed: null,
+    lifetimeUsed: null, dailyAllowance: null, usedToday: null, remainingToday: null, dayResetsAt: null,
   };
   assert.equal(allowanceCopy(partial), "4 of 6 left this month");
+});
+
+// D-110 made the day the wall and the month a 30x backstop, and the counter went
+// on quoting the backstop: a Pro player who could run 18 was shown "528 of 540
+// left this month". True, unreachable, and not the number they were about to
+// act on. These pin the fix, and pin that a database which predates the daily
+// migration still renders the old line rather than losing its counter.
+const dayCounter = (
+  usedToday: number,
+  dailyAllowance: number = DAILY_ALLOWANCE.pro,
+  over: Partial<Allowance> = {},
+): Allowance => ({
+  plan: "pro",
+  allowance: MONTHLY_ALLOWANCE.pro,
+  used: 12,
+  remaining: MONTHLY_ALLOWANCE.pro - 12,
+  resetsAt: "2026-09-01T00:00:00+00:00",
+  grantRemaining: null,
+  monthlyRate: MONTHLY_ALLOWANCE.pro,
+  grant: null,
+  lifetimeUsed: null,
+  dailyAllowance,
+  usedToday,
+  remainingToday: Math.max(0, dailyAllowance - usedToday),
+  dayResetsAt: "2026-08-10T00:00:00+00:00",
+  ...over,
+});
+
+test("the counter reports the day, because the day is the wall", () => {
+  // The exact shape that produced the wrong line: plenty of month left, and a
+  // day rate that is the only thing standing between the player and a refusal.
+  assert.equal(allowanceCopy(dayCounter(12)), `${DAILY_ALLOWANCE.pro - 12} of ${DAILY_ALLOWANCE.pro} left today`);
+  assert.equal(allowanceCopy(dayCounter(0)), `${DAILY_ALLOWANCE.pro} of ${DAILY_ALLOWANCE.pro} left today`);
+  assert.equal(allowanceCopy(dayCounter(DAILY_ALLOWANCE.pro)), "None left today");
+  // The monthly ceiling must not appear anywhere in the line.
+  assert.doesNotMatch(allowanceCopy(dayCounter(12)), /540|this month/);
+});
+
+test("the tone and the warning follow the day too", () => {
+  assert.equal(allowanceTone(dayCounter(0)), "steady");
+  assert.equal(allowanceTone(dayCounter(DAILY_ALLOWANCE.pro)), "out");
+  // One left only warns once some were spent, same rule the month used.
+  assert.equal(allowanceTone(dayCounter(DAILY_ALLOWANCE.pro - 1)), "last");
+  assert.equal(
+    allowanceLine(dayCounter(DAILY_ALLOWANCE.pro - 1)),
+    `Last analysis today. ${DAILY_ALLOWANCE.pro} more tomorrow.`,
+  );
+});
+
+test("the signup grant still outranks the day while it is live", () => {
+  // The grant is neither daily nor monthly, and D-084's frame is the only one
+  // in which both of its numbers are true. A brand new account must not be told
+  // "3 of 3 left today" when what it actually holds is six one-time analyses.
+  const onGrant = dayCounter(1, DAILY_ALLOWANCE.free, {
+    plan: "free",
+    grantRemaining: 4,
+    grant: 6,
+    lifetimeUsed: 2,
+  });
+  assert.equal(allowanceCopy(onGrant), "2 of 6 used");
+});
+
+test("a database that predates the daily migration keeps the monthly line", () => {
+  const old = dayCounter(12, DAILY_ALLOWANCE.pro, {
+    dailyAllowance: null,
+    usedToday: null,
+    remainingToday: null,
+    dayResetsAt: null,
+  });
+  assert.match(allowanceCopy(old), /this month/);
 });

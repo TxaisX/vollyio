@@ -40,7 +40,35 @@ export type Allowance = {
   // a build ahead of its migration must fall back rather than invent a lifetime.
   grant: number | null;
   lifetimeUsed: number | null;
+  // The wall that actually binds since D-110. Nullable like the fields above,
+  // and for the same reason: between a deploy and its migration the database
+  // returns neither, and a counter that guessed a daily rate would promise reps
+  // the reservation refuses. When these are absent every function below falls
+  // back to the monthly numbers and renders exactly what it rendered before.
+  dailyAllowance: number | null;
+  usedToday: number | null;
+  remainingToday: number | null;
+  dayResetsAt: string | null;
 };
+
+// Whether the database is new enough to report the day. The three counts and
+// the instant have to arrive together: a rate with no reset date cannot say
+// when it lifts, and a reset date with no rate cannot say how many.
+function dayIsKnown(
+  a: Allowance,
+): a is Allowance & {
+  dailyAllowance: number;
+  usedToday: number;
+  remainingToday: number;
+  dayResetsAt: string;
+} {
+  return (
+    a.dailyAllowance != null &&
+    a.usedToday != null &&
+    a.remainingToday != null &&
+    a.dayResetsAt != null
+  );
+}
 
 // Fail soft, and deliberately so. Everything else on the analyze path fails
 // closed because it decides whether a paid call happens; this decides whether a
@@ -70,6 +98,10 @@ export async function readAllowance(
     monthly_rate: monthlyRate,
     grant,
     lifetime_used: lifetimeUsed,
+    daily_allowance: dailyAllowance,
+    used_today: usedToday,
+    remaining_today: remainingToday,
+    day_resets_at: dayResetsAt,
   } = row;
 
   // A plan string this build has no name for means the database is ahead of the
@@ -101,6 +133,18 @@ export async function readAllowance(
     monthlyRate: isCount(monthlyRate) ? monthlyRate : null,
     grant: isCount(grant) ? grant : null,
     lifetimeUsed: isCount(lifetimeUsed) ? lifetimeUsed : null,
+    dailyAllowance: isCount(dailyAllowance) ? dailyAllowance : null,
+    usedToday: isCount(usedToday) ? usedToday : null,
+    // Derived from the two counts beside it rather than trusted off the wire,
+    // exactly as `remaining` is above, so the line can never contradict itself.
+    remainingToday:
+      isCount(dailyAllowance) && isCount(usedToday)
+        ? Math.max(0, dailyAllowance - usedToday)
+        : null,
+    dayResetsAt:
+      typeof dayResetsAt === "string" && Number.isFinite(Date.parse(dayResetsAt))
+        ? dayResetsAt
+        : null,
   };
 }
 
@@ -126,6 +170,15 @@ function isCount(value: unknown): value is number {
 // The whole line, for the dashboard, the analyze page and the plan card. Plain
 // reporting: the plan card does the selling, this only says where they stand.
 export function allowanceCopy(a: Allowance): string {
+  // The DAY is the wall since D-110, so the day is what the counter reports.
+  // The month is a 30x backstop nobody reaches, and quoting it told a Pro
+  // player "528 of 540 left this month" when what they could actually do was
+  // 18. The grant still wins over both while it is live: it is neither daily
+  // nor monthly and D-084's frame is the only one both its numbers are true in.
+  if (dayIsKnown(a) && !grantIsLive(a)) {
+    if (a.remainingToday === 0) return "None left today";
+    return `${a.remainingToday} of ${a.dailyAllowance} left today`;
+  }
   if (a.remaining === 0) return "None left this month";
   // While the grant is what the player is spending, BOTH halves of the window
   // sentence are false: the denominator is grantLeft + used rather than
@@ -150,6 +203,10 @@ export function allowanceCopy(a: Allowance): string {
 export type AllowanceTone = "steady" | "last" | "out";
 
 export function allowanceTone(a: Allowance): AllowanceTone {
+  if (dayIsKnown(a) && !grantIsLive(a)) {
+    if (a.remainingToday === 0) return "out";
+    return a.remainingToday === 1 && a.usedToday > 0 ? "last" : "steady";
+  }
   if (a.remaining === 0) return "out";
   // One left is only a warning if some were spent to get there. On the free
   // rate the whole window IS one, so an untouched month would otherwise open on
@@ -174,6 +231,9 @@ export function allowanceLine(a: Allowance): string {
       const rate =
         a.monthlyRate === 1 ? "1 a month" : `${a.monthlyRate} a month`;
       return `Last of your ${a.grant}. Then ${rate}, from ${resetDate(a)}.`;
+    }
+    if (dayIsKnown(a)) {
+      return `Last analysis today. ${a.dailyAllowance} more tomorrow.`;
     }
     return `Last analysis this month. More on ${resetDate(a)}.`;
   }
