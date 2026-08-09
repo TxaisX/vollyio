@@ -121,7 +121,6 @@ export default async function SharedBreakdown({
           <BreakdownBody
             skill={shared.skill}
             result={shared.result}
-            linkDrills={false}
           />
         </div>
       </div>

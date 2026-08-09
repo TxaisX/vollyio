@@ -25,8 +25,16 @@ import { type Skill } from "@/lib/skills";
 // The written breakdown (summary, rep-by-rep, what worked beside what to
 // change, the named checkpoints, metrics, timeline, drills), rendered
 // identically for the owner's page and the public share page (D-049).
-// linkDrills is off on the share page: /drills is auth-gated, so anonymous
-// viewers get drill names instead of login redirects.
+// Drills LINK everywhere, the share page included. They used to render as inert
+// names there, because /drills was auth-gated and a link would have sent an
+// anonymous viewer to /login. That gate is gone: /drills is not in
+// route-guard's PROTECTED list and serves 200 to a stranger, so the share page
+// was withholding a working link on a stale premise.
+//
+// It matters more than it looks. A share link is the one channel that has ever
+// brought this product visitors - a single one accounted for 74 of the first
+// 219 - and every one of them landed on a breakdown whose recommended drills
+// were dead text, with nothing to click and nowhere to go next.
 //
 // SHAPE OF THE PAGE, and why it is this shape. The player asked for the old
 // scorecard back but shorter: "putting the pros and cons next to each other
@@ -49,11 +57,9 @@ import { type Skill } from "@/lib/skills";
 export function BreakdownBody({
   skill,
   result,
-  linkDrills = true,
 }: {
   skill: Skill;
   result: AnalysisResult;
-  linkDrills?: boolean;
 }) {
   const changes = result.changes ?? [];
   // Absent on a video-path row (D-097), which has no per-checkpoint evidence
@@ -390,17 +396,6 @@ export function BreakdownBody({
             {result.drill_slugs.map((slug) => {
               const drill = drillBySlug(slug);
               if (!drill) return null;
-              if (!linkDrills) {
-                return (
-                  <div key={slug} className="card p-4">
-                    <div className="font-display font-bold">{drill.name}</div>
-                    <div className="mt-1 text-xs text-chalk-dim">{drill.summary}</div>
-                    <div className="mt-2 font-mono text-[10px] uppercase text-chalk-dim">
-                      {drill.duration_min} min · {drill.level}
-                    </div>
-                  </div>
-                );
-              }
               return (
                 <Link
                   key={slug}
