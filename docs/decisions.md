@@ -4597,15 +4597,40 @@ rather than rewriting strings that were already correct. Verified live:
 `reserve_analysis_entitlement` contains the daily wall and contains no reference
 to `consume_api_quota`.
 
-**A correction, recorded because the first version of this entry was wrong.**
-This decision originally claimed that putting the instructions first would
-recover the 22%. It does not. Three identical probe requests reordered that way
-cached nothing and billed identically, `cached_tokens` 0 every time. The
-breakpoint is what opens the cache: the same three requests with
-`cache_control: {type: "ephemeral"}` on the trailing instruction block cached
-3,241 of 3,842 input tokens and cut that probe's bill by 60%. Ordering is
-necessary and not sufficient, because a breakpoint only caches what precedes it
-and only if that prefix is byte-identical across calls. Both shipped together in
-`instructionBlocks()`. The read-quality question the reordering raises is still
-open and still owed an eval; the change is confined to one array in
-`lib/ai/vision.ts` so it can be reverted alone.
+**The prompt reordering was shipped, evaluated, and REVERTED. Both claims made
+for it were wrong, and the eval is the only reason either was caught.**
+
+The first claim was that ordering alone would open the cache. It does not: three
+identical probes reordered that way cached nothing. That produced the second
+claim - that a `cache_control` breakpoint was the missing piece, worth 22%. The
+eval killed that one too. **The old order already caches.** `messages` puts the
+system block FIRST, so the rubric is a cacheable prefix regardless of how the
+user content is arranged: over five draws on a 15.9s clip the OLD order, with no
+breakpoint anywhere, reported **1,878 cached input tokens on every run**. The
+probe that appeared to prove otherwise had no system message at all and put
+everything in the user turn, which is not the shape `lib/ai/vision.ts` sends.
+Production's zero cache reads are explained by traffic, not ordering: four
+analyses spread over days never find a warm cache.
+
+And it cost read consistency. Five draws per arm, same clips, same prompt:
+
+| arm | score range | checkpoints visible | improvements |
+|---|---|---|---|
+| 15.9s clip, old order | 78-83 | 5 of 5, every run | 2, every run |
+| 15.9s clip, new order | **76-88** | dropped to 4 of 5 on 2 runs | dropped to 1 on 2 runs |
+| 4.1s clip, either order | 78-81 | 5 of 5 | 2 |
+
+Both arms stayed `ratable: true` 5 of 5 and schema-valid 5 of 5, so nothing
+broke outright. What moved is the thing D-099 says is the reliable part: on the
+longer clip the reordered prompt was measurably less stable, and it dropped a
+checkpoint and an improvement on 40% of runs. On the short clip the arms are
+indistinguishable, so the cost lands on longer footage.
+
+Reverted in full. `VIDEO_TOKENS_PER_SECOND` stays corrected at 60. The eval
+harness is kept at `scripts/eval-prompt-order.mjs` and the reasoning is recorded
+above `readFrames` so the idea is not re-derived and re-shipped from first
+principles.
+
+**The general lesson, which is D-096 again with a new face:** a probe that is
+not the shape production sends can prove a saving that does not exist. Both
+wrong claims here came from measuring a request that had no system message.

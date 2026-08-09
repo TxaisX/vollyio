@@ -188,28 +188,24 @@ export function hasVisionKey(): boolean {
 
 type ContentBlock = Record<string, unknown>;
 
-/**
- * The instruction blocks, with a cache breakpoint on the last one.
- *
- * MEASURED, not assumed. Three identical requests with the stable text merely
- * placed first cached NOTHING - `cached_tokens` 0 and an identical bill each
- * time. The same three with `cache_control` on the trailing stable block cached
- * 3,241 of 3,842 input tokens. Ordering alone is necessary and not sufficient:
- * the breakpoint is what actually opens the cache, and it only works if
- * everything before it is byte-identical across calls, which is why the
- * instructions have to lead and the clip has to follow.
- *
- * On a real read that is about 2,650 of 3,250 input tokens moving from $1.50/M
- * to $0.15/M, roughly 22% off the total once the output - which dominates and
- * cannot be cached - is counted (D-110).
- */
-function instructionBlocks(instructions: readonly string[]): ContentBlock[] {
-  return instructions.map((text, i) =>
-    i === instructions.length - 1
-      ? { type: "text", text, cache_control: { type: "ephemeral" } }
-      : { type: "text", text },
-  );
-}
+// D-110 EVAL, 2026-08-09: the instructions were briefly moved AHEAD of the clip
+// with a `cache_control` breakpoint, to open the prompt cache. Both halves were
+// reverted after measuring, and the measurement is recorded here so nobody
+// re-derives the idea from first principles and ships it again.
+//
+// It bought no caching. `messages` puts the system block FIRST already, so the
+// rubric is a cacheable prefix whatever order the user content is in: the eval
+// saw 1,878 tokens cached on the OLD order with no breakpoint at all. The
+// earlier probe that appeared to prove otherwise had no system message and put
+// everything in the user turn, which is not the shape this file sends.
+//
+// It cost read consistency. Over 5 draws per arm on a 15.9s clip, the reordered
+// prompt widened the score spread from 78-83 to 76-88, dropped a checkpoint on
+// 2 of 5 runs (4 visible of 5, against 5 of 5 every run on the old order), and
+// returned 1 improvement instead of 2 on those same 2 runs. On a 4.1s clip the
+// two arms were indistinguishable, so the cost lands on longer footage.
+//
+// Reproduce with scripts/eval-prompt-order.mjs.
 
 /**
  * The request body both reads share. `pinProvider` exists for the video path:
@@ -386,24 +382,7 @@ async function postChat<T extends z.ZodType>(
 export async function readFrames<T extends z.ZodType>(
   opts: ReadOptions<T>,
 ): Promise<VisionRead<z.infer<T>>> {
-  // Instructions FIRST, frames after, and the order is load-bearing for cost.
-  //
-  // The gateway's implicit cache matches on the longest identical PREFIX. The
-  // instructions are the same ~2,650 tokens on every read of a skill and the
-  // frames are different every time, so with the frames in front there is no
-  // shared prefix and nothing is ever cached: production telemetry showed
-  // `cache_read_input_tokens` at 0 on every row ever written. Moving the stable
-  // block to the front makes it cacheable at $0.15/M against $1.50/M, which is
-  // about 22% off the cost of a read (D-110).
-  //
-  // This is a PROMPT CHANGE, not a transport detail: the model now reads what
-  // it is looking for before it sees the frames. That is the ordering most
-  // vision prompting guidance prefers, but D-096 is the rule here - one model
-  // id is not one behaviour, and a single passing run proves nothing. The
-  // reordering is deliberately confined to this one array so it can be reverted
-  // alone if an eval says the read moved.
   const content: ContentBlock[] = [
-    ...instructionBlocks(opts.instructions),
     ...opts.frames.flatMap((f) => [
       {
         type: "text",
@@ -414,6 +393,7 @@ export async function readFrames<T extends z.ZodType>(
         image_url: { url: `data:image/jpeg;base64,${f.data}` },
       },
     ]),
+    ...opts.instructions.map((text) => ({ type: "text", text })),
   ];
   return postChat(
     chatBody(opts, content, false),
@@ -434,17 +414,7 @@ export async function readFrames<T extends z.ZodType>(
 export async function readVideo<T extends z.ZodType>(
   opts: Omit<ReadOptions<T>, "frames"> & { video: VisionVideo },
 ): Promise<VisionRead<z.infer<T>>> {
-  // Instructions FIRST, then the clip, for the caching reason documented on
-  // readFrames above. This is the path production actually uses, and it is
-  // where the whole saving is: a 10s read is ~3,250 input tokens of which
-  // ~2,650 is this instruction block, identical on every read of a skill and
-  // currently re-billed at full rate every time.
-  //
-  // The duration line stays with the clip rather than the instructions. It is
-  // the one piece of per-request text here, so putting it in front would move
-  // the cache boundary to the very first block and cache nothing at all.
   const content: ContentBlock[] = [
-    ...instructionBlocks(opts.instructions),
     {
       type: "video_url",
       video_url: { url: `data:${opts.video.mime};base64,${opts.video.data}` },
@@ -457,6 +427,7 @@ export async function readVideo<T extends z.ZodType>(
           },
         ]
       : []),
+    ...opts.instructions.map((text) => ({ type: "text", text })),
   ];
   return postChat(
     chatBody(opts, content, true),
