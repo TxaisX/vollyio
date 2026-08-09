@@ -4520,3 +4520,74 @@ player - teams, points, sets, a clock - and nothing it records reaches their
 analysis. It has no bearing on an individual's progression, which is what
 `lib/journey.ts` and `lib/progress-series.ts` exist for. Revisit only if player
 feedback asks for it.
+
+## D-110 - The day becomes the wall: 3 a day free, 18 a day Pro (DECIDED, NOT YET BUILT)
+
+The allowance moves from a monthly count to a daily one. **Free goes from 1 a
+month to 3 a day. Pro goes from 24 a month to 18 a day**, which is three reads
+of every skill, `SKILLS.length` being 6.
+
+**Three is the number that averages.** One read is a rep. Two is a comparison.
+Three is the first count at which a per-skill number stops swinging on a single
+lucky contact, which is the same reasoning D-085 used to land on four a month
+and the same reasoning the signup grant uses to be exactly one of every skill.
+The player-facing sentence is "three of every skill", not "18", because the
+reason is the part they can act on.
+
+**The day is the right window because cost is per request.** D-106 measured
+$0.0164 an analysis, of which roughly 70% is the model's written output and
+under a tenth is the footage. So the same hour of film costs about 18x more
+arriving as ten-second reps than as long clips, and `MAX_CLIP_BYTES` at 20 MB
+makes long clips impossible anyway. A monthly-only wall bounds the bill but not
+the burst; a rate stated in minutes states a number no player can reach.
+
+**A minutes-based quota was designed and rejected before this.** D-108 set 3 and
+60 minutes a month. The arithmetic that killed it: 18 analyses at the measured
+10.0s average is three minutes of footage a day, and even at the longest clip
+ever recorded in production - 26.7s - it is eight. Advertising "60 minutes a
+day", as a competitor does, would have been a number the product physically
+cannot accept, which is the hidden asterisk D-109 refuses.
+
+**The monthly numbers stay, at exactly 30x the daily ones**, and they are not a
+second policy. They exist so the two walls cannot disagree: a player who spends
+their day rate every day for a month must never then meet a monthly refusal
+nobody told them about.
+
+**The daily wall must count rows in `analyses`, not attempts.** This is the
+D-064 property and it is the reason the cap cannot be implemented with
+`consume_api_quota`, which is where `coach_daily` lives: that function charges on
+call, so a timeout would spend a unit for an analysis the player never received.
+`reserve_analysis_entitlement` already counts rows since the window start, and
+the daily wall is the same count against UTC midnight. The monthly refusal must
+be evaluated FIRST, or an exhausted month reports as a day that refills into
+another refusal.
+
+**Cost, at the corrected baseline and with prompt caching turned on** (see
+below): a fully-used free account is about $1.15 a month of model spend plus
+$0.54 of coach, which one Pro at the $19.99 downsell carries roughly six of. A
+fully-used Pro is about $6.93, leaving a 57% margin on the downsell and 69% at
+$29.99, with break-even at four to five subscribers.
+
+**Prompt caching is available and is not being used.** Production telemetry
+shows `cache_read_input_tokens` and `cache_creation_input_tokens` at zero on
+every row. The cause is ordering: `readFrames` builds its content array with the
+frames first and `opts.instructions` last, so the ~2,650-token rubric that is
+identical on every call never forms a cacheable prefix. Cached input is $0.15/M
+against $1.50/M, so fixing it is a 22% cut to the cost of every read.
+
+**It is not a free change and must not be treated as one.** Moving the
+instructions ahead of the frames changes the order the model reads them in, and
+this codebase's whole history with this model - D-094's median of 97, D-096's
+eight upstreams behind two ids - says a prompt reordering is a behaviour change
+until an eval says otherwise. Ship it behind the same bar as any other change to
+the read, not as a config tweak.
+
+**Status: decided, not built.** The implementation is a vertical, not a
+constant. `lib/plans.ts` and a migration restating the allowance cluster are
+drafted and were reverted rather than half-landed, because the daily wall also
+requires: `lib/entitlements.ts` to normalize a new `day_exhausted` reason,
+`app/api/analyze/route.ts` to map it, `lib/analyze-status.ts` to type it, and
+`lib/allowance.ts` to stop saying "this month" in eight places of paywall copy
+that are pinned by tests. Landing the numbers without the copy would tell a
+player who used three today that their next ninety unlock on the first of the
+month, which is false in both halves.
