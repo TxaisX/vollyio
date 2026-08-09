@@ -275,7 +275,10 @@ test("a free player who is out gets the price, one action, and the date", () => 
   // RECURRING rate, not the 3 they just spent: those 3 were the one-time signup
   // grant (migration 040), and "your next 3 unlock" would be a promise the gate
   // refuses on Aug 1.
-  assert.equal(offer.wait, "Or wait, and your next one unlocks on Aug 1.");
+  assert.equal(
+    offer.wait,
+    `Or wait, and your next ${MONTHLY_ALLOWANCE.free} unlock on Aug 1.`,
+  );
 });
 
 test("what unlocks at the reset is the rate, never the ceiling just spent", () => {
@@ -340,7 +343,7 @@ test("no upgrade destination means no offer, only the wait", () => {
 
   assert.equal(offer.terms, null);
   assert.equal(offer.action, null);
-  assert.equal(offer.wait, "Your next one unlocks on Aug 1.");
+  assert.equal(offer.wait, `Your next ${MONTHLY_ALLOWANCE.free} unlock on Aug 1.`);
 });
 
 test("an unreadable 402 still says something true and still offers a way out", () => {
@@ -364,10 +367,16 @@ test("the plan constant fills in when a surface did not read the count", () => {
   const free = limitOffer({ plan: "free", resetsOn: "Aug 1", canBuy: true });
   const pro = limitOffer({ plan: "pro", resetsOn: "Aug 1", canBuy: true });
 
-  // The free rate is one, so the headline says so in words rather than
-  // rendering "all 1 of your Free analyses".
-  assert.equal(free.headline, "You've used your Free analysis for this month.");
-  assert.equal(free.wait, "Or wait, and your next one unlocks on Aug 1.");
+  // Derived from the constant, not typed: D-110 moved the free rate off 1, and
+  // the singular branch below it only fires when a rate really is one.
+  assert.equal(
+    free.headline,
+    `You've used all ${MONTHLY_ALLOWANCE.free} of your Free analyses this month.`,
+  );
+  assert.equal(
+    free.wait,
+    `Or wait, and your next ${MONTHLY_ALLOWANCE.free} unlock on Aug 1.`,
+  );
   assert.ok(pro.headline.includes(`all ${MONTHLY_ALLOWANCE.pro} of your Pro`));
 });
 

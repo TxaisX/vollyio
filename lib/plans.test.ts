@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import {
   MONTHLY_ALLOWANCE,
+  DAILY_ALLOWANCE,
   SIGNUP_GRANT,
   monthlyAllowance,
+  dailyAllowance,
   isPlan,
   PLANS,
 } from "./plans.ts";
@@ -57,8 +59,10 @@ test("the signup grant is one number, in SQL and TypeScript alike", async () => 
     ),
   );
   // The grant has to be strictly larger than the rate or it is not a trial, it
-  // is a rounding error. This is the whole reason both numbers exist.
-  assert.ok(SIGNUP_GRANT > MONTHLY_ALLOWANCE.free);
+  // is a rounding error. This is the whole reason both numbers exist. Compared
+  // against the DAILY rate since D-110, because that is the wall a new account
+  // actually meets: the monthly number is a 30x backstop nobody reaches.
+  assert.ok(SIGNUP_GRANT > DAILY_ALLOWANCE.free);
 });
 
 test("the grant is spent against lifetime rows, not against the window", async () => {
@@ -123,11 +127,56 @@ test("only the service role may write a plan", async () => {
 });
 
 test("an unknown plan falls back to the free allowance rather than throwing", () => {
-  assert.equal(monthlyAllowance("free"), 1);
+  assert.equal(monthlyAllowance("free"), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance("pro"), MONTHLY_ALLOWANCE.pro);
   assert.equal(monthlyAllowance("enterprise"), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance(null), MONTHLY_ALLOWANCE.free);
   assert.equal(monthlyAllowance(undefined), MONTHLY_ALLOWANCE.free);
+  // The daily wall fails the same direction, for the same reason.
+  assert.equal(dailyAllowance("free"), DAILY_ALLOWANCE.free);
+  assert.equal(dailyAllowance("pro"), DAILY_ALLOWANCE.pro);
+  assert.equal(dailyAllowance("enterprise"), DAILY_ALLOWANCE.free);
+  assert.equal(dailyAllowance(null), DAILY_ALLOWANCE.free);
+});
+
+test("the daily wall matches the database, and a failed clip never spends it", async () => {
+  const sql = await allowanceSql();
+  assert.match(sql, new RegExp(`when 'pro' then ${DAILY_ALLOWANCE.pro}\\b`, "i"));
+  assert.match(
+    sql,
+    new RegExp(
+      `create or replace function public\\.plan_daily_allowance[\\s\\S]{0,400}else ${DAILY_ALLOWANCE.free}\\b`,
+      "i",
+    ),
+  );
+  // D-110: the month is a backstop, not a second policy. Below 30x the day
+  // rate, a player who spends their day rate every day meets a monthly refusal
+  // nobody told them about.
+  for (const plan of PLANS) {
+    assert.equal(
+      MONTHLY_ALLOWANCE[plan],
+      DAILY_ALLOWANCE[plan] * 30,
+      `${plan}: the monthly backstop must be 30x the daily wall`,
+    );
+  }
+  // THE PROPERTY THAT MATTERS (D-064): the daily wall counts ROWS IN
+  // `analyses` since UTC midnight, never attempts. A timeout writes no row, so
+  // a failed analysis spends nothing. Counting attempts here - which is what
+  // consume_api_quota does for `coach_daily` - would charge players for our
+  // outages.
+  assert.match(sql, /date_trunc\('day', v_now at time zone 'utc'\)/i);
+  assert.match(
+    sql,
+    /select pg_catalog\.count\(\*\) into v_used_today\s+from public\.analyses\s+where user_id = v_user_id\s+and created_at >= v_day_start;/i,
+  );
+  assert.doesNotMatch(sql, /consume_api_quota/i);
+  assert.match(sql, /'reason', 'day_exhausted'/i);
+  // The monthly check must be evaluated FIRST, or an exhausted month reports as
+  // a day that refills into another refusal.
+  assert.ok(
+    sql.indexOf("'month_exhausted'") < sql.indexOf("'day_exhausted'"),
+    "the monthly refusal must be evaluated before the daily one",
+  );
 });
 
 test("plan recognition is exact", () => {

@@ -13,7 +13,20 @@
 
 export type AnalyzeFailureReason =
   | "free_month_exhausted"
-  | "plan_month_exhausted";
+  | "plan_month_exhausted"
+  // D-110's daily wall. Kept as separate literals rather than a period flag
+  // because every existing consumer switches on this union exhaustively, and a
+  // flag would let a surface forget the day case while still typechecking.
+  | "free_day_exhausted"
+  | "plan_day_exhausted";
+
+// Which refusals belong to a paying player. Pro hits its own walls, and money
+// buys them nothing when they do, so they are never sold to (docs/billing.md
+// 4.5).
+const PRO_REASONS: readonly AnalyzeFailureReason[] = [
+  "plan_month_exhausted",
+  "plan_day_exhausted",
+];
 
 // The 402 body the route sends. Every field is `unknown` because this is JSON
 // off the wire: a field that arrives missing or as the wrong type has to
@@ -83,13 +96,20 @@ export function analyzeFailureStatus(
     // here is a body that was lost in transit, and stranding a free player
     // with no way forward is the worse of the two mistakes: the destination is
     // the plan card, which is honest for either plan.
-    canUpgrade: exhausted && reason !== "plan_month_exhausted",
+    canUpgrade: exhausted && !PRO_REASONS.includes(reason as AnalyzeFailureReason),
   };
 }
 
+const REASONS: readonly string[] = [
+  "free_month_exhausted",
+  "plan_month_exhausted",
+  "free_day_exhausted",
+  "plan_day_exhausted",
+];
+
 function readReason(value: unknown): AnalyzeFailureReason | null {
-  return value === "free_month_exhausted" || value === "plan_month_exhausted"
-    ? value
+  return typeof value === "string" && REASONS.includes(value)
+    ? (value as AnalyzeFailureReason)
     : null;
 }
 
@@ -111,7 +131,7 @@ function exhaustedFallback(
   reason: AnalyzeFailureReason | null,
   resetsAt: string | null,
 ): string {
-  if (reason === "plan_month_exhausted") {
+  if (PRO_REASONS.includes(reason as AnalyzeFailureReason)) {
     return resetsAt ? `${base} More unlock on ${resetsAt}.` : base;
   }
   return `${base} Upgrade to keep training.`;

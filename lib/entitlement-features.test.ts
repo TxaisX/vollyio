@@ -147,7 +147,7 @@ test("the monthly allowance is the one thing Pro actually buys", () => {
   // of SIGNUP_GRANT (migration 040), which this function knows nothing about on
   // purpose: it answers "what does this plan give every month", and the grant
   // is neither monthly nor a property of the plan.
-  assert.equal(allowanceFor("free"), 1);
+  assert.equal(allowanceFor("free"), MONTHLY_ALLOWANCE.free);
   assert.equal(allowanceFor("pro"), MONTHLY_ALLOWANCE.pro);
   assert.ok(allowanceFor("pro") > allowanceFor("free"));
 });

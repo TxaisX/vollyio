@@ -23,7 +23,14 @@ import {
   reserveAnalysisEntitlement,
   type AllowanceDetail,
 } from "@/lib/entitlements";
-import { MONTHLY_ALLOWANCE, PLAN_LABEL, isPlan, type Plan } from "@/lib/plans";
+import {
+  MONTHLY_ALLOWANCE,
+  DAILY_ALLOWANCE,
+  PLAN_LABEL,
+  isPlan,
+  type Plan,
+  type AllowancePeriod,
+} from "@/lib/plans";
 import { SKILL_LABEL, type Discipline, type Skill } from "@/lib/skills";
 import {
   MAX_BODY_BYTES,
@@ -144,19 +151,33 @@ function resetDateLabel(resetsAt: string | null | undefined): string | null {
 // signup grant is empty (migration 040), so at this moment the two are the same
 // question and `detail.allowance` would overpromise by the size of the grant.
 // A reply without detail says less rather than inventing a count.
-function exhaustedMessage(plan: Plan, detail: AllowanceDetail | null): string {
+// D-110: the wall that was hit decides the noun, and nothing else about this
+// message changes. "today" and "this month" are the only two words that differ,
+// so they are derived here rather than duplicated into a second builder that
+// would be free to drift from this one.
+function exhaustedMessage(
+  plan: Plan,
+  detail: AllowanceDetail | null,
+  period: AllowancePeriod,
+): string {
   const reset = resetDateLabel(detail?.resetsAt);
+  const noun = period === "day" ? "today" : "this month";
+  const pluralTail = period === "day" ? "for today" : "this month";
+  const rate = period === "day" ? "a day" : "a month";
   const used = detail
     ? detail.allowance === 1
-      ? `You've used your ${PLAN_LABEL[plan]} analysis for this month.`
-      : `You've used all ${detail.allowance} of your ${PLAN_LABEL[plan]} analyses this month.`
-    : "You've used your analyses for this month.";
-  const next = MONTHLY_ALLOWANCE[plan];
+      ? `You've used your ${PLAN_LABEL[plan]} analysis for ${noun}.`
+      : `You've used all ${detail.allowance} of your ${PLAN_LABEL[plan]} analyses ${pluralTail}.`
+    : `You've used your analyses for ${noun}.`;
+  const next =
+    period === "day" ? DAILY_ALLOWANCE[plan] : MONTHLY_ALLOWANCE[plan];
   if (plan === "pro") {
     if (!reset) return used;
     return `${used} Your next ${next} unlock on ${reset}.`;
   }
-  const upgrade = `Upgrade to ${PLAN_LABEL.pro} for ${MONTHLY_ALLOWANCE.pro} analyses a month`;
+  const proRate =
+    period === "day" ? DAILY_ALLOWANCE.pro : MONTHLY_ALLOWANCE.pro;
+  const upgrade = `Upgrade to ${PLAN_LABEL.pro} for ${proRate} analyses ${rate}`;
   const later = next === 1 ? "or your next one unlocks" : "or they reset";
   return reset
     ? `${used} ${upgrade}, ${later} on ${reset}.`
@@ -290,10 +311,20 @@ export async function POST(req: NextRequest) {
     // timezone.
     const detail = entitlement.detail;
     const plan = planOf(detail);
+    const period: AllowancePeriod =
+      entitlement.reason === "day_exhausted" ? "day" : "month";
+    const reason =
+      period === "day"
+        ? plan === "pro"
+          ? "plan_day_exhausted"
+          : "free_day_exhausted"
+        : plan === "pro"
+          ? "plan_month_exhausted"
+          : "free_month_exhausted";
     return NextResponse.json(
       {
-        error: exhaustedMessage(plan, detail),
-        reason: plan === "pro" ? "plan_month_exhausted" : "free_month_exhausted",
+        error: exhaustedMessage(plan, detail, period),
+        reason,
         resets_at: detail?.resetsAt ?? null,
       },
       { status: 402 },

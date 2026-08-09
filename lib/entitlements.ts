@@ -24,6 +24,16 @@ type ReservationResult =
       reason: "month_exhausted";
       detail: AllowanceDetail | null;
     }
+  // D-110's daily wall. Same shape as the monthly refusal on purpose: it
+  // carries the same numbers, and only the period they describe differs, so
+  // every surface downstream renders it through one code path with one noun
+  // swapped rather than growing a parallel set of strings.
+  | {
+      ok: true;
+      allowed: false;
+      reason: "day_exhausted";
+      detail: AllowanceDetail | null;
+    }
   | { ok: false; allowed: false };
 
 const UUID_PATTERN =
@@ -79,6 +89,19 @@ export async function reserveAnalysisEntitlement(
       ok: true,
       allowed: false,
       reason: "month_exhausted",
+      detail: allowanceDetail(row),
+    };
+  }
+  // Migration 057. Deliberately accepted even by builds that predate it in the
+  // same way 'used' is above: the reason arrives from the database, so during a
+  // deploy window the code may be older than the function answering it, and an
+  // unrecognized reason would read as malformed and 503 a player who is simply
+  // out for the day.
+  if (row.reason === "day_exhausted") {
+    return {
+      ok: true,
+      allowed: false,
+      reason: "day_exhausted",
       detail: allowanceDetail(row),
     };
   }

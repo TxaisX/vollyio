@@ -7,14 +7,45 @@
 export const PLANS = ["free", "pro"] as const;
 export type Plan = (typeof PLANS)[number];
 
+// Which wall a refusal came from. Since D-110 there are two, and the only thing
+// that differs downstream is the noun: "today" or "this month". Naming the
+// period once here is what stops that noun being retyped into every surface.
+export type AllowancePeriod = "day" | "month";
+
 // The RECURRING rate, per allowance window. Not what a new account gets: see
 // SIGNUP_GRANT below, which is a separate and larger number.
+// Both numbers are DAILY_ALLOWANCE x 30, and that is the only reason they
+// exist. Since D-110 the day is the wall that binds; the month is kept solely
+// so the two cannot disagree, because a player who used their day rate every
+// day for a month must never then meet a monthly refusal nobody told them
+// about. Change the daily number and change these with it.
 export const MONTHLY_ALLOWANCE: Record<Plan, number> = {
-  free: 1,
-  // 24 since D-085: four reads of every skill a month, the same
-  // one-number-per-skill logic the signup grant uses (SKILLS.length is 6).
-  // 18 was a round number with no story; 24 is a sentence.
-  pro: 24,
+  free: 90,
+  pro: 540,
+};
+
+// The wall that actually binds Pro, checked against rows created since UTC
+// midnight. Defined in SQL by `plan_daily_allowance` in the newest migration
+// and pinned to this file by lib/plans.test.ts, exactly as the monthly rate is.
+//
+// 18 is three reads of every skill (SKILLS.length is 6). Three is the smallest
+// number that averages: one read is a rep, two is a comparison, three is the
+// first count where a per-skill number stops swinging on a single lucky
+// contact. The player-facing sentence says "three per skill" rather than "18",
+// because the reason is the part they can act on.
+//
+// It is a DAILY number because cost is per request, not per minute (D-108): the
+// same hour of footage costs 18x more as short reps than as long clips, and a
+// day is the shortest window that both bounds that and refills often enough
+// that nobody is locked out of their own training week.
+export const DAILY_ALLOWANCE: Record<Plan, number> = {
+  // 3 a day, up from 1 a MONTH. Enough to bring a session's worth of reps and
+  // see the product work, and small enough that a free account costs about
+  // $1.15 a month fully used (D-106's $0.0128 cached), which one Pro carries
+  // roughly six of.
+  free: 3,
+  // 18 is three reads of every skill, and the 6x step from free is the offer.
+  pro: 18,
 };
 
 // Completed analyses a new account may run before the recurring rate applies.
@@ -41,6 +72,12 @@ export function monthlyAllowance(plan: unknown): number {
   return isPlan(plan) ? MONTHLY_ALLOWANCE[plan] : MONTHLY_ALLOWANCE.free;
 }
 
+// Same fail-toward-the-smaller-entitlement rule as monthlyAllowance, and for
+// the same reason: an unrecognized plan string must never widen a wall.
+export function dailyAllowance(plan: unknown): number {
+  return isPlan(plan) ? DAILY_ALLOWANCE[plan] : DAILY_ALLOWANCE.free;
+}
+
 export const PLAN_LABEL: Record<Plan, string> = {
   free: "Free",
   pro: "Pro",
@@ -54,7 +91,7 @@ export const PLAN_LABEL: Record<Plan, string> = {
 // lookup key transferred off the old one. The old $14.99 price stays ACTIVE
 // because a live subscription is still attached to it: archiving a price does
 // not move the subscriptions on it, it only stops new checkouts.
-export const PRO_PRICE_LABEL = "$9.99/mo";
+export const PRO_PRICE_LABEL = "$29.99/mo";
 
 /**
  * What a plan gives, as one sentence, built from the constants above rather
@@ -66,6 +103,11 @@ export const PRO_PRICE_LABEL = "$9.99/mo";
  * same order, so nobody discovers the second half at the 402.
  */
 export function allowanceSentence(plan: Plan): string {
-  if (plan === "pro") return `${MONTHLY_ALLOWANCE.pro} analyses a month`;
-  return `${SIGNUP_GRANT} analyses to start, then ${MONTHLY_ALLOWANCE.free} a month`;
+  // Pro is stated as a DAY rate because that is the wall that binds it, and as
+  // "three per skill" because that is the reason for the number. Stating a
+  // monthly figure here would be the hidden asterisk D-110 exists to refuse:
+  // 540 a month is true and unreachable, 18 a day is true and is what a player
+  // will actually meet.
+  if (plan === "pro") return `${DAILY_ALLOWANCE.pro} analyses a day, three of every skill`;
+  return `${SIGNUP_GRANT} analyses to start, then ${DAILY_ALLOWANCE.free} a day`;
 }

@@ -1,9 +1,11 @@
 import {
   isPlan,
   MONTHLY_ALLOWANCE,
+  DAILY_ALLOWANCE,
   PLAN_LABEL,
   PRO_PRICE_LABEL,
   type Plan,
+  type AllowancePeriod,
 } from "./plans.ts";
 
 type RpcResult = PromiseLike<{ data: unknown; error: unknown }>;
@@ -215,9 +217,26 @@ export function resetDateOf(value: unknown): string | null {
 // which is the honest answer: guessing would eventually tell a paying player
 // they are on the free plan, in the same breath as asking them to buy it.
 export function planFromReason(reason: string | null | undefined): Plan | null {
-  if (reason === "free_month_exhausted") return "free";
-  if (reason === "plan_month_exhausted") return "pro";
+  if (reason === "free_month_exhausted" || reason === "free_day_exhausted") {
+    return "free";
+  }
+  if (reason === "plan_month_exhausted" || reason === "plan_day_exhausted") {
+    return "pro";
+  }
   return null;
+}
+
+// Which wall the 402 came from. D-110 added the daily one; an unreadable or
+// absent reason answers "month", which is the older and wider window and so the
+// safer thing to promise a player who is already blocked: telling someone their
+// analyses return tomorrow when they actually return on the first is a promise
+// the gate would refuse, and the reverse merely understates.
+export function periodFromReason(
+  reason: string | null | undefined,
+): AllowancePeriod {
+  return reason === "free_day_exhausted" || reason === "plan_day_exhausted"
+    ? "day"
+    : "month";
 }
 
 // The offer for a player whose month is spent, in parts rather than as one
@@ -251,6 +270,7 @@ export function limitOffer({
   nextWindow = null,
   resetsOn,
   canBuy,
+  period = "month",
 }: {
   plan: Plan | null;
   allowance?: number | null;
@@ -262,15 +282,23 @@ export function limitOffer({
   nextWindow?: number | null;
   resetsOn: string | null;
   canBuy: boolean;
+  // Which wall was hit. Defaults to the month so every existing caller keeps
+  // the copy it already had; only the daily refusal opts in.
+  period?: AllowancePeriod;
 }): LimitOffer {
-  const count = allowance ?? (plan ? MONTHLY_ALLOWANCE[plan] : null);
-  const next = nextWindow ?? (plan ? MONTHLY_ALLOWANCE[plan] : null);
+  const rate = period === "day" ? DAILY_ALLOWANCE : MONTHLY_ALLOWANCE;
+  // The monthly wording is left exactly as it was, so this change adds a day
+  // case rather than rewriting copy that is already right and already pinned.
+  const noun = period === "day" ? "today" : "this month";
+  const pluralTail = period === "day" ? "for today" : "this month";
+  const count = allowance ?? (plan ? rate[plan] : null);
+  const next = nextWindow ?? (plan ? rate[plan] : null);
   const headline =
     plan && count != null
       ? count === 1
-        ? `You've used your ${PLAN_LABEL[plan]} analysis for this month.`
-        : `You've used all ${count} of your ${PLAN_LABEL[plan]} analyses this month.`
-      : "You've used your analyses for this month.";
+        ? `You've used your ${PLAN_LABEL[plan]} analysis for ${noun}.`
+        : `You've used all ${count} of your ${PLAN_LABEL[plan]} analyses ${pluralTail}.`
+      : `You've used your analyses for ${noun}.`;
 
   // Never sell to somebody who already pays. Money buys a Pro player nothing
   // this month, so an upgrade button in front of them is a charge for a wait
@@ -279,14 +307,20 @@ export function limitOffer({
   // with no way forward is the worse of the two mistakes.
   const sell = canBuy && plan !== "pro";
   const terms = sell
-    ? `${PLAN_LABEL.pro} is ${MONTHLY_ALLOWANCE.pro} analyses a month for ${PRO_PRICE_LABEL}, on the same monthly reset. Cancel any time.`
+    ? period === "day"
+      ? `${PLAN_LABEL.pro} is ${DAILY_ALLOWANCE.pro} analyses a day for ${PRO_PRICE_LABEL}, three of every skill. Cancel any time.`
+      : `${PLAN_LABEL.pro} is ${MONTHLY_ALLOWANCE.pro} analyses a month for ${PRO_PRICE_LABEL}, on the same monthly reset. Cancel any time.`
     : null;
   const action = sell ? `Upgrade to ${PLAN_LABEL.pro}` : null;
 
   // The window is a UTC calendar month whether or not the reset instant
   // survived the trip, so there is always a true thing to say about when this
   // lifts, and the wait is never left open-ended.
-  const when = resetsOn ? `on ${resetsOn}` : "on the first of the month";
+  const when = resetsOn
+    ? `on ${resetsOn}`
+    : period === "day"
+      ? "tomorrow"
+      : "on the first of the month";
   let wait: string;
   if (next == null) {
     wait = sell ? `Or wait, and more unlock ${when}.` : `More unlock ${when}.`;
