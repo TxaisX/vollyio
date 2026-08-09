@@ -59,7 +59,7 @@ export const DAILY_ALLOWANCE: Record<Plan, number> = {
 // room to evaluate. 5 -> 6 on D-083, because SKILLS.length is 6: the grant is
 // now exactly one read of every skill the product scores, which is a reason a
 // player can hear rather than a number someone picked.
-export const SIGNUP_GRANT = 6;
+export const SIGNUP_GRANT = 3;
 
 export function isPlan(value: unknown): value is Plan {
   return typeof value === "string" && (PLANS as readonly string[]).includes(value);
@@ -109,5 +109,8 @@ export function allowanceSentence(plan: Plan): string {
   // 540 a month is true and unreachable, 18 a day is true and is what a player
   // will actually meet.
   if (plan === "pro") return `${DAILY_ALLOWANCE.pro} analyses a day, three of every skill`;
-  return `${SIGNUP_GRANT} analyses to start, then ${DAILY_ALLOWANCE.free} a day`;
+  // No longer "N to start, then M a day". The grant is vestigial since D-110
+  // (see SIGNUP_GRANT), so a starter number in this sentence would promise a
+  // first day that is identical to every other day.
+  return `${DAILY_ALLOWANCE.free} analyses a day`;
 }

@@ -58,11 +58,20 @@ test("the signup grant is one number, in SQL and TypeScript alike", async () => 
       "i",
     ),
   );
-  // The grant has to be strictly larger than the rate or it is not a trial, it
-  // is a rounding error. This is the whole reason both numbers exist. Compared
-  // against the DAILY rate since D-110, because that is the wall a new account
-  // actually meets: the monthly number is a 30x backstop nobody reaches.
-  assert.ok(SIGNUP_GRANT > DAILY_ALLOWANCE.free);
+  // The grant used to have to exceed the recurring rate or it was not a trial.
+  // It no longer does, and that is a FACT about the product rather than a bug
+  // to assert away: D-110 made the day the wall, the daily rate applies to a
+  // brand new account exactly as it does to an old one, and the grant only ever
+  // bought room against the monthly wall - which is now an unreachable 30x
+  // backstop. The grant is vestigial.
+  //
+  // Pinned rather than deleted so the day someone raises the grant to mean
+  // something again, this line is what tells them the copy has to change with
+  // it: `allowanceSentence` deliberately no longer mentions a starter number.
+  assert.ok(
+    SIGNUP_GRANT <= DAILY_ALLOWANCE.free,
+    "the grant now exceeds the daily rate again - it means something, so say so in allowanceSentence",
+  );
 });
 
 test("the grant is spent against lifetime rows, not against the window", async () => {

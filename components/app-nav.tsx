@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { COACH_ENABLED } from "@/lib/flags";
 
 // Five primary destinations, one player question each, in the order they are
@@ -228,5 +230,70 @@ export function TabBar() {
         })}
       </ul>
     </nav>
+  );
+}
+
+
+/**
+ * The wordmark. A link home from anywhere, and a REFRESH once you are already
+ * home.
+ *
+ * A logo that points at the page you are standing on is the one piece of app
+ * chrome that reliably does nothing, and the dashboard is exactly where a
+ * player wants to re-read: an analysis they just ran, a plan that regenerated,
+ * a goal note written by `after()` seconds after the redirect that put them
+ * here. `router.refresh()` re-runs the server components and leaves client
+ * state alone, so the page reloads its data without the full-reload flash.
+ *
+ * It renders a <button> rather than a <Link> on the dashboard on purpose. A
+ * link whose href is the current URL is announced as navigation and does not
+ * describe what the click will do; the button gets the honest label and
+ * `aria-busy` while the refresh is in flight. Both branches take the same
+ * classes so the two are visually identical.
+ */
+export function HomeMark({
+  size,
+  markClass,
+  className,
+}: {
+  size: number;
+  markClass: string;
+  className: string;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const mark = (
+    <>
+      <Image
+        src="/icon-mark.png"
+        alt=""
+        width={size}
+        height={size}
+        className={`${markClass} transition-opacity ${pending ? "opacity-50" : "opacity-100"}`}
+      />
+      Vollyio
+    </>
+  );
+
+  if (pathname !== "/dashboard") {
+    return (
+      <Link href="/dashboard" aria-label="Vollyio, home" className={className}>
+        {mark}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label="Refresh dashboard"
+      aria-busy={pending}
+      onClick={() => startTransition(() => router.refresh())}
+      className={className}
+    >
+      {mark}
+    </button>
   );
 }

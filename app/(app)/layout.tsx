@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import Image from "next/image";
 import {
   SideNavLinks,
   SettingsNavLink,
   SettingsTopBarLink,
   TabBar,
+  HomeMark,
 } from "@/components/app-nav";
 import { FunnelHandoff } from "@/components/funnel-handoff";
 import { SeamArcs } from "@/components/motif";
@@ -32,14 +31,11 @@ export default function AppLayout({
         style={{ viewTransitionName: "app-topbar" }}
         className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-navy/90 px-5 py-2 backdrop-blur-md md:hidden"
       >
-        <Link
-          href="/dashboard"
-          aria-label="Vollyio, home"
+        <HomeMark
+          size={24}
+          markClass="h-6 w-6"
           className="flex min-h-11 items-center gap-2 font-display text-lg font-bold tracking-tight"
-        >
-          <Image src="/icon-mark.png" alt="" width={24} height={24} className="h-6 w-6" />
-          Vollyio
-        </Link>
+        />
         {/* Settings lives here rather than in the tab bar: the five tabs below
             are the daily loop, and the gear keeps the monthly page one tap
             away without costing a slot. */}
@@ -55,14 +51,11 @@ export default function AppLayout({
         style={{ viewTransitionName: "app-sidebar" }}
         className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col gap-1 border-r border-line bg-navy/90 p-4 backdrop-blur-xl md:flex"
       >
-        <Link
-          href="/dashboard"
-          aria-label="Vollyio, home"
+        <HomeMark
+          size={28}
+          markClass="h-7 w-7"
           className="mb-6 flex min-h-11 items-center gap-2 px-3 font-display text-xl font-bold tracking-tight"
-        >
-          <Image src="/icon-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
-          Vollyio
-        </Link>
+        />
         <SideNavLinks />
         <div className="mt-auto flex flex-col gap-1">
           <SettingsNavLink />
