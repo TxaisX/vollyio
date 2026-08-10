@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.vollyio.app",
       "sha256_cert_fingerprints": [
-        "17:00:CA:A6:33:3C:CE:8A:FC:69:81:20:F7:08:FA:04:A0:18:FD:A1:A6:39:4F:6A:80:B3:AB:32:0E:39:31:95"
+        "17:00:CA:A6:33:3C:CE:8A:FC:69:81:20:F7:08:FA:04:A0:18:FD:A1:A6:39:4F:6A:80:B3:AB:32:0E:39:31:95",
+        "B5:F2:99:ED:14:F4:C5:F2:52:01:4C:43:B7:E2:13:A1:5F:D3:3E:9A:FB:CE:79:A6:12:2D:8E:BF:85:EC:0E:F8"
       ]
     }
   }
