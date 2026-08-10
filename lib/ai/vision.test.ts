@@ -56,7 +56,9 @@ test("every attempt is bounded by a deadline", () => {
 // base64 data URLs, so an unpinned VIDEO request succeeds or fails by routing
 // luck. Frames work on either, and leaving them unpinned keeps the capacity.
 test("the video read pins its upstream and the frame read does not", () => {
-  assert.match(SRC, /provider:\s*\{\s*only:\s*\["google-vertex"\]\s*\}/);
+  // The pin is now merged into the privacy floor rather than written as a bare
+  // provider block, so that a pinned request keeps BOTH (lib/ai/routing.ts).
+  assert.match(SRC, /withPrivateRouting\(\s*pinProvider \? \{ only: \["google-vertex"\] \}/);
   // readFrames passes pinProvider false, readVideo passes true. Assert both
   // call sites rather than the flag's existence, because a default flip would
   // satisfy a weaker test and silently pin every image request.

@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { withPrivateRouting } from "./routing.ts";
 
 /**
  * The vision provider: the one call path that READS pixels.
@@ -221,7 +222,9 @@ function chatBody<T extends z.ZodType>(
   return JSON.stringify({
     model: opts.model,
     max_tokens: opts.maxTokens,
-    ...(pinProvider ? { provider: { only: ["google-vertex"] } } : {}),
+    // The privacy floor rides on every request, and the Vertex pin is merged
+    // into it rather than replacing it (lib/ai/routing.ts).
+    ...withPrivateRouting(pinProvider ? { only: ["google-vertex"] } : undefined),
     messages: [
       ...opts.system.map((text) => ({ role: "system", content: text })),
       { role: "user", content },

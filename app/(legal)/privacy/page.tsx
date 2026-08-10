@@ -52,8 +52,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           <strong className="text-chalk">Your film.</strong> Clips and photos
-          you record or upload for analysis, and still frames extracted from
-          them.
+          you record or upload for analysis.
         </p>
         <p>
           <strong className="text-chalk">Your training record.</strong> Scores,
@@ -79,11 +78,12 @@ export default function PrivacyPage() {
 
       <Section title="How we use your film">
         <p>
-          When you submit a rep, still frames from your clip are sent to our
-          servers and processed by the coaching service to produce your
-          breakdown: the scores, timestamped insights, and the
-          priority fix you see. Your clip and its frames are stored privately
-          against your account so you can review past reps.
+          When you submit a rep, the whole clip is sent to our servers and on to
+          the coaching service that reads it, which is how your breakdown is
+          produced: the score, the checkpoints, and the priority fix you see. We
+          instruct that service not to keep your footage or learn from it. Your
+          clip is stored privately against your account so you can review past
+          reps.
         </p>
         <p>
           Your footage is visible only to your account. We do not publish it,

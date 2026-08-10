@@ -1,4 +1,5 @@
 import "server-only";
+import { withPrivateRouting } from "./routing.ts";
 import { z } from "zod";
 
 /**
@@ -88,6 +89,7 @@ export async function* streamChat(opts: {
     model: opts.model,
     max_tokens: opts.maxTokens,
     stream: true,
+    ...withPrivateRouting(),
     messages: [{ role: "system", content: opts.system }, ...opts.messages],
   });
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -280,6 +282,7 @@ export async function completeObject<T extends z.ZodType>(opts: {
   const body = JSON.stringify({
     model: opts.model,
     max_tokens: opts.maxTokens,
+    ...withPrivateRouting(),
     messages: [{ role: "system", content: opts.system }, ...opts.messages],
     response_format: {
       type: "json_schema",
