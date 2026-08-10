@@ -214,6 +214,12 @@ export default function Landing() {
         }}
       />
       <CursorGlow />
+      {/* First thing on the page, above the nav. The install is the one
+          distribution surface that needs nobody's permission, and it was only
+          reachable by scrolling to the closing CTA. It renders nothing on a
+          browser that cannot install, nothing once installed, and nothing once
+          dismissed, so it costs a returning visitor no height at all. */}
+      <InstallApp variant="banner" />
       <LandingNav />
 
       <main id="main" tabIndex={-1} className="relative">

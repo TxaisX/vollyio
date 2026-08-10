@@ -94,5 +94,14 @@ export const CONFIRM_SENT_MESSAGE =
 // A social sign-in that never got as far as the provider. This is ours to fix,
 // not the player's, so the copy points at the path that always works rather
 // than asking them to retry the thing that just failed.
+// A social sign-in that reached the provider and came back, but whose code
+// could not be exchanged for a session. It is DISTINCT from DEAD_LINK_MESSAGE,
+// which the callback used to show for this case: that copy tells the player to
+// open the newest Vollyio email, which is advice about a link they never used
+// and cannot act on, since they signed in with one tap and have no email to
+// open.
+export const OAUTH_EXCHANGE_FAILED_MESSAGE =
+  "That sign-in didn't complete. Try it once more, or use your email and password below.";
+
 export const OAUTH_FAILED_MESSAGE =
   "That sign-in option isn't working right now. Use your email and password below, and we'll get it fixed.";

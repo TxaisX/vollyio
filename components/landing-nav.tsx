@@ -89,7 +89,12 @@ export function LandingNav() {
   return (
     <header
       ref={headerRef}
-      className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
+      // top is a variable, not 0, because the install banner pins itself to the
+      // same edge (components/install-app.tsx). It publishes its own height as
+      // --install-banner-h and leaves it at 0px whenever it is not showing, so
+      // the nav sits under the bar when there is one and at the top when there
+      // is not, with no second source of truth about whether the bar exists.
+      className={`fixed inset-x-0 top-[var(--install-banner-h,0px)] z-40 transition-all duration-300 ${
         scrolled || open
           ? "border-b border-line bg-navy/85 py-3 backdrop-blur-md"
           : "border-b border-transparent py-5"

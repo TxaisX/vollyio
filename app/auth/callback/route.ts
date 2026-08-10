@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { DEAD_LINK_MESSAGE } from "@/lib/auth-errors";
+import { DEAD_LINK_MESSAGE, OAUTH_EXCHANGE_FAILED_MESSAGE } from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase/server";
 
 const OTP_TYPES = new Set<EmailOtpType>([
@@ -39,9 +39,18 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
 
+  // A `code` means this arrived from SOCIAL sign-in, not from an email link.
+  // Its failure must be reported as its own thing: the dead-link copy below
+  // tells the player to open the newest Vollyio email, which is advice about a
+  // link a one-tap Google user never had and cannot go and find. That wrong
+  // message is what the login page has been showing after a failed Google
+  // round trip.
   if (code && code.length <= 2048) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${destination(type)}`);
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(OAUTH_EXCHANGE_FAILED_MESSAGE)}`,
+    );
   }
 
   if (tokenHash && tokenHash.length <= 2048 && type) {

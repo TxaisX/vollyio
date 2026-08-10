@@ -61,12 +61,38 @@ function isIosSafari(): boolean {
   return iOS && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
 }
 
-export function InstallApp({ className = "" }: { className?: string }) {
+// Dismissing the banner is remembered, because a bar that returns on every
+// visit stops reading as an offer and starts reading as an ad. The inline
+// variant is not gated on this: that one sits in the flow of the page and is
+// only ever seen by someone who scrolled to it.
+const DISMISSED_KEY = "vollyio.install-banner-dismissed";
+
+export function InstallApp({
+  className = "",
+  variant = "inline",
+}: {
+  className?: string;
+  /** "banner" pins a slim bar to the very top of the page, above the nav, and
+   *  is the first thing a visitor sees. "inline" sits wherever it is placed. */
+  variant?: "inline" | "banner";
+}) {
   const [mode, setMode] = useState<Mode>("none");
   const [showIosSteps, setShowIosSteps] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (alreadyInstalled()) return;
+    if (variant === "banner") {
+      try {
+        if (localStorage.getItem(DISMISSED_KEY)) {
+          setDismissed(true);
+          return;
+        }
+      } catch {
+        // Private mode and blocked storage both throw here. Losing the memory
+        // of a dismissal is better than losing the offer, so carry on.
+      }
+    }
 
     const settle = () => {
       if (window.__installPrompt) setMode("prompt");
@@ -84,7 +110,37 @@ export function InstallApp({ className = "" }: { className?: string }) {
       window.removeEventListener("vollyio:installready", onReady);
       window.removeEventListener("vollyio:installed", onInstalled);
     };
-  }, []);
+  }, [variant]);
+
+  // HOW TALL THE BANNER IS, published so the fixed nav can sit under it rather
+  // than behind it. components/landing-nav.tsx is `fixed`, so without this the
+  // bar and the nav occupy the same strip and one of them wins by z-index
+  // alone. The nav's fallback is 0px, so nothing special happens when there is
+  // no bar.
+  //
+  // ONLY THE BANNER WRITES THIS. The landing page renders this component twice
+  // (the bar up top, an inline offer at the closing CTA) and an early version
+  // let both write: the inline one is never a banner, so it published 0px and
+  // clobbered the real height, leaving the nav sitting on top of the bar. An
+  // instance that is not the banner has no opinion about the banner's height.
+  useEffect(() => {
+    if (variant !== "banner") return;
+    const root = document.documentElement;
+    const showing = mode !== "none" && !dismissed;
+    root.style.setProperty("--install-banner-h", showing ? "2.75rem" : "0px");
+    return () => {
+      root.style.removeProperty("--install-banner-h");
+    };
+  }, [variant, mode, dismissed]);
+
+  function dismiss() {
+    setDismissed(true);
+    try {
+      localStorage.setItem(DISMISSED_KEY, "1");
+    } catch {
+      // See above: a forgotten dismissal is survivable, a thrown error is not.
+    }
+  }
 
   async function install() {
     const event = window.__installPrompt;
@@ -99,6 +155,56 @@ export function InstallApp({ className = "" }: { className?: string }) {
   }
 
   if (mode === "none") return null;
+
+  if (variant === "banner") {
+    if (dismissed) return null;
+    const ios = mode === "ios";
+    return (
+      // STICKY, NOT FIXED, and that is the whole point of the element. Fixed
+      // took it out of flow, so it sat ON TOP of the first 45px of the page and
+      // covered the wordmark and the start of the hero. Sticky keeps it pinned
+      // while occupying real height, so everything below starts underneath it
+      // and nothing is hidden. z-50 clears the nav's z-40, which is fixed to
+      // the same edge and offsets itself by --install-banner-h.
+      <div className="sticky top-0 z-50 border-b border-line bg-navy-lighter/95 backdrop-blur-md">
+        <div className="mx-auto flex h-11 max-w-6xl items-center gap-3 px-5 md:px-8">
+          <p className="min-w-0 flex-1 truncate text-sm text-chalk">
+            <span className="text-gold">Install Vollyio</span>{" "}
+            <span className="text-chalk-dim">
+              {ios
+                ? "· Share, then Add to Home Screen"
+                : "· full screen, straight from your home screen"}
+            </span>
+          </p>
+          {ios ? (
+            // No API exists on iOS, so the sentence above IS the instruction
+            // and there is nothing to click.
+            <span aria-hidden="true" className="shrink-0 text-gold">
+              &uarr;
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={install}
+              className="btn-primary shrink-0 px-4 py-1.5 text-xs"
+            >
+              Install
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss install offer"
+            className="flex h-11 w-8 shrink-0 items-center justify-center text-chalk-dim transition-colors hover:text-chalk"
+          >
+            <span aria-hidden="true" className="text-lg leading-none">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (mode === "ios") {
     return (

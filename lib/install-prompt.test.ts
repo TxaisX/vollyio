@@ -60,9 +60,48 @@ test("iOS gets instructions, and only in the browser where they are true", () =>
   assert.match(BUTTON, /maxTouchPoints/);
 });
 
+test("the banner and the fixed nav do not fight for the top edge", async () => {
+  const nav = await readFile(
+    new URL("../components/landing-nav.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // FAILURE MODE THIS EXISTS FOR: the nav is `fixed` to the top edge and the
+  // banner pins itself to the same edge. Left at `top-0` the two occupy one
+  // strip and the loser is simply invisible, decided by z-index. The banner
+  // publishes its own height and the nav reads it, so there is no second
+  // source of truth about whether a banner is on screen.
+  assert.match(nav, /top-\[var\(--install-banner-h,0px\)\]/);
+  assert.match(BUTTON, /--install-banner-h/);
+  // The fallback matters as much as the variable: every page whose nav is not
+  // under a banner must still sit flush at the top.
+  assert.match(BUTTON, /"0px"/);
+
+  // STICKY, NOT FIXED. Fixed took the ribbon out of flow, so it covered the
+  // first 45px of the page - the wordmark and the top of the hero - which is
+  // the whole complaint it was rebuilt to answer. Sticky occupies real height,
+  // so everything below starts underneath it. z-50 clears the nav's z-40.
+  assert.match(BUTTON, /sticky top-0 z-50/);
+  assert.doesNotMatch(
+    BUTTON,
+    /fixed inset-x-0 top-0 z-50/,
+    "a fixed ribbon overlays the page instead of making room for itself",
+  );
+
+  // A bar that returns on every visit is an ad, not an offer.
+  assert.match(BUTTON, /localStorage/);
+  assert.match(BUTTON, /Dismiss install offer/);
+});
+
 test("the landing page offers the install instead of describing it", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /<InstallApp \/>/);
+  // Top of the page, and BEFORE the nav in source order.
+  assert.match(page, /<InstallApp variant="banner" \/>/);
+  assert.ok(
+    page.indexOf('variant="banner"') < page.indexOf("<LandingNav />"),
+    "the banner must render above the nav",
+  );
   // The old copy mentioned installing in one clause of one FAQ answer and left
   // the reader to find Chrome's overflow menu, which is the same as not
   // shipping it. That sentence must not come back as the only mention.

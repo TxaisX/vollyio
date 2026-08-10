@@ -193,5 +193,9 @@ export async function updatePassword(formData: FormData) {
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  // Home, not the login form. Signing out is not the first step of signing back
+  // in: dropping someone on a form they did not ask for reads as "you are
+  // locked out" rather than "you are out", and the marketing page is the one
+  // surface that says what they just stopped paying attention to.
+  redirect("/");
 }
