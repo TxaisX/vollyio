@@ -407,7 +407,7 @@ test("the clip is pinned above the breakdown, not parked in a capped column", as
 
 // The pinned player, pinned. Every one of these is a property someone could
 // remove without the page looking broken in a screenshot.
-test("the pinned clip loops a centre cut, muted, and offers the whole clip", async () => {
+test("the pinned clip loops the whole rep, muted, and yields to reduced motion", async () => {
   const clip = await readFile(
     new URL("../components/sticky-clip.tsx", import.meta.url),
     "utf8",
@@ -429,14 +429,23 @@ test("the pinned clip loops a centre cut, muted, and offers the whole clip", asy
   // mobile browsers refuse and the element sits on a black frame.
   assert.match(clip, /^\s+muted$/m);
   assert.match(clip, /^\s+playsInline$/m);
-  // A loop the viewer cannot escape hides the rest of the rep behind a crop.
-  assert.match(clip, /Play the whole clip/);
   // Motion the reader asked not to have. A rep looping forever at the top of
   // the page is exactly what prefers-reduced-motion exists to stop.
   assert.match(clip, /prefers-reduced-motion/);
   assert.match(clip, /autoPlay=\{!reduced\}/);
-  // `loop` alone replays the WHOLE clip, which is not what a centre cut is.
-  assert.doesNotMatch(clip, /^\s+loop$/m);
+
+  // THE WHOLE CLIP, looped natively. This briefly played a four-second cut
+  // from the middle, which showed the player less than the fixes underneath
+  // were written about: the analysis is of the entire rep. Native `loop` is
+  // also what removes the timeupdate handler that used to fire several times a
+  // second to hold a window by hand.
+  assert.match(clip, /^\s+loop$/m);
+  assert.match(clip, /^\s+controls$/m, "the viewer has to be able to scrub and replay");
+  assert.doesNotMatch(
+    clip,
+    /EXCERPT_S|onTimeUpdate|currentTime/,
+    "no cropping: the pinned clip is the whole rep the breakdown analysed",
+  );
 });
 
 // ---------------------------------------------------------------------------
