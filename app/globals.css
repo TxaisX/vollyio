@@ -306,6 +306,12 @@
 :root {
   --clip-top: 0px;
   --clip-bleed: 0px;
+
+  /* How tall the pinned clip currently is. Written by
+     components/sticky-clip.tsx from a ResizeObserver, and left at zero on
+     every page that pins nothing, so the anchor offset below collapses to
+     just the chrome. */
+  --clip-lane: 0px;
 }
 
 /* The signed-in app shell: a min-h-11 row plus py-2 plus a 1px border, pinned

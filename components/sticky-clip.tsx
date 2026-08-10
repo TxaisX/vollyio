@@ -41,6 +41,7 @@ export function StickyClip({
   label?: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
   const [range, setRange] = useState<{ start: number; end: number } | null>(null);
   // Autoplay is a motion decision, not a playback one. A rep looping forever at
@@ -55,6 +56,30 @@ export function StickyClip({
     const onChange = () => setReduced(q.matches);
     q.addEventListener("change", onChange);
     return () => q.removeEventListener("change", onChange);
+  }, []);
+
+  // HOW FAR DOWN THE PAGE THIS BLOCK REACHES, published for anything that
+  // scrolls to an anchor underneath it. The value chips at the top of the
+  // analysis page jump to #strengths, #changes and #drills, and those headings
+  // carried a flat scroll-mt-24 (96px) that was correct when nothing was
+  // pinned. This block is taller than that on every phone - a 34vh video plus
+  // its label and controls - so without this the heading you asked for lands
+  // behind the player. Measured rather than estimated because the height moves
+  // with the viewport, with the reduced-motion variant (which shows native
+  // controls) and with "play the whole clip".
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const publish = () =>
+      root.style.setProperty("--clip-lane", `${Math.round(el.getBoundingClientRect().height)}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--clip-lane");
+    };
   }, []);
 
   // The crop is derived from the real duration, which is only known once
@@ -106,7 +131,10 @@ export function StickyClip({
     // --clip-top and --clip-bleed (app/globals.css), because this component
     // renders under both and a literal would be right in only one. z-20 keeps
     // it under that bar rather than over it, so the two never fight.
-    <div className="sticky top-[var(--clip-top)] z-20 -mx-[var(--clip-bleed)] bg-navy/95 px-[var(--clip-bleed)] pb-2.5 pt-2 backdrop-blur-md">
+    <div
+      ref={box}
+      className="sticky top-[var(--clip-top)] z-20 -mx-[var(--clip-bleed)] bg-navy/95 px-[var(--clip-bleed)] pb-2.5 pt-2 backdrop-blur-md"
+    >
       {label && (
         <p className="mb-1.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
           {label}

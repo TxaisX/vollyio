@@ -178,7 +178,7 @@ export function BreakdownBody({
             <Reveal delay={180}>
               <h2
                 id="strengths"
-                className="mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+                className="mb-3 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
               >
                 What worked
               </h2>
@@ -213,7 +213,7 @@ export function BreakdownBody({
               <>
                 <h2
                   id="changes"
-                  className="mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+                  className="mb-3 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
                 >
                   What to change
                 </h2>
@@ -281,7 +281,7 @@ export function BreakdownBody({
               // "what to change" implies a list and this is one card.
               <div
                 id="changes"
-                className="scroll-mt-24 rounded-card border-l-[3px] border-gold bg-navy-lighter p-5 shadow-lift"
+                className="scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] rounded-card border-l-[3px] border-gold bg-navy-lighter p-5 shadow-lift"
               >
                 <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold">
                   Priority fix
@@ -308,7 +308,7 @@ export function BreakdownBody({
         <Reveal delay={220} className={ADVANCED_ONLY}>
           <h2
             id="checkpoints"
-            className="mt-6 mb-1 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-1 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
           >
             Checkpoints
           </h2>
@@ -383,7 +383,7 @@ export function BreakdownBody({
         <Reveal delay={260} className={ADVANCED_ONLY}>
           <h2
             id="timeline"
-            className="mt-6 mb-2 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-2 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
           >
             Timeline
           </h2>
@@ -426,7 +426,7 @@ export function BreakdownBody({
         <Reveal delay={300}>
           <h2
             id="drills"
-            className="mt-6 mb-2 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-2 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
           >
             Drills for this
           </h2>
