@@ -68,10 +68,27 @@ export default function RootLayout({
     >
       <head>
         {/* Runs before first paint so .reveal's hidden pre-state (scoped to
-            :root.js in globals.css) never applies for no-JS visitors. */}
+            :root.js in globals.css) never applies for no-JS visitors.
+
+            It also catches `beforeinstallprompt`, and that HAS to happen here
+            rather than in components/install-app.tsx. The browser fires the
+            event once, early, and usually before React has hydrated, so a
+            listener added in a component effect misses it on most visits and
+            the Install button never appears. Stashing it on `window` lets the
+            component read it whenever it mounts, and the custom event covers
+            the rarer case where the browser fires late. preventDefault stops
+            Chrome's own mini-infobar so the page owns the offer. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('js')",
+            __html:
+              "document.documentElement.classList.add('js');" +
+              "window.__installPrompt=null;" +
+              "addEventListener('beforeinstallprompt',function(e){" +
+              "e.preventDefault();window.__installPrompt=e;" +
+              "dispatchEvent(new Event('vollyio:installready'))});" +
+              "addEventListener('appinstalled',function(){" +
+              "window.__installPrompt=null;" +
+              "dispatchEvent(new Event('vollyio:installed'))});",
           }}
         />
       </head>

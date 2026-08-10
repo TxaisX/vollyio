@@ -8,6 +8,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { Radar } from "@/components/radar";
 import { Sparkline } from "@/components/sparkline";
 import { SkillIcon } from "@/components/skill-icons";
+import { InstallApp } from "@/components/install-app";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { LimitNotice } from "@/components/limit-notice";
@@ -416,6 +417,13 @@ export default async function Dashboard({
           </div>
         </div>
       </Reveal>
+
+      {/* The one distribution surface that needs nobody's permission. A player
+          who installs comes back to an icon instead of remembering a URL, and
+          this page is where they already are. It renders nothing on a browser
+          that cannot install and nothing once installed, so a signed-in regular
+          sees it once and never again. */}
+      <InstallApp className="mt-4" />
 
       {/* Out of analyses: the same offer the 402 shows, in the place a player
           lands before they walk to /analyze and find out the hard way. Above

@@ -4,6 +4,7 @@ import { CinematicHero } from "@/components/cinematic-hero";
 import { StickyCta } from "@/components/sticky-cta";
 import { CursorGlow, SpotlightGroup, Tilt } from "@/components/cursor-glow";
 import { LandingNav } from "@/components/landing-nav";
+import { InstallApp } from "@/components/install-app";
 import { Reveal, CountUp } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { Radar } from "@/components/radar";
@@ -67,7 +68,8 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
         reads better than a rally, and a whole game is not what this scores.
         iPhone and Android clips both work. No
         wearables, no rig, no second person required. Vollyio runs on the web
-        on iOS, Android, and desktop, and you can install it like an app.
+        on iOS, Android, and desktop, and installs to your home screen like an
+        app, full screen with no address bar.
       </p>
     ),
   },
@@ -625,10 +627,15 @@ export default function Landing() {
                 like a coach would. The next one you film is the first one that
                 counts.
               </p>
-              <div className="mt-8 flex justify-center">
+              <div className="mt-8 flex flex-col items-center gap-3">
                 <Link href="/start" className="btn-primary text-base">
                   Analyze your first rep
                 </Link>
+                {/* Secondary on purpose. Installing before there is anything to
+                    come back to is the wrong first move, so this sits under the
+                    real CTA and renders nothing at all on a browser that cannot
+                    install (see components/install-app.tsx). */}
+                <InstallApp />
               </div>
               {/* The offer, in the open. This page used to say only "your
                   first breakdown is free" and put the real numbers behind a
