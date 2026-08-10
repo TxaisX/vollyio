@@ -100,6 +100,13 @@ export const CONFIRM_SENT_MESSAGE =
 // open the newest Vollyio email, which is advice about a link they never used
 // and cannot act on, since they signed in with one tap and have no email to
 // open.
+// The provider sent the player back REFUSING the sign-in, rather than failing.
+// Almost always they hit Cancel, which is not an error and must not read like
+// one: telling someone "something went wrong" when they chose to back out is
+// how a product teaches people to distrust its error messages.
+export const OAUTH_DECLINED_MESSAGE =
+  "That sign-in was cancelled. Try again, or use your email and password below.";
+
 export const OAUTH_EXCHANGE_FAILED_MESSAGE =
   "That sign-in didn't complete. Try it once more, or use your email and password below.";
 

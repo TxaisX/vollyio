@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { DEAD_LINK_MESSAGE, OAUTH_EXCHANGE_FAILED_MESSAGE } from "@/lib/auth-errors";
+import {
+  DEAD_LINK_MESSAGE,
+  OAUTH_DECLINED_MESSAGE,
+  OAUTH_EXCHANGE_FAILED_MESSAGE,
+} from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase/server";
 
 const OTP_TYPES = new Set<EmailOtpType>([
@@ -37,6 +41,33 @@ export async function GET(request: NextRequest) {
   const rawType = searchParams.get("type") as EmailOtpType | null;
   const type = rawType && OTP_TYPES.has(rawType) ? rawType : null;
 
+  // THE PROVIDER'S OWN REFUSAL, read FIRST, because until this existed the
+  // route simply fell past it: an OAuth round trip that came back with an
+  // error carries no `code` and no `token_hash`, so it landed on the dead-link
+  // message at the bottom and told a Google user to go and open an email. That
+  // wrong message is what sent this investigation down the wrong path - the
+  // outbound leg was verified correct (cookie set, PKCE challenge issued,
+  // Google reached) while the real reason was being discarded here.
+  //
+  // The provider's `error_description` is NOT rendered. It is attacker-supplied
+  // text on a public URL, and this value is echoed into the login page, so it
+  // is mapped to our own copy and logged instead.
+  const providerError = searchParams.get("error");
+  if (providerError) {
+    console.error("[auth] provider returned an error", {
+      error: providerError,
+      code: searchParams.get("error_code"),
+      description: searchParams.get("error_description"),
+    });
+    const message =
+      providerError === "access_denied"
+        ? OAUTH_DECLINED_MESSAGE
+        : OAUTH_EXCHANGE_FAILED_MESSAGE;
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(message)}`,
+    );
+  }
+
   const supabase = await createClient();
 
   // A `code` means this arrived from SOCIAL sign-in, not from an email link.
@@ -48,6 +79,13 @@ export async function GET(request: NextRequest) {
   if (code && code.length <= 2048) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${destination(type)}`);
+    // The one failure that is genuinely ours, so it is logged with its reason
+    // rather than being inferred from a screenshot later.
+    console.error("[auth] code exchange failed", {
+      status: error.status,
+      code: error.code,
+      message: error.message,
+    });
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent(OAUTH_EXCHANGE_FAILED_MESSAGE)}`,
     );
