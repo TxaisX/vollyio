@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.vollyio.app",
+      "sha256_cert_fingerprints": [
+        "17:00:CA:A6:33:3C:CE:8A:FC:69:81:20:F7:08:FA:04:A0:18:FD:A1:A6:39:4F:6A:80:B3:AB:32:0E:39:31:95"
+      ]
+    }
+  }
+]
