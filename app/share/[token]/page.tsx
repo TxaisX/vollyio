@@ -68,7 +68,7 @@ export default async function SharedBreakdown({
     // Wider only when there is a clip to put beside the scores. A breakdown
     // with no clip is a column of prose, and stretching that to 64rem hurts it.
     <main
-      className={`mx-auto px-4 py-10 sm:px-6 ${
+      className={`shell-share mx-auto px-4 py-10 sm:px-6 ${
         shared.clip_path ? "max-w-5xl" : "max-w-3xl"
       }`}
     >
@@ -90,7 +90,7 @@ export default async function SharedBreakdown({
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-              {SKILL_LABEL[shared.skill]} · {dateLabel}
+              {!shared.clip_path && `${SKILL_LABEL[shared.skill]} · ${dateLabel}`}
             </p>
             <h1 className="mt-2 font-display text-page-title">
               Breakdown
@@ -113,31 +113,17 @@ export default async function SharedBreakdown({
         )}
       </Reveal>
 
-      {/* Same split as the owner's own breakdown: clip on the right from tablet
-          up, scores on the wider left. Without it the clip ran the full column
-          width on every screen and a stranger had to scroll past a full-bleed
-          video before reaching the thing the link was sent to show them. */}
-      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] md:items-start md:gap-8">
-        {shared.clip_path && (
-          <div className="md:order-2 md:sticky md:top-8">
-            <Reveal delay={100}>
-              <video
-                controls
-                playsInline
-                preload="metadata"
-                src={`/share/${token}/clip`}
-                className="max-h-[55vh] w-full rounded-card border border-line bg-navy-light object-contain"
-              />
-            </Reveal>
-          </div>
-        )}
-
-        <div className="mt-8 min-w-0 md:order-1 md:mt-0">
-          <BreakdownBody
-            skill={shared.skill}
-            result={shared.result}
-          />
-        </div>
+      {/* Same shape as the owner's own breakdown, for the same reason: the rep
+          loops pinned at the top rather than sitting in a capped side column,
+          so a stranger sees the clip the link was sent about while they read
+          what it says. One column, since the clip no longer takes one. */}
+      <div className="mt-5 min-w-0">
+        <BreakdownBody
+          skill={shared.skill}
+          result={shared.result}
+          clipUrl={shared.clip_path ? `/share/${token}/clip` : null}
+          clipLabel={`${SKILL_LABEL[shared.skill]} · ${dateLabel}`}
+        />
       </div>
 
       <Reveal delay={360}>

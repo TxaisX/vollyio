@@ -238,10 +238,23 @@ test("a v2 row renders checkpoints, and they sit behind Advanced", () => {
 test("Basic is the summary, both columns and the drills", () => {
   // The summary shares its Reveal with the switch, so nothing can gate it
   // without gating the control that ungates everything else.
-  const summary = section(BODY, "<Reveal delay={140}>", 200);
+  const summary = section(BODY, "<Reveal delay={140}>", 420);
   assert.match(summary, /\{result\.summary\}/);
   assert.match(summary, /<DetailSwitch \/>/);
   assert.doesNotMatch(summary, /ADVANCED_ONLY/);
+
+  // ORDER, asked for directly: "right under it should be the basic and
+  // advance toggles/options". Clip, then the control that decides how much is
+  // said about it, then the words. A summary paragraph wedged between the
+  // player and its own switch is what this pins against.
+  const clipAt = BODY.indexOf("<StickyClip");
+  const switchAt = BODY.indexOf("<DetailSwitch />");
+  const summaryAt = BODY.indexOf("{result.summary}");
+  assert.notEqual(clipAt, -1, "the rep must render at the top of the breakdown");
+  assert.ok(
+    clipAt < switchAt && switchAt < summaryAt,
+    "the order is clip, then the Basic/Advanced switch, then the summary",
+  );
 
   for (const anchor of ['id="strengths"', 'id="changes"']) {
     const at = BODY.indexOf(anchor);
@@ -352,42 +365,78 @@ test("the columns sit side by side at every width", () => {
 
 // THE THREE NUMBERS THAT DECIDE WHETHER THE COLUMNS ACTUALLY SPLIT.
 //
-// "What worked" and "what to change" go side by side at 36rem of CONTAINER
-// width, not viewport width, because the analysis page hands this component
-// only what the clip column leaves it. So the breakpoint and the clip cap are
-// one setting expressed in two files, and reading either alone tells you
-// nothing. Before 2026-08-06 they disagreed: a 30rem clip cap left the
-// breakdown under 36rem until roughly a 1536px viewport, so the layout that
-// exists to stop scrolling stacked on every ordinary laptop.
+// THE CLIP IS NOT A COLUMN ANY MORE, and this is what stops it becoming one
+// again. It used to sit in a capped right-hand column, which coupled three
+// numbers across two files - the cap on this page (22rem, then 26rem at 2xl)
+// and the 36rem container query the verdict columns split at - so that
+// lowering one silently stopped the other. That coupling caused a real
+// regression: a 30rem cap left the breakdown under 36rem until roughly a
+// 1536px viewport, so the layout that exists to stop scrolling stacked on
+// every ordinary laptop.
 //
-// Arithmetic this pins, at a 1280px viewport: 1280px, less the 14rem sidebar
-// and 2 x 2.5rem of page padding, is about 59rem of row; less the 2rem gap and
-// a 22rem clip leaves about 35rem... which is why the cap is 22 and not 24.
-test("the clip cap leaves each breakdown column readable", async () => {
+// The clip now loops pinned at the top of the breakdown itself, full width, so
+// there is no cap to keep in sync and the verdict columns get the whole row.
+test("the clip is pinned above the breakdown, not parked in a capped column", async () => {
   const page = await readFile(
     new URL("../app/(app)/analysis/[id]/page.tsx", import.meta.url),
     "utf8",
   );
 
-  const cap = page.match(/md:grid-cols-\[minmax\(0,1fr\)_minmax\(0,(\d+)rem\)\]/);
-  assert.ok(cap, "the analysis page must cap the clip column in rem");
-
-  // The columns no longer collapse (see the test above), so the question this
-  // guards changed: not "do they split" but "is each one still readable once
-  // the clip has taken its share". 16rem is the width the fix titles stop
-  // wrapping every other word at, which is what the old 36rem split was
-  // protecting in the first place.
-  const MIN_COL_REM = 16;
-  const ROW_REM = (1280 - 14 * 16 - 2 * 2.5 * 16) / 16;
-  const PAGE_GAP_REM = 2;
-  const COL_GAP_REM = 1; // gap-4
-  const remaining = ROW_REM - PAGE_GAP_REM - Number(cap[1]);
-  const perColumn = (remaining - COL_GAP_REM) / 2;
-  assert.ok(
-    perColumn >= MIN_COL_REM,
-    `a 1280px viewport leaves each column ${perColumn.toFixed(1)}rem, under the ${MIN_COL_REM}rem ` +
-      "where fix titles start wrapping every other word; lower the clip cap rather than letting them drift",
+  assert.doesNotMatch(
+    page,
+    /md:grid-cols-\[minmax\(0,1fr\)_minmax\(0,\d+rem\)\]/,
+    "a capped clip column re-couples this page's width to breakdown-body's container query",
   );
+
+  // The clip reaches the breakdown as a prop, which is what puts it on the
+  // share page too from the same code (D-049).
+  assert.match(page, /clipUrl=\{clipUrl\}/);
+  assert.match(page, /clipLabel=/);
+
+  const share = await readFile(
+    new URL("../app/share/[token]/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(share, /clipUrl=\{shared\.clip_path \? `\/share\/\$\{token\}\/clip` : null\}/);
+  assert.doesNotMatch(
+    share,
+    /md:grid-cols-\[minmax\(0,1fr\)_minmax\(0,\d+rem\)\]/,
+    "the share page carried the same capped column and the same coupling",
+  );
+});
+
+// The pinned player, pinned. Every one of these is a property someone could
+// remove without the page looking broken in a screenshot.
+test("the pinned clip loops a centre cut, muted, and offers the whole clip", async () => {
+  const clip = await readFile(
+    new URL("../components/sticky-clip.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(clip, /className="sticky top-/, "it has to actually stick");
+  // The offset comes from the host shell, because the app layout pins a mobile
+  // top bar the clip must sit under and the share page has no such bar. A
+  // literal here is right on one of them and wrong on the other.
+  assert.match(clip, /--clip-top/);
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /--clip-top:/);
+  const shell = await readFile(
+    new URL("../app/(app)/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(shell, /shell-app/, "the app shell must declare its own chrome height");
+  // Muted + playsInline is what makes autoplay permitted at all; without both,
+  // mobile browsers refuse and the element sits on a black frame.
+  assert.match(clip, /^\s+muted$/m);
+  assert.match(clip, /^\s+playsInline$/m);
+  // A loop the viewer cannot escape hides the rest of the rep behind a crop.
+  assert.match(clip, /Play the whole clip/);
+  // Motion the reader asked not to have. A rep looping forever at the top of
+  // the page is exactly what prefers-reduced-motion exists to stop.
+  assert.match(clip, /prefers-reduced-motion/);
+  assert.match(clip, /autoPlay=\{!reduced\}/);
+  // `loop` alone replays the WHOLE clip, which is not what a centre cut is.
+  assert.doesNotMatch(clip, /^\s+loop$/m);
 });
 
 // ---------------------------------------------------------------------------

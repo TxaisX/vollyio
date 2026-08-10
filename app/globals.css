@@ -29,23 +29,23 @@
      Everything else stays on the stock scale.
 
      text-body is prose the player is meant to READ: coaching notes, drill
-     steps, page descriptions. text-sm renders 14.88px at the 106.25% root and
-     was doing this job in 55 places, which is under the 16px mobile floor and
-     the same size as the chrome around it. 1rem lands at 17px and reads as
-     content rather than as a label. Line height matches leading-relaxed
-     exactly, so sites that already carried it are unchanged and sites that did
-     not now gain it.
+     steps, page descriptions. text-sm was doing this job in 55 places, which
+     renders under the 16px mobile floor and at the same size as the chrome
+     around it. text-body is a full 1rem, so it holds the floor on its own and
+     reads as content rather than as a label. THIS is what keeps prose legible,
+     not the root size, which is why the root could go back to 100%. Line
+     height matches leading-relaxed exactly.
 
      text-page-title is the h1 of a top-level destination. It bundles the size,
      weight and tracking that were previously four classes retyped per page,
      which is how coach, goals and scoreboard drifted to text-2xl while their
-     nav peers used text-3xl (D-067). Values are identical to the old
-     `text-3xl font-bold tracking-tight` string, so adopting it changes no
-     pixels; it just makes the next drift impossible. */
+     nav peers used text-3xl (D-067). It was text-3xl's 1.875rem, which at the
+     old root rendered near 32px and was the single loudest thing on a phone;
+     1.625rem is 26px and still clears every heading under it. */
   --text-body: 1rem;
   --text-body--line-height: 1.625;
 
-  --text-page-title: 1.875rem;
+  --text-page-title: 1.625rem;
   --text-page-title--line-height: 1.2;
   --text-page-title--letter-spacing: -0.025em;
   --text-page-title--font-weight: 700;
@@ -292,12 +292,60 @@
   }
 }
 
+/* WHERE THE PINNED CLIP PARKS, declared by whichever shell is hosting it.
+   components/sticky-clip.tsx renders on the owner's analysis page and on the
+   public share page, and those two have different chrome: the app shell pins a
+   mobile top bar the clip must sit under, the share page has none, and the two
+   use different horizontal padding. Hardcoding either number in the component
+   makes it correct in one place and wrong in the other, so the component reads
+   these and each shell sets them.
+
+   --clip-top is the height of any chrome already pinned above it.
+   --clip-bleed is the host's own horizontal padding, which the clip cancels so
+   its background runs edge to edge and nothing scrolls through beside it. */
+:root {
+  --clip-top: 0px;
+  --clip-bleed: 0px;
+}
+
+/* The signed-in app shell: a min-h-11 row plus py-2 plus a 1px border, pinned
+   at top-0 and md:hidden, so the offset exists on a phone and not above it. */
+.shell-app {
+  --clip-top: 3.8rem;
+  --clip-bleed: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .shell-app {
+    --clip-top: 0px;
+    --clip-bleed: 2.5rem;
+  }
+}
+
+/* The public share page: no pinned chrome at all, so the clip goes to the top. */
+.shell-share {
+  --clip-bleed: 1rem;
+}
+
+@media (min-width: 640px) {
+  .shell-share {
+    --clip-bleed: 1.5rem;
+  }
+}
+
 html {
-  /* Larger, more readable base text site-wide. Tailwind sizes in rem, so type
-     and spacing grow together and layouts stay proportional; bump this one
-     number to scale everything. text-size-adjust keeps mobile browsers from
-     re-inflating text on top of this. */
-  font-size: 106.25%;
+  /* The one number that scales the whole product. Tailwind sizes in rem, so
+     type AND spacing move together here and every layout stays proportional.
+     text-size-adjust keeps mobile browsers from re-inflating on top of it.
+
+     Back to 100% on 2026-08-09. It sat at 106.25% to lift text-sm off the
+     16px mobile floor, but the floor is now held where it belongs, by
+     --text-body being a real 1rem, so the extra 6.25% was buying nothing on
+     prose and paying for it everywhere else: at 17px root, every p-5 was 85px
+     of padding and every mt-8 was 34px of gap, and the breakdown read as a
+     document rather than as a phone screen. The comparison that prompted it
+     was a competitor whose whole rep fits above the fold. */
+  font-size: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }

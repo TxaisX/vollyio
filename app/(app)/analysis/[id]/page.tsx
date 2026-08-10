@@ -284,9 +284,15 @@ export default async function AnalysisDetail({
       <Reveal>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-              {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
-            </p>
+            {/* Only here when there is no clip to pin it to. With a clip, this
+                same line rides inside the sticky block (StickyClip's `label`)
+                so it stays on screen naming the rep being read about, rather
+                than scrolling away in the first swipe. */}
+            {!clipUrl && (
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
+              </p>
+            )}
             {/* The page leads with the fix, not the word "Breakdown". The
                 scorecard is the evidence; the one thing to change is the
                 product, and burying it under a heading that named the document
@@ -307,7 +313,7 @@ export default async function AnalysisDetail({
               </p>
             )}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Morph target: the row score from /history or the dashboard
                 recent list lands here, appearing to travel into the ring.
                 share="morph" + default="none" keeps it inert on the Suspense
@@ -321,28 +327,38 @@ export default async function AnalysisDetail({
               default="none"
             >
               <div className="flex flex-col items-center gap-1">
-                <ScoreRing score={row.overall_score} size={84} />
+                <ScoreRing score={row.overall_score} size={72} />
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
                   {scoreBand(row.overall_score)}
                 </span>
               </div>
             </ViewTransition>
+            {/* BESIDE the ring, not under the header. These two lines are what
+                the number MEANS - the ladder it was scored against and how much
+                of the rep was gradable - and they were stacked full-width below
+                everything while the space immediately right of an 84px ring sat
+                empty on every phone. Reading them here also stops the scale
+                from being three more lines to scroll past before the fix. */}
+            <div className="min-w-0 border-l border-line pl-3">
+              <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-chalk-dim">
+                40 developing
+                <br />
+                70 solid
+                <br />
+                90 advanced
+              </p>
+              {typeof result.coverage_pct === "number" && (
+                <p
+                  className={`mt-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
+                    result.low_confidence ? "text-coral" : "text-chalk-dim"
+                  }`}
+                >
+                  {result.coverage_pct}% graded
+                </p>
+              )}
+            </div>
           </div>
         </div>
-        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
-          Scored like a coach · 40 developing · 70 solid · 90 advanced
-        </p>
-        {typeof result.coverage_pct === "number" && (
-          <p
-            className={`mt-1 font-mono text-[11px] uppercase tracking-[0.08em] ${
-              result.low_confidence ? "text-coral" : "text-chalk-dim"
-            }`}
-          >
-            {result.low_confidence
-              ? `Graded on ${result.coverage_pct}% of the checklist; the rest wasn't visible`
-              : `Graded on ${result.coverage_pct}% of the checklist`}
-          </p>
-        )}
         {/* Naming the gap without naming the remedy leaves the player to
             conclude the product is broken rather than the framing was (D-081).
             The first cold signup scored 0% coverage on their first rep. */}
@@ -422,30 +438,21 @@ export default async function AnalysisDetail({
         </Reveal>
       )}
 
-      {/* The split starts at md, not lg. At lg it meant every laptop under
-          1024px and every tablet got the clip stacked on top of the scores,
-          which is most of the screens this page is actually read on. The clip
-          column is capped well under half the row so the breakdown text keeps
-          the wider side: the clip is the evidence, the scores are the product.
-
-          The cap TIGHTENED from a flat 30rem on 2026-08-06, for two reasons.
-          It was not honouring its own sentence: at a 1280px viewport, once the
-          sidebar and the page padding are gone, the row is about 59rem, so
-          30rem was 51% of it and the clip had quietly taken the wider side on
-          the commonest laptop width. And the breakdown's own two columns turn
-          on at 36rem of container (components/breakdown-body.tsx), which that
-          left unreachable below roughly 1536px, so "what worked" and "what to
-          change" stacked on exactly the screens the side-by-side layout was
-          asked for. 22rem clears 36rem for the breakdown from 1280px up, and
-          2xl gives the clip room back once there is genuinely enough to share.
-          These three numbers move together or the columns silently stop
-          splitting; lib/breakdown-contract.test.ts pins the pair. */}
-      <div className="mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-start md:gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        {/* Player: right column from tablet up, first thing on a phone */}
-        <div className="md:order-2 md:sticky md:top-8">
+      {/* ONE COLUMN. The clip used to live in a capped right-hand column with
+          three numbers (22rem, 26rem, the breakdown's own 36rem container
+          query) that had to move together or the verdict columns silently
+          stopped splitting. That whole coupling is gone: the clip is now a
+          looping centre cut pinned to the top of the breakdown itself
+          (components/sticky-clip.tsx), which is what was actually wanted -
+          "make the video sticky so that people can replay the video that they
+          highlighted" - and it hands the full row width back to the breakdown,
+          so the two verdict columns split everywhere instead of only above
+          1280px. The frame strip below is the no-clip fallback only. */}
+      <div className="mt-5 min-w-0">
+        {!clipUrl && (
           <Reveal delay={80}>
             {nothingToShow ? (
-              <div className="card p-6 text-center">
+              <div className="card p-5 text-center">
                 <p className="text-body text-chalk-dim">
                   These frames couldn&rsquo;t load right now. Your scores and
                   notes are still below.
@@ -454,13 +461,13 @@ export default async function AnalysisDetail({
             ) : (
               <>
                 <ClipViewer
-                  clipUrl={clipUrl}
+                  clipUrl={null}
                   frames={signedCount > 0 ? playerFrames : []}
                   focusIndex={focusIndex}
                   contactIndex={contactIndex}
                 />
                 {framesMissing > 0 && (
-                  <p className="mt-3 text-xs text-chalk-dim">
+                  <p className="mt-2 text-xs text-chalk-dim">
                     {signedCount > 0
                       ? `${framesMissing} of ${row.frame_paths.length} frames couldn’t load right now.`
                       : "The frames couldn’t load right now."}{" "}
@@ -469,8 +476,13 @@ export default async function AnalysisDetail({
                 )}
               </>
             )}
-            {result.focus && (
-              <div className="mt-3 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3">
+          </Reveal>
+        )}
+
+        <div className="min-w-0">
+          {result.focus && (
+            <Reveal delay={90}>
+              <div className="mb-4 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
                   Focus · {result.focus.label}
                 </p>
@@ -478,12 +490,8 @@ export default async function AnalysisDetail({
                   {result.focus.why}
                 </p>
               </div>
-            )}
-          </Reveal>
-        </div>
-
-        {/* Breakdown: left column from tablet up */}
-        <div className="mt-8 min-w-0 md:order-1 md:mt-0">
+            </Reveal>
+          )}
           {result.subject_check && (
             <Reveal delay={100}>
               <p
@@ -500,7 +508,12 @@ export default async function AnalysisDetail({
               </p>
             </Reveal>
           )}
-          <BreakdownBody skill={row.skill} result={result} />
+          <BreakdownBody
+            skill={row.skill}
+            result={result}
+            clipUrl={clipUrl}
+            clipLabel={`${SKILL_LABEL[row.skill]} breakdown · ${dateLabel}`}
+          />
 
           <Reveal delay={320}>
             <AnalysisFeedback analysisId={row.id} initial={initialFeedback} />

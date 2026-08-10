@@ -55,7 +55,7 @@ export function CheckpointList({
         const ranked = standing[key];
 
         return (
-          <li key={key} className="border-b border-line p-4 last:border-b-0">
+          <li key={key} className="border-b border-line p-3.5 last:border-b-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <p className="font-display font-bold">{label}</p>
               {/* The back half of the tie between the two columns and this
@@ -111,7 +111,7 @@ export function CheckpointList({
                       toward. The border does that work without a heavier card:
                       the disclosure already sits inside the checkpoint row, and
                       nesting a filled card inside a filled row muddies both. */}
-                  <div className="mt-2.5 rounded-lg border border-teal/30 px-3 py-2.5">
+                  <div className="mt-2 rounded-lg border border-teal/30 px-3 py-2">
                     <p className="font-mono text-[10px] uppercase tracking-wide text-teal">
                       What 90 looks like
                     </p>

@@ -67,7 +67,7 @@ export default function AppLayout({
       <main
         id="main"
         tabIndex={-1}
-        className="relative isolate min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
+        className="shell-app relative isolate min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
       >
         <div
           aria-hidden="true"

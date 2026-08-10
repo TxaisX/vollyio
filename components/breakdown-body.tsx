@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StickyClip } from "@/components/sticky-clip";
 import { metricLabel } from "@/lib/ai/metrics";
 import { pointerCue } from "@/lib/ai/pointers";
 import { metricKnowledge } from "@/content/technique";
@@ -58,9 +59,17 @@ import { type Skill } from "@/lib/skills";
 export function BreakdownBody({
   skill,
   result,
+  clipUrl = null,
+  clipLabel,
 }: {
   skill: Skill;
   result: AnalysisResult;
+  /** The rep itself. Rendered as a looping centre cut pinned above everything
+   *  else, so the clip a fix is about stays on screen while the fix is read.
+   *  Null on a row whose clip never stored, which simply renders no player. */
+  clipUrl?: string | null;
+  /** Which rep and when, pinned with the clip. */
+  clipLabel?: string;
 }) {
   const changes = result.changes ?? [];
   // Absent on a video-path row (D-097), which has no per-checkpoint evidence
@@ -100,29 +109,36 @@ export function BreakdownBody({
     // The scope the Basic / Advanced switch resolves against. It has to wrap
     // both the control and everything the control governs.
     <div className={DETAIL_SCOPE}>
+      {/* The rep first, then the control that decides how much is said about
+          it, then the words. The switch sits directly under the clip because
+          the two are the page's controls and splitting them put a paragraph
+          between a player and the thing that changes what the player reads. */}
+      {clipUrl && <StickyClip src={clipUrl} label={clipLabel} />}
       <Reveal delay={140}>
-        <p className="text-base leading-relaxed text-chalk-dim sm:text-lg">
+        <div className={clipUrl ? "mt-3" : ""}>
+          <DetailSwitch />
+        </div>
+        <p className="mt-4 text-base leading-relaxed text-chalk-dim sm:text-lg">
           {result.summary}
         </p>
-        <DetailSwitch />
       </Reveal>
 
       {repScores.length > 1 && (
         <Reveal delay={160}>
-          <h2 className="mt-8 mb-3 font-display text-sm font-bold uppercase tracking-wide">
+          <h2 className="mt-6 mb-2 font-display text-sm font-bold uppercase tracking-wide">
             Rep by rep
           </h2>
           {/* Basic keeps the numbers, which are the point of the section, and
               drops the per-rep note and the spread line, which are six lines of
               analysis of a thing the player can see at a glance. */}
-          <div className={`card flex flex-wrap gap-2 p-4 ${BASIC_ONLY}`}>
+          <div className={`card flex flex-wrap gap-2 p-3.5 ${BASIC_ONLY}`}>
             {repScores.map((r) => (
               <span key={r.rep_index} className="tag">
                 Rep {r.rep_index + 1} · {r.overall}
               </span>
             ))}
           </div>
-          <div className={`card space-y-3 p-5 ${ADVANCED_ONLY}`}>
+          <div className={`card space-y-2.5 p-4 ${ADVANCED_ONLY}`}>
             {repScores.map((r) => (
               <div key={r.rep_index} className="flex items-baseline gap-3">
                 <span className="chip shrink-0">
@@ -154,7 +170,7 @@ export function BreakdownBody({
           decides this is this column's, not the window's. On the analysis page the clip
           takes up to 30rem beside it, so a 1024px laptop leaves under 30rem
           here and `sm:` would read the wrong number. */}
-      <div className="@container mt-8">
+      <div className="@container mt-6">
         <div
           className={`grid items-start gap-2.5 @xl:gap-4 ${sideBySide ? "grid-cols-2" : ""}`}
         >
@@ -292,7 +308,7 @@ export function BreakdownBody({
         <Reveal delay={220} className={ADVANCED_ONLY}>
           <h2
             id="checkpoints"
-            className="mt-8 mb-1 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-1 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
           >
             Checkpoints
           </h2>
@@ -334,7 +350,7 @@ export function BreakdownBody({
           explaining its number. */}
       {metrics.length > 0 && (
         <Reveal delay={240} className={ADVANCED_ONLY}>
-          <h2 className="mt-8 mb-2 font-display text-sm font-bold uppercase tracking-wide">
+          <h2 className="mt-6 mb-2 font-display text-sm font-bold uppercase tracking-wide">
             Metrics
           </h2>
           <div className="mb-3">
@@ -367,7 +383,7 @@ export function BreakdownBody({
         <Reveal delay={260} className={ADVANCED_ONLY}>
           <h2
             id="timeline"
-            className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-2 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
           >
             Timeline
           </h2>
@@ -397,7 +413,7 @@ export function BreakdownBody({
           anyone what to do about it. */}
       {result.confidence && (
         <Reveal delay={280} className={ADVANCED_ONLY}>
-          <p className="mt-8 text-sm leading-relaxed text-chalk-dim">
+          <p className="mt-6 text-sm leading-relaxed text-chalk-dim">
             <span className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
               Read confidence ·{" "}
             </span>
@@ -410,7 +426,7 @@ export function BreakdownBody({
         <Reveal delay={300}>
           <h2
             id="drills"
-            className="mt-8 mb-3 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
+            className="mt-6 mb-2 scroll-mt-24 font-display text-sm font-bold uppercase tracking-wide"
           >
             Drills for this
           </h2>
