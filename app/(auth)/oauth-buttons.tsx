@@ -2,9 +2,8 @@
 
 import { track } from "@vercel/analytics";
 import Image from "next/image";
-import { useFormStatus } from "react-dom";
+import { useState } from "react";
 import { OAUTH_LABEL, type OAuthProvider } from "@/lib/oauth";
-import { signInWithProvider } from "./actions";
 
 // The marks live in `public/` rather than inline, because both are third-party
 // brand assets that must keep their own prescribed colors: Google's four-color
@@ -23,18 +22,25 @@ function ProviderMark({ provider }: { provider: OAuthProvider }) {
   );
 }
 
+// A LINK, not a form. The route it points at has to answer with a plain HTTP
+// redirect so the PKCE verifier cookie is written by the browser before it
+// leaves for Google; a server action's response is not that, which is why
+// social sign-in never once worked (app/auth/signin/[provider]/route.ts).
 function ProviderButton({ provider }: { provider: OAuthProvider }) {
-  const { pending } = useFormStatus();
+  const [going, setGoing] = useState(false);
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      onClick={() => track("auth_oauth_start", { provider })}
-      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-control border border-chalk/20 bg-chalk/[0.04] px-4 py-2.5 font-display text-sm font-semibold text-chalk transition-colors hover:border-chalk/35 hover:bg-chalk/[0.08] disabled:cursor-wait disabled:opacity-70"
+    <a
+      href={`/auth/signin/${provider}`}
+      onClick={() => {
+        setGoing(true);
+        track("auth_oauth_start", { provider });
+      }}
+      aria-disabled={going}
+      className={`flex min-h-11 w-full items-center justify-center gap-3 rounded-control border border-chalk/20 bg-chalk/[0.04] px-4 py-2.5 font-display text-sm font-semibold text-chalk transition-colors hover:border-chalk/35 hover:bg-chalk/[0.08] ${going ? "cursor-wait opacity-70" : ""}`}
     >
       <ProviderMark provider={provider} />
-      {pending ? "Taking you there…" : OAUTH_LABEL[provider]}
-    </button>
+      {going ? "Taking you there…" : OAUTH_LABEL[provider]}
+    </a>
   );
 }
 
@@ -52,10 +58,7 @@ export function OAuthButtons({ providers }: { providers: OAuthProvider[] }) {
     <div className="mt-6">
       <div className="flex flex-col gap-2.5">
         {providers.map((provider) => (
-          <form key={provider} action={signInWithProvider}>
-            <input type="hidden" name="provider" value={provider} />
-            <ProviderButton provider={provider} />
-          </form>
+          <ProviderButton key={provider} provider={provider} />
         ))}
       </div>
       <div className="mt-5 flex items-center gap-3" aria-hidden="true">

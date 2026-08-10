@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { OnboardingFlow } from "@/components/onboarding-flow";
+import { TesterInvite } from "@/components/tester-invite";
 
 export const metadata: Metadata = {
   title: "Welcome",
@@ -43,6 +44,11 @@ export default async function Welcome({
         </p>
       )}
       <OnboardingFlow name={profile?.display_name ?? null} />
+      {/* End of the funnel, which is the only moment anyone is plausibly
+          willing to do a favour: they wanted this enough to make an account.
+          Below the onboarding flow, never inside it, so it cannot compete with
+          the thing they actually came here to finish. */}
+      <TesterInvite className="mx-auto mt-8 max-w-xl" />
     </>
   );
 }

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   CONFIRM_SENT_MESSAGE,
-  OAUTH_FAILED_MESSAGE,
   RESET_SENT_MESSAGE,
   loginErrorMessage,
   resetRequestErrorMessage,
@@ -18,7 +17,6 @@ import {
   parseResetInput,
   parseSignupInput,
 } from "@/lib/auth-input";
-import { enabledOAuthProviders, isOAuthProvider } from "@/lib/oauth";
 import { SITE_URL } from "@/lib/site";
 
 export async function login(formData: FormData) {
@@ -103,40 +101,21 @@ export async function signup(formData: FormData) {
   redirect("/welcome");
 }
 
-/**
- * Hand the player off to an identity provider.
+/*
+ * SOCIAL SIGN-IN NO LONGER LIVES HERE. It was a server action, and that is
+ * precisely why it never worked: `signInWithOAuth` runs PKCE, whose code
+ * verifier must be written to a cookie and read back by /auth/callback, and a
+ * server action redirecting to an EXTERNAL url does not get that Set-Cookie to
+ * the browser. Google's OAuth user cap read 0 of 100 on 2026-08-10 - not one
+ * human had ever completed it - while every console setting was correct.
  *
- * The submitted provider is checked against the deployment's OWN enabled list,
- * not merely against the set of names the auth service understands. The form
- * field is caller-supplied, so without that second check a crafted post could
- * aim the round trip at any provider the project happens to have keys for.
- *
- * There is no email confirmation on this path and that is the entire point: an
- * address vouched for by Google or Apple arrives already verified, so the
- * player goes straight from one tap to a session, with no trip through an
- * inbox. That inbox round trip is where a quarter of our signups have died.
+ * It is now app/auth/signin/[provider]/route.ts, which answers with a plain
+ * HTTP redirect and writes the cookie onto that exact response. Do not move it
+ * back. There is still no email confirmation on this path, which remains the
+ * point: an address vouched for by Google arrives already verified, so the
+ * player goes from one tap to a session with no trip through an inbox, and
+ * that inbox round trip is where a quarter of our signups have died.
  */
-export async function signInWithProvider(formData: FormData) {
-  const requested = formData.get("provider");
-  const enabled = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
-  if (!isOAuthProvider(requested) || !enabled.includes(requested)) {
-    redirect(`/login?error=${encodeURIComponent(OAUTH_FAILED_MESSAGE)}`);
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: requested,
-    options: { redirectTo: `${SITE_URL}/auth/callback` },
-  });
-
-  // `signInWithOAuth` on the server does not redirect; it returns the URL to
-  // send the browser to. No URL means the provider is not configured on the
-  // project, which is the one failure this cannot recover from.
-  if (error || !data?.url) {
-    redirect(`/login?error=${encodeURIComponent(OAUTH_FAILED_MESSAGE)}`);
-  }
-  redirect(data.url);
-}
 
 export async function requestPasswordReset(formData: FormData) {
   const parsed = parseForgotInput(formData);
