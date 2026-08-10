@@ -103,12 +103,22 @@ export function CheckpointList({
                   <p className="mt-1.5 text-sm leading-relaxed text-chalk-dim">
                     {knowledge.why}
                   </p>
-                  <p className="mt-2.5 font-mono text-[10px] uppercase tracking-wide text-teal">
-                    What 90 looks like
-                  </p>
-                  <p className="mt-1 text-sm leading-relaxed text-chalk-dim">
-                    {knowledge.elite_marker}
-                  </p>
+                  {/* Boxed, because this is the only line in the disclosure
+                      that is a TARGET rather than an explanation. "What it is"
+                      and "why it matters" describe the checkpoint; this one
+                      says what to aim at, and it was reading as a fourth
+                      paragraph of prose rather than as the thing to work
+                      toward. The border does that work without a heavier card:
+                      the disclosure already sits inside the checkpoint row, and
+                      nesting a filled card inside a filled row muddies both. */}
+                  <div className="mt-2.5 rounded-lg border border-teal/30 px-3 py-2.5">
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-teal">
+                      What 90 looks like
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-chalk-dim">
+                      {knowledge.elite_marker}
+                    </p>
+                  </div>
 
                   {/* The scoring ladder is the Advanced half of a v2 row: it is
                       how the number was calibrated rather than what to do

@@ -333,13 +333,17 @@ test("a checkpoint the clip did not show says so, and blames the clip", () => {
   }
 });
 
-test("the columns sit side by side on width they actually have", () => {
-  // A container query, not a viewport one: the analysis page gives up to 30rem
-  // of its width to the clip, so `sm:grid-cols-2` would have split a sub-30rem
-  // column into two unreadable strips on a laptop.
+test("the columns sit side by side at every width", () => {
+  // Changed 2026-08-10 at the owner's direction: what worked BESIDE what to
+  // change is the comparison the section exists to make, so it no longer
+  // collapses to one column on a phone. The narrow case pays for the pairing
+  // with tighter gap and type instead of by breaking the pairing.
+  assert.match(BODY, /grid-cols-2/);
+  assert.doesNotMatch(BODY, /@xl:grid-cols-2/, "the split must not be conditional any more");
+  // The container query stays, now driving the gap/type step rather than the
+  // split: the width that matters is this column's, not the viewport's.
   assert.match(BODY, /className="@container/);
-  assert.match(BODY, /@xl:grid-cols-2/);
-  assert.doesNotMatch(BODY, /sm:grid-cols-2 ?"[\s\S]{0,40}strengths/);
+  assert.match(BODY, /@xl:gap-4/);
   // Three against two is permanent, so neither column is stretched to match.
   assert.match(BODY, /grid items-start/);
   // And an empty column renders no heading at all.
@@ -359,30 +363,30 @@ test("the columns sit side by side on width they actually have", () => {
 // Arithmetic this pins, at a 1280px viewport: 1280px, less the 14rem sidebar
 // and 2 x 2.5rem of page padding, is about 59rem of row; less the 2rem gap and
 // a 22rem clip leaves about 35rem... which is why the cap is 22 and not 24.
-test("the clip cap leaves the breakdown enough room to split its columns", async () => {
+test("the clip cap leaves each breakdown column readable", async () => {
   const page = await readFile(
     new URL("../app/(app)/analysis/[id]/page.tsx", import.meta.url),
-    "utf8",
-  );
-  const body = await readFile(
-    new URL("../components/breakdown-body.tsx", import.meta.url),
     "utf8",
   );
 
   const cap = page.match(/md:grid-cols-\[minmax\(0,1fr\)_minmax\(0,(\d+)rem\)\]/);
   assert.ok(cap, "the analysis page must cap the clip column in rem");
-  const split = body.match(/@\[(\d+)rem\]:grid-cols-2|@xl:grid-cols-2/);
-  assert.ok(split, "the breakdown must declare a container-query split");
 
-  // The row a 1280px viewport actually offers this component.
+  // The columns no longer collapse (see the test above), so the question this
+  // guards changed: not "do they split" but "is each one still readable once
+  // the clip has taken its share". 16rem is the width the fix titles stop
+  // wrapping every other word at, which is what the old 36rem split was
+  // protecting in the first place.
+  const MIN_COL_REM = 16;
   const ROW_REM = (1280 - 14 * 16 - 2 * 2.5 * 16) / 16;
-  const GAP_REM = 2;
-  const remaining = ROW_REM - GAP_REM - Number(cap[1]);
-  const threshold = split[1] ? Number(split[1]) : 36; // @xl is 36rem
+  const PAGE_GAP_REM = 2;
+  const COL_GAP_REM = 1; // gap-4
+  const remaining = ROW_REM - PAGE_GAP_REM - Number(cap[1]);
+  const perColumn = (remaining - COL_GAP_REM) / 2;
   assert.ok(
-    remaining >= threshold - 1,
-    `a 1280px viewport leaves the breakdown ${remaining.toFixed(1)}rem but the columns need ${threshold}rem; ` +
-      "either lower the clip cap or lower the container breakpoint, but do not let them drift",
+    perColumn >= MIN_COL_REM,
+    `a 1280px viewport leaves each column ${perColumn.toFixed(1)}rem, under the ${MIN_COL_REM}rem ` +
+      "where fix titles start wrapping every other word; lower the clip cap rather than letting them drift",
   );
 });
 

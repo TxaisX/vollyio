@@ -141,16 +141,22 @@ export function BreakdownBody({
         </Reveal>
       )}
 
-      {/* THE TWO COLUMNS. @container rather than sm:/md:, because the width
-          that decides whether two columns of prose are readable is this
-          column's width, not the window's: on the analysis page the clip takes
-          up to 30rem beside this, so a 1024px laptop leaves under 30rem here
-          and `sm:grid-cols-2` would have split it into two unreadable strips.
-          At @xl (36rem) each column still clears 16rem, which is where the fix
-          titles stop wrapping every other word. */}
+      {/* THE TWO COLUMNS, side by side at every width, because the comparison
+          IS the point: what worked beside what to change is the shape the owner
+          asked for and the reason the section is two stacks rather than one
+          list. They used to stack below @xl (36rem) on the reasoning that two
+          columns of prose under 16rem wrap every other word. That is still
+          true, so the narrow case pays for the pairing with tighter type rather
+          than by breaking it: gap and text step down under @xl instead of the
+          grid collapsing.
+
+          @container rather than sm:/md: is still right, because the width that
+          decides this is this column's, not the window's. On the analysis page the clip
+          takes up to 30rem beside it, so a 1024px laptop leaves under 30rem
+          here and `sm:` would read the wrong number. */}
       <div className="@container mt-8">
         <div
-          className={`grid items-start gap-4 ${sideBySide ? "@xl:grid-cols-2" : ""}`}
+          className={`grid items-start gap-2.5 @xl:gap-4 ${sideBySide ? "grid-cols-2" : ""}`}
         >
           {worked.length > 0 && (
             <Reveal delay={180}>
