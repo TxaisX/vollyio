@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Reveal } from "@/components/motion";
+import { ReportContent } from "@/components/report-content";
 import { resolveCoachLink, type CoachLinkMap } from "@/lib/coach-links";
 import { stripLongDashes } from "@/lib/coach-text";
 
@@ -473,6 +474,10 @@ export function CoachChat({
     void send(text);
   }
 
+  // Which message is the one still arriving, so the report control can stay off
+  // it until it has finished being written.
+  const lastMessageId = messages[messages.length - 1]?.id ?? null;
+
   return (
     // min-h-0 on both, which is the whole trick: a flex child defaults to
     // min-height:auto and refuses to shrink below its content, so without it
@@ -552,6 +557,36 @@ export function CoachChat({
                   <p className="whitespace-pre-wrap break-words">{m.content}</p>
                 )}
               </div>
+              {/* THE COACH IS THE REASON THIS APP IS IN SCOPE for Play's
+                  AI-Generated Content policy: text-to-text chat where the AI
+                  interaction is the central feature. That policy requires a way
+                  to report an offensive answer without leaving the app, so the
+                  control hangs off the answer itself rather than off a settings
+                  page nobody opens mid-conversation.
+
+                  It sends `m.content`, not `m.id`. A streamed answer carries a
+                  client-minted uuid that exists in no table until the thread is
+                  read back, so the id would be a dangling reference on exactly
+                  the message most likely to be reported: the one just written.
+                  The text is the thing being reported and it is what moderation
+                  needs anyway. Hidden while streaming, because an answer still
+                  arriving is not yet the answer anyone is judging.
+
+                  It is quiet but it is NOT hover-revealed. There is no hover on
+                  a phone, and a required reporting control that only appears to
+                  a mouse is a control most of this app's users do not have. */}
+              {m.role === "assistant" && !(streaming && m.id === lastMessageId) && (
+                <div className="mt-1">
+                  <ReportContent
+                    target={{
+                      surface: "coach",
+                      sessionId: sessionRef.current,
+                      excerpt: m.content,
+                    }}
+                    label="Report this answer"
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

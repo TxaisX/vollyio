@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
 };
 
-const EFFECTIVE = "August 3, 2026";
+// Bumped 2026-08-11 for the objectionable-content and reporting sections. The
+// "Changes to these terms" section below promises existing account holders an
+// email when a material change lands, and that email is owed for this one.
+const EFFECTIVE = "August 11, 2026";
 
 // The price as a bare amount, for the sentences where "$9.99/mo every month"
 // would read wrong. Derived from the same constant the plan card and the limit
@@ -406,8 +409,87 @@ export default function TermsPage() {
         <p>
           Don&rsquo;t misuse the service: no attempting to access other
           users&rsquo; accounts or footage, no probing or disrupting the
-          service, no submitting unlawful content, and no reselling access.
-          We may suspend or terminate accounts that do.
+          service, and no reselling access. We may suspend or terminate accounts
+          that do.
+        </p>
+      </Section>
+
+      <Section title="Content that is not allowed here">
+        <p>
+          This applies to everything you put into Vollyio and everything you
+          publish out of it: the clips you upload, anything you write, and any
+          breakdown you share by link. Do not submit or share:
+        </p>
+        <p>
+          Sexual or sexually suggestive content. Content that sexualizes a
+          minor in any way, or that puts a child at risk. Hate speech, or
+          content that attacks or degrades a person or group. Bullying,
+          harassment, or threats. Graphic violence, or content that encourages
+          self-harm, dangerous acts, or illegal activity. Content that
+          impersonates someone. Content that is deceptive or designed to
+          mislead. Content that infringes someone else&rsquo;s rights.
+        </p>
+        <p>
+          <strong className="text-chalk">
+            Film of a person who has not agreed to be filmed.
+          </strong>{" "}
+          Volleyball is played in public, so this is the rule most likely to
+          catch you out. Do not upload or share a clip in which someone else is
+          identifiable unless you have their permission, and if they are under
+          18, their parent or guardian&rsquo;s permission. If you share a
+          breakdown by link, you are publishing that film to anyone who holds
+          the link.
+        </p>
+        <p>
+          We review reported content and we act on it. Depending on what we
+          find, that can mean removing a clip, revoking a share link, closing an
+          account, or reporting the matter to the authorities. We may do any of
+          those without notice where someone is at risk.
+        </p>
+      </Section>
+
+      <Section title="Reporting something">
+        <p>
+          Every breakdown, every coach answer, and every shared breakdown page
+          carries a <strong className="text-chalk">Report</strong> control. You
+          do not need an account to use the one on a shared page, so if someone
+          sent you a link and the film in it should not be there, you can say so
+          from the page itself.
+        </p>
+        <p>
+          Tell us what is wrong: film of someone who did not agree to it, sexual
+          content, hate or harassment, something violent or dangerous, something
+          that puts a child at risk, something deceptive, or anything else. You
+          can add a note. Reports reach us directly and we review them.
+        </p>
+        <p>
+          You can also write to{" "}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          , which is also the address to use if you believe content here
+          infringes your copyright or shows you without your permission. We
+          answer within two business days. If someone is in immediate danger,
+          contact your local emergency services first; we cannot respond at that
+          speed.
+        </p>
+      </Section>
+
+      <Section title="What Vollyio&rsquo;s automated coaching is, and how it can be wrong">
+        <p>
+          Your breakdowns and your conversations with the coach are generated
+          automatically. That means they can be mistaken, and occasionally they
+          can produce something that reads badly or that you did not expect. We
+          test against that, and the Report control above is how you tell us
+          when we missed.
+        </p>
+        <p>
+          Do not rely on automated coaching for medical, safety, or legal
+          decisions. It scores volleyball technique from a clip, and that is all
+          it is built to do.
         </p>
       </Section>
 

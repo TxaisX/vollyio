@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { analysisByShareToken } from "@/lib/share-read";
 import { BreakdownBody } from "@/components/breakdown-body";
 import { Reveal } from "@/components/motion";
+import { ReportContent } from "@/components/report-content";
 import { ScoreRing } from "@/components/score-ring";
 import { scoreBand } from "@/lib/ratings";
 import { SKILL_LABEL } from "@/lib/skills";
@@ -138,6 +139,25 @@ export default async function SharedBreakdown({
           <Link href="/" className="btn-primary min-h-11 px-5 text-sm">
             Try Vollyio
           </Link>
+        </div>
+      </Reveal>
+
+      {/* THE REPORT PATH ON THIS PAGE IS THE ONE PLAY'S UGC POLICY ACTUALLY
+          ASKS FOR. This is publicly accessible user content: anyone holding the
+          link reads it, most of them will never have an account, and they are
+          the only people positioned to see that a clip has a bystander in it
+          who never agreed to be filmed. So the control takes no session, and
+          the token is the whole of what it sends (D-049: the raw token is
+          resolved inside the definer function, never by the caller). */}
+      <Reveal delay={420}>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
+          <p className="text-xs text-chalk-dim">
+            Something wrong with this breakdown or the film in it?
+          </p>
+          <ReportContent
+            target={{ surface: "shared_analysis", token }}
+            label="Report this"
+          />
         </div>
       </Reveal>
     </main>

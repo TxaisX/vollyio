@@ -11,6 +11,7 @@ import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
 import { ShareLink } from "@/components/share-link";
 import { AnalysisFeedback } from "@/components/analysis-feedback";
+import { ReportContent } from "@/components/report-content";
 import { LinkPending } from "@/components/link-pending";
 import { drillBySlug } from "@/content/drills";
 import { RepToasts } from "@/components/xp-toast";
@@ -517,6 +518,18 @@ export default async function AnalysisDetail({
 
           <Reveal delay={320}>
             <AnalysisFeedback analysisId={row.id} initial={initialFeedback} />
+            {/* Separate from the feedback card above it on purpose. That one
+                asks whether the coaching was useful; this one is the safety
+                report Play's AI-Generated Content policy requires the model's
+                output to have, and folding a harm report into a helpfulness
+                widget would leave the app with neither a clean eval signal nor
+                a reporting mechanism. */}
+            <div className="mt-3 flex justify-end">
+              <ReportContent
+                target={{ surface: "analysis", analysisId: row.id }}
+                label="Report this breakdown"
+              />
+            </div>
           </Reveal>
 
           <Reveal delay={340}>

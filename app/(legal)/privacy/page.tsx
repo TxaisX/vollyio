@@ -69,6 +69,17 @@ export default function PrivacyPage() {
           the payment provider, and that is where you enter them.
         </p>
         <p>
+          <strong className="text-chalk">Content reports.</strong> If you report
+          a breakdown, a coach answer, or a shared page, we store the category
+          you chose, any note you wrote, a copy of the text you reported, and
+          what the report was about. If you were signed in we store who you are,
+          so we can tell you what happened; the report control on a shared page
+          takes no account and files no identity. We keep reports after the
+          content is gone, and after a reporting account is deleted, because a
+          report is about someone else&rsquo;s content and a safety record that
+          can be erased by the person it concerns is not a record.
+        </p>
+        <p>
           <strong className="text-chalk">Technical basics.</strong> Cookies
           used to keep you signed in, and basic page-view counts from our
           hosting provider so we can see which pages get used. We do not use

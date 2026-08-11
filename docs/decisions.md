@@ -4693,3 +4693,66 @@ replace the web funnel - vollyio.com serves every share link exactly as before,
 and the app is an additional surface for people who already decided to train with
 it. If the Play listing ever starts competing with the share loop for the same
 visitor, D-103's argument is the one to re-read.
+
+## D-112 - Reporting is a safety instrument, and the feedback widget was never one
+
+**2026-08-11.** Two Google Play policies require an in-app reporting mechanism
+and Vollyio had neither. Both were verified against the live policy text on the
+day, not from memory.
+
+**The AI-Generated Content policy** applies to apps where "AI interaction is
+central", naming text-to-text chatbots explicitly. Coach is exactly that, and
+every breakdown is model prose besides. The policy requires in-app reporting or
+flagging that lets a user report offensive output **without leaving the app**,
+and requires the developer to use those reports to inform filtering and
+moderation. Collecting reports nobody reads satisfies the first half and fails
+the second.
+
+**The User-Generated Content policy** applies separately, because
+`/share/<token>` is publicly accessible user content. It requires terms that
+**define** objectionable content rather than gesture at it, ongoing moderation,
+and an in-app system for reporting. It does not require user blocking here:
+that clause is scoped to apps with direct user-to-user interaction, and a share
+link is one-way with no comments and no reply path.
+
+**`analysis_feedback` (D-084, migration 022) does not close either of these, and
+must not be extended to.** It asks "was this helpful" and its reasons are
+`wrong_player`, `off_read`, `not_helpful`. None of them can carry "this clip
+shows a child", and the table is the ground-truth stream for the eval loop, so
+mixing safety reports into it would poison the signal it exists to produce. Two
+instruments, two tables, two controls, on purpose. A reviewer who finds only a
+thumbs-up widget has found an app with no reporting mechanism.
+
+**The anonymous path is the requirement, not a convenience.** The person best
+placed to notice that a shared clip has a bystander in it is the stranger who
+opened the link, and they have no account. So the share page's control takes no
+session. That follows D-049's posture exactly: no anon table grants, one
+`security definer` function as the entire anonymous write surface, and the raw
+token resolved inside it so a caller never names a row. Verified against
+production after applying migration 060: `anon` holds **no select and no insert**
+on `content_reports` and **execute** on `submit_content_report`; a valid token
+returns `ok`, a forged one `not_found`, an authenticated-only surface
+`unauthenticated`.
+
+**`reporter_id` is `on delete set null`, never cascade.** A report is about
+someone else's content. Cascading would let the subject of a report clear it by
+deleting the reporting account, and would lose the moderation record on an
+ordinary account deletion.
+
+**A coach report sends the TEXT, not the message id.** A streamed answer carries
+a client-minted uuid that exists in no table until the thread is read back, so
+the id would dangle on precisely the message most likely to be reported: the one
+just written. The excerpt is stored at report time for the same reason, because
+the reported message can be gone before anyone reviews it.
+
+**The control is quiet but never hover-revealed.** There is no hover on a phone,
+and a required reporting control that only appears to a mouse is a control most
+of this product's users do not have.
+
+**Still open, and it is a business call rather than a technical one.** Target
+audience is declared 13-15, 16-17 and 18+, which is a mixed-audience declaration,
+and Play's Families guidance calls for a **neutral age screen** in that case. The
+signup page carries a 13+ statement, which is not the same instrument. The two
+ways out are a real age screen at signup (friction on a funnel with four users)
+or raising the Terms minimum to 18 (the declaration must follow the Terms, never
+the reverse, and it cuts the high-school core of the market). Not decided here.
