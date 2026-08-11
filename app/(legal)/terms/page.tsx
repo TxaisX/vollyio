@@ -430,15 +430,25 @@ export default function TermsPage() {
           mislead. Content that infringes someone else&rsquo;s rights.
         </p>
         <p>
-          <strong className="text-chalk">
-            Film of a person who has not agreed to be filmed.
-          </strong>{" "}
-          Volleyball is played in public, so this is the rule most likely to
-          catch you out. Do not upload or share a clip in which someone else is
-          identifiable unless you have their permission, and if they are under
-          18, their parent or guardian&rsquo;s permission. If you share a
-          breakdown by link, you are publishing that film to anyone who holds
-          the link.
+          <strong className="text-chalk">Other people in your clips.</strong>{" "}
+          Volleyball is a team sport played at public events, so teammates,
+          opponents and spectators end up in almost every clip. That is normal
+          and it is fine. Filming your own rep at a match or an open gym does
+          not require you to get a release from everyone on the court.
+        </p>
+        <p>
+          Three things are still on you. Do not film where filming is not
+          allowed, which usually means a venue rule, a school or club policy, or
+          a changing area. If someone tells you they do not want to be in your
+          footage, take it down. And take real care with clips that feature
+          somebody else&rsquo;s child rather than incidentally including them,
+          because a shared link is public to anyone holding it and a junior
+          player is not the one who decided to publish it.
+        </p>
+        <p>
+          If you are in a clip on Vollyio and you want it gone, use the Report
+          control on the page or write to us. You do not need an account and you
+          do not have to explain yourself. We will take it down.
         </p>
         <p>
           We review reported content and we act on it. Depending on what we

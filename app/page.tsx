@@ -157,15 +157,22 @@ export default function Landing() {
     name: "Vollyio",
     applicationCategory: "SportsApplication",
     operatingSystem: "Web, iOS, Android",
+    // The description and the first feature both claimed per-frame analysis
+    // until 2026-08-11. Structured data is the claim that reaches a parent, a
+    // search engine and an answer engine BEFORE any rendered page does, which
+    // is exactly the argument the comment below already made about price, so
+    // the same standard applies to capability: the video path samples roughly
+    // one frame a second and `/api/analyze` sets `timeAt = () => null`. The
+    // 6e351ba sweep rewrote the visible copy and never opened this object.
     description:
-      "Upload a rep, get frame-by-frame form analysis for every volleyball skill.",
+      "Upload a rep, get it scored 0-100 against the checkpoints for that skill, with the one fix that matters most.",
     // Both tiers, because a single price "0" told every search and answer
     // engine the product was free while a paid auto-renewing subscription
     // was on sale. Structured data is the claim that reaches a parent before
     // any page does, so it is the one that has to be right first. Prices are
     // quoted from lib/plans, never retyped.
     featureList: [
-      "Frame-by-frame breakdown",
+      "Whole-rep breakdown, scored against five checkpoints",
       "Six skills scored 0-100",
       "One priority fix per rep",
       "Rolling skill rating",

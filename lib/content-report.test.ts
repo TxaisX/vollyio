@@ -77,12 +77,22 @@ test("the categories Play names are all reachable", () => {
   }
 });
 
-test("a bystander who never agreed to be filmed has somewhere to say so", () => {
-  // The likeliest real report on this product by a wide margin: an outdoor rep
-  // with legible faces in the background. One such analysis was rejected from
-  // the store screenshots for exactly this. It is first in the rendered order.
+test("someone who wants themselves taken out of a clip has somewhere to say so", () => {
+  // The likeliest real report on this product by a wide margin, and the reason
+  // it leads the list. Every clip is shot at a public match or an open gym, so
+  // incidental teammates are the NORM and cannot be what this asks about; the
+  // actionable case is a person who wants out. The label must therefore be
+  // about removal, not about prior consent, or it describes ordinary uploads.
   assert.equal(REPORT_REASON_ORDER[0], "private_person");
-  assert.ok(REPORT_REASONS.includes("private_person"));
+  const label = REPORT_REASON_LABEL.private_person.toLowerCase();
+  assert.ok(
+    label.includes("taken down") || label.includes("i am in this"),
+    "the leading reason must offer removal, not allege a consent failure",
+  );
+  assert.ok(
+    !label.includes("did not agree"),
+    "consent wording would describe almost every legitimate clip on the product",
+  );
 });
 
 test("an anonymous share viewer can file a report with nothing but the token", () => {

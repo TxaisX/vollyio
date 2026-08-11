@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Analyze a rep",
-  description: "Upload a rep and get it scored frame by frame.",
+  description: "Upload a rep and get it scored against the checkpoints for that skill.",
 };
 
 export default async function Analyze({

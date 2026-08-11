@@ -2,7 +2,12 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Vollyio: record a rep and get a frame-by-frame breakdown of every volleyball skill.";
+// This card is the first thing anyone sees of the product, because a share link
+// is the only channel that has ever brought visitors (74 of the first 219). Both
+// this alt text and the line rendered into the image itself claimed per-frame
+// scoring until 2026-08-11, which the engine cannot do.
+export const alt =
+  "Vollyio: record a rep and get it scored 0-100 against the checkpoints for that skill.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -52,7 +57,7 @@ export default async function Image() {
                 skills scored
               </div>
               <div style={{ display: "flex", fontSize: 42, color: "#b9c4c9" }}>
-                0–100, frame by frame
+                0–100, on five checkpoints
               </div>
             </div>
           </div>

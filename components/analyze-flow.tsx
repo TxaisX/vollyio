@@ -2032,7 +2032,7 @@ export function AnalyzeFlow({
                   >
                     {retrying ? (
                       <>
-                        <WorkingDots /> Scoring your rep, frame by frame…
+                        <WorkingDots /> Scoring your rep…
                       </>
                     ) : (
                       "Send it again"

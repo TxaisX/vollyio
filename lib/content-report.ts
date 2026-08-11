@@ -20,11 +20,14 @@ export const REPORT_REASONS = [
 
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
-// What the player taps. `private_person` leads with the case this product will
-// actually see: a teammate or a bystander who is in the frame and never agreed
-// to be. It is listed above the rarer categories for that reason.
+// What the player taps. `private_person` leads because it is the case this
+// product will actually see, but the WORDING matters: every clip is shot at a
+// public match or an open gym, so half a team is incidentally in frame on a
+// normal upload and "did not agree to be filmed" would describe almost all of
+// them. The actionable case is narrower and is the one worded here: somebody in
+// the clip wants out. The storage key stays `private_person`.
 export const REPORT_REASON_LABEL: Record<ReportReason, string> = {
-  private_person: "Someone in this did not agree to be filmed",
+  private_person: "I am in this, or someone in it wants it taken down",
   sexual_content: "Sexual content",
   hate_or_harassment: "Hate, bullying or harassment",
   violence_or_danger: "Violence or something dangerous",

@@ -3,8 +3,7 @@ import { FilmScene } from "@/components/film-scene";
 
 export const metadata: Metadata = {
   title: "Court vision film",
-  description:
-    "Vollyio court vision film. Watch a spike get read frame by frame.",
+  description: "Vollyio court vision film. Watch a spike get read and scored.",
   robots: { index: false, follow: false },
 };
 

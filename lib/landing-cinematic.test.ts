@@ -30,6 +30,69 @@ test("the landing opens with a product-true spike film read", () => {
   assert.doesNotMatch(styles, /@keyframes cinematic-camera/);
 });
 
+test("no user-facing surface claims per-frame precision, not just the hero", () => {
+  // THE GUARD ABOVE HAD A HOLE AND THE HOLE SHIPPED. 6e351ba pulled the
+  // frame-timing claims off the landing page, the hero and the Terms, and the
+  // test that pinned that fix read `components/cinematic-hero.tsx` and nothing
+  // else. `app/manifest.ts` went on saying "frame-by-frame form analysis" for
+  // another day, which is the worst surface of the lot to be wrong on: the
+  // manifest description is what an install prompt and a store listing read
+  // out, so it is the promise made to somebody who has not opened the app yet.
+  //
+  // D-033's rule is about the PRODUCT, not about one component, so the check
+  // has to cover every surface a stranger reads. Adding a file here costs one
+  // line; forgetting to costs a claim nobody is looking for.
+  // Ordered roughly by how far the string travels from someone who has never
+  // opened the app. The first four are read by MACHINES, which is why they all
+  // survived a sweep that rewrote what people read: they reach a search result,
+  // an answer engine, a share card and an install prompt first.
+  const SURFACES = [
+    "app/layout.tsx", // meta description on every page, and the OG card
+    "app/opengraph-image.tsx", // the share card image itself
+    "app/manifest.ts", // install prompt and store listing
+    "app/page.tsx", // JSON-LD for search and answer engines
+    "app/film/page.tsx",
+    "app/(app)/analyze/page.tsx",
+    "app/samples/page.tsx",
+    "components/cinematic-hero.tsx",
+    "components/analytics-showcase.tsx",
+    "app/(legal)/terms/page.tsx",
+    "app/(legal)/privacy/page.tsx",
+    "lib/site.ts",
+  ];
+
+  // NOT swept, and each for a reason worth stating so nobody "finishes the job"
+  // by mistake:
+  //   components/clip-viewer.tsx and most of analyze-flow.tsx say "frame by
+  //   frame" about the frame STRIP, which is a real strip of real frames. That
+  //   is a description of a UI element, not a claim about analysis.
+  //   lib/ai/rubrics/index.ts instructs the model to work through frames and
+  //   cite frame indices. That is the FRAME path's prompt, it is internal, and
+  //   the instruction is accurate for the path that uses it.
+
+  // The claim FAMILY, not one string. "frame-by-frame" survived precisely
+  // because the earlier sweep hunted the exact phrases it had already found.
+  const FORBIDDEN: [RegExp, string][] = [
+    [/frame[- ]by[- ]frame/i, "the video path samples about one frame per second"],
+    [/frame[- ]level/i, "there is no frame-level output on the video path"],
+    [/exact frame/i, "no frame is identified as the one"],
+    [/timestamp/i, "/api/analyze sets timeAt = () => null"],
+    [/\bFrame \d/, "a frame number implies an index the row does not carry"],
+  ];
+
+  for (const surface of SURFACES) {
+    const body = read(surface);
+    if (body === "") continue;
+    for (const [pattern, why] of FORBIDDEN) {
+      assert.doesNotMatch(
+        body,
+        pattern,
+        `${surface} promises precision the engine does not have: ${why}`,
+      );
+    }
+  }
+});
+
 test("the film room resolves the hero before the explainer", () => {
   const page = read("app/page.tsx");
   const filmIndex = page.indexOf('id="film"');
