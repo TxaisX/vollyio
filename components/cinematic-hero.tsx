@@ -5,8 +5,8 @@ import { SeamArcs } from "@/components/motif";
 
 const READOUT = [
   { value: "Locked", label: "Hitter acquired", accent: true },
-  { value: "Frame 12", label: "Contact point", accent: false },
-  { value: "06", label: "Checkpoints scored", accent: false },
+  { value: "Whole rep", label: "Clip analyzed", accent: false },
+  { value: "05", label: "Checkpoints read", accent: false },
   { value: "82", label: "Spike score", accent: false },
 ] as const;
 
@@ -46,7 +46,7 @@ export function CinematicHero() {
           </h1>
           <Reveal delay={160} immediate>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-chalk-dim md:text-lg">
-              Record a rep. Get the exact frame, the score, and the one
+              Record a rep. Get the score, what worked, and the one
               correction that buys the most across every volleyball skill.
             </p>
           </Reveal>

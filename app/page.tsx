@@ -49,7 +49,7 @@ const STEPS = [
   {
     n: "02",
     title: "Get the breakdown",
-    body: "Each metric scored 0–100, timestamped insights, and every note tied to the exact frame it happened in.",
+    body: "One score out of 100 for the rep, the five checkpoints a coach watches, and what was seen at each one.",
   },
   {
     n: "03",
@@ -132,9 +132,9 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
       <p>
         Every skill is graded on the checkpoints a coach actually watches: on
         a serve, that&rsquo;s toss, arm swing, contact, and follow-through.
-        Every note is pinned to the exact frame it came from, so you can
-        see what the score saw and disagree with it. Treat it as a sharp
-        second opinion whose work you can always check, not ground truth.
+        Every note says what was seen in the rep, so you can play your own
+        clip back against it and disagree. Treat it as a sharp second
+        opinion whose work you can always check, not ground truth.
       </p>
     ),
   },

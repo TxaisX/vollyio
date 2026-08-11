@@ -109,15 +109,15 @@ export default function TermsPage() {
       <Section title="What Vollyio is, and is not">
         <p>
           Vollyio scores your volleyball technique from a clip you upload, and
-          pins every note to the frame it came from. It is a training aid, not
-          a substitute for a qualified coach, athletic trainer, or medical
-          professional.
+          names what it saw at each checkpoint of that skill. It is a training
+          aid, not a substitute for a qualified coach, athletic trainer, or
+          medical professional.
         </p>
         <p>
           Scores and insights are estimates produced by automated analysis.
-          They can be wrong. Because every note is pinned to its frame, you can
-          judge it yourself; treat the output as a second opinion, not ground
-          truth.
+          They can be wrong. Because every note says what was seen, you can
+          play the rep back and judge it yourself; treat the output as a
+          second opinion, not ground truth.
         </p>
         <p>
           Volleyball is a physical activity that carries risk of injury. Train

@@ -9,11 +9,19 @@ test("the landing opens with a product-true spike film read", () => {
   const styles = read("app/globals.css");
 
   assert.match(hero, /aria-hidden="true" className="hero-analysis-rail/);
-  assert.match(hero, /Frame 12/);
+  assert.match(hero, /Whole rep/);
   assert.match(hero, /value: "82"/);
   assert.match(hero, /Spike score/);
-  assert.match(hero, /Checkpoints scored/);
+  assert.match(hero, /Checkpoints read/);
   assert.doesNotMatch(hero, /°/);
+  // D-033 again, and the reason the readout no longer says "Frame 12". The
+  // video path samples about one frame per second and /api/analyze returns no
+  // instant at all (`timeAt = () => null`), so a frame number or a timestamp
+  // in the hero advertises a precision that was deliberately removed. The
+  // count is five because every skill in METRICS has exactly five checkpoints.
+  assert.doesNotMatch(hero, /Frame \d/);
+  assert.doesNotMatch(hero, /exact frame/);
+  assert.doesNotMatch(hero, /timestamp/i);
   assert.match(hero, /Analyze your first rep/);
   assert.match(hero, /autoPlay=\{false\}/);
   assert.doesNotMatch(hero, /playDelayMs/);
