@@ -67,12 +67,17 @@ test("no user-facing surface claims per-frame precision, not just the hero", () 
   //   frame" about the frame STRIP, which is a real strip of real frames. That
   //   is a description of a UI element, not a claim about analysis.
   //   lib/ai/rubrics/index.ts instructs the model to work through frames and
-  //   cite frame indices, and it is internal rather than user-facing. Its
-  //   `getRubric` export has NO CALLERS: it is the 120-pointer frame rubric
-  //   left behind by D-097, kept as reference for the day something needs an
-  //   instant. `/api/analyze` sends `simpleRubric` to `readVideo` instead, and
-  //   `readFrames` survives only in `/api/players`, which identifies who is in
-  //   a clip rather than scoring one.
+  //   cite frame indices, and it is internal rather than user-facing. It is the
+  //   120-pointer FRAME rubric and it is LIVE, not dead: `getRubric` is called
+  //   by six eval scripts (ab-run, flow-check, hit1-check, hit1-dense,
+  //   maya-full, park-full), which still exercise the frame path on purpose.
+  //   A previous version of this comment called it dead code, from a grep
+  //   scoped to *.ts and *.tsx while every caller is a .mjs script - the same
+  //   file-scoped mistake this whole test exists to catch.
+  //   The PRODUCT path is different and is what the sweep above protects:
+  //   `/api/analyze` sends `simpleRubric` to `readVideo`, and `readFrames`
+  //   survives in `/api/players`, which identifies who is in a clip rather than
+  //   scoring one.
 
   // The claim FAMILY, not one string. "frame-by-frame" survived precisely
   // because the earlier sweep hunted the exact phrases it had already found.

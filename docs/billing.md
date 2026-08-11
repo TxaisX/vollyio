@@ -381,18 +381,25 @@ stays true.
 
 ## 5. The owner alert
 
-**Half built.** The spend-backstop half fires (`lib/owner-alert.ts`, wired into
-`lib/ai/budget.ts`, silent when `OWNER_ALERT_EMAIL` is unset). The half that
-fires when the provider reports credits exhausted does not exist. The claim is
-also held in process memory
-rather than in a row, so the bound is roughly one mail per serverless instance
-per interval rather than the once-per-trip written below.
+**NOT BUILT, and the half that used to exist is gone.** This section described a
+spend-backstop alert as firing. It did not fire, and it could not: D-104 deleted
+`lib/ai/budget.ts` on 2026-08-06, which was the only thing that ever called it,
+and `lib/owner-alert.ts` sat orphaned from that day until it was archived on
+2026-08-11 to `archive/owner-alert-d102/`. Do not read the paragraph below as a
+description of the system; it is a specification for something that has never
+run.
 
-When the spend backstop trips, or the provider reports credits exhausted, email
-the owner through the existing Resend path (`lib/email.ts`). Fire **once per
-trip**, claimed the same way `welcome_email_sent_at` claims the welcome mail, or
-a busy hour sends hundreds of identical alerts. Players continue to see the
-existing calm "temporarily out of capacity, your clip wasn't counted" 503.
+**Nothing currently warns the owner about spend.** The prepaid model balance is
+the wall that actually binds, one balance serves four surfaces, and **the app
+cannot read it**. Per-account quotas bound one player and never the aggregate.
+The first signal of exhaustion will be every analysis failing at once.
+
+If it is rebuilt: fire when the provider reports credits exhausted, through the
+Resend path (`lib/email.ts`). Fire **once per trip**, claimed in a ROW the way
+`welcome_email_sent_at` claims the welcome mail, not in process memory, because
+a serverless deployment gives every instance its own copy of the claim and the
+archived module's own comment records that as its known limit. Players continue
+to see the calm "temporarily out of capacity, your clip wasn't counted" 503.
 
 No user-facing "you're out of analyses" email in v1. They find out in the app,
 at the moment it matters.

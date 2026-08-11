@@ -10,6 +10,17 @@ and stay tracked (history preserved, still greppable). Heavy regenerable outputs
 and footage frames are untracked and gitignored (see `.gitignore`); the
 methodology that reproduces them lives in `scripts/benchmark/`.
 
+**ARCHIVED TESTS MUST BE RENAMED OFF `*.test.ts`.** `tsconfig.json` excludes this
+folder, so archived code is not typechecked, but `npm test` is a bare
+`node --test` and its default discovery walks the WHOLE repo including here.
+Moving `owner-alert.test.ts` in on 2026-08-11 left all 17 of its tests running
+against archived code, and the suite total did not move, which is exactly how
+that goes unnoticed. Node 24 has no `--test-exclude`, and switching the script to
+explicit globs would silently drop any future directory nobody remembered to
+list, which is a worse failure than this one. So the rule is the rename:
+`owner-alert.test.ts` became `owner-alert.tests-archived.ts`. Still a readable
+`.ts` file, no longer a collected test. Suite went 632 to 615.
+
 ## Subfolders
 
 - **2026-07-model-benchmarks/** - The two 2026-07-20 model-and-effort studies: the
@@ -46,6 +57,18 @@ methodology that reproduces them lives in `scripts/benchmark/`.
   typecheck run, because the root is inside `tsconfig.json`'s `include` and `archive/`
   is not. Moved here rather than deleted: the `games` table and its rows still exist
   (see `docs/security.md`), so the code that wrote them is worth being able to read.
+- **owner-alert-d102/** - `lib/owner-alert.ts` and its 17 tests, moved 2026-08-11.
+  It emailed the owner when the platform spend backstop tripped, and **D-104
+  deleted the backstop** (`lib/ai/budget.ts`, 2026-08-06) without deleting this,
+  so from that day it was a module nothing called and a test file exercising code
+  no request could reach. `docs/deploy.md` recorded it as "pending an
+  owner-approved cleanup"; this is that cleanup. Kept rather than deleted for one
+  reason: if a credits-exhausted alert is ever built, the interval claim, the
+  failed-send backdate, and the comment explaining why an un-unref'd timer is the
+  correct choice are all worked out here, together with the honest note that a
+  process-memory claim bounds mail per INSTANCE rather than per trip. What it
+  does NOT tell you, and what matters more: **nothing warns the owner about
+  spend today.**
 - **misc/** - One-off scratch (`.mcp.json.bak`, an old restart note).
 - **handoff-history.md** - Session-log entries from before D-027, moved out of
   `HANDOFF.md` when it was rewritten to the current system on 2026-07-20.
