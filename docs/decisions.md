@@ -4756,3 +4756,84 @@ signup page carries a 13+ statement, which is not the same instrument. The two
 ways out are a real age screen at signup (friction on a funnel with four users)
 or raising the Terms minimum to 18 (the declaration must follow the Terms, never
 the reverse, and it cuts the high-school core of the market). Not decided here.
+
+## D-113 - The claim sweep missed every surface a machine reads, and the Terms asked for a release nobody can get
+
+**2026-08-11.** Two corrections, both to work done earlier the same day.
+
+### The sweep was scoped to files, and the rule is about the product
+
+`6e351ba` pulled the frame-timing claims off the landing page, the hero and the
+Terms, and `lib/landing-cinematic.test.ts` was inverted to pin the fix. That
+test read `components/cinematic-hero.tsx` **and nothing else**, so it proved one
+file was clean and said nothing about the product. Four surfaces went on
+promising per-frame analysis, and they are the four a stranger meets FIRST:
+
+- **`app/layout.tsx`** - the meta description on every page that does not set
+  its own, and the OpenGraph card
+- **`app/opengraph-image.tsx`** - the share card image itself, which rendered
+  "0-100, frame by frame" in 42px type, plus its alt text
+- **`app/manifest.ts`** - what an install prompt and a store listing read out
+- **`app/page.tsx`** - the JSON-LD served to search and answer engines
+
+**The share card is the worst of them**, because a share link is the only
+channel that has ever brought this product visitors (74 of the first 219). The
+JSON-LD is second, and its own comment had already made the argument about
+price: structured data is the claim that reaches a parent before any rendered
+page does, so it has to be right first. That reasoning applies to capability
+exactly as it applies to money.
+
+**The generalisable failure: the sweep rewrote what a PERSON reads and missed
+every string a MACHINE reads.** Machine-read strings travel further, because
+they reach a search result, an answer engine, a share card and an install prompt
+before anyone opens the site. A copy audit that only greps rendered JSX will
+miss all of them every time.
+
+The guard now sweeps **twelve** surfaces for the claim **family**
+(`frame-by-frame`, `frame-level`, `exact frame`, `timestamp`, `Frame \d`) rather
+than one file for three known strings, because "frame-by-frame" survived
+precisely by not being one of the phrases the previous sweep had already found.
+It caught three of the four on its first run, and it caught a comment of mine
+restating the old claim, which is why the manifest comment is worded around it.
+
+**Deliberately NOT swept, and this is load-bearing:** `components/clip-viewer.tsx`
+and most of `analyze-flow.tsx` say "frame by frame" about the frame **strip**,
+which is a real strip of real frames and therefore a description of a UI
+element, not a claim about analysis. `lib/ai/rubrics/index.ts` instructs the
+model to cite frame indices, which is the FRAME path's own prompt and accurate
+for the path that uses it. Both exclusions are recorded in the test so nobody
+"finishes the job" by mistake.
+
+### A rule every honest user breaks is worse than no rule
+
+D-112's Terms clause said: do not upload or share a clip in which someone else
+is identifiable unless you have their permission. **Txais's correction: all
+recordings are at public events.** Every rep is filmed at a match or an open gym
+with half a team and a crowd in frame, so that clause made **every legitimate
+user a violator**. An unenforceable rule is not a conservative safety margin; it
+is evidence against you, because it documents a standard you never enforced.
+
+The clause now states what is actually true. Incidental teammates, opponents and
+spectators are normal and fine, and filming your own rep does not require a
+release from everyone on the court. The obligations that remain are the ones
+that can actually be met: respect venue, school and club rules; take footage
+down when someone asks; take real care with a clip that **features** someone
+else's child rather than incidentally including them. Removal is offered to
+anyone, with no account and no explanation required.
+
+The leading report reason moved with it, from "Someone in this did not agree to
+be filmed" to "I am in this, or someone in it wants it taken down". The storage
+key stays `private_person`, so no migration. **The wording is the whole point:
+the first version alleged a consent failure and would have described almost
+every legitimate clip on the product; the second offers removal, which is the
+only actionable thing anyone reporting this actually wants.** A test pins the
+label against both, so it cannot drift back into consent language.
+
+### Distribution follows from the tester finding
+
+Play internal testing is email-list gated (2 people on the list), so the opt-in
+link does nothing for a stranger. Recruitment moves to the **PWA**: manifest
+valid and standalone, service worker serving, install capture in the head, share
+card rendering. A stranger opens a share link, reads the breakdown, installs
+from the ribbon, no account and no store. This does not change the Play plan; it
+stops Play being what strangers are sent to.
