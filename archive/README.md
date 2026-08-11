@@ -10,16 +10,31 @@ and stay tracked (history preserved, still greppable). Heavy regenerable outputs
 and footage frames are untracked and gitignored (see `.gitignore`); the
 methodology that reproduces them lives in `scripts/benchmark/`.
 
-**ARCHIVED TESTS MUST BE RENAMED OFF `*.test.ts`.** `tsconfig.json` excludes this
-folder, so archived code is not typechecked, but `npm test` is a bare
-`node --test` and its default discovery walks the WHOLE repo including here.
+**ARCHIVED TESTS MUST BE RENAMED OFF NODE'S DISCOVERY PATTERNS, AND
+`lib/archive-hygiene.test.ts` ENFORCES IT.** `tsconfig.json` excludes this
+folder, so archived code is not typechecked, and that is easy to mistake for
+"archive/ is out of the build". It is not out of the TEST run: `npm test` is a
+bare `node --test` whose default discovery walks the whole repository, here
+included.
+
 Moving `owner-alert.test.ts` in on 2026-08-11 left all 17 of its tests running
-against archived code, and the suite total did not move, which is exactly how
-that goes unnoticed. Node 24 has no `--test-exclude`, and switching the script to
-explicit globs would silently drop any future directory nobody remembered to
-list, which is a worse failure than this one. So the rule is the rename:
-`owner-alert.test.ts` became `owner-alert.tests-archived.ts`. Still a readable
-`.ts` file, no longer a collected test. Suite went 632 to 615.
+against a module no request could reach, and **the suite total did not move**,
+632 before and 632 after, which is exactly how it goes unnoticed. A green suite
+that is green about deleted code is worse than a red one, because it reads as
+coverage.
+
+Node 24 has no `--test-exclude`, and narrowing the script to explicit globs would
+silently drop any future directory nobody remembered to list, which is the worse
+failure because nothing reports it at all. So the rule is the rename:
+`owner-alert.test.ts` became `owner-alert.tests-archived.ts`, still a readable
+`.ts` file and no longer a collected test. Suite went 632 to 615.
+
+A rule in a README is enforced by whoever remembers to read it, which is the same
+kind of guarantee that just failed, so it is now a test. `lib/archive-hygiene.test.ts`
+walks this folder against every one of node's default patterns (`*.test.*`,
+`*-test.*`, `*_test.*`, `test.*`, `test-*.*`, and any `test/` or `__tests__/`
+directory), fails with the offending paths and the fix, and pins the pattern list
+itself so a transcription error cannot pass silently.
 
 ## Subfolders
 
