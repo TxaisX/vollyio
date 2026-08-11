@@ -40,20 +40,36 @@ never engage in a configuration where a player could not buy past it.
 
 ## 1. The model
 
+> **Rewritten 2026-08-11.** Every number in this section was stale, and the
+> derivations resting on them were wrong by more than an order of magnitude. The
+> price was three versions old ($9.99, superseded by D-107), the quota was two
+> versions old (24 a month, superseded by the daily wall of D-110), and the
+> per-analysis cost was **$0.234 against a measured $0.0164**, which is 14x. A
+> margin computed from a 14x cost error is not a conservative estimate, it is a
+> different business. `lib/plans.ts` and the newest migration defining
+> `plan_daily_allowance` are the authority; this file quotes them.
+
 | Tier | Price | Analyses | Where it is managed |
 |---|---|---|---|
-| Free | $0 | 6 at signup, once, then 1 completed analysis per month window | nothing to manage |
-| Pro | $9.99/mo | 24 completed analyses per billing period | Settings, plan card |
+| Free | $0 | 3 at signup, once, then 3 completed analyses per day | nothing to manage |
+| Pro | $29.99/mo | 18 completed analyses per day | Settings, plan card |
+
+The full ladder is four SKUs, not two (D-107): Free, a **$9.99 non-renewing
+week**, **$29.99 a month**, and a **$19.99 downsell** offered on dismiss. The
+ladder must stay monotonic. Only the two rows above are allowances; the week
+pass buys Pro's rate for seven days and does not renew.
 
 - **Free is two numbers and has to be described as both** (D-076, migration
-  040; grant raised 3 to 5 on D-080, 5 to 6 on D-083 so it reads every skill
-  once, and Pro raised 18 to 24 on D-085, migrations 044 through 048). The 6
-  are a one-time grant spent against LIFETIME rows in `analyses`, not a
-  monthly figure: six completed analyses close it permanently, whichever
-  months they land in. `signup_grant()` holds the grant,
-  `plan_monthly_allowance()` holds the rate, and `allowanceSentence()` in
-  `lib/plans.ts` is the single place the sentence is built, so no surface can
-  quote half of it.
+  040). The 3 are a one-time grant spent against LIFETIME rows in `analyses`,
+  not a daily figure: three completed analyses close it permanently, whichever
+  days they land in. `signup_grant()` holds the grant, `plan_daily_allowance()`
+  holds the rate, and `allowanceSentence()` in `lib/plans.ts` is the single
+  place the sentence is built, so no surface can quote half of it.
+- **The day is the wall, and the monthly numbers are not a second policy**
+  (D-110, migrations 057 through 059). `MONTHLY_ALLOWANCE` is exactly 30x the
+  daily rate, 90 free and 540 Pro, and exists only so the two cannot disagree:
+  a player who spends their day rate every day must never then meet a monthly
+  refusal nobody warned them about. `lib/plans.test.ts` pins the 30x.
 - The window is the **UTC calendar month** for free accounts. For a
   subscriber it is the **billing period the provider reports** (D-067,
   migration 035; start read rather than derived since D-086, migration 049):
@@ -68,28 +84,42 @@ never engage in a configuration where a player could not buy past it.
 - Settings holds exactly two actions: upgrade to Pro, and cancel Pro. There is
   no separate upgrade tab.
 
-Economics at these numbers, measured rather than derived. The 12
-telemetry-carrying rows in production average **$0.209** per analysis, and
-**$0.234** on Opus 5 since D-070, which raised input tokens 23%. The
-$0.15 to $0.20 this section used to quote predates that switch and every margin
-figure resting on it was optimistic; `docs/post-cap-validation.md` carries the
-same stale range and is not owned by this change.
+Economics at these numbers, measured rather than derived. **A completed analysis
+costs $0.0164** (D-106), read from `analyses.telemetry` in production rather
+than estimated. **Output is roughly 70% of that cost**, which is why the lever
+on unit cost is response length and not input size. The $0.234 this section
+carried until 2026-08-11 came from a 12-row sample under a different model on a
+different path, and every margin figure that rested on it was wrong by 14x in
+the flattering direction.
 
-At $0.234 and Stripe's 2.9% plus 30 cents, **Pro at $9.99 nets $9.40, costs
-$4.21 at full use, and clears $5.19: roughly 52% gross margin** (D-077). At the
-worst per-analysis cost ever observed, $0.262, it is still 47%. Full utilization
-is the worst case and not the norm; at half use it is 76%.
+At $0.0164 and Stripe's 2.9% plus 30 cents:
 
-A free account costs about **$0.23** a month once its signup grant is spent,
-against $0.69 under the old 3-a-month rule. That is what makes $9.99 work at all:
-one Pro subscriber carries **22.5 free accounts**, so break-even conversion is
-**4.3%**, inside the 2 to 5% band freemium actually converts at. Under the old
-free tier the same $9.99 carried 7.5 accounts and needed 11.8%, which is not a
-real number. **D-076 is the reason D-077 is survivable, and reverting the free
-tier without also reverting the price would put the funnel underwater.**
+| | Per month |
+|---|---|
+| Pro charge | $29.99 |
+| Net of processing | $28.82 |
+| Cost at FULL use, 540 analyses | $8.86 |
+| Clears | **$19.96, about 69% gross margin** |
 
-The one-time grant costs $0.69 per account, once, and buys the progression demo
-that converts. Section 6 is about the accounts that never do.
+Full utilization is the worst case, not the norm. Nobody has yet run 18 a day
+for 30 days. At half use the same subscription clears $24.39.
+
+A fully-used free account costs about **$1.48** a month, 90 analyses at
+$0.0164. One Pro subscriber at full use therefore carries roughly **13 fully
+used free accounts**, and far more in practice because a free account that
+finishes its 3-a-day every day for a month does not exist yet either. The
+one-time grant costs about **$0.05** per account.
+
+**These are gross margins on inference only.** They do not carry the prepaid
+inference balance, which is the constraint that actually binds: one balance
+serves four surfaces, the app cannot read it, and per-account quotas bound a
+single player and never the aggregate. Section 6 is about the accounts that
+never convert; the spend backstop in section 5 is about the wall none of this
+arithmetic can see.
+
+**Coach is untiered and is the largest line on a free account.** 30 a day for
+everyone regardless of plan, about $0.54 a month against $0.30 of analysis.
+Tiering `coach_daily` to 5 or 10 a day is proposed and undecided.
 
 ## 2. Three separate walls. Do not merge them.
 

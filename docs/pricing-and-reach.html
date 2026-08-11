@@ -67,7 +67,13 @@
 
 <div class="verdict">
   <div class="tag" style="border:0;background:none;padding:0">The short version</div>
-  <p>Serving cost fell about 10× when the model moved to the gateway, so Pro at $9.99 now runs a ~94% margin and the entire business breaks even at <strong>roughly 8 paying subscribers</strong>. Pricing is therefore not a survival problem — it is a growth lever. The actual constraint is reach: 219 visitors in 30 days, and the single highest-yielding channel we have is a share link that nobody planned.</p>
+  <p>Pro is <strong>$29.99</strong> and runs a ~69% margin even at full use, so pricing is not a survival problem — it is a growth lever. The actual constraint is reach: <strong>129 visitors in the last 30 days, 4 real accounts, and zero paying subscribers ever</strong>. The single highest-yielding channel we have is a share link that nobody planned.</p>
+</div>
+
+<div class="verdict" style="border-color:#c0562f">
+  <div class="tag" style="border:0;background:none;padding:0">Corrected 2026-08-11</div>
+  <p>This document was written against $9.99, a 1-per-month free tier, a $0.024 serving cost and <em>one paying subscriber</em>. All four are wrong now. The price is $29.99 (D-107), the free tier is <strong>3 a day, which is 90 a month</strong> (D-110), serving is <strong>$0.0164</strong> (D-106), and <strong>there has never been a paying subscriber</strong> — the single Stripe charge was the owner's own $14.99, cancelled about five hours later.</p>
+  <p><strong>The correction inverts this document's main conclusion.</strong> It argued the free tier costs two and a half cents a month and the generosity dial should be turned <em>up</em>. Under D-110 a fully-used free account costs about <strong>$1.48</strong> a month, roughly 60× more, because the allowance went from 1 a month to 90. The free tier is no longer free advertising. Whether it is still worth its cost depends entirely on utilization, which is unmeasured because there is not enough traffic to measure it.</p>
 </div>
 
 <h2><span class="n">01</span>Where we actually stand</h2>
@@ -75,10 +81,10 @@
 <p>Pulled from production, 2026-08-06. This is the whole business, stated honestly.</p>
 
 <div class="cards">
-  <div class="card"><div class="v">4</div><div class="l">total accounts (first signup 2026-07-17)</div></div>
-  <div class="card"><div class="v">1</div><div class="l">paying Pro subscriber</div></div>
-  <div class="card"><div class="v">42</div><div class="l">analyses ever run, by 3 users</div></div>
-  <div class="card"><div class="v">219</div><div class="l">unique visitors, last 30 days</div></div>
+  <div class="card"><div class="v">4</div><div class="l">real accounts (first signup 2026-07-17; a 5th row is the Play demo account)</div></div>
+  <div class="card"><div class="v">0</div><div class="l">paying subscribers, ever</div></div>
+  <div class="card"><div class="v">43</div><div class="l">analyses ever run, by 3 users (46 rows less the demo account)</div></div>
+  <div class="card"><div class="v">129</div><div class="l">unique visitors, last 30 days (219 is the LIFETIME figure)</div></div>
 </div>
 
 <p class="dim">All four numbers are <span class="tag t-measured">measured</span>. They are small enough that every ratio derived from them is directional, not statistical. A 25% free-to-paid conversion rate on a base of four accounts means one friend subscribed.</p>
@@ -137,39 +143,43 @@ Coach chat and the weekly plan run on <code>deepseek/deepseek-v4-flash</code> at
 <div class="scroll">
 <table>
   <tr><th></th><th>Old math (billing.md)</th><th>Actual, today</th></tr>
-  <tr><td>Pro price</td><td class="num">$9.99</td><td class="num">$9.99</td></tr>
-  <tr><td>Net after Stripe (2.9% + $0.30)</td><td class="num">$9.40</td><td class="num">$9.40</td></tr>
-  <tr><td>Serving cost at full 24 analyses</td><td class="num bad">$5.62</td><td class="num good">$0.58</td></tr>
-  <tr><td>Gross margin at full use</td><td class="num bad">40%</td><td class="num good">94%</td></tr>
-  <tr><td>Gross margin at typical use (8/mo)</td><td class="num">76%</td><td class="num good">98%</td></tr>
-  <tr><td>Cost of a free account, per month</td><td class="num">$0.23</td><td class="num good">$0.024</td></tr>
-  <tr><td>Free accounts carried by one Pro</td><td class="num">22.5</td><td class="num good">~367</td></tr>
-  <tr><td>Break-even conversion rate</td><td class="num bad">4.3%</td><td class="num good">~0.3%</td></tr>
+  <tr><td>Pro price</td><td class="num">$9.99</td><td class="num">$29.99</td></tr>
+  <tr><td>Net after Stripe (2.9% + $0.30)</td><td class="num">$9.40</td><td class="num">$28.82</td></tr>
+  <tr><td>Pro allowance</td><td class="num">24 / month</td><td class="num">18 / day (540 / month)</td></tr>
+  <tr><td>Serving cost at FULL allowance</td><td class="num bad">$5.62</td><td class="num">$8.86</td></tr>
+  <tr><td>Gross margin at full use</td><td class="num bad">40%</td><td class="num good">69%</td></tr>
+  <tr><td>Gross margin at typical use (8/mo)</td><td class="num">76%</td><td class="num good">99%</td></tr>
+  <tr><td>Free allowance</td><td class="num">1 / month</td><td class="num">3 / day (90 / month)</td></tr>
+  <tr><td>Cost of a free account at FULL use</td><td class="num">$0.23</td><td class="num bad">$1.48</td></tr>
+  <tr><td>Free accounts carried by one Pro, both at full use</td><td class="num">22.5</td><td class="num">~13</td></tr>
 </table>
 </div>
 
-<p class="dim">One correction to the left column, for the record: <code>docs/billing.md</code> quotes 52% gross margin, but that was computed against an 18-analysis allowance ($0.234 × 18 = $4.21). Pro has sold 24 since D-085, so the honest old figure is $5.62 and <strong>40%</strong> — the stale math was worse than the stale doc admitted. The right column is what is actually true today.</p>
+<p class="dim">The left column is the pre-D-107 model at the pre-D-110 quotas. Both columns assume FULL utilization on both sides, which is the worst case and is not what anyone actually does — no account has ever run 18 a day for a month, and none has run 3 a day for a month either. At a realistic 10% utilization a free account costs about <strong>15 cents</strong> a month and one Pro carries well over a hundred of them.</p>
 
-<p>The consequence is worth stating plainly, because it inverts the strategic question. Under the old numbers the free tier was an expensive bet that needed a 4.3% conversion rate to survive — inside the normal freemium band, but only just. Under the real numbers a free account costs about <strong>two and a half cents a month</strong>. The free tier is no longer a liability to be rationed. It is the cheapest advertising channel available, and the generosity dial should be turned <em>up</em>, not down.</p>
+<p>The honest read is that <strong>utilization, not price, is now the number that decides whether the free tier pays for itself</strong>, and utilization is unmeasured because 4 accounts is not a sample. The old conclusion here — that free accounts cost two and a half cents so the generosity dial should go up — was true at 1 analysis a month and is not true at 90. Do not act on it without measuring what free accounts actually consume.</p>
 
 <h3>The break-even that actually matters</h3>
-<p>Not conversion rate — subscriber count against fixed cost. Contribution per Pro subscriber is $9.40 net minus $0.58 serving = <strong>$8.82</strong>.</p>
+<p>Not conversion rate — subscriber count against fixed cost. Contribution per Pro subscriber is $28.82 net minus $8.86 serving at full use = <strong>$19.96</strong>, and $28.69 at a realistic 8 analyses a month. Fixed costs are about <strong>$54.50</strong> a month (hosting, database, domain, developer accounts), unchanged from the original table.</p>
+
+<p>At the realistic contribution, <strong>two subscribers cover fixed costs</strong> and a third covers the free tier at any plausible near-term size. That matches the standing planning figure of three. The tables below are the pessimistic bound, not the forecast.</p>
 
 <div class="scroll">
 <table>
-  <tr><th>Free accounts</th><th>Their monthly cost</th><th>Total monthly cost</th><th>Pro subs needed to break even</th></tr>
-  <tr><td class="num">100</td><td class="num">$2.40</td><td class="num">$56.90</td><td class="num good">7</td></tr>
-  <tr><td class="num">500</td><td class="num">$12.00</td><td class="num">$66.50</td><td class="num good">8</td></tr>
-  <tr><td class="num">2,000</td><td class="num">$48.00</td><td class="num">$102.50</td><td class="num">12</td></tr>
-  <tr><td class="num">10,000</td><td class="num">$240.00</td><td class="num">$294.50 <span class="dim">+ storage</span></td><td class="num">34</td></tr>
+  <tr><th>Free accounts</th><th>Their cost at 10% use</th><th>Their cost at FULL use</th><th>Pro subs needed, 10% use</th><th>Pro subs needed, FULL use</th></tr>
+  <tr><td class="num">100</td><td class="num">$14.76</td><td class="num">$147.60</td><td class="num good">3</td><td class="num">11</td></tr>
+  <tr><td class="num">500</td><td class="num">$73.80</td><td class="num">$738.00</td><td class="num good">5</td><td class="num bad">40</td></tr>
+  <tr><td class="num">2,000</td><td class="num">$295.20</td><td class="num">$2,952.00</td><td class="num">13</td><td class="num bad">151</td></tr>
+  <tr><td class="num">10,000</td><td class="num">$1,476.00</td><td class="num">$14,760.00</td><td class="num bad">54</td><td class="num bad">743</td></tr>
 </table>
 </div>
 
-<p class="dim"><span class="tag t-derived">derived</span>. Assumes free accounts run their 1/month allowance in full, which overstates cost — most will not. Excludes storage overage above ~10,000 lifetime analyses and excludes the one-time $0.14 signup grant per new account.</p>
+<p class="dim"><span class="tag t-derived">derived</span>. $54.50 fixed plus free-account inference, divided by $28.69 contribution in the 10% columns and $19.96 in the FULL columns. The two right-hand columns are the pessimistic bound and assume every free account runs 3 a day every day, which nothing in the data suggests. Excludes storage overage above ~10,000 lifetime analyses and the one-time signup grant of about $0.05 per account.</p>
 
 <div class="verdict">
   <div class="tag" style="border:0;background:none;padding:0">Break-even</div>
-  <p>Eight paying subscribers covers everything: hosting, database, Apple, domain, and the AI for five hundred free users. We have one. The gap between here and profitable is seven people, not a pricing model.</p>
+  <p><strong>Three paying subscribers</strong> covers hosting, database, domain, developer accounts and the inference for a few hundred realistically-behaved free users. <strong>We have zero, and have never had one.</strong> The gap between here and profitable is three people, not a pricing model.</p>
+  <p>The one thing that could break this arithmetic is not price and not conversion. It is <strong>the prepaid inference balance</strong>, which is shared across four surfaces, cannot be read by the app, and is a hard wall rather than a bill. Per-account quotas bound one player; nothing bounds the aggregate.</p>
 </div>
 
 <h2><span class="n">04</span>The pricing question you actually asked</h2>
