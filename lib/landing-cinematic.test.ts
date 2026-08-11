@@ -67,8 +67,12 @@ test("no user-facing surface claims per-frame precision, not just the hero", () 
   //   frame" about the frame STRIP, which is a real strip of real frames. That
   //   is a description of a UI element, not a claim about analysis.
   //   lib/ai/rubrics/index.ts instructs the model to work through frames and
-  //   cite frame indices. That is the FRAME path's prompt, it is internal, and
-  //   the instruction is accurate for the path that uses it.
+  //   cite frame indices, and it is internal rather than user-facing. Its
+  //   `getRubric` export has NO CALLERS: it is the 120-pointer frame rubric
+  //   left behind by D-097, kept as reference for the day something needs an
+  //   instant. `/api/analyze` sends `simpleRubric` to `readVideo` instead, and
+  //   `readFrames` survives only in `/api/players`, which identifies who is in
+  //   a clip rather than scoring one.
 
   // The claim FAMILY, not one string. "frame-by-frame" survived precisely
   // because the earlier sweep hunted the exact phrases it had already found.
