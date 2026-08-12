@@ -4915,3 +4915,47 @@ record the date and the method next to the claim.
 each outcome of the distribution test will be taken to mean. The audit's finding
 stands: **$0 revenue across 4 users is the binding constraint**, and none of the
 work above addresses it.
+
+## D-115 - A retired drill slug resolves to nothing, and is never substituted
+
+**2026-08-11.** `attack-approach-shadow-3step` became
+`attack-approach-shadow-4step`: for a right-handed hitter the pattern is now
+right-left-right-left, a small slow tempo step onto the right foot ahead of the
+left and the right-left plant the 3-step already had. That opening step is the
+entire difference, so it carries its own step in the drill and its own entry in
+common mistakes, because taking it at speed collapses a 4-step back into a
+hurried 3-step and removes the read time it exists to buy.
+
+**The decision is not the drill, it is the slug.** 21 of the 46 stored analyses
+cite the old slug, the most of any attack footwork drill, and the first attempt
+added a `LEGACY_SLUGS` map pointing old at new so those breakdowns kept a card.
+
+**Txais rejected it, correctly: the two drills have different metrics and
+values.** Aliasing would make 21 finished breakdowns begin recommending a drill
+no model ever recommended for those reps. A missing card is an absence. A
+swapped card is a fabrication, and the honesty posture that governs scores and
+marketing copy governs coaching content too. `analyses.result` is a record of
+what was said about a rep on a date; a lookup table that quietly rewrites it is
+the same defect as a stale claim, only harder to see.
+
+**The cost was measured before the revert, not assumed, and it is zero.** All 21
+rows cite more than one drill and **none** ends up with nothing: the breakdown
+page resolves with `.map(drillBySlug).find(Boolean)` and falls through to the
+next slug, which is a drill the model genuinely chose for that rep. The graceful
+path was already in the code, and the alias would have overridden it.
+
+**The rule.** A retired slug resolves to `undefined`, on purpose. If a future
+rename would strand a row with no drill at all, the answer is still not an
+alias: leave the old drill in the catalog beside the new one, so the row keeps
+pointing at the thing that was actually recommended. Two tests pin this, one
+that a retired slug is never substituted and one that the fall-through it
+depends on works.
+
+**No live prompt edit was needed.** `/api/analyze` builds the offered catalog
+from `drillSlugs(skill)` and filters the model's reply against it, so a retired
+slug can neither be offered nor written again. Only `lib/ai/rubrics/index.ts`,
+which hardcodes its catalog for the six eval harnesses, had to change.
+
+Verified live: `/drills/attack-approach-shadow-4step` serves the new drill,
+`/drills/attack-approach-shadow-3step` serves "Drill not found" rather than
+either drill, and the sitemap advertises only the 4-step.
