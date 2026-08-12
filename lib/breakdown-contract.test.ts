@@ -516,3 +516,52 @@ test("the history filter chips scroll sideways rather than wrapping", async () =
     assert.match(cls, /shrink-0/, `a filter chip can be squeezed by the row: ${cls}`);
   }
 });
+
+test("a retired drill slug resolves to nothing, and is never substituted", async () => {
+  // 2026-08-11: attack-approach-shadow-3step became the 4-step drill while 21
+  // of the 46 stored analyses cited the old slug. An alias mapping old to new
+  // was written and reverted within the hour.
+  //
+  // Substituting is worse than dropping. The two drills have different step
+  // patterns, different common mistakes and a different tempo, so aliasing
+  // would make 21 finished breakdowns start recommending a drill no model ever
+  // recommended for those reps. A missing card is an absence; a swapped card is
+  // a fabrication.
+  //
+  // Measured before deciding: all 21 rows cite more than one drill and NONE is
+  // left with zero, because the breakdown resolves with
+  // `.map(drillBySlug).find(Boolean)` and falls through to the next slug, which
+  // is a drill the model genuinely chose for that rep.
+  const { drillBySlug, drillSlugs } = await import("../content/drills.ts");
+
+  assert.equal(
+    drillBySlug("attack-approach-shadow-3step"),
+    undefined,
+    "a retired slug must resolve to nothing, never to a different drill",
+  );
+
+  const four = drillBySlug("attack-approach-shadow-4step");
+  assert.ok(four);
+  assert.match(four.name, /4-Step/);
+  // The pattern is what makes it a 4-step rather than a renamed 3-step.
+  assert.match(four.summary, /right-left-right-left/);
+  assert.equal(four.steps.length, 6);
+
+  const offered = drillSlugs("attack");
+  assert.ok(offered.includes("attack-approach-shadow-4step"));
+  assert.ok(!offered.includes("attack-approach-shadow-3step"));
+});
+
+test("the fall-through the decision above relies on actually works", async () => {
+  // The reason dropping is safe is that a breakdown names several drills and
+  // the page takes the first that resolves. If that ever became "take slug
+  // zero or nothing", retiring any slug would start stranding rows.
+  const { drillBySlug } = await import("../content/drills.ts");
+  const stored = [
+    "attack-approach-shadow-3step", // retired, resolves to undefined
+    "attack-tossed-approach-timing", // still live
+  ];
+  const resolved = stored.map(drillBySlug).find(Boolean);
+  assert.ok(resolved, "a row citing a retired slug first must still find a drill");
+  assert.equal(resolved.slug, "attack-tossed-approach-timing");
+});

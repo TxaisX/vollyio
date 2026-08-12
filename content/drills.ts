@@ -441,22 +441,24 @@ export const DRILLS: Drill[] = [
     ]
   },
   {
-    "slug": "attack-approach-shadow-3step",
-    "name": "Shadow 3-Step Approach",
+    "slug": "attack-approach-shadow-4step",
+    "name": "Shadow 4-Step Approach",
     "skill": "attack",
     "level": "beginner",
     "duration_min": 15,
     "equipment": [],
-    "summary": "A ball-free footwork drill that grooves the left-right-left (right-left-right for lefties) plant-and-load rhythm of a 3-step attack approach.",
+    "summary": "A ball-free footwork drill that grooves the right-left-right-left (left-right-left-right for lefties) tempo and plant-and-load rhythm of a 4-step attack approach.",
     "steps": [
-      "Set up a step behind the 10-foot line in a low athletic stance, weight on the balls of both feet, ready to lead with your left foot (mirror for lefties).",
-      "Take a small, quick directional step onto the left foot to aim your approach, then drive a long, low, accelerating step onto the right foot, planting it heel-first to brake your forward momentum.",
-      "Snap the left foot down beside the right to finish the quick 'right-left' plant, braking heel-to-toe so momentum redirects straight up while your hips stay open to the court.",
+      "Set up two steps behind the 10-foot line in a low athletic stance, weight on the balls of both feet, ready to lead with your right foot (mirror for lefties).",
+      "Take a small, slow tempo step onto the right foot. This is the step that separates a 4-step from a 3-step: it sets the rhythm and buys you time to read the set, so keep it short and unhurried.",
+      "Step onto the left foot to aim the approach, starting to build speed. The whole approach runs slow-to-fast, so this step is longer and quicker than the first but still not full pace.",
+      "Drive a long, low, accelerating step onto the right foot and plant it heel-first to brake your forward momentum, then snap the left foot down beside it to finish the quick 'right-left' plant, braking heel-to-toe so momentum redirects straight up while your hips stay open to the court.",
       "As the feet plant, swing both arms back behind your hips to load, then throw them up as you leave the ground: non-hitting arm reaching to the ball, hitting arm loading into the bow-and-arrow.",
       "Freeze at the top of the imaginary jump and check that your chest is up, hips square to the target, and hitting arm loaded high, then reset and repeat."
     ],
     "common_mistakes": [
-      "Reversing the step pattern: a right-handed hitter should go left-right-left and finish with a right-left plant, so leading with the right foot flips the footwork and kills the load.",
+      "Reversing the step pattern: a right-handed hitter goes right-left-right-left and finishes with a right-left plant, so leading with the left foot flips the footwork and kills the load.",
+      "Rushing the first step. The opening tempo step is deliberately slow; taking it at full speed turns a 4-step into a hurried 3-step and removes the time it was added to buy.",
       "Floating or coasting through the last two steps instead of accelerating into a quick, heel-first plant, which kills upward drive.",
       "Leaving the arms in front instead of swinging them back behind the hips to load before the plant."
     ],
@@ -880,6 +882,30 @@ export function drillsForSkill(skill: Skill): Drill[] {
   return DRILLS.filter((d) => d.skill === skill);
 }
 
+/**
+ * NO LEGACY SLUG ALIASES. This was tried on 2026-08-11 and reverted the same
+ * hour, and the reason is worth keeping.
+ *
+ * `attack-approach-shadow-3step` became `attack-approach-shadow-4step`, and 21
+ * of the 46 stored analyses cited the old slug. The instinct was to map old to
+ * new so those breakdowns kept a drill card. **That is retroactively editing
+ * what the coach said.** The two drills have different step patterns, different
+ * common mistakes, and different tempo: a rep that was told to run a 3-step
+ * shadow would silently start recommending a 4-step one, a recommendation no
+ * model ever made about that rep. A missing card is an absence. A substituted
+ * card is a fabrication, and this product's whole posture is that it does not
+ * claim things it cannot support.
+ *
+ * The cost of not aliasing was measured before the revert rather than assumed:
+ * all 21 rows cite more than one drill, and **0 of them end up with no drill at
+ * all**. `.map(drillBySlug).find(Boolean)` on the breakdown page simply falls
+ * through to the next slug, which IS a drill the model recommended for that
+ * rep. The graceful path was already there.
+ *
+ * So a retired slug resolves to `undefined`, on purpose. If a future rename
+ * would strand a row with nothing, the answer is still not an alias: it is to
+ * leave the old drill in the catalog beside the new one.
+ */
 export function drillBySlug(slug: string): Drill | undefined {
   return DRILLS.find((d) => d.slug === slug);
 }
