@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { estimateCostUsd, type UsageTokens } from "@/lib/ai/pricing";
+import { analysesRemaining, creditsVerdict, readCredits } from "@/lib/ai/credits";
 
 export const runtime = "nodejs";
 
@@ -71,11 +72,24 @@ export async function GET() {
     ? null
     : Math.round(monthRows.reduce((n, r) => n + (r.est_usd ?? 0), 0) * 100) / 100;
 
-  const capRaw = process.env.ANALYZE_MONTHLY_BUDGET_USD;
-  const capUsd = capRaw && Number.isFinite(Number(capRaw)) ? Number(capRaw) : null;
+  // The one figure on this page that is NOT an estimate: the gateway's own
+  // answer to how much prepaid credit is left. Everything else here is priced
+  // from checked-in rates and can drift; this is the money.
+  const credits = await readCredits();
 
   return NextResponse.json({
-    note: "All dollar figures are estimates from checked-in rates in lib/ai/pricing.ts; verify against the billing console before treating them as truth.",
+    note: "All dollar figures are estimates from checked-in rates in lib/ai/pricing.ts EXCEPT prepaid_balance, which is read from the gateway and is authoritative.",
+    prepaid_balance:
+      credits === null
+        ? { readable: false, note: "The gateway did not answer. This is a monitoring failure, not a zero balance." }
+        : {
+            readable: true,
+            remaining_usd: Math.round(credits.remainingUsd * 100) / 100,
+            analyses_remaining: analysesRemaining(credits.remainingUsd),
+            verdict: creditsVerdict(credits),
+            granted_usd: credits.totalCredits,
+            used_usd: Math.round(credits.totalUsage * 100) / 100,
+          },
     month_to_date: {
       analyses,
       est_usd: monthEstUsd,
@@ -85,13 +99,10 @@ export async function GET() {
           : null,
       by_model: monthRows,
     },
-    budget: {
-      cap_usd: capUsd,
-      est_remaining_usd:
-        capUsd !== null && monthEstUsd !== null
-          ? Math.round((capUsd - monthEstUsd) * 100) / 100
-          : null,
-    },
+    // `budget` used to report ANALYZE_MONTHLY_BUDGET_USD against a
+    // month-to-date estimate. That variable and its guard were deleted in
+    // D-104, so the block reported a cap of null forever. `prepaid_balance`
+    // above replaces it with the number that actually binds.
     daily: daily.data.map(priced),
   });
 }

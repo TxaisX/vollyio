@@ -4837,3 +4837,81 @@ valid and standalone, service worker serving, install capture in the head, share
 card rendering. A stranger opens a share link, reads the breakdown, installs
 from the ribbon, no account and no store. This does not change the Play plan; it
 stops Play being what strangers are sent to.
+
+## D-114 - The balance was always readable, and "it cannot be read" was the reason there was no alarm
+
+**2026-08-11.** Four places in this repository stated that the application cannot
+read its own prepaid model balance: `docs/billing.md` twice, and the ledger at
+D-102 and D-109. It was given as the reason the product shipped with **no spend
+warning of any kind**, and as a standing risk in every handoff since.
+
+**It was never checked, and it is false.** `GET https://openrouter.ai/api/v1/credits`
+answers with the lifetime grant and the lifetime usage, authenticated by the
+same key every model call already carries. No second credential, no extra scope,
+no management key. Verified live today:
+
+    {"data":{"total_credits":100,"total_usage":20.709952016}}   HTTP 200
+
+**The same check corrected a second error in the opposite direction.** The
+running figure quoted all day was "$80.92 of $100", read in that morning's audit
+as *spent*, producing a stated runway of $19.08 and a recommendation to top up
+urgently. The true reading is **$79.29 remaining, about 4,834 analyses** at the
+measured $0.0164. There was no runway emergency. The number had been correct in
+the handoff and was misread downstream, which is its own lesson: a figure with no
+stated unit gets read whichever way the reader expects.
+
+### What now exists
+
+`lib/ai/credits.ts` reads and parses the balance. `lib/credit-alert.ts` mails the
+owner, reusing the interval-claim machinery from `archive/owner-alert-d102/`
+verbatim, because that module's README entry said it was kept for exactly this
+and the logic in it was correct. `/api/analyze` checks after each completed read
+without awaiting it; `/api/usage` reports it as the one authoritative figure on a
+page where everything else is an estimate.
+
+**Thresholds are expressed in ANALYSES, not dollars.** ~500 remaining is low,
+~100 is critical. A dollar figure means nothing on its own, and the per-analysis
+cost has already moved 14x once in this product's life (D-106); a threshold in
+dollars would have silently changed meaning on that day.
+
+**An unreadable balance is its own verdict and is deliberately NOT mailed.** A
+billing endpoint that blips would otherwise page the owner about a condition
+that is "monitoring is down", not "the money is gone". Reporting the two as the
+same thing is how an alert stops being believed.
+
+### The generalisable failure
+
+This is the third instance today of the same shape, and the third is the one
+worth naming. A frame-timing claim survived a sweep because the sweep was scoped
+to files a person reads. `getRubric` was called dead twice because the grep was
+scoped to `*.ts` while its callers are `.mjs`. And here, a capability was
+recorded as absent because nobody spent thirty seconds asking the vendor.
+
+**A stated limitation is a claim like any other and decays like any other.** The
+ones that hurt most are the limitations, because a false capability gets caught
+by the first user who tries it, while a false limitation is never tested by
+anyone: it silently removes an option and then gets quoted forward as settled
+fact. The rule this produces: when a limitation is load-bearing for a decision
+to NOT build something, verify it against the system that would enforce it, and
+record the date and the method next to the claim.
+
+### Cleanup done in the same pass
+
+- `games` dropped (migration 061). 0 rows; its writer was removed by D-088 and
+  `docs/security.md`'s reason for keeping it, that rows still existed, had expired.
+- The `models` storage bucket flipped from **PUBLIC to private**. It holds one
+  object, the weights for the on-device pose engine deleted by D-033, and had no
+  reason to be world-readable after that.
+- `.env.example` lost `NEXT_PUBLIC_META_PIXEL_ID`, `META_CAPI_TOKEN` and
+  `ANALYZE_MONTHLY_BUDGET_USD`. No pixel or Conversions API call exists anywhere
+  in the app, so that file was telling an operator conversion tracking was wired
+  when it is not; the budget variable's guard was deleted in D-104.
+- `/api/usage` lost its `budget` block, which reported a cap of `null` forever
+  after D-104 removed the variable behind it.
+
+### The decision this does not change
+
+`docs/demand-test.md`, written today before anything was posted, records what
+each outcome of the distribution test will be taken to mean. The audit's finding
+stands: **$0 revenue across 4 users is the binding constraint**, and none of the
+work above addresses it.

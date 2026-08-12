@@ -1,0 +1,13 @@
+-- `games` held match scores for the scoreboard UI removed by D-088 on
+-- 2026-08-03. The UI is in archive/scoreboard-d088/; nothing has written this
+-- table since, and it held 0 rows, verified immediately before this ran.
+--
+-- Dropped rather than kept: docs/security.md cited "the rows still exist" as
+-- the reason to keep the archived code readable, and there are none, so that
+-- reason has expired. An empty table with no writer is a schema a future reader
+-- has to ask about, and the answer is in git.
+--
+-- The `models` storage bucket was flipped from PUBLIC to private in the same
+-- pass. It holds one object, the weights for the on-device pose engine removed
+-- by D-033, and it had no reason to be world-readable after that.
+drop table if exists public.games;

@@ -112,10 +112,10 @@ one-time grant costs about **$0.05** per account.
 
 **These are gross margins on inference only.** They do not carry the prepaid
 inference balance, which is the constraint that actually binds: one balance
-serves four surfaces, the app cannot read it, and per-account quotas bound a
-single player and never the aggregate. Section 6 is about the accounts that
-never convert; the spend backstop in section 5 is about the wall none of this
-arithmetic can see.
+serves four surfaces, and per-account quotas bound a single player and never
+the aggregate. Section 6 is about the accounts that never convert; **section 5
+is about that balance, which since 2026-08-11 the app reads directly** rather
+than treating as invisible.
 
 **Coach is untiered and is the largest line on a free account.** 30 a day for
 everyone regardless of plan, about $0.54 a month against $0.30 of analysis.
@@ -125,11 +125,12 @@ Tiering `coach_daily` to 5 or 10 a day is proposed and undecided.
 
 1. **Per-user monthly allowance** (this document). Lives in
    `reserve_analysis_entitlement`. Answers "has this player used their share."
-2. **Platform spend backstop** (D-054, `lib/ai/budget.ts`). One dollar ceiling
-   across every user, so a runaway month degrades the app to a calm 503 instead
-   of killing it the way 2026-07-20 did. It is **not** a per-user counter and
-   must never become one, or one player's exhaustion becomes everyone's outage.
-   Unchanged by this work except for the alert in section 5.
+2. **DELETED. There is no platform spend ceiling.** D-054's `lib/ai/budget.ts`
+   was removed by D-104 on 2026-08-06, because a dollar ceiling does nothing to
+   whatever is spending the money and then serves a 503 to **everyone at once**,
+   paying subscribers included, while the abuser is unaffected. Do not rebuild
+   it. What replaced it is not a wall but a WARNING: `lib/credit-alert.ts`
+   mails the owner while there is still time to act (section 5).
 3. **Abuse quota** (migration 011 plus the insert trigger). 20 per hour,
    atomic. Unchanged. It stops scripts, not spending.
 
@@ -389,10 +390,15 @@ and `lib/owner-alert.ts` sat orphaned from that day until it was archived on
 description of the system; it is a specification for something that has never
 run.
 
-**Nothing currently warns the owner about spend.** The prepaid model balance is
-the wall that actually binds, one balance serves four surfaces, and **the app
-cannot read it**. Per-account quotas bound one player and never the aggregate.
-The first signal of exhaustion will be every analysis failing at once.
+**Built 2026-08-11, and the reason it was not built before was wrong.** This
+section said the app could not read the prepaid balance. It can:
+`GET /api/v1/credits` answers on the same key every model call already sends,
+verified live. `lib/ai/credits.ts` reads it, `lib/credit-alert.ts` mails the
+owner at two thresholds expressed in ANALYSES rather than dollars (~500 low,
+~100 critical, because the per-analysis cost has already moved 14x once), and
+`/api/analyze` checks after each completed read without awaiting it. An
+unreadable balance is its own verdict and is deliberately NOT mailed, because
+that condition is "monitoring is down", not "money is gone".
 
 If it is rebuilt: fire when the provider reports credits exhausted, through the
 Resend path (`lib/email.ts`). Fire **once per trip**, claimed in a ROW the way

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { VISION_MODEL } from "@/lib/ai/client";
 import { readVideo, VisionError } from "@/lib/ai/vision";
+import { alertOwnerOnLowCredit } from "@/lib/credit-alert";
 import { classifyCoachingError } from "@/lib/ai/errors";
 import { shouldEnforceFreeTier } from "@/lib/billing";
 import {
@@ -666,6 +667,16 @@ export async function POST(req: NextRequest) {
   // The row was inserted above, which is what award_xp re-checks before paying
   // (D-071). Returns the amount, or 0 when this analysis already paid.
   const xpAwarded = await awardXp(supabase, `analysis:${analysisId}`);
+
+  // The prepaid balance is the only wall that takes the product down for
+  // EVERYONE at once, paying subscribers included, and no per-account quota can
+  // see it coming. Checked here because a completed analysis is the moment the
+  // balance moved, and this route is the thing that spends it.
+  //
+  // NOT awaited. The player's breakdown is done and must not wait on a billing
+  // endpoint. The alert claims one slot per condition per six hours in process
+  // memory, so a healthy balance costs one 3s-bounded request and no mail.
+  void alertOwnerOnLowCredit();
 
   // The client no longer has media to upload after the response: the clip went
   // up before the request and this route has already put it where it belongs.
