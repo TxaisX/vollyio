@@ -76,3 +76,7 @@ evals/RESULTS.json
 /archive/*
 !/archive/README.md
 !/archive/handoff-history.md
+
+# Local calibration corpus: real player clips pulled from storage, never committed.
+evals/corpus/
+evals/video-results.json
