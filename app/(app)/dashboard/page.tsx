@@ -5,9 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { LinkPending } from "@/components/link-pending";
 import { ScoreRing } from "@/components/score-ring";
-import { Radar } from "@/components/radar";
-import { Sparkline } from "@/components/sparkline";
-import { SkillIcon } from "@/components/skill-icons";
+import { SkillMeters } from "@/components/skill-meters";
 import { InstallApp } from "@/components/install-app";
 import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
@@ -15,7 +13,7 @@ import { LimitNotice } from "@/components/limit-notice";
 import { GoalsBoard, type Goal } from "@/components/goals";
 import { BadgeShelf } from "@/components/achievements";
 import { claimAchievements, readAchievements } from "@/lib/achievements";
-import { overallScore } from "@/lib/ratings";
+import { overallScore, scoreBand } from "@/lib/ratings";
 import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
 import {
   allowanceLine,
@@ -35,7 +33,7 @@ import {
   type Level,
   type Discipline,
 } from "@/lib/skills";
-import { getProgress, todayKey, XP_AWARDS, type Progress } from "@/lib/progression";
+import { getProgress, todayKey, XP_AWARDS } from "@/lib/progression";
 import { assignmentFor, type WeakPoint } from "@/lib/daily-assignment";
 import { DailyAssignmentCard } from "@/components/daily-assignment-card";
 
@@ -62,58 +60,73 @@ type AnalysisRow = {
 // complete and abandon all happen here on the dashboard now (D-088), so the
 // old read-only three-goal card is gone with the /goals page it linked to.
 
-// xl only: the heading pills collapse into this rail card so the wide layout
-// reads as one column of play state instead of a crowded header.
-function ThisWeekCard({
-  progress,
-  weekCount,
+// "3d ago", not "Aug 10". A recent-activity list is read for recency, and a
+// date makes the reader do the subtraction; past about a month the arithmetic
+// stops being useful and the date is the more informative answer, so it comes
+// back. Computed on the server, which this page already is (force-dynamic), so
+// there is no clock to disagree with the client's.
+function relativeDay(iso: string) {
+  const then = new Date(iso);
+  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 35) return `${Math.floor(days / 7)}w ago`;
+  return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// The two cards that sit above the fold and answer "what do I do right now".
+// Both were a text link or a small button before (D-116); a card the width of
+// the column is what the phone layout actually had room to make obvious.
+function ActionCard({
+  href,
+  title,
+  detail,
+  icon,
+  primary = false,
 }: {
-  progress: Progress;
-  weekCount: number;
+  href: string;
+  title: string;
+  detail: string;
+  icon: React.ReactNode;
+  primary?: boolean;
 }) {
   return (
-    <div className="card p-5">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
-        This week
-      </h2>
-      <dl className="mt-2 space-y-2 text-sm">
-        <div className="flex items-baseline justify-between">
-          <dt className="text-chalk-dim">Reps analyzed</dt>
-          <dd className="font-display font-bold text-chalk">{weekCount}</dd>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <dt className="text-chalk-dim">Streak</dt>
-          <dd className="font-display font-bold text-chalk">
-            {progress.streak} day{progress.streak === 1 ? "" : "s"}
-          </dd>
-        </div>
-        <div>
-          <div className="flex items-baseline justify-between">
-            <dt className="text-chalk-dim">Level {progress.level}</dt>
-            <dd className="font-mono text-[10px] text-chalk-dim">
-              {progress.into}/{progress.span} XP
-            </dd>
-          </div>
-          {/* aria-valuetext, because a bare progressbar is announced as a
-              percentage and "50 percent" is not what the number beside it
-              says. */}
-          <div
-            className="mt-1.5 h-1 overflow-hidden rounded-full bg-line/60"
-            role="progressbar"
-            aria-valuenow={progress.into}
-            aria-valuemin={0}
-            aria-valuemax={progress.span}
-            aria-valuetext={`${progress.into} of ${progress.span} XP`}
-            aria-label="XP to next level"
-          >
-            <div
-              className="h-full rounded-full bg-gold"
-              style={{ width: `${Math.round((progress.into / progress.span) * 100)}%` }}
-            />
-          </div>
-        </div>
-      </dl>
-    </div>
+    <Link
+      href={href}
+      className={`card card-lift group relative flex items-center gap-3.5 p-4 ${
+        primary ? "action-card" : ""
+      }`}
+    >
+      <span
+        className={`row-tile ${primary ? "h-11 w-11 border-gold/35 text-gold" : ""}`}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-display text-base font-bold">
+          {title}
+        </span>
+        <span className="mt-0.5 block truncate text-sm text-chalk-dim">
+          {detail}
+        </span>
+      </span>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={`h-4.5 w-4.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+          primary ? "text-gold" : "text-chalk-dim"
+        }`}
+        aria-hidden
+      >
+        <path d="M5 12h13M12 6l6 6-6 6" />
+      </svg>
+      <LinkPending />
+    </Link>
   );
 }
 
@@ -264,9 +277,26 @@ export default async function Dashboard({
 
   const overall = overallScore(SKILLS.map((s) => ratings[s] ?? null));
   const weekAgo = Date.now() - 7 * 86_400_000;
-  const weekCount = analyses.filter(
+  const thisWeek = analyses.filter(
     (a) => new Date(a.created_at).getTime() > weekAgo,
-  ).length;
+  );
+  const weekCount = thisWeek.length;
+
+  // The seven-day window of the skill meters, and deliberately NOT the rolling
+  // rating restricted to a date range: this is the plain mean of the reps
+  // actually filmed this week, which is what a player is asking for when they
+  // flip the switch after a week of work on one fix. The rating beside it under
+  // "All time" is the estimator (lib/ratings.ts) and is the slower, truer
+  // number. Both are labelled, so neither is passed off as the other.
+  const weekSums = new Map<Skill, { total: number; n: number }>();
+  for (const a of thisWeek) {
+    const acc = weekSums.get(a.skill) ?? { total: 0, n: 0 };
+    acc.total += a.overall_score;
+    acc.n += 1;
+    weekSums.set(a.skill, acc);
+  }
+  const weekRatings: Partial<Record<Skill, number>> = {};
+  for (const [skill, acc] of weekSums) weekRatings[skill] = acc.total / acc.n;
 
   const firstName = profile?.display_name?.split(" ")[0];
 
@@ -287,50 +317,116 @@ export default async function Dashboard({
   const assignment = assignmentFor(assignmentArgs);
   const courtFreeAssignment = assignmentFor({ ...assignmentArgs, courtFree: true });
 
-  const seriesFor = (skill: Skill) =>
-    analyses
-      .filter((a) => a.skill === skill)
-      .slice(0, 10)
-      .reverse()
-      .map((a) => a.overall_score);
+
+  const analyzeHref = analyses[0]
+    ? `/analyze?skill=${analyses[0].skill}&discipline=${analyses[0].discipline}`
+    : "/analyze";
 
   return (
     <section className="max-w-7xl">
+      {/* THE OPENING BAND (D-116). Title, play state and the overall ring on one
+          line. Before this the same three things were a heading block, a row of
+          pills and an 18rem card holding a ring beside a radar, which between
+          them owned the entire first screen of a phone and said nothing a
+          player could act on. The ring stayed because it is the one number that
+          answers "how am I doing" at a glance; the radar retired because the
+          six meters below say the same thing on an axis you can read down. */}
       <Reveal>
-        <div className="dashboard-heading relative flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-              Home
-            </p>
-            <h1 className="mt-2 font-display text-page-title">
-              {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
-            </h1>
-            <div className="mt-3 flex items-center gap-2">
-              {/* Explicit on both chips, because the bare route now falls back
-                  to the PROFILE default rather than to indoor: an indoor link
-                  that dropped the parameter would read as "no choice" and send
-                  a beach player straight back to the sand. Active state
-                  compares by group so the legacy beach value lights the
-                  combined chip (D-035). */}
-              {ANALYZE_DISCIPLINES.map((d) => (
-                <Link
-                  key={d}
-                  href={`/dashboard?discipline=${d}`}
-                  aria-current={
-                    disciplineGroup(discipline) === disciplineGroup(d)
-                      ? "page"
-                      : undefined
-                  }
-                  className={`chip min-h-11 ${
-                    disciplineGroup(discipline) === disciplineGroup(d)
-                      ? "chip-active"
-                      : ""
-                  }`}
-                >
-                  {DISCIPLINE_LABEL[d]}
-                </Link>
-              ))}
+        <div className="hero-band card spot p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+                Home
+              </p>
+              <h1 className="mt-1.5 font-display text-page-title">
+                {firstName ? `Back on the court, ${firstName}.` : "Back on the court."}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="tag">
+                  <span className="text-chalk">{weekCount}</span> this week
+                </span>
+                <span className="tag">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`h-3.5 w-3.5 ${progress.streak > 0 ? "text-gold" : "text-chalk-dim"}`}
+                    aria-hidden
+                  >
+                    <path d="M12 3c.5 3-1.5 4.5-2.5 6C8.5 10.5 8 12 8 13.5A4.4 4.4 0 0 0 12.5 18a4.6 4.6 0 0 0 4.5-4.75c0-2.25-1.25-3.5-2-5.25-.5 1-1.5 1.5-1.5 3C12 8.5 12.5 5.5 12 3Z" />
+                  </svg>
+                  {/* The flame is decorative, so the word has to be in the text
+                      or this pill reads as a bare "3 days" with no subject. */}
+                  <span className="sr-only">Streak: </span>
+                  <span className="text-chalk">{progress.streak}</span> day
+                  {progress.streak === 1 ? "" : "s"}
+                </span>
+                <span className="tag">
+                  <span className="text-gold">
+                    <span className="sr-only">Level </span>
+                    <span aria-hidden="true">LV</span> {progress.level}
+                  </span>
+                  {/* aria-valuetext, because a bare progressbar is announced as
+                      a percentage and "50 percent" is not what the numbers
+                      beside it say. */}
+                  <span
+                    className="block h-1 w-12 overflow-hidden rounded-full bg-line/60"
+                    role="progressbar"
+                    aria-valuenow={progress.into}
+                    aria-valuemin={0}
+                    aria-valuemax={progress.span}
+                    aria-valuetext={`${progress.into} of ${progress.span} XP`}
+                    aria-label="XP to next level"
+                  >
+                    <span
+                      className="block h-full rounded-full bg-gold transition-all duration-700"
+                      style={{
+                        width: `${Math.round((progress.into / progress.span) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                  <span aria-hidden="true" className="text-[10px]">
+                    {progress.into}/{progress.span}
+                  </span>
+                </span>
+              </div>
             </div>
+            {/* The band name, not a second score. `scoreBand` is the app's own
+                rubric wording (lib/ratings.ts), which is what keeps a 62 reading
+                as real progress against an elite standard rather than as a bad
+                grade. */}
+            <div className="shrink-0 text-center">
+              <ScoreRing score={overall} size={92} />
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-chalk-dim">
+                {overall != null ? scoreBand(overall) : "Unrated"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3.5">
+            {/* Explicit on both chips, because the bare route now falls back
+                to the PROFILE default rather than to indoor: an indoor link
+                that dropped the parameter would read as "no choice" and send
+                a beach player straight back to the sand. Active state
+                compares by group so the legacy beach value lights the
+                combined chip (D-035). */}
+            {ANALYZE_DISCIPLINES.map((d) => (
+              <Link
+                key={d}
+                href={`/dashboard?discipline=${d}`}
+                aria-current={
+                  disciplineGroup(discipline) === disciplineGroup(d) ? "page" : undefined
+                }
+                className={`chip min-h-11 ${
+                  disciplineGroup(discipline) === disciplineGroup(d) ? "chip-active" : ""
+                }`}
+              >
+                {DISCIPLINE_LABEL[d]}
+              </Link>
+            ))}
             {/* Before the drive to /analyze, not after the upload. A player who
                 films, marks and waits only to meet a paywall has done 90
                 seconds of work for nothing (docs/billing.md 4.6). Quiet while
@@ -338,82 +434,13 @@ export default async function Dashboard({
                 are out the offer below takes over from the line entirely. */}
             {allowance && allowanceTone(allowance) !== "out" && (
               <p
-                className={`mt-3 font-mono text-[11px] ${
-                  allowanceTone(allowance) === "last"
-                    ? "text-gold"
-                    : "text-chalk-dim"
+                className={`ml-auto font-mono text-[11px] ${
+                  allowanceTone(allowance) === "last" ? "text-gold" : "text-chalk-dim"
                 }`}
               >
                 {allowanceLine(allowance)}
               </p>
             )}
-          </div>
-          {/* The dashboard has to answer "what do I do next" before anything is
-              scrolled, and the answer is always another rep. Without this the
-              only route to /analyze from here was the nav. */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Deep-linked to the last rep's skill and environment when there
-                is one: the daily loop is "same skill, better number", and the
-                flow already reads both parameters (it is how onboarding hands
-                off). A first-timer still gets the bare picker. */}
-            {!spent && (
-              <Link
-                href={
-                  analyses[0]
-                    ? `/analyze?skill=${analyses[0].skill}&discipline=${analyses[0].discipline}`
-                    : "/analyze"
-                }
-                className="btn-primary text-sm"
-              >
-                Film a rep
-              </Link>
-            )}
-            <div className="flex items-center gap-3 xl:hidden">
-              <div className="flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`h-4 w-4 ${progress.streak > 0 ? "text-gold" : "text-chalk-dim"}`}
-                  aria-hidden
-                >
-                  <path d="M12 3c.5 3-1.5 4.5-2.5 6C8.5 10.5 8 12 8 13.5A4.4 4.4 0 0 0 12.5 18a4.6 4.6 0 0 0 4.5-4.75c0-2.25-1.25-3.5-2-5.25-.5 1-1.5 1.5-1.5 3C12 8.5 12.5 5.5 12 3Z" />
-                </svg>
-                {/* The flame is decorative, so the word has to be in the text
-                    or this pill reads as a bare "3 days" with no subject. */}
-                <span className="font-mono text-xs text-chalk">
-                  <span className="sr-only">Streak: </span>
-                  {progress.streak} day{progress.streak === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5 rounded-full border border-line px-3.5 py-1.5">
-                <span className="font-mono text-xs text-gold">
-                  <span className="sr-only">Level </span>
-                  <span aria-hidden="true">LV</span> {progress.level}
-                </span>
-                <span
-                  className="block h-1 w-16 overflow-hidden rounded-full bg-line/60"
-                  role="progressbar"
-                  aria-valuenow={progress.into}
-                  aria-valuemin={0}
-                  aria-valuemax={progress.span}
-                  aria-valuetext={`${progress.into} of ${progress.span} XP`}
-                  aria-label="XP to next level"
-                >
-                  <span
-                    className="block h-full rounded-full bg-gold transition-all duration-700"
-                    style={{ width: `${Math.round((progress.into / progress.span) * 100)}%` }}
-                  />
-                </span>
-                {/* The bar above already announces the same two numbers. */}
-                <span aria-hidden="true" className="font-mono text-[10px] text-chalk-dim">
-                  {progress.into}/{progress.span}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </Reveal>
@@ -430,7 +457,7 @@ export default async function Dashboard({
           the fold and above the rest of the dashboard, because it is the only
           thing on this page they can act on. */}
       {allowance && allowanceTone(allowance) === "out" && (
-        <Reveal delay={40} className="mt-6">
+        <Reveal delay={40} className="mt-4">
           <LimitNotice
             className="max-w-xl"
             plan={allowance.plan}
@@ -441,14 +468,76 @@ export default async function Dashboard({
         </Reveal>
       )}
 
-      <div className="mt-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-6">
+      {/* The two standing actions, as cards rather than as a button in the
+          heading and a nav tab. Deep-linked to the last rep's skill and
+          environment when there is one: the daily loop is "same skill, better
+          number", and the flow already reads both parameters (it is how
+          onboarding hands off). A first-timer still gets the bare picker.
+
+          A spent month drops the filming card entirely rather than greying it,
+          because the notice above already carries the only action left and a
+          gold card whose whole job is to walk the player into a 402 is worse
+          than no card. */}
+      <Reveal delay={60}>
+        <div
+          className={`mt-4 grid gap-3 ${
+            spent ? "" : "sm:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
+          }`}
+        >
+          {!spent && (
+            <ActionCard
+              primary
+              href={analyzeHref}
+              title="Film a rep"
+              detail="Ten seconds, one skill, scored against the checklist."
+              icon={
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                  aria-hidden
+                >
+                  <rect x="3" y="6.5" width="12" height="11" rx="2" />
+                  <path d="M15 11l6-3.5v9L15 13" />
+                </svg>
+              }
+            />
+          )}
+          <ActionCard
+            href="/learn"
+            title="Learn"
+            detail="Technique library"
+            icon={
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4.5 w-4.5"
+                aria-hidden
+              >
+                <path d="M3 9.25 12 5l9 4.25-9 4.25-9-4.25Z" />
+                <path d="M7 11.4V16c0 1.38 2.24 2.5 5 2.5s5-1.12 5-2.5v-4.6" />
+              </svg>
+            }
+          />
+        </div>
+      </Reveal>
+
+      <div className="mt-4 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-6">
         <div className="min-w-0">
           {/* Today leads, at every width. The rating is evidence of what has
               happened; the assignment is the only thing on this page a player
               can act on right now, and a development product that opens on a
               score is still an analytics product wearing a different word. */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Reveal delay={60}>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Reveal delay={100}>
               <DailyAssignmentCard
                 assignment={assignment}
                 courtFree={courtFreeAssignment}
@@ -457,7 +546,7 @@ export default async function Dashboard({
               />
             </Reveal>
             {newestFix && (
-              <Reveal delay={120}>
+              <Reveal delay={140}>
                 <FocusNowCard analysis={newestFix} />
               </Reveal>
             )}
@@ -468,156 +557,85 @@ export default async function Dashboard({
               training plan and is wanted as a dietary check-in instead. See
               components/section-nav.tsx for what restoring it takes. */}
 
-          <Reveal delay={160}>
-            <div className="score-stage card spot mt-4 flex flex-wrap items-center justify-center gap-6 p-6">
-              <ScoreRing score={overall} size={150} label="Overall" />
-              <div className="min-w-0">
-                <Radar ratings={ratings} size={196} />
-              </div>
+          <Reveal delay={180}>
+            <div className="mt-6">
+              <SkillMeters
+                ratings={ratings}
+                recent={weekRatings}
+                bests={bests}
+                latestFix={latestFix}
+              />
             </div>
           </Reveal>
 
-          {/* The board renders once, in the main column at every width: it
-              carries a form and mutating actions now, and two live copies of
-              one form is how duplicate-id bugs are born. The xl rail keeps the
-              glanceable cards instead. */}
-          <div className="mt-4">
-            <Reveal delay={240}>
-              <GoalsBoard goals={goals} ratings={ratings} doneCount={goalsDone} />
-            </Reveal>
-          </div>
-
-          <div className="mt-4 xl:hidden">
-            <Reveal delay={280}>
-              <BadgeShelf earned={earnedAchievements} />
-            </Reveal>
-          </div>
-
-          <Reveal delay={140}>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {SKILLS.map((skill) => {
-                const rating = ratings[skill];
-                const series = seriesFor(skill);
-                return (
-                  <Link
-                    key={skill}
-                    href={`/history?skill=${skill}`}
-                    className="skill-momentum-card card card-lift group p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 font-display text-sm font-bold">
-                        <span className="text-chalk-dim transition-colors group-hover:text-gold">
-                          <SkillIcon skill={skill} className="h-4.5 w-4.5" />
-                        </span>
-                        {SKILL_LABEL[skill]}
-                      </span>
-                      <span className="text-right">
-                        <span className="font-display text-xl font-bold text-gold">
-                          {rating != null ? (
-                            Math.round(rating)
-                          ) : (
-                            <span className="text-chalk-dim">
-                              <span className="sr-only">Not rated yet</span>
-                              <span aria-hidden="true">·</span>
-                            </span>
-                          )}
-                        </span>
-                        {/* The high-water mark never disappears under a rough
-                            patch (D-079): the rating says where the form is,
-                            this says what it has reached. */}
-                        {bests[skill] != null && rating != null && (
-                          <span className="block font-mono text-[10px] text-chalk-dim">
-                            best {bests[skill]}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="mt-3">
-                      <Sparkline values={series} skill={skill} />
-                    </div>
-                    {latestFix[skill] && (
-                      <p className="mt-2.5 truncate font-mono text-[10px] text-chalk-dim">
-                        <span className="text-gold">Focus:</span> {latestFix[skill]}
-                      </p>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </Reveal>
-
-          <Reveal delay={200}>
-            <div className="mt-8 flex items-baseline justify-between gap-4">
-              <h2 className="font-display text-sm font-bold uppercase tracking-wide">
-                Recent
-              </h2>
+          <Reveal delay={220}>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="section-head section-head-teal">Recent activity</h2>
               {analyses.length > 0 && (
-                <div className="flex items-center gap-4">
-                  <span className="font-mono text-[11px] text-chalk-dim">
-                    {weekCount} this week
-                  </span>
-                  {/* Padded for a 44px tap target, negative-margined so the
-                      row keeps the height it reads best at. */}
-                  <Link
-                    href="/history"
-                    className="-my-4 py-4 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
-                  >
-                    View all
-                  </Link>
-                </div>
+                // Padded for a 44px tap target, negative-margined so the row
+                // keeps the height it reads best at.
+                <Link
+                  href="/history"
+                  className="-my-3.5 py-3.5 font-mono text-[11px] text-chalk-dim transition-colors hover:text-chalk"
+                >
+                  View all
+                </Link>
               )}
             </div>
             {analyses.length === 0 ? (
               <div className="card relative mt-3 overflow-hidden p-8 text-center">
                 <SeamArcs className="absolute inset-0 h-full w-full" opacity={0.08} />
                 <div className="relative">
-                  <p className="font-display text-lg font-bold">
-                    No film yet.
-                  </p>
+                  <p className="font-display text-lg font-bold">No film yet.</p>
                   <p className="mx-auto mt-1 max-w-xs text-body text-chalk-dim">
                     Your rating starts with one rep. Ten seconds, any skill.
                   </p>
-                  {/* The gold button on this page lives in the heading, where
-                      it is above the fold on a phone; this repeats the same
-                      action for anyone who read their way down to it. */}
                   <Link href="/analyze" className="btn-ghost mt-5 inline-flex text-sm">
                     Film your first rep
                   </Link>
                 </div>
               </div>
             ) : (
-              <ul className="mt-2 divide-y divide-line">
-                {analyses.slice(0, 8).map((a) => (
+              <ul className="mt-3 space-y-2">
+                {analyses.slice(0, 6).map((a) => (
                   <li key={a.id}>
                     <Link
                       href={`/analysis/${a.id}`}
-                      className="group flex items-center gap-4 py-3 text-sm"
+                      className="card card-lift group relative flex items-center gap-3 p-3"
                     >
-                      <span className="font-mono text-xs text-chalk-dim">
-                        {new Date(a.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <span className="flex flex-1 items-center gap-2 font-display">
-                        <span className="text-chalk-dim">
-                          <SkillIcon skill={a.skill} className="h-4 w-4" />
-                        </span>
-                        {SKILL_LABEL[a.skill]}
-                      </span>
                       {/* Morph source: this score travels into the breakdown's
                           score ring when the row is opened (matches the row on
-                          /history). share="morph" + default="none" keeps it inert
-                          on every other transition. */}
-                      <ViewTransition
-                        name={`rep-${a.id}`}
-                        share="morph"
-                        default="none"
-                      >
-                        <span className="font-display font-bold text-gold">
-                          {a.overall_score}
+                          /history). share="morph" + default="none" keeps it
+                          inert on every other transition. */}
+                      <ViewTransition name={`rep-${a.id}`} share="morph" default="none">
+                        <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
+                          <span className="stat-num text-lg text-gold">
+                            {a.overall_score}
+                          </span>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">
+                            pts
+                          </span>
                         </span>
                       </ViewTransition>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline gap-2">
+                          <span className="min-w-0 flex-1 truncate font-display text-sm font-bold">
+                            {SKILL_LABEL[a.skill]} breakdown
+                          </span>
+                          <span className="shrink-0 font-mono text-[10px] text-chalk-dim">
+                            {relativeDay(a.created_at)}
+                          </span>
+                        </span>
+                        {a.fix && (
+                          <span className="mt-0.5 block truncate text-xs text-chalk-dim">
+                            <span className="text-gold">Fix:</span> {a.fix}
+                          </span>
+                        )}
+                        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="tag">{scoreBand(a.overall_score)}</span>
+                          <span className="tag">{DISCIPLINE_LABEL[a.discipline]}</span>
+                        </span>
+                      </span>
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
@@ -625,26 +643,41 @@ export default async function Dashboard({
                         strokeWidth="1.75"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="h-4 w-4 text-chalk-dim transition-transform group-hover:translate-x-0.5 group-hover:text-chalk"
+                        className="h-4 w-4 shrink-0 text-chalk-dim transition-transform group-hover:translate-x-0.5 group-hover:text-chalk"
                         aria-hidden
                       >
                         <path d="M9 6l6 6-6 6" />
                       </svg>
+                      <LinkPending />
                     </Link>
                   </li>
                 ))}
               </ul>
             )}
           </Reveal>
+
+          {/* The board renders once, in the main column at every width: it
+              carries a form and mutating actions now, and two live copies of
+              one form is how duplicate-id bugs are born. The xl rail keeps the
+              glanceable shelf instead. */}
+          <div className="mt-6">
+            <Reveal delay={260}>
+              <GoalsBoard goals={goals} ratings={ratings} doneCount={goalsDone} />
+            </Reveal>
+          </div>
+
+          <div className="mt-4 xl:hidden">
+            <Reveal delay={300}>
+              <BadgeShelf earned={earnedAchievements} />
+            </Reveal>
+          </div>
         </div>
 
-        {/* The rail no longer repeats today's work: the assignment and the fix
-            lead the main column at every width now, so duplicating them here
-            would give the same card two live copies of one form. */}
+        {/* The rail no longer repeats today's work, and no longer repeats the
+            week either: the assignment and the fix lead the main column at
+            every width, and the reps / streak / level counts the old "This
+            week" card carried now sit in the opening band above (D-116). */}
         <aside className="hidden xl:flex xl:flex-col xl:gap-4">
-          <Reveal delay={240}>
-            <ThisWeekCard progress={progress} weekCount={weekCount} />
-          </Reveal>
           <Reveal delay={300}>
             <BadgeShelf earned={earnedAchievements} />
           </Reveal>

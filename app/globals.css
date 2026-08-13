@@ -1094,36 +1094,140 @@ body {
     animation: hero-metric-grow 0.62s var(--ease-court) both;
   }
 
-  .dashboard-heading::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    height: 2px;
-    width: 4rem;
-    background: var(--color-gold);
-    transform-origin: left;
-    animation: hero-metric-grow 0.7s var(--ease-court) 0.14s both;
+  /* THE DASHBOARD'S OPENING BAND (D-116).
+     Title, play state and the overall ring on one line. This replaces both the
+     old `.dashboard-heading` rule and the standalone `.score-stage` card, which
+     reserved 18rem of a phone viewport to stand one ring beside one radar. The
+     ring is the same component at a smaller size; what changed is that it no
+     longer gets a room of its own above the fold. */
+  .hero-band {
+    background:
+      radial-gradient(
+        124% 148% at 88% 0%,
+        color-mix(in oklab, var(--color-gold) 13%, transparent),
+        transparent 62%
+      ),
+      linear-gradient(
+        158deg,
+        var(--color-navy-lighter),
+        color-mix(in oklab, var(--color-navy-light) 62%, var(--color-navy))
+      );
   }
 
-  .score-stage {
-    min-height: 18rem;
+  /* The one card on a screen that carries its primary action. The gold wash
+     sits on the leading edge so the eye lands on the icon and the verb before
+     the supporting line, and it is a mix of existing tokens rather than a new
+     hue. Pair with `.card` for the border and radius. */
+  .action-card {
+    background:
+      radial-gradient(
+        128% 176% at 0% 50%,
+        color-mix(in oklab, var(--color-gold) 20%, transparent),
+        transparent 58%
+      ),
+      linear-gradient(
+        120deg,
+        color-mix(in oklab, var(--color-teal) 14%, var(--color-navy-light)),
+        var(--color-navy-light)
+      );
+  }
+
+  /* Section label with a standing accent bar. One rule for what used to be
+     "font-display text-sm font-bold uppercase tracking-wide" retyped per
+     section, so every section on a page shares one left edge to scan down. */
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--color-chalk);
+  }
+  .section-head::before {
+    content: "";
+    display: block;
+    height: 1.05em;
+    width: 3px;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    background: var(--color-gold);
+  }
+  .section-head-teal::before {
+    background: var(--color-teal);
+  }
+
+  /* The rounded glyph holder in front of a compact list row. */
+  .row-tile {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.6rem;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-navy) 55%, transparent);
+    color: var(--color-chalk-dim);
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .group:hover .row-tile {
+    color: var(--color-gold);
+    border-color: color-mix(in oklab, var(--color-gold) 35%, var(--color-line));
+  }
+
+  /* Two-option switch drawn as a pill inside a track. Real radios carry the
+     state (the same mechanism as the breakdown's Detail switch), so it works on
+     the server-rendered HTML with no client component and no hydration.
+
+     40px tall rather than the 44px this app uses for standalone controls: a
+     segmented control is two targets inside one track, the track's own padding
+     adds 6px around them, and 44px each turned the whole thing into a slab
+     taller than the section heading beside it. WCAG 2.5.8's floor is 24px. */
+  .segmented {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-navy) 70%, transparent);
+    padding: 0.1875rem;
+  }
+  .segmented-option {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0 0.9375rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-chalk-dim);
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background 0.2s ease;
+  }
+  .segmented-option:hover {
+    color: var(--color-chalk);
+  }
+  input.sr-only:checked + .segmented-option {
+    color: var(--color-navy);
+    background: var(--color-gold);
+  }
+  input.sr-only:checked + .segmented-option:hover {
+    color: var(--color-navy);
+  }
+  input.sr-only:focus-visible + .segmented-option {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
   }
 
   .challenge-card {
     border-top-color: color-mix(in oklab, var(--color-gold) 55%, var(--color-line));
-  }
-
-  .skill-momentum-card {
-    transition:
-      border-color 0.2s ease,
-      box-shadow 0.3s var(--ease-court),
-      transform 0.3s var(--ease-court),
-      background 0.3s ease;
-  }
-
-  .skill-momentum-card:hover {
-    background: color-mix(in oklab, var(--color-navy-lighter) 72%, var(--color-navy));
   }
 
   .stat-num {

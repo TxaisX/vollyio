@@ -4959,3 +4959,64 @@ which hardcodes its catalog for the six eval harnesses, had to change.
 Verified live: `/drills/attack-approach-shadow-4step` serves the new drill,
 `/drills/attack-approach-shadow-3step` serves "Drill not found" rather than
 either drill, and the sitemap advertises only the 4-step.
+
+## D-116 - The dashboard opens with one band, and the drill stops opening the breakdown
+
+**2026-08-13.** Two changes, one subject: what a player sees FIRST on the two
+screens they see most.
+
+**The dashboard.** The first screen of a phone was a heading block, a row of
+pills, and an 18rem `.score-stage` card standing one ring beside one radar.
+Three surfaces, roughly 480px, and not one thing on any of them a player could
+act on. They are now one `.hero-band`: title, the three counts, and the same
+ring at 92px, with the two standing actions - film a rep, and the technique
+library - as cards immediately under it rather than as a small gold button in
+the heading and a nav tab.
+
+**The six skills became six rows.** The 2-and-3-column grid of momentum cards
+ran about 620px and could not be read as a ranking, because comparing two
+numbers meant jumping between two columns. Six meter rows on one axis run about
+300px and sort themselves. The rating, the all-time best and the focus line all
+survive; the sparkline is the one thing that went, and the trend it drew is the
+whole subject of `/history`, which every row still links to. The radar retired
+with the card that held it - it said the same thing as the six rows, less
+precisely - and stays on the landing page where it is a picture rather than an
+instrument.
+
+**A window switch came with them, and the two windows are different
+measurements.** All time is the rolling rating from `skill_ratings`, the
+asymmetric estimator in `lib/ratings.ts`. Last 7 days is the plain mean of the
+reps actually filmed this week. The second moves faster because it is not an
+estimator, which is exactly why a player wants it after a week of work on one
+fix, and both are labelled rather than presented as one number over two ranges.
+The switch is two real radios and `:has()`, the same pure-CSS mechanism as the
+breakdown's Detail switch: it works on the server-rendered HTML, before any
+JavaScript arrives, at the cost of one duplicated six-row list in the DOM.
+
+**The breakdown.** The drill the model ranked first stood at the top of the
+analysis page, above the clip and above the score, under a "Start here"
+heading. Wrong instruction, wrong moment: a player who has just filmed a rep
+has already started, and the first screen after a read has to answer "how did
+that go" before it hands out homework. It is now the leading card of a
+**Recommended training** section that closes the breakdown, keeping the eyebrow,
+the equipment line and the primary button it had at the top. Moved, not
+trimmed. The section nav's drill count still jumps straight to it, and
+`lib/breakdown-contract.test.ts` pins both halves, because "reorder" and
+"delete" look identical in a diff a month later.
+
+**What was NOT adopted, and why it will not be.** The layout above is drawn from
+a competitor's shipping UI, and D-109 already read that product frame by frame.
+Three things in those screenshots stay rejected and are not up for
+reconsideration because a screenshot made them look good: the score dial
+presented with fabricated sub-scores, feedback pinned to invented timestamps
+(`0:03s` on a model that answers between 0.27s and 0.60s for a contact
+hand-verified at 3.42s), and naming the AI layer in player-visible copy. What
+was taken is density and hierarchy, which are free. The band label under the
+ring is `scoreBand` from `lib/ratings.ts`, this app's own published rubric -
+40 developing, 70 solid, 90 advanced - and not a grade invented to flatter.
+
+Design tokens are unchanged: no new colour, no new font, no new dependency. The
+new component classes (`.hero-band`, `.action-card`, `.section-head`,
+`.row-tile`, `.segmented`) live in `app/globals.css` beside the rest, and
+`.dashboard-heading`, `.score-stage` and `.skill-momentum-card` were deleted
+with the markup that used them.

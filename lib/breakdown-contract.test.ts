@@ -34,6 +34,10 @@ const SWITCH = await readFile(
   new URL("../components/detail-level.tsx", import.meta.url),
   "utf8",
 );
+const PAGE = await readFile(
+  new URL("../app/(app)/analysis/[id]/page.tsx", import.meta.url),
+  "utf8",
+);
 
 /** The source of one section, from its presence guard onward. Windowed rather
  *  than brace-matched so a reordered section or a changed reveal delay does not
@@ -263,9 +267,36 @@ test("Basic is the summary, both columns and the drills", () => {
     assert.doesNotMatch(BODY.slice(at - 320, at), /ADVANCED_ONLY/, anchor);
   }
 
-  const drills = section(BODY, "{result.drill_slugs.length > 0 && (");
+  const drills = section(BODY, "{drills.length > 0 && (", 900);
   assert.match(drills, /id="drills"/);
   assert.doesNotMatch(drills, /ADVANCED_ONLY/, "drills are the thing to do tonight");
+});
+
+// D-116. The recommended drill opened the analysis page under a "Start here"
+// heading, above the clip and above the score. It moved to the foot of the
+// breakdown, and both halves of that are pinned here: the emphasis has to
+// survive the move, or this is a deletion wearing the word "reorder".
+test("the recommended drill closes the breakdown and no longer opens the page", () => {
+  const drills = section(BODY, "{drills.length > 0 && (", 2200);
+  assert.match(drills, /Recommended training/);
+  assert.match(drills, /Start here/, "the lead card keeps the eyebrow it had on the page");
+  assert.match(drills, /btn-primary/, "and the primary button it had on the page");
+
+  // Last, not merely later: no section may open after this one.
+  const drillsAt = BODY.indexOf("{drills.length > 0 && (");
+  assert.notEqual(drillsAt, -1);
+  assert.ok(
+    BODY.lastIndexOf("<Reveal") > drillsAt,
+    "recommended training is the last section of the breakdown",
+  );
+
+  // And the page no longer carries its own copy above everything. Matched on
+  // the drill ROUTE rather than on the label, because the label is a string a
+  // comment can legitimately contain and the link is what a card actually is.
+  assert.ok(
+    !PAGE.includes("/drills/"),
+    "the analysis page must not reintroduce a drill card above the read",
+  );
 });
 
 test("the metric bars and the timeline are moved behind Advanced, not dropped", () => {
