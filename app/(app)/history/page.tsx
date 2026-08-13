@@ -5,12 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { Reveal } from "@/components/motion";
 import { ProgressNav } from "@/components/section-nav";
-import { SkillIcon } from "@/components/skill-icons";
+import { relativeDay } from "@/lib/relative-day";
+import { scoreBand } from "@/lib/ratings";
 import {
   DISCIPLINE_LABEL,
   SKILLS,
   SKILL_LABEL,
-  disciplineGroup,
   isSkill,
   type Discipline,
   type Skill,
@@ -144,57 +144,75 @@ export default async function History({
               </Link>
             </div>
           ) : (
-            // ONE LINE PER REP, and the whole point is how many fit. The row
-            // used to carry the priority fix on a second line, which made a
-            // phone screen hold about four reps; the owner's call was that
-            // anyone who wants to know what to change opens the rep, so the
-            // fix line is gone rather than truncated. What is left is what you
-            // scan a list of reps by: when, what, where, how it scored.
+            // THE SAME ROW HOME SHOWS (D-117). This was a flat divide-y line
+            // per rep: a date column, one mono line carrying skill and
+            // environment, and a bare number. It was the densest thing in the
+            // app and it was also the only list of reps that did not look like
+            // the list of reps on the dashboard, which is the screen a player
+            // arrives from. Two lists of the same rows in two shapes read as
+            // two features.
             //
-            // p-3 with min-h-11 rather than a tighter padding: the row still
-            // has to be a 44px target, so the height floor holds it there and
-            // the space came out of the second line instead.
-            <ul className="mt-6 divide-y divide-line">
+            // What that costs is honest and worth stating: the row goes from
+            // about 44px to about 76px, so a phone screen holds roughly five
+            // reps where it held eight. Nothing was removed to pay for it. The
+            // date became `relativeDay` (lib/relative-day.ts), the environment
+            // became a chip beside the band it belongs next to, and the score
+            // became the 48px tile that is also the morph source below.
+            //
+            // The priority fix stays off this row, which is the one thing the
+            // dashboard's version carries and this one does not. That was the
+            // owner's call when the fix line came off, and 100 rows is exactly
+            // where it still holds: anyone who wants to know what to change
+            // opens the rep.
+            <ul className="mt-6 space-y-2">
               {rows.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/analysis/${r.id}`}
-                  className="group flex min-h-11 items-center gap-3 rounded-control p-3 transition-colors hover:bg-navy-light"
+                  className="card card-lift group relative flex items-center gap-3 p-3"
                 >
-                  <span className="w-12 shrink-0 font-mono text-xs text-chalk-dim">
-                    {new Date(r.created_at).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                  {/* Skill and environment share one mono line instead of two
-                      filled pills. BOTH facts stay: the list mixes
-                      environments (Trends splits them), so each rep says which
-                      one it was, because an outdoor 62 next to an indoor 78 is
-                      two facts and not a regression. Two boxes for two short
-                      words was the chrome, not the information. */}
-                  <span className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-chalk-dim">
-                    <SkillIcon skill={r.skill} className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">
-                      {SKILL_LABEL[r.skill]} ·{" "}
-                      {disciplineGroup(r.discipline) === "indoor"
-                        ? DISCIPLINE_LABEL.indoor
-                        : DISCIPLINE_LABEL.grass}
-                    </span>
-                  </span>
-                  {/* Shared-element morph source: this score appears to
-                      travel into the breakdown's score ring when the row
-                      is opened. share="morph" so it only fires on that
-                      shared navigation, not on the filter crossfade. */}
+                  {/* Shared-element morph source: this score travels into the
+                      breakdown's score ring when the row is opened, and it is
+                      now the same 48px tile the dashboard morphs from rather
+                      than a bare number, so the two entry points into a
+                      breakdown animate identically. share="morph" so it only
+                      fires on that shared navigation, not on the filter
+                      crossfade wrapping the whole list. */}
                   <ViewTransition
                     name={`rep-${r.id}`}
                     share="morph"
                     default="none"
                   >
-                    <span className="font-display text-sm font-bold text-gold">
-                      {r.overall_score}
+                    <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
+                      <span className="stat-num text-lg text-gold">
+                        {r.overall_score}
+                      </span>
+                      <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">
+                        pts
+                      </span>
                     </span>
                   </ViewTransition>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="min-w-0 flex-1 truncate font-display text-sm font-bold">
+                        {SKILL_LABEL[r.skill]}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-chalk-dim">
+                        {relativeDay(r.created_at)}
+                      </span>
+                    </span>
+                    {/* BOTH facts stay. The list mixes environments (Trends
+                        splits them), so each rep says which one it was,
+                        because an outdoor 62 next to an indoor 78 is two facts
+                        and not a regression. The exact discipline rather than
+                        the indoor/grass group it used to collapse to, matching
+                        the dashboard: the group was a shortening, and the chip
+                        has room for the real one. */}
+                    <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="tag">{scoreBand(r.overall_score)}</span>
+                      <span className="tag">{DISCIPLINE_LABEL[r.discipline]}</span>
+                    </span>
+                  </span>
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -202,7 +220,7 @@ export default async function History({
                     strokeWidth="1.75"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-4 w-4 shrink-0 text-chalk-dim transition-transform group-hover:translate-x-0.5"
+                    className="h-4 w-4 shrink-0 text-chalk-dim transition-transform group-hover:translate-x-0.5 group-hover:text-chalk"
                     aria-hidden
                   >
                     <path d="M9 6l6 6-6 6" />

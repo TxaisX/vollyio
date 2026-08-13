@@ -155,13 +155,20 @@ export function LearnLibrary({
             </button>
           </div>
         ) : (
-          <ul className="grid items-stretch gap-3 sm:grid-cols-2">
+          // THE GRID IS THE RIGHT SHAPE and stays one (D-117). These are
+          // thirty-odd things to CHOOSE between, not six of one thing with a
+          // number each, so there is no ranking a single axis would reveal -
+          // and folding two columns into one on a library this long doubles the
+          // scroll on every screen wide enough to hold both. What was wrong was
+          // the density, so that is what changed: the padding, and a ceiling on
+          // the blurb.
+          <ul className="grid items-stretch gap-2.5 sm:grid-cols-2">
             {results.map((item) => (
               <li key={item.id} className="h-full">
                 <Link
                   href={item.href}
                   transitionTypes={["nav-forward"]}
-                  className="learn-card card card-lift group relative block h-full p-4 sm:p-5"
+                  className="learn-card card card-lift group relative block h-full p-3.5 sm:p-4"
                 >
                   {/* text-base, not text-lg. This grid is thirty-odd cards
                       long and every title was set two steps above the copy
@@ -178,7 +185,13 @@ export function LearnLibrary({
                   >
                     {item.meta}
                   </span>
-                  <span className="mt-1.5 block text-sm leading-relaxed text-chalk-dim">
+                  {/* Clamped to three lines. Cards in a row stretch to the
+                      tallest of them (`items-stretch`), and the injury summaries
+                      run to six lines where a drill's runs to two, so one entry
+                      was setting the height of the card beside it. Nothing is
+                      lost: the entry's own page carries the full text, which is
+                      where anyone reading past three lines is going anyway. */}
+                  <span className="mt-1.5 line-clamp-3 block text-sm leading-relaxed text-chalk-dim">
                     {item.subtitle}
                   </span>
                   <LinkPending />

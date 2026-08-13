@@ -14,6 +14,7 @@ import { GoalsBoard, type Goal } from "@/components/goals";
 import { BadgeShelf } from "@/components/achievements";
 import { claimAchievements, readAchievements } from "@/lib/achievements";
 import { overallScore, scoreBand } from "@/lib/ratings";
+import { relativeDay } from "@/lib/relative-day";
 import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
 import {
   allowanceLine,
@@ -59,21 +60,6 @@ type AnalysisRow = {
 // The goals board itself is components/goals.tsx (GoalsBoard): create,
 // complete and abandon all happen here on the dashboard now (D-088), so the
 // old read-only three-goal card is gone with the /goals page it linked to.
-
-// "3d ago", not "Aug 10". A recent-activity list is read for recency, and a
-// date makes the reader do the subtraction; past about a month the arithmetic
-// stops being useful and the date is the more informative answer, so it comes
-// back. Computed on the server, which this page already is (force-dynamic), so
-// there is no clock to disagree with the client's.
-function relativeDay(iso: string) {
-  const then = new Date(iso);
-  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
-  if (days <= 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  if (days < 35) return `${Math.floor(days / 7)}w ago`;
-  return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 // The two cards that sit above the fold and answer "what do I do right now".
 // Both were a text link or a small button before (D-116); a card the width of

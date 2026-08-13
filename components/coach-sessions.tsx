@@ -1,25 +1,13 @@
 import Link from "next/link";
 import { deleteCoachSession } from "@/app/(app)/coach/actions";
 import { CoachDrawer } from "@/components/coach-chat";
+import { relativeDay } from "@/lib/relative-day";
 
 export type CoachSession = {
   id: string;
   title: string;
   updated_at: string;
 };
-
-function dayLabel(iso: string): string {
-  const then = new Date(iso);
-  const now = new Date();
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const days = Math.round(
-    (startOfDay(now).getTime() - startOfDay(then).getTime()) / 86_400_000,
-  );
-  if (days <= 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 function DeleteButton({ session }: { session: CoachSession }) {
   return (
@@ -81,42 +69,62 @@ function SessionList({
       <p className="mb-1 shrink-0 px-2 font-mono text-[10px] uppercase tracking-[0.14em] text-chalk-dim">
         Sessions
       </p>
-      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pb-2">
+      {/* ONE DIVIDED LIST, not thirty rounded blocks (D-117). Each row used to
+          be its own `rounded-control` hover target with a 4px gap under it, so
+          a full rail spent about 120px on gutter and read as thirty small
+          objects rather than as one list. The card border and `divide-y` are
+          the same treatment the dashboard's skill meters use, which is what a
+          compact row list looks like everywhere else in the app now.
+
+          NO `.row-tile` here, deliberately. The glyph holder is the language's
+          row lead everywhere else, but a session has nothing to put in one:
+          the same chat icon repeated thirty times is chrome carrying no
+          information, and 36px of it per row in a 15rem column is the width
+          the title needs. The rows keep their own left edge instead.
+
+          The label above stays mono at 10px rather than becoming a
+          `.section-head`. The rail follows the transcript DOWN a size on
+          purpose - this is a list of conversations you are not currently
+          reading - and a 15px bold display heading with an accent bar would
+          make the quietest column on the page the loudest thing in it. */}
+      <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
         {sessions.length === 0 && (
-          <p className="px-2 py-1 text-xs text-chalk-dim">
+          <p className="px-3.5 py-2.5 text-xs text-chalk-dim">
             Your conversations show up here.
           </p>
         )}
-        {sessions.map((session) => {
-          const isActive = session.id === activeId;
-          return (
-            <div
-              key={session.id}
-              className={`flex items-center gap-1 rounded-control pr-1 transition-colors ${
-                isActive ? "bg-navy-lighter" : "hover:bg-navy-light"
-              }`}
-            >
-              <Link
-                href={`/coach?s=${session.id}`}
-                aria-current={isActive ? "true" : undefined}
-                title={session.title}
-                className="flex min-h-11 min-w-0 flex-1 flex-col justify-center px-2 py-1.5"
+        <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain">
+          {sessions.map((session) => {
+            const isActive = session.id === activeId;
+            return (
+              <div
+                key={session.id}
+                className={`flex items-center gap-1 pr-1 transition-colors ${
+                  isActive ? "bg-navy-lighter" : "hover:bg-navy-lighter/45"
+                }`}
               >
-                <span
-                  className={`block truncate text-xs ${
-                    isActive ? "text-chalk" : "text-chalk-dim"
-                  }`}
+                <Link
+                  href={`/coach?s=${session.id}`}
+                  aria-current={isActive ? "true" : undefined}
+                  title={session.title}
+                  className="flex min-h-11 min-w-0 flex-1 flex-col justify-center px-3.5 py-2.5"
                 >
-                  {session.title}
-                </span>
-                <span className="block font-mono text-[10px] text-chalk-dim">
-                  {dayLabel(session.updated_at)}
-                </span>
-              </Link>
-              {isActive && <DeleteButton session={session} />}
-            </div>
-          );
-        })}
+                  <span
+                    className={`block truncate text-xs ${
+                      isActive ? "text-chalk" : "text-chalk-dim"
+                    }`}
+                  >
+                    {session.title}
+                  </span>
+                  <span className="block font-mono text-[10px] text-chalk-dim">
+                    {relativeDay(session.updated_at)}
+                  </span>
+                </Link>
+                {isActive && <DeleteButton session={session} />}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </>
   );

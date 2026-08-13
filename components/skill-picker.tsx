@@ -53,7 +53,7 @@ export function SkillPicker({
       role="radiogroup"
       aria-labelledby={labelledBy}
       aria-label={labelledBy ? undefined : "Pick a skill"}
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
     >
       {SKILLS.map((skill, i) => {
         const active = value === skill;
@@ -69,7 +69,7 @@ export function SkillPicker({
             tabIndex={i === activeIndex ? 0 : -1}
             onClick={() => onChange(skill)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`card card-lift relative cursor-pointer p-4 text-left ${
+            className={`card card-lift group relative cursor-pointer p-3 text-left ${
               active ? "border-gold bg-gold/10" : ""
             }`}
           >
@@ -81,19 +81,36 @@ export function SkillPicker({
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="absolute right-3 top-3 h-4 w-4 text-gold"
+                className="absolute right-2.5 top-2.5 h-4 w-4 text-gold"
                 aria-hidden="true"
               >
                 <path d="M3 8.5l3.5 3.5L13 5" />
               </svg>
             )}
-            <div className="flex items-center gap-2">
-              <span className={active ? "text-gold" : "text-chalk-dim"}>
-                <SkillIcon skill={skill} className="h-5 w-5" />
+            <div className="flex items-center gap-2.5">
+              {/* The same 36px glyph holder that leads a row everywhere else
+                  (D-117), rather than a bare icon sitting on the card ground.
+                  It lights gold on hover through `.group`, so the whole tile
+                  now has one hover state instead of a lift with a static
+                  icon inside it. */}
+              <span
+                className={`row-tile h-9 w-9 ${
+                  active ? "border-gold/40 text-gold" : ""
+                }`}
+              >
+                <SkillIcon skill={skill} className="h-4.5 w-4.5" />
               </span>
-              <span className="font-display font-bold">{SKILL_LABEL[skill]}</span>
+              <span className="min-w-0 truncate font-display text-sm font-bold">
+                {SKILL_LABEL[skill]}
+              </span>
             </div>
-            <div className="mt-2 text-xs leading-relaxed text-chalk-dim">
+            {/* Clamped to two lines rather than left to run. The blurbs differ
+                by about 30 characters, so an unclamped grid sized every tile to
+                the longest one and left the short ones with dead space under
+                the text. Nothing is truncated in practice at the widths this
+                grid uses; the clamp is what stops one long blurb from setting
+                the height of all six. */}
+            <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-chalk-dim">
               {SKILL_BLURB[skill]}
             </div>
           </button>

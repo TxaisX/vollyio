@@ -5020,3 +5020,135 @@ new component classes (`.hero-band`, `.action-card`, `.section-head`,
 `.row-tile`, `.segmented`) live in `app/globals.css` beside the rest, and
 `.dashboard-heading`, `.score-stage` and `.skill-momentum-card` were deleted
 with the markup that used them.
+
+## D-117 - The compact language reaches the other six screens
+
+**2026-08-13.** D-116 rebuilt `/dashboard` and the tail of the breakdown around
+a denser, flatter layout language and left the rest of the app on the old one.
+One redesigned page beside six old ones is not a redesign, it is an
+inconsistency, so this carries the same language through `/history`,
+`/progress`, `/coach`, `/analyze`, `/drills`, `/learn` and `/settings`.
+
+**Every screen now opens with the same block.** Six pages began with a gold
+mono kicker over a `text-page-title` h1 sitting on the page ground, sometimes
+closed by a rule, sometimes not. They open with `.hero-band` now, and where a
+page had a hub strip or a discipline switch it sits inside the band under a
+rule, which is where the dashboard already put its discipline chips. Nothing
+was added to any of them: the eyebrow and the title were already there.
+
+**`/history` carries the row Home shows, and that costs something.** It was a
+flat `divide-y` line per rep - a date column, one mono line holding skill and
+environment, and a bare number. It was the densest list in the app and it was
+also the only list of reps that did not look like the list of reps a player had
+just tapped through from. It is now the same card row: the 48px score tile, the
+relative stamp, and the band and discipline as chips. **The row goes from about
+44px to about 76px, so a phone screen holds roughly five reps where it held
+eight.** That is the real price and it was paid deliberately, because two lists
+of the same rows in two shapes read as two features. Nothing was removed to pay
+it. The one thing the dashboard's row carries and this one still does not is
+the priority fix, which came off /history on the owner's call and stays off:
+100 rows is exactly where that call still holds.
+
+**One relative-time function, where there were three that disagreed.** The
+dashboard divided elapsed milliseconds by a day, so a rep filmed at 11pm last
+night read "Today" until 11pm tonight. `dayLabel` in
+`components/coach-sessions.tsx` compared calendar days, which is what a person
+means by "yesterday". /history had neither and printed a bare date. They are now
+`lib/relative-day.ts`: the coach's boundary won because it was correct, the
+dashboard's vocabulary won because "3d ago" is what a compact row has room for,
+and the coach rail's "3 days ago" is the one string that changed. Four tests pin
+the boundary, including the 11pm case that was wrong.
+
+**A one-rep series stopped being a 120px framed box.** On `/progress` a skill
+with a single rep rendered a `.card` containing a bordered 120px void holding
+"62 on Aug 10" - one number and one label inside a card, which is the shape
+D-116 demoted everywhere else, repeated once per skill. On this page it is the
+COMMON case rather than the edge case: the corpus is three to six reps over
+about a week. Those series are a compact row list under their own heading now,
+and both facts the box carried survive. The split is `isChartable` in
+`lib/progress-series.ts` rather than a `>= 2` typed into the page, so it is
+tested arithmetic and so "these stopped being charted" cannot be mistaken for
+"these stopped being shown". `ProgressChart` keeps the guard the branch was
+attached to: a guard that has stopped being reachable is not the same as a
+guard that has stopped being needed.
+
+**`/coach`'s skeleton was drawing a title the page deleted.** It opened with a
+3px eyebrow over a 36px title block, which is the kicker and h1 reading "Ask
+your coach" that the page removed when the conversation became the content. So
+every visit drew a title, threw it away, and slid the whole transcript up when
+the data landed - rule 7's failure, already shipped. It mirrors the page now,
+including the pinned non-scrolling height. `/progress` had no `loading.tsx` at
+all and has one. `/history`, `/analyze`, `/drills`, `/learn` and `/settings`
+were all redrawn to the shapes their pages actually render.
+
+**`/settings` stopped stacking a label over its chips four times.** The
+player-profile card spent about 360px saying four words and offering eleven
+buttons. From `sm` the label sits beside its chips instead and the group is
+about 52px. It stays stacked on a phone on purpose: a 7rem label column is a
+quarter of a 360px screen, and taking it out of the chips is what would start
+wrapping "Twice a week" onto two lines.
+
+### What was considered and rejected
+
+**The `/learn` and `/drills` grids stay grids.** Rule 2 says compare down one
+axis, and a 35-card library is the obvious place to apply it - but these are
+thirty-odd things to CHOOSE between, not six of one thing with a number each,
+so there is no ranking a single axis would reveal. Folding two columns into one
+also doubles the scroll on every screen wide enough to hold both. The density
+was the defect, so the padding tightened and the blurbs took a line clamp:
+cards in a row stretch to the tallest of them, and one six-line injury summary
+was setting the height of the card beside it.
+
+**`.row-tile` was NOT applied to the coach sessions or the library cards.** The
+glyph holder leads a compact row everywhere else, but a session and a library
+entry have nothing to put in one. The same icon repeated thirty times is chrome
+carrying no information, and 36px of it per row in a 15rem rail is the width
+the title needs. It went where a glyph means something: the skill picker.
+
+**The coach rail's "Sessions" label stays 10px mono rather than becoming a
+`.section-head`.** The rail follows the transcript down a size on purpose,
+because it lists conversations you are not currently reading. A 15px bold
+display heading with an accent bar would make the quietest column on the page
+the loudest thing in it.
+
+**The chart stays at the top of `/progress`.** A tall chart above the fold was
+wrong on Home because nobody had asked its question. Here it IS the question,
+asked by someone who navigated to Trends to ask it, and `buildSeries` already
+sorts most-reps-first so the chart that opens the page is the skill they have
+worked hardest. This is the one place the dashboard's verdict does not carry
+over.
+
+**The three things D-109 rejected are still rejected.** No score dial with
+fabricated sub-scores, no feedback pinned to invented timestamps, no vendor
+name in player-visible copy. Density and hierarchy were the only things taken
+from that competitor's UI, and they are free.
+
+### One test was narrowed rather than satisfied
+
+`lib/breakdown-contract.test.ts` banned `flex-wrap` across the whole of
+`/history/page.tsx` to stop the seven filter chips wrapping to two rows. It
+fired the moment the rep rows below grew a wrapping chip cluster of their own -
+a different element solving a different problem, and one where wrapping is
+correct, because those chips sit in a column that gets narrow with nothing to
+scroll them sideways into. A file-wide ban on a utility class was testing the
+file rather than the invariant, so it now reads the filter row's own
+`className`. The invariant did not move.
+
+The row-shape assertions beside it were updated, not deleted: the environment
+is still pinned, it is just `DISCIPLINE_LABEL[r.discipline]` now instead of the
+indoor/grass collapse, because "the row stopped collapsing the label" and "the
+row stopped saying where" look identical in a diff a month later.
+
+### Not verified
+
+**None of this was seen rendered.** The app needs a signed-in session against a
+live Supabase project and this pass had no credentials, so every claim above
+about height is arithmetic from the markup rather than a measurement off a
+screen. `npm run lint`, `npm run typecheck`, `npm test` (639 passing) and
+`npm run build` all pass.
+
+**Five dead classes in `app/globals.css` were left alone**: `hero-court-line`,
+`learn-card-arrow`, `learn-card-icon`, `reward-panel` and `set-dot-won`. All
+five were already unreferenced on `master` before D-116, so no markup this pass
+removed orphaned them, and deleting CSS belonging to surfaces this pass did not
+audit is how a presentation change becomes a regression somewhere else.

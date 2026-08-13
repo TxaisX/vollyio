@@ -480,8 +480,13 @@ test("the pinned clip loops the whole rep, muted, and yields to reduced motion",
 });
 
 // ---------------------------------------------------------------------------
-// The reps list. One line per rep, because how many reps fit on a phone screen
-// is the whole value of the page.
+// The reps list. It carries the same row the dashboard shows (D-117): the
+// score tile, the relative stamp and the band/discipline chips. It was a flat
+// divide-y line per rep, which was denser and was also the reason the two
+// lists of the same rows read as two different features.
+//
+// What did NOT change is which facts a row carries, and that is what these
+// pin. The shape is allowed to move; the facts are not.
 // ---------------------------------------------------------------------------
 
 const HISTORY = await readFile(
@@ -489,7 +494,7 @@ const HISTORY = await readFile(
   "utf8",
 );
 
-test("a rep in the list is one line: when, what, where, how it scored", () => {
+test("a rep in the list says when, what, where and how it scored", () => {
   // The fix used to be the row's second line. It is gone from the markup AND
   // from the query, so the result blob no longer crosses the wire for up to
   // 100 rows to print one string. Someone who wants to know what to change
@@ -504,10 +509,20 @@ test("a rep in the list is one line: when, what, where, how it scored", () => {
   // BOTH remaining facts stay. The list mixes environments (Trends splits
   // them), so an outdoor 62 next to an indoor 78 has to read as two facts
   // rather than as a regression; that is why the environment is on the row.
+  //
+  // D-117 changed HOW the environment is drawn, not whether it is there: it
+  // was `disciplineGroup(r.discipline)` collapsed to the indoor/grass pair,
+  // and it is now the exact discipline in a chip, matching the dashboard. The
+  // assertion moved with it rather than being deleted, because "the row stopped
+  // collapsing the label" and "the row stopped saying where" look identical in
+  // a diff a month later.
   assert.match(HISTORY, /SKILL_LABEL\[r\.skill\]/);
-  assert.match(HISTORY, /disciplineGroup\(r\.discipline\)/);
-  assert.match(HISTORY, /DISCIPLINE_LABEL\.indoor/);
-  assert.match(HISTORY, /DISCIPLINE_LABEL\.grass/);
+  assert.match(HISTORY, /DISCIPLINE_LABEL\[r\.discipline\]/);
+  // The band is the app's own published rubric wording, not a second score.
+  assert.match(HISTORY, /scoreBand\(r\.overall_score\)/);
+  // Relative, not a date. The one shared implementation, never a fourth copy.
+  assert.match(HISTORY, /relativeDay\(r\.created_at\)/);
+  assert.match(HISTORY, /from "@\/lib\/relative-day"/);
 
   // The score is the source of a shared-element morph into the breakdown's
   // score ring. Dropping the ViewTransition to save a wrapper would break the
@@ -515,9 +530,10 @@ test("a rep in the list is one line: when, what, where, how it scored", () => {
   assert.match(HISTORY, /<ViewTransition\s+name=\{`rep-\$\{r\.id\}`\}/);
   assert.match(HISTORY, /share="morph"/);
 
-  // Shorter row, same target. A one-line row is under 44px on its own, so the
-  // floor is what holds it there.
-  assert.match(HISTORY, /className="group flex min-h-11/);
+  // The morph source is the 48px tile the dashboard morphs from, so the two
+  // entry points into a breakdown animate identically. It also carries the row
+  // well past the 44px target the old `min-h-11` floor was holding by hand.
+  assert.match(HISTORY, /h-12 w-12 shrink-0/);
 });
 
 // The /history header was about 200px before the first rep: a kicker, a 32px
@@ -533,7 +549,18 @@ test("the history filter chips scroll sideways rather than wrapping", async () =
     "utf8",
   );
   // The wrap is the bug. It must not come back.
-  assert.doesNotMatch(page, /flex-wrap/);
+  //
+  // SCOPED TO THE FILTER ROW, not to the file (D-117). This read
+  // `doesNotMatch(page, /flex-wrap/)` and fired the moment the rep rows below
+  // grew a wrapping chip cluster of their own, which is a different element
+  // solving a different problem: those chips SHOULD wrap, because they sit in
+  // a column that gets narrow and there is nothing to scroll them sideways
+  // into. A file-wide ban on a utility class cannot tell one from the other,
+  // so it tested the file instead of the invariant. The invariant is that THIS
+  // row scrolls, so this now reads the row's own className.
+  const filterRow = page.match(/tabIndex=\{0\}\s*\n\s*className="([^"]*)"/);
+  assert.ok(filterRow, "expected the sideways-scrolling filter chip row");
+  assert.doesNotMatch(filterRow[1], /flex-wrap/);
   assert.match(page, /overflow-x-auto/);
   assert.match(page, /snap-x snap-mandatory/);
   // Bleeding past the shell gutter is what signals there is more to the right.

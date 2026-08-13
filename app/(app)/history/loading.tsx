@@ -19,15 +19,26 @@ export default function HistoryLoading() {
         ))}
       </div>
 
-      <ul className="mt-6 divide-y divide-line">
+      {/* Drawn to the row the page actually renders (D-117): a card per rep
+          with the 48px score tile leading it, not the flat divide-y line this
+          skeleton kept drawing after the rows became cards. A skeleton of the
+          old layout is worse than none, because the page visibly rearranges
+          itself the moment data lands. */}
+      <ul className="mt-6 space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <li key={i} className="flex items-start gap-3 p-3">
-            <Sk className="h-3 w-12 shrink-0" />
-            <div className="flex-1">
-              <Sk className="h-4 w-40 max-w-full" />
-              <Sk className="mt-2 h-4 w-3/4" />
+          <li key={i} className="card flex items-center gap-3 p-3">
+            <Sk className="h-12 w-12 shrink-0 rounded-control" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2">
+                <Sk className="h-4 w-32 max-w-full" />
+                <Sk className="ml-auto h-3 w-12 shrink-0" />
+              </div>
+              <div className="mt-1.5 flex gap-1.5">
+                <Sk className="h-5 w-16 rounded-full" />
+                <Sk className="h-5 w-14 rounded-full" />
+              </div>
             </div>
-            <Sk className="mt-1 h-4 w-4 shrink-0" />
+            <Sk className="h-4 w-4 shrink-0" />
           </li>
         ))}
       </ul>

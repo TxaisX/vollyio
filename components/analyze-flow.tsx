@@ -1425,27 +1425,36 @@ export function AnalyzeFlow({
 
   return (
     <section className="max-w-xl lg:max-w-none">
-      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-        Analyze
-      </p>
-      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-        Film the rep.
-      </h1>
+      {/* THE OPENING BAND (D-117), the same block the dashboard and Trends
+          open with. This was a bare gold kicker over a `text-3xl` h1 sitting
+          on the page ground, which is what every screen looked like before
+          D-116 gave the app one opening shape. Nothing was added to it: the
+          eyebrow and the title are the two things that were already here. */}
+      <div className="hero-band card spot p-5 sm:p-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+          Analyze
+        </p>
+        <h1 className="mt-1.5 font-display text-page-title">Film the rep.</h1>
+      </div>
 
       <div
         className={
           skill && discipline
-            ? "mt-8 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
-            : "mt-8 max-w-3xl"
+            ? "mt-6 lg:grid lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
+            : "mt-6 max-w-3xl"
         }
       >
         {/* Controls */}
         <div className="min-w-0">
           <div>
-            <h2
-              id="where-playing"
-              className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
-            >
+            {/* THE STEP HEADINGS ARE `.section-head` NOW (D-117), the same
+                label-with-a-standing-bar every other section in the app uses,
+                instead of three retyped `font-display text-sm font-bold`
+                headings. The step number stays inside it: the bar marks where
+                a section starts, but only the number says which of three this
+                is, and a capture flow is the one place in the app where that
+                ordering is the point. */}
+            <h2 id="where-playing" className="section-head mb-3">
               <span className="font-mono text-xs text-gold">01</span> Where are you
               playing?
             </h2>
@@ -1474,7 +1483,7 @@ export function AnalyzeFlow({
                 ref={stepSkillRef}
                 tabIndex={-1}
                 id="pick-a-skill"
-                className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
+                className="section-head mb-3"
               >
                 <span className="font-mono text-xs text-gold">02</span> Pick a skill
               </h2>
@@ -1487,7 +1496,7 @@ export function AnalyzeFlow({
               <h2
                 ref={stepTwoRef}
                 tabIndex={-1}
-                className="mb-3 flex items-center gap-2 font-display text-sm font-bold"
+                className="section-head mb-3"
               >
                 <span className="font-mono text-xs text-gold">03</span> Capture your{" "}
                 {SKILL_LABEL[skill].toLowerCase()} rep

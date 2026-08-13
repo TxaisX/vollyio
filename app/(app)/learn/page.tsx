@@ -112,30 +112,37 @@ export default async function Learn({
 
   return (
     <section className="max-w-5xl">
+      {/* THE OPENING BAND (D-117). THREE CHIP ROWS still land on this page in
+          a row (hub sections, then discipline, then the library tabs), and the
+          band is what finally separates them: the first two are chrome about
+          where you are and now sit inside it, and the third is a control over
+          the content and stays out on the page with the search box it belongs
+          to. The discipline row is the least of the three - it only re-cuts
+          the technique text - so it keeps sitting tight under the hub strip
+          rather than reading as its own step. */}
       <Reveal>
-        <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
-          Learn
-        </p>
-        <h1 className="mt-2 font-display text-page-title">
-          Get better, and stay on the court
-        </h1>
-        <TrainNav active={tab === "rehab" ? "recovery" : "technique"} />
-        {/* Three chip rows land on this page in a row (hub sections, then
-            discipline, then the library tabs). This one is the least of the
-            three: it only re-cuts the technique text, and indoor is what most
-            players want, so it sits tight under the section strip rather than
-            reading as its own step. */}
-        <div className="mt-3 flex items-center gap-2">
-          {ANALYZE_DISCIPLINES.map((d) => (
-            <Link
-              key={d}
-              href={d === "indoor" ? "/learn" : `/learn?discipline=${d}`}
-              aria-current={discipline === d ? "page" : undefined}
-              className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
-            >
-              {DISCIPLINE_LABEL[d]}
-            </Link>
-          ))}
+        <div className="hero-band card spot p-5 sm:p-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+            Learn
+          </p>
+          <h1 className="mt-1.5 font-display text-page-title">
+            Get better, and stay on the court
+          </h1>
+          <div className="mt-4 border-t border-line pt-3.5">
+            <TrainNav active={tab === "rehab" ? "recovery" : "technique"} />
+            <div className="mt-3 flex items-center gap-2">
+              {ANALYZE_DISCIPLINES.map((d) => (
+                <Link
+                  key={d}
+                  href={d === "indoor" ? "/learn" : `/learn?discipline=${d}`}
+                  aria-current={discipline === d ? "page" : undefined}
+                  className={`chip min-h-11 ${discipline === d ? "chip-active" : ""}`}
+                >
+                  {DISCIPLINE_LABEL[d]}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </Reveal>
 
