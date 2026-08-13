@@ -37,6 +37,13 @@ denominator. Run `node scripts/eval-coverage.mjs` before trusting any number.
 5. **Run** — with the coaching key and a long random `EVAL_TOKEN` set,
    `node scripts/run-evals.mjs`. Add `--measurements off` to replay every case
    vision-only for an A/B against its grounded run.
+> **RESULTS.json is a recording, not a live file (2026-08-13).** The harness
+> that wrote it drove `/api/eval`, which was deleted, so `run-evals.mjs` went
+> with it. `make-baseline.mjs` still freezes a baseline from that recording and
+> now says so when it runs. The live harness is `npm run eval:run`
+> (`scripts/video-eval.mjs`), which replays real clips through the shipped
+> rubric and writes `evals/video-results.json` in a different shape.
+
 6. **Freeze** — `node scripts/make-baseline.mjs --label "<what changed>"` writes
    `evals/BASELINE.json` and `evals/BASELINE.md` from the recorded run.
 

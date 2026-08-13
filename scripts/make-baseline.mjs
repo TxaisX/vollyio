@@ -37,13 +37,43 @@ const results = existsSync(RESULTS_PATH)
 const rows = Object.values(results.results ?? {});
 const scored = rows.filter((r) => !r.error);
 
+// NOTHING PRODUCES evals/RESULTS.json ANY MORE. Its only writer was
+// scripts/run-evals.mjs, which drove the dev-only /api/eval route; both were
+// removed once that route stopped existing, because the command had been
+// posting into a 404 and measuring nothing since 2026-08-05.
+//
+// This script is deliberately NOT removed with them: four live documents send
+// people here (evals/README.md, evals/LABELING.md, docs/post-cap-validation.md,
+// docs/vollyio-100-playbook.md). What it can still do is freeze a baseline from
+// a recording, and the recording it has is real. What it can no longer do is
+// get a fresh one.
+//
+// So the staleness is said out loud instead of being left to be inferred from a
+// file date. A baseline frozen from a retired scoring path is not a lie, but it
+// is history, and a historical number quoted forward as current is exactly the
+// failure this repo keeps writing decisions about.
+if (scored.length > 0) {
+  console.warn(
+    [
+      `NOTE: ${RESULTS_PATH} is a RECORDING and nothing regenerates it.`,
+      "It came from the retired frame-path harness, which graded a rubric the",
+      "product no longer ships. Treat anything frozen from it as history.",
+      "The live harness is `npm run eval:run` (scripts/video-eval.mjs), whose",
+      "results land in evals/video-results.json in a different shape.",
+      "",
+    ].join("\n"),
+  );
+}
+
 if (scored.length === 0 && !args.force) {
   console.error(
     [
-      `No scored cases in ${RESULTS_PATH}.`,
-      "A baseline must come from a real run: start the dev server with a live API",
-      "key and EVAL_TOKEN set, then `node scripts/run-evals.mjs`.",
-      "Use --force only to record a coverage-only, provisional baseline.",
+      `No scored cases in ${RESULTS_PATH}, and nothing writes that file any more.`,
+      "The harness that produced it drove /api/eval, which no longer exists, so",
+      "both were removed. The live harness is `npm run eval:run`",
+      "(scripts/video-eval.mjs), which writes evals/video-results.json in a",
+      "DIFFERENT shape this script cannot read yet.",
+      "Use --force to record a coverage-only, provisional baseline.",
     ].join("\n"),
   );
   process.exit(1);
