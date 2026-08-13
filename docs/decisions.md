@@ -5109,3 +5109,47 @@ declaration reads as a form, and this page exists to read as a demo.
 plain language, and a future reader finding that paragraph and this page
 disagreeing would be entitled to assume the page had drifted. It did not. It was
 changed on purpose.
+
+## D-118b - An anonymous session is deleted after thirty days, and its film with it
+
+**2026-08-13.** D-118 hands a stranger a real `auth.users` row so they can be
+scored without an account, and then takes their footage. Most never come back.
+Nothing in the product removed them, so the funnel's own success case was a
+growing pile of film belonging to people who never gave us an email address,
+against a Privacy Policy that promises the film goes when the account goes
+(D-024).
+
+**Thirty days, then the row is deleted.** Long enough that somebody who read
+their breakdown and came back a few weeks later still finds it; short enough
+that a stranger's clip does not sit on our storage for a year.
+
+**Deleting the auth row is the whole job, and that was verified rather than
+assumed.** `profiles` cascades from `auth.users`, `analyses` cascades from
+`profiles`, and migration 015's trigger calls the purge-user-media edge function
+on delete over pg_net. That is the same path `/api/account/delete` relies on,
+and `scripts/purge-orphaned-media.mjs` is still the backstop if the Vault config
+for that hook is missing.
+
+**The selection is a pure function with its own tests, and the script is only
+IO.** `lib/anonymous-retention.ts` decides which ids qualify;
+`scripts/purge-anonymous.mjs` lists and deletes. That split exists because the
+selection is the part that can destroy something: **every uncertainty in it
+resolves to KEEP.** A missing `is_anonymous` flag is not a false one, because a
+listing that stopped returning the field would otherwise read as "everybody is
+anonymous" and propose deleting the user table. An address present alongside an
+anonymous flag keeps the row, because the address represents a human being who
+typed something and the disagreement is somebody's bug rather than somebody's
+loss. An unparseable date, a malformed id, a future timestamp and a retention
+window of zero all select nothing.
+
+**Dry run by default.** The script prints what it would delete and exits;
+`--apply` is the irreversible one. Verified against the live project on
+2026-08-13: 8 users, 0 anonymous, 0 to remove, which is the correct answer while
+anonymous sign-in is still switched off.
+
+**A 401 from the admin API is probably not the key.** `.env.local` holds
+`SUPABASE_SERVICE_ROLE_KEY= eyJ...` with a leading space, and the `loadEnv`
+helper these scripts share strips quotes without trimming, so the space rides
+inside the bearer token and the API answers 401 exactly as it would for a
+revoked key. This script trims. `scripts/pull-prod-clips.mjs` and
+`scripts/video-eval.mjs` carry the same trap.
