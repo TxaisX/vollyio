@@ -54,6 +54,10 @@ const BASE = {
   userId: USER,
   successUrl: "https://vollyio.com/settings#plan",
   cancelUrl: "https://vollyio.com/settings#plan",
+  // Every existing case was written against the single monthly price, so the
+  // default offer keeps them asserting exactly what they asserted before. The
+  // cadence-specific behaviour is covered separately at the end of this file.
+  offer: "monthly" as const,
 };
 
 function fields(body: string): URLSearchParams {
@@ -185,13 +189,13 @@ async function withProvider(
   const realFetch = globalThis.fetch;
   const realError = console.error;
   const realKey = process.env.STRIPE_SECRET_KEY;
-  const realPrice = process.env.STRIPE_PRICE_ID;
+  const realPrice = process.env.STRIPE_PRICE_MONTHLY;
 
   const requests: ProviderRequest[] = [];
   const lines: string[] = [];
 
   process.env.STRIPE_SECRET_KEY = SECRET;
-  process.env.STRIPE_PRICE_ID = PRICE;
+  process.env.STRIPE_PRICE_MONTHLY = PRICE;
   globalThis.fetch = async (input, init) => {
     const request = {
       url: String(input),
@@ -211,7 +215,7 @@ async function withProvider(
     globalThis.fetch = realFetch;
     console.error = realError;
     restoreEnv("STRIPE_SECRET_KEY", realKey);
-    restoreEnv("STRIPE_PRICE_ID", realPrice);
+    restoreEnv("STRIPE_PRICE_MONTHLY", realPrice);
   }
 }
 
@@ -380,10 +384,13 @@ test("with no price configured, nothing is sent at all", async () => {
   await withProvider(
     () => jsonResponse({ url: "https://pay.example.test/c/cs_1" }, 200),
     async ({ requests, log }) => {
-      delete process.env.STRIPE_PRICE_ID;
+      delete process.env.STRIPE_PRICE_MONTHLY;
       refusal(await createCheckoutSession({ ...BASE, email: EMAIL }));
       assert.equal(requests.length, 0, "a missing env var denies before the request");
-      assert.match(log(), /no price is configured/);
+      // The log NAMES the variable. With one price "no price is configured"
+      // was unambiguous; with three it would leave the operator guessing which
+      // of them to set, and this refusal is the only signal they get.
+      assert.match(log(), /STRIPE_PRICE_MONTHLY is not set/);
     },
   );
 });

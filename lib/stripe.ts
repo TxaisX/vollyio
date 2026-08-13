@@ -1,16 +1,17 @@
 import "server-only";
 import { formEncode } from "./stripe-sign.ts";
-import { MONTHLY_ALLOWANCE, PLAN_LABEL, PRO_PRICE_LABEL } from "./plans.ts";
 import { SITE_URL } from "./site.ts";
+import { DEFAULT_OFFER, OFFERS, renewalSentence, type Offer, type OfferKey } from "./offers.ts";
 
-// Shown next to the pay button on the hosted page. Quoted from the plan
-// constants so it can never drift from what is actually charged, and kept
-// inside the provider's 1200-character limit for this field.
-const SUBSCRIPTION_TERMS_MESSAGE =
-  `${PLAN_LABEL.pro} is ${PRO_PRICE_LABEL} for ${MONTHLY_ALLOWANCE.pro} analyses a month. ` +
-  `It renews automatically at ${PRO_PRICE_LABEL} on this date each month until you cancel. ` +
-  `Cancel any time in Settings; you keep ${PLAN_LABEL.pro} until the end of the period you ` +
-  `paid for, and unused time is not refunded. Full terms: ${SITE_URL}/terms`;
+// Shown next to the pay button on the hosted page. Built from the OFFER rather
+// than from a single hardcoded cadence, because the same field now has to
+// describe a weekly charge as well as a monthly one, and the sentence that says
+// "each month" over a $7.99 weekly subscription is a false renewal disclosure
+// on the one page where the card is actually taken. Kept inside the provider's
+// 1200-character limit for this field.
+function subscriptionTermsMessage(offer: Offer): string {
+  return `${renewalSentence(offer)} Full terms: ${SITE_URL}/terms`;
+}
 
 // Recorded assent: a checkbox the player must tick before the provider will
 // take the payment, which turns the terms page's "you agreed to this when you
@@ -65,8 +66,15 @@ function secretKey(): string | null {
   return process.env.STRIPE_SECRET_KEY?.trim() || null;
 }
 
-function priceId(): string | null {
-  return process.env.STRIPE_PRICE_ID?.trim() || null;
+// One env var per offer, resolved at call time for the same reason the key is.
+//
+// There is deliberately NO fallback to the old single `STRIPE_PRICE_ID`. That
+// variable points at a price that was found ARCHIVED on 2026-08-12, and an
+// archived price cannot back a checkout session: falling back to it would turn
+// "this deployment has not been configured yet" into "the button 502s and the
+// log blames the provider". A missing offer var has to be loud.
+function priceIdFor(offer: OfferKey): string | null {
+  return process.env[OFFERS[offer].envVar]?.trim() || null;
 }
 
 // Exported so the webhook route reads the endpoint secret from here instead of
@@ -85,8 +93,31 @@ export const WEBHOOK_SECRET: string | null =
 // is never called, the plan stays free, and `stripe_customer_id` is never
 // recorded, so the player cannot even reach the portal to cancel what they are
 // being charged for. A missing env var has to deny the sale, not permit it.
+// The DEFAULT offer is the one that has to exist, not all of them. A deployment
+// that has the monthly price but not the weekly can still sell; the picker just
+// shows one choice. Requiring all three would mean a half-configured
+// environment renders no button at all, which is the harsher failure and the
+// one D-029 exists to avoid.
 export function stripeConfigured(): boolean {
-  return secretKey() !== null && priceId() !== null && WEBHOOK_SECRET !== null;
+  return secretKey() !== null && priceIdFor(DEFAULT_OFFER) !== null && WEBHOOK_SECRET !== null;
+}
+
+/** Which offers this deployment can actually charge for, in picker order. */
+export function availableOffers(): OfferKey[] {
+  return (Object.keys(OFFERS) as OfferKey[]).filter(
+    (key) => OFFERS[key].selectable && priceIdFor(key) !== null,
+  );
+}
+
+/**
+ * Whether the exit-intent offer can be charged.
+ *
+ * Separate from `availableOffers` because the downsell is not selectable and so
+ * is filtered out of it by design. Without this the modal would render on a
+ * deployment with no downsell price and every click would 502.
+ */
+export function downsellConfigured(): boolean {
+  return priceIdFor("downsell") !== null;
 }
 
 export type SessionResult = { ok: true; url: string } | { ok: false; error: string };
@@ -97,6 +128,10 @@ export type CheckoutInput = {
   customerId?: string | null;
   successUrl: string;
   cancelUrl: string;
+  // Which shape of Pro is being bought. The ROUTE decides this from an
+  // allowlisted key, never from an amount the caller sent: the client picks
+  // which of our offers it wants, and the server alone maps that to a price.
+  offer: OfferKey;
 };
 
 export type PortalInput = {
@@ -152,7 +187,7 @@ export function buildCheckoutBody(input: CheckoutInput, price: string): string {
     // setting cannot be written through the API. So: disclose unconditionally
     // now, and switch to recorded consent once the dashboard URL is set. See
     // docs/billing-runbook.md.
-    "custom_text[submit][message]": SUBSCRIPTION_TERMS_MESSAGE,
+    "custom_text[submit][message]": subscriptionTermsMessage(OFFERS[input.offer]),
     // Both null when the switch is off, and `formEncode` drops null, so the
     // shipped body is byte-identical to the pre-toggle one until it is turned
     // on. The disclosure above is unconditional either way: the checkbox
@@ -283,9 +318,12 @@ async function createSession(
 }
 
 export async function createCheckoutSession(input: CheckoutInput): Promise<SessionResult> {
-  const price = priceId();
+  const price = priceIdFor(input.offer);
   if (!price) {
-    console.error("[billing] checkout skipped: no price is configured");
+    // Named, because with three offers "no price is configured" no longer says
+    // which env var is missing, and the whole point of the loud failure above
+    // is that the log tells you what to set.
+    console.error(`[billing] checkout skipped: ${OFFERS[input.offer].envVar} is not set`);
     return { ok: false, error: CHECKOUT_UNAVAILABLE };
   }
   return createSession(
