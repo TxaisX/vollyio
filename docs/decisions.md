@@ -5081,3 +5081,31 @@ result shown, account claimed, and the number that matters is the ratio of the
 last to the first. **It must not ship in the middle of a Reddit measurement
 window**, because the same document rules that changing the product mid-test
 leaves two variables and no answer.
+
+## D-118a - The entry page's assent is general, and the age line stays at signup
+
+**2026-08-13, Txais, amending D-118.** D-118 moved the 13-and-over declaration
+and the footage-rights statement onto the upload step and called both
+non-optional. One of those two claims was stronger than the facts support, and
+the entry page now carries a single general line: "By starting you agree to the
+Terms of Service and Privacy Policy."
+
+**What is unchanged, which is why this is a copy decision and not a legal one.**
+Both obligations live in the Terms, that line accepts the Terms, and
+`startAnonymously` still writes `terms_accepted_at` onto the anonymous row at
+the moment the button is pressed. The record of assent is the same field, at the
+same instant, as before. `app/(auth)/signup/page.tsx` keeps its explicit
+sentence, so the COPPA declaration is still made in full where the account is
+created and where an address is actually collected.
+
+**What is genuinely given up: legibility, not consent.** A statement on the page
+is read more often than the same statement one click inside a legal document,
+and the upload happens before signup, so for the minutes between the two the
+age and recording statements are linked rather than printed. That is the trade,
+and it was made deliberately: an entry point whose first paragraph is a COPPA
+declaration reads as a form, and this page exists to read as a demo.
+
+**The reason it is recorded rather than just done.** D-118 states the opposite in
+plain language, and a future reader finding that paragraph and this page
+disagreeing would be entitled to assume the page had drifted. It did not. It was
+changed on purpose.

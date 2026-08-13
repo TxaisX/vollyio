@@ -61,9 +61,12 @@ export async function login(formData: FormData) {
  *
  * Consent is recorded exactly as the signup form records it: submitting the
  * button under the disclosure IS the assent, and the timestamp is written onto
- * the row, where it survives the conversion because the row survives it. The
- * gate has to be here rather than at signup now, because by signup the footage
- * has already been uploaded and read.
+ * the row, where it survives the conversion because the row survives it.
+ *
+ * The disclosure on /try is the general one, and the age and recording
+ * statements are spelled out at signup instead (D-118a). This timestamp is
+ * unaffected by that: it records that the Terms were accepted here, which they
+ * were, and it is the same field the signup path writes.
  */
 export async function startAnonymously(formData: FormData) {
   const supabase = await createClient();

@@ -92,16 +92,22 @@ export default async function Try({
               for the same reason: a checkbox here would be a required tap that
               produces no information nobody has already decided to give.
 
-              The RECORDING line is the one this page adds, and it is not
-              decoration. On the old funnel this sat at signup, which came
-              before any footage existed. It now has to come before the upload,
-              because the upload is what puts a real person on our storage, and
-              the clip is usually filmed at a gym full of other people's kids.
+              GENERAL ON PURPOSE, and narrower than the signup form's line
+              (Txais, 2026-08-13, amending D-118). The age statement and the
+              recording statement are spelled out where the account is created,
+              because that is the moment somebody is asked for anything of
+              theirs; this page is a stranger deciding whether to look at the
+              product at all, and an entry point that opens with a COPPA
+              declaration reads as a form rather than a demo.
+
+              Nothing is given up legally by shortening it. The Terms of Service
+              carry both obligations, this line accepts them, and
+              `terms_accepted_at` is still written onto the row by
+              `startAnonymously`, so the assent is recorded at the same instant
+              it always was.
             */}
             <p className="text-xs leading-relaxed text-chalk-dim">
-              By starting you confirm you are at least 13 years old, that you have
-              the right to upload the footage you are about to send, and you agree
-              to the{" "}
+              By starting you agree to the{" "}
               <Link
                 href="/terms"
                 target="_blank"
