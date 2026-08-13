@@ -29,7 +29,15 @@ function loadEnv(file = ".env.local") {
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const m = line.replace(/^﻿/, "").match(/^([A-Z0-9_]+)=(.*)$/);
     if (!m) continue;
-    if (!process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    // TRIMMED, and not for tidiness. `.env.local` holds
+    // `SUPABASE_SERVICE_ROLE_KEY= eyJ...` with a leading space, and a version of
+    // this helper that only strips quotes sends that space inside the bearer
+    // token. The API answers 401, which reads exactly like a rotated key, and
+    // the hour after that is spent in the dashboard instead of on the one
+    // character responsible.
+    if (!process.env[m[1]]) {
+      process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "").trim();
+    }
   }
 }
 loadEnv();

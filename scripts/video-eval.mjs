@@ -79,7 +79,13 @@ function loadEnv(file = ".env.local") {
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const m = line.replace(/^﻿/, "").match(/^([A-Z0-9_]+)=(.*)$/);
     if (!m) continue;
-    const value = m[2].replace(/^["']|["']$/g, "");
+    // TRIMMED, and not for tidiness. `.env.local` holds at least one key
+    // written as `NAME= eyJ...` with a leading space, and a version of this
+    // helper that only strips quotes sends that space inside the bearer token.
+    // The API answers 401, which reads exactly like a rotated key, and the hour
+    // after that is spent in a dashboard instead of on the one character
+    // responsible.
+    const value = m[2].trim().replace(/^["']|["']$/g, "").trim();
     if (!process.env[m[1]]) process.env[m[1]] = value;
   }
 }
