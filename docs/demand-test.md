@@ -52,9 +52,20 @@ Decided in advance. Read the row that matches and do what it says.
 
 Take these before posting and again 72 hours after. No other numbers count.
 
+**Amended 2026-08-13 (D-118).** Once the analysis-first funnel ships, every
+visitor who uploads a rep becomes an `auth.users` row, so a raw count of that
+table stops measuring demand and starts measuring traffic. Both numbers are
+worth having and they are not the same number, so from that point on the user
+count filters `is_anonymous = false` and the anonymous count is read separately
+as the top of the funnel. Tester recruiting is counted separately again: an
+install driven by a mutual-testing thread is not a volleyball player choosing
+this product.
+
 ```sql
 -- exclude the demo account: it is the 5th auth.users row
-select count(*) from auth.users;                    -- baseline 5 (4 real)
+select count(*) from auth.users where is_anonymous = false;  -- baseline 5 (4 real)
+-- the funnel's top, after D-118 ships. Zero until anonymous sign-in is enabled.
+select count(*) from auth.users where is_anonymous;
 select count(*) from public.analyses;               -- baseline 46
 select count(*) from public.analysis_feedback;      -- baseline 2
 select count(*) from public.share_links;            -- baseline 16

@@ -54,6 +54,22 @@ export function signupErrorMessage(status?: number, code?: string): string {
   return "Couldn't create your account. Try again.";
 }
 
+// D-118. The free-read entry point, whose one interesting failure is a
+// configuration state rather than anything the player did.
+//
+// `anonymous_provider_disabled` means anonymous sign-in is switched off in the
+// Supabase dashboard, which is exactly how this shipped: the code landed first
+// and the toggle is a human step. The message therefore has to send the player
+// somewhere that WORKS rather than apologise, because until that toggle is
+// flipped this failure is not an edge case, it is every visitor.
+export function anonymousStartErrorMessage(status?: number, code?: string): string {
+  if (isRateLimited(status, code)) return RATE_LIMITED;
+  if (code === "anonymous_provider_disabled") {
+    return "Free reads are not open at the moment. Create an account and your first breakdowns are free.";
+  }
+  return "Couldn't start your free read. Try again, or create an account.";
+}
+
 export function resetRequestErrorMessage(status?: number, code?: string): string {
   if (isRateLimited(status, code)) return RATE_LIMITED;
   return "Couldn't send the reset link. Try again in a moment.";
