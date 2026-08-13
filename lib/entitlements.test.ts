@@ -141,6 +141,42 @@ test("the superseded lifetime-one reason still denies during a deploy window", a
   });
 });
 
+// D-118. The refusal that is a door rather than a wall.
+test("a spent anonymous run denies with the reason the conversion needs", async () => {
+  const spent = {
+    rpc: async () => ({
+      data: {
+        allowed: false,
+        reason: "anonymous_used",
+        reservation_id: null,
+        plan: "free",
+        allowance: 1,
+        used: 1,
+        resets_at: null,
+      },
+      error: null,
+    }),
+  };
+  // `detail` is null BY DESIGN, not by accident: nothing resets, the database
+  // sends no `resets_at`, and `allowanceDetail` refuses to build a detail
+  // without one. A surface that received a detail here would be free to render
+  // a reset date for a window that does not exist.
+  assert.deepEqual(await reserveAnalysisEntitlement(spent, true), {
+    ok: true,
+    allowed: false,
+    reason: "anonymous_used",
+    detail: null,
+  });
+  // And it must deny identically with enforcement off, because the cap is a
+  // safety limit on an unauthenticated lane rather than a commercial one.
+  assert.deepEqual(await reserveAnalysisEntitlement(spent, false), {
+    ok: true,
+    allowed: false,
+    reason: "anonymous_used",
+    detail: null,
+  });
+});
+
 test("entitlement release is scoped to its opaque reservation", async () => {
   let args: unknown;
   const client = {

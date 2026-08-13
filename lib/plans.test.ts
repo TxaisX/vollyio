@@ -374,3 +374,49 @@ test("a per-account grant override exists and only the service role may write it
   // paid coaching call, so a fat-fingered extra digit has a dollar cost.
   assert.match(all, /analysis_grant[\s\S]{0,80}<=\s*500/i);
 });
+
+// D-118. The anonymous lane's one-run cap, pinned where it is actually
+// enforced. `reserve_analysis_entitlement` is granted to `authenticated`, and
+// an anonymous session IS `authenticated` in Postgres, so a cap that lived only
+// in the route would be walked past by a direct data-API call holding the
+// session the app just handed out.
+test("the anonymous run is capped in SQL, and not behind the billing flag", async () => {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const names = (await readdir(dir)).filter((n) => n.endsWith(".sql")).sort();
+  let sql = "";
+  for (const name of names) {
+    const body = await readFile(new URL(name, dir), "utf8");
+    if (/create or replace function public\.reserve_analysis_entitlement/i.test(body)) {
+      sql = body;
+    }
+  }
+  assert.notEqual(sql, "", "no migration defines reserve_analysis_entitlement");
+
+  // The claim is read from the JWT, which is the same token Postgres already
+  // trusts for auth.uid(). Nothing is passed in by the caller.
+  assert.match(sql, /is_anonymous/i);
+  assert.match(sql, /auth\.jwt\(\)/i);
+  assert.match(sql, /'anonymous_used'/);
+
+  // THE ORDERING IS THE TEST. The anonymous branch must appear BEFORE
+  // `if p_enforce_free then`, because every wall inside that branch is a
+  // commercial limit that an environment is allowed to switch off, and this one
+  // is not: with enforcement off, an uncapped anonymous lane is an
+  // unauthenticated vision-model endpoint pointed at one prepaid balance.
+  const anonymousAt = sql.search(/if v_is_anonymous then/i);
+  const enforceAt = sql.search(/if p_enforce_free then/i);
+  assert.ok(anonymousAt > 0, "the anonymous branch must exist");
+  assert.ok(enforceAt > 0, "the enforcement branch must exist");
+  assert.ok(
+    anonymousAt < enforceAt,
+    "the anonymous cap must not sit inside the billing-enforcement branch",
+  );
+
+  // One, lifetime. A window here would be a recurring anonymous allowance,
+  // which teaches a player they never need an account.
+  assert.doesNotMatch(
+    sql.slice(anonymousAt, enforceAt),
+    /created_at\s*>=/i,
+    "the anonymous count must be lifetime, not windowed",
+  );
+});

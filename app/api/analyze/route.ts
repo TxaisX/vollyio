@@ -201,11 +201,19 @@ export async function POST(req: NextRequest) {
   // The self-imposed monthly spend cap that used to sit here is GONE (D-104).
   // It answered the wrong question: once tripped it degraded the product to a
   // 503 for every player at once, including the paying ones, while doing
-  // nothing whatsoever to the thing actually spending the money. Cost is now
-  // controlled at the source, by refusing automated ACCOUNTS (`lib/captcha.ts`)
-  // rather than by refusing analyses. Do not reintroduce a global cap here
-  // without reading D-104 first: a per-user allowance already exists, and a
-  // platform-wide ceiling turns one abuser into everybody's outage.
+  // nothing whatsoever to the thing actually spending the money. Cost is
+  // controlled at the source rather than by refusing analyses. Do not
+  // reintroduce a global cap here without reading D-104 first: a per-user
+  // allowance already exists, and a platform-wide ceiling turns one abuser into
+  // everybody's outage.
+  //
+  // "The source" used to mean refusing automated ACCOUNTS, and D-118 changed
+  // what that sentence covers: an analysis can now happen without an account at
+  // all. The captcha therefore rides on the anonymous sign-in itself, which is
+  // an auth endpoint and so is verified by Supabase against the secret it
+  // already holds (`lib/captcha.ts`), and the one-run cap for that session is
+  // enforced in SQL by `reserve_analysis_entitlement` (migration 061) where no
+  // caller can route around it.
 
   const json = await readJsonRequest(req, MAX_BODY_BYTES);
   if (!json.ok) {
@@ -302,6 +310,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "An analysis is already running." },
         { status: 409 },
+      );
+    }
+    // D-118. The anonymous player has spent their one read, and this is the
+    // only refusal in the product that is not about a limit lifting later:
+    // nothing resets, because nothing is on a clock. It names the account, and
+    // it says the breakdown is kept rather than implying a fresh start, which
+    // is true and is the entire reason the conversion is worth taking: signing
+    // up attaches an email to the row that already owns the analysis.
+    //
+    // Deliberately NOT routed through `exhaustedMessage`. Every string that
+    // builder produces is a sentence about a window, and bending it to describe
+    // an account would leave both harder to read (D-110 made the wall decide the
+    // noun; here there is no wall, there is a door).
+    if (entitlement.reason === "anonymous_used") {
+      return NextResponse.json(
+        {
+          error:
+            "That was your free read, and it's saved. Create an account to keep it and get three analyses a day.",
+          reason: "anonymous_used",
+          resets_at: null,
+        },
+        { status: 402 },
       );
     }
     // Running out is a state, not a fault, so the 402 carries enough for the

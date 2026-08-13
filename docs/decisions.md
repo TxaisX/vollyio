@@ -4959,3 +4959,125 @@ which hardcodes its catalog for the six eval harnesses, had to change.
 Verified live: `/drills/attack-approach-shadow-4step` serves the new drill,
 `/drills/attack-approach-shadow-3step` serves "Drill not found" rather than
 either drill, and the sitemap advertises only the 4-step.
+
+## D-118 - The analysis is the funnel, and the account is asked for after it
+
+**2026-08-13.** Numbered 118 because 116 and 117 are taken on the unmerged UI
+branch and the pricing-selector entry is still owed and unnumbered; that one
+takes 119 at merge rather than renumbering this.
+
+**The funnel asks for the account before it has shown anything, and that is
+where the loss is.** `app/(auth)/funnel-beacon.tsx` exists because the drop-off
+was unreadable, and the number it was built to explain is the one that decides
+this: **113 players reached the landing page and 13 reached `/signup`.** 88.5%
+of the loss happens before the account form is ever attempted. Lifetime the
+product has taken 219 visitors to 4 real users, 1.8%. Reordering anything below
+the signup step cannot move a funnel that leaks above it.
+
+**Decided: a stranger uploads a rep, marks the player, waits, and is shown the
+COMPLETE breakdown with no account. The account is asked for on the SECOND
+rep.** Not on the first result, which is the moment they have what they came
+for and the ask reads as a toll. The second upload is the first evidence of
+intent, because they went and filmed again.
+
+**The mechanism is Supabase anonymous sign-in, and that choice is what makes
+this cheap.** An anonymous sign-in mints a real `auth.users` row with a real
+JWT, so `auth.uid()` resolves, every RLS policy holds, the
+`${user.id}/pending/...` storage paths are unchanged, `consume_api_quota` and
+`reserve_analysis_entitlement` need no new caller, and `analyses.user_id`,
+which is `not null references profiles`, has something to point at. The flow in
+`components/analyze-flow.tsx` and the page at `app/(app)/analysis/[id]` are not
+forked and not copied. Converting is then `updateUser({ email, password })` on
+the SAME row, so the breakdown, the rating and the skill history survive the
+signup instead of being migrated across from a guest table. D-102 turned email
+confirmation off, so that conversion completes in one step with no inbox round
+trip.
+
+**Rejected: a guest identity of our own** (signed cookie, service-role writes, a
+`guest_analyses` table, copy the rows across at signup). It duplicates every
+policy and every storage path that already exists, and it turns the conversion
+into a migration that can half-succeed. The version where a player signs up and
+their analysis does not arrive is worse than no funnel change at all.
+
+**Rejected: holding the result behind an email.** It is the pattern
+r/AlphaAndBetaUsers removes posts for, and Reddit is the only channel this
+product has evidence for: one share link produced 74 of the first 219 visitors.
+Spending that credibility to capture addresses is a bad trade at this size.
+
+**Rejected: one anonymous analysis per day.** A recurring anonymous allowance
+teaches a player they never need an account. It is ONE, tied to the anonymous
+user. Free WITH an account is 3 a day, so the upgrade is worth 3x on the day
+they take it and everything after that.
+
+**Rejected: a partial or blurred first result.** The product's whole claim is
+that it shows its work; the checklist under the number is the thing that makes
+the read credible, and hiding it withholds exactly the evidence a stranger came
+to judge.
+
+**The one anonymous run is enforced in SQL, not in the route.** The entitlement
+already lives in Postgres (`reserve_analysis_entitlement`), and a limit that
+exists only in TypeScript is a limit that a direct data-API call ignores. The
+anonymous branch reads the `is_anonymous` claim off the JWT and admits the
+reservation only while that user has no rows in `analyses`. `/api/analyze` gains
+no new counting logic; it keeps returning the 402 it already returns, with copy
+that names the account instead of a daily reset.
+
+**The captcha needs no new verification code.** `lib/captcha.ts` records that
+Turnstile's secret is held by Supabase Auth and verified there, never in this
+repo. Anonymous sign-in is an auth endpoint, so attaching the existing token to
+that one call puts the anonymous lane behind the same protection that already
+guards signup. The order of operations in that file still binds: ship the token
+first, arm Supabase second. The comment in `/api/analyze` that says abuse is
+controlled by refusing automated ACCOUNTS rather than capping analyses stops
+being true the moment an analysis can happen without one, and is corrected
+there.
+
+**The cookie-clearing leak is accepted, in writing, so it is not rediscovered as
+a crisis.** A person who clears storage gets another free read. At the measured
+$0.0164 an analysis against a $79.29 balance, a thousand of them is $16.40. The
+threat worth engineering against is a script, and that is the captcha plus the
+existing credit alerting, whose thresholds are already counted in analyses
+rather than dollars (D-114).
+
+**Three things move with the funnel and are not optional.**
+
+- **The 13+ declaration and the terms acceptance move onto the upload step.**
+  They currently sit at signup, and signup is now after the upload. An
+  anonymous stranger is putting footage of real people through the product, so
+  the gate has to precede the footage, not follow it.
+- **Every count of `auth.users` filters `is_anonymous = false`.** The demand
+  test's baseline of 5 users, and any figure derived from that table, is
+  meaningless once anonymous rows land in it. `docs/demand-test.md` is amended
+  rather than reinterpreted afterwards.
+- **An anonymous user satisfies `auth.role() = 'authenticated'`.** Anything that
+  must belong to a real account, settings, billing, history, account deletion,
+  checks the claim explicitly. `lib/route-guard.ts` gains that distinction as a
+  pure function so it can be pinned, rather than each page inventing it.
+
+**Reporting stays on all three surfaces and does NOT move to Settings**
+(considered and rejected in the same conversation). `/analysis/[id]`,
+`components/coach-chat.tsx` and `/share/<token>` each keep the control. The
+share page settles it: its reader has no account and therefore no Settings page,
+which is precisely why migration 060 grants `anon` EXECUTE on
+`submit_content_report`. This funnel makes the argument stronger, because the
+anonymous walker seeing generative output for the first time has no Settings
+page either, and moving the control there would leave the highest-traffic AI
+surface in the product with no reporting mechanism at all. Making it visually
+quieter is a styling change and is fine; moving where it lives is not.
+
+**Blocked on one dashboard toggle, verified rather than assumed.** On
+2026-08-13 a `POST` to `/auth/v1/signup` with an empty body and the project's
+publishable key returned `422 anonymous_provider_disabled`, so anonymous sign-in
+is OFF and there is no API or MCP path to turn it on from here. It is
+Authentication, Sign In / Providers, in the Supabase dashboard, and it is
+Txais's. Everything below ships inert until then and fails closed: with the
+provider disabled the entry point refuses and says so, rather than dropping a
+player into a flow that cannot finish.
+
+**How this is judged.** `docs/demand-test.md` already names the row this is
+built against: they click, they read, they do not sign up, the funnel is wrong.
+The measurement is the beacon chain, landing, upload started, player marked,
+result shown, account claimed, and the number that matters is the ratio of the
+last to the first. **It must not ship in the middle of a Reddit measurement
+window**, because the same document rules that changing the product mid-test
+leaves two variables and no answer.
