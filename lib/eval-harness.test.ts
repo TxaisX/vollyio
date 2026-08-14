@@ -36,9 +36,12 @@ const pkg = JSON.parse(
 // model in one place and this test names the other place.
 test("the harness reads the same vision model production ships", () => {
   const shipped = client.match(/export const VISION_MODEL\s*=\s*"([^"]+)"/)?.[1];
-  const measured = harness.match(/^const MODEL\s*=\s*"([^"]+)"/m)?.[1];
+  // DEFAULT_MODEL, not MODEL: the harness gained a --model flag for the
+  // discrimination bakeoff, so the constant this test guards is the DEFAULT the
+  // runner uses when no arm is named. That default is what measures production.
+  const measured = harness.match(/^const DEFAULT_MODEL\s*=\s*"([^"]+)"/m)?.[1];
   assert.ok(shipped, "lib/ai/client.ts must declare VISION_MODEL");
-  assert.ok(measured, "scripts/video-eval.mjs must declare MODEL");
+  assert.ok(measured, "scripts/video-eval.mjs must declare DEFAULT_MODEL");
   assert.equal(
     measured,
     shipped,

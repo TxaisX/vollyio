@@ -26,7 +26,11 @@ import { readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { z } from "zod";
-import { simpleRubric, simpleRatingSchema } from "../lib/ai/simple-rubric.ts";
+import {
+  simpleRubric,
+  simpleRatingSchema,
+  focusLabelInstruction,
+} from "../lib/ai/simple-rubric.ts";
 import { METRICS } from "../lib/ai/metrics.ts";
 import { metricKnowledge } from "../content/technique.ts";
 import { drillSlugs } from "../content/drills.ts";
@@ -36,7 +40,7 @@ import { SKILL_LABEL } from "../lib/skills.ts";
 // Mirrors lib/ai/client.ts VISION_MODEL and the route's readVideo options. Kept
 // as literals rather than imported because both of those modules are
 // `server-only` and throw outside a Next runtime.
-const MODEL = "google/gemini-3.6-flash";
+const DEFAULT_MODEL = "google/gemini-3.6-flash";
 const MAX_TOKENS = 8192;
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const TIMEOUT_MS = 90_000;
@@ -66,6 +70,20 @@ function bounded(name, value, fallback, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
 
+// --model exists for the discrimination bakeoff, not for production. The route
+// is pinned to VISION_MODEL; this only asks whether a different model orders
+// reps better than the one that ships.
+const MODEL = args.model ?? DEFAULT_MODEL;
+// The Vertex pin is a Gemini-specific fix (lib/ai/vision.ts): AI Studio takes
+// YouTube links where Vertex takes base64 data URLs, so an unpinned video
+// request succeeds or fails by routing luck. Pinning it on a non-Google model
+// would route the request to a provider that does not serve it at all.
+const PIN_VERTEX = MODEL.startsWith("google/");
+// An extra system block appended after the rubric, for A/B-ing a prompt change
+// against the labeled set BEFORE it is written into lib/ai/simple-rubric.ts.
+// D-034 forbids tuning calibration by wording; this exists so a change to the
+// ABSTAIN rule is measured against labeled cases rather than argued about.
+const EXTRA_SYSTEM = args["extra-system"] ? readFileSync(args["extra-system"], "utf8") : null;
 const CORPUS = args.corpus ?? "evals/corpus";
 const OUT = args.out ?? "evals/video-results.json";
 const RUNS = bounded("runs", args.runs, 1, 1, 5);
@@ -120,9 +138,10 @@ async function readOnce(entry, clipB64, durationS) {
   const body = JSON.stringify({
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    ...withPrivateRouting({ only: ["google-vertex"] }),
+    ...withPrivateRouting(PIN_VERTEX ? { only: ["google-vertex"] } : undefined),
     messages: [
       { role: "system", content: simpleRubric(entry.skill, entry.discipline, drillSlugs(entry.skill), catalog) },
+      ...(EXTRA_SYSTEM ? [{ role: "system", content: EXTRA_SYSTEM }] : []),
       {
         role: "user",
         content: [
@@ -133,6 +152,13 @@ async function readOnce(entry, clipB64, durationS) {
           ...(durationS != null
             ? [{ type: "text", text: `This clip is ${durationS.toFixed(1)} seconds long.` }]
             : []),
+          // WHO to analyze, which production always sends and this harness
+          // did not until 2026-08-13. On two-player footage an unmarked read
+          // grades whoever the model picks, so two arms can disagree by 60
+          // points while both are describing a rep correctly - just a
+          // different person's. The marker travels as a description, which is
+          // the D-100 path, because a corpus clip has no tap coordinate.
+          ...(entry.focus_label ? [{ type: "text", text: focusLabelInstruction(entry.focus_label) }] : []),
           {
             type: "text",
             text: `Discipline: ${entry.discipline}. Rate this ${SKILL_LABEL[entry.skill].toLowerCase()} rep across the whole clip.`,
@@ -245,7 +271,9 @@ const results = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : { mode
 results.model = MODEL;
 results.cases ??= {};
 
+const only = args.ids ? new Set(args.ids.split(",").map((s) => s.trim())) : null;
 const queue = manifest
+  .filter((e) => !only || only.has(e.id))
   .filter((e) => !args.case || e.id.startsWith(args.case))
   // --failed re-runs only the cases that errored, so a network blip costs one
   // clip and not a whole suite run.

@@ -14,7 +14,12 @@
     "eval:label": "node scripts/label-case.mjs",
     "eval:corpus": "node scripts/pull-prod-clips.mjs",
     "eval:run": "node scripts/video-eval.mjs",
-    "eval:baseline": "node scripts/make-baseline.mjs"
+    "eval:baseline": "node scripts/make-baseline.mjs",
+    "eval:fit": "node scripts/fit-scale.mjs",
+    "eval:source": "node scripts/source-clips.mjs",
+    "eval:label-clips": "node scripts/label-clips.mjs",
+    "eval:multidraw": "node scripts/multidraw-report.mjs",
+    "eval:arms": "node scripts/arm-compare.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

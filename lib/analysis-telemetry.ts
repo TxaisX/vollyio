@@ -199,3 +199,55 @@ export async function recordAnalysisTelemetry(
 export function resetAnalysisTelemetryWarningForTests(): void {
   warnedMissingServiceClient = false;
 }
+
+/**
+ * A refusal, shaped for the server log.
+ *
+ * Refusals leave NO trace today. `ratable: false` returns a 422, the hourly
+ * slot is refunded and nothing is stored, so the one number that says whether
+ * the abstain lane works at all has never been observable in production. The
+ * 2026-08-13 corpus review measured the consequence offline: 10 clips
+ * containing no gradeable rep were all scored rather than refused, seven of
+ * them at 89 or above (evals/CALIBRATION.md). None of that was visible from
+ * the live product, and it still would not be.
+ *
+ * A log line rather than a row, deliberately. A refusal has no analysis to hang
+ * a foreign key on, and adding a table is a schema change to a live database
+ * for a measurement a structured log already supports. Emitted as one JSON
+ * object under a stable prefix so it can be grepped and counted.
+ *
+ * NO PLAYER IDENTITY. The question this answers is "how often, and on what kind
+ * of clip", which needs the shape of the footage and nothing about who filmed
+ * it. `reason` is the model's own sentence and is truncated, because it reaches
+ * the log from an upstream and long strings in a log line are how a log stops
+ * being readable.
+ */
+export type RefusalRecord = {
+  skill: string;
+  discipline: string;
+  duration_s: number | null;
+  clip_bytes: number | null;
+  model: string;
+  provider: string | null;
+  reason: string | null;
+  /** Whether the player had marked who to analyze. */
+  marked: boolean;
+};
+
+export function formatRefusal(input: RefusalRecord): string {
+  const reason = (input.reason ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+  return JSON.stringify({
+    event: "analyze.refusal",
+    skill: input.skill,
+    discipline: input.discipline,
+    duration_s:
+      typeof input.duration_s === "number" && Number.isFinite(input.duration_s)
+        ? Number(input.duration_s.toFixed(1))
+        : null,
+    clip_bytes: input.clip_bytes ?? null,
+    model: input.model,
+    provider: input.provider,
+    marked: input.marked,
+    reason: reason.length > 0 ? reason : null,
+  });
+}

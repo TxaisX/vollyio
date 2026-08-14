@@ -68,7 +68,15 @@ if (!res.ok) {
 const rows = await res.json();
 mkdirSync(OUT, { recursive: true });
 
-const manifest = [];
+// MERGE, never overwrite. scripts/source-clips.mjs appends to this same file,
+// so a wholesale rewrite here silently deletes every sourced clip's entry while
+// leaving its bytes on disk: the corpus looks intact on the filesystem and the
+// harness quietly stops seeing three quarters of it.
+const manifestPath = path.join(OUT, "manifest.json");
+const existing = existsSync(manifestPath)
+  ? JSON.parse(readFileSync(manifestPath, "utf8"))
+  : [];
+const manifest = existing.filter((e) => !String(e.id).startsWith("prod-"));
 let downloaded = 0;
 let missing = 0;
 for (const row of rows) {
@@ -99,11 +107,21 @@ for (const row of rows) {
     // a label: it is the number under suspicion, not ground truth.
     shipped_score: row.overall_score,
     shipped_version: row.result?.result_version ?? "1",
+    // WHO the shipped read analyzed, carried into the corpus so a replay grades
+    // the same person. Production always marks a subject (D-062, D-100); a
+    // harness that omits it lets two models grade two different players on the
+    // same clip and calls the difference a disagreement about technique.
+    // `subject_check.analyzed` is the model's own description of the marked
+    // athlete and is only trusted when the read confirmed the marker matched.
+    focus_label:
+      row.result?.subject_check?.marker_match === "confirmed"
+        ? row.result.subject_check.analyzed
+        : null,
     source: `supabase:${row.id}`,
   });
 }
 
-writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2));
+writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 const bySkill = {};
 for (const m of manifest) bySkill[m.skill] = (bySkill[m.skill] ?? 0) + 1;
 console.log(

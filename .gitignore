@@ -80,3 +80,9 @@ evals/RESULTS.json
 # Local calibration corpus: real player clips pulled from storage, never committed.
 evals/corpus/
 evals/video-results.json
+evals/stability-results.json
+evals/multidraw-results.json
+evals/arm-*.json
+evals/review/
+evals/marked-*.json
+evals/variant-*.json
