@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   CONFIRM_SENT_MESSAGE,
   RESET_SENT_MESSAGE,
+  anonymousStartErrorMessage,
   loginErrorMessage,
   resetRequestErrorMessage,
   signupErrorMessage,
@@ -44,6 +45,63 @@ export async function login(formData: FormData) {
   redirect("/dashboard");
 }
 
+/**
+ * D-118. The free read: a session with no email address behind it.
+ *
+ * This is a REAL Supabase session, not a cookie of our own invention, and that
+ * is the whole design. `auth.uid()` resolves, so every RLS policy, every
+ * `${user.id}/` storage path and the entitlement function all work unchanged,
+ * and `signup` below turns this same row into an account rather than copying
+ * anything across.
+ *
+ * The captcha rides on this call for the same reason it rides on signup: this
+ * is now the cheapest way to spend model budget without an account, so it is
+ * the door that has to be watched. Supabase verifies the token against the
+ * secret it already holds; nothing is verified here (`lib/captcha.ts`).
+ *
+ * Consent is recorded exactly as the signup form records it: submitting the
+ * button under the disclosure IS the assent, and the timestamp is written onto
+ * the row, where it survives the conversion because the row survives it.
+ *
+ * The disclosure on /try is the general one, and the age and recording
+ * statements are spelled out at signup instead (D-118a). This timestamp is
+ * unaffected by that: it records that the Terms were accepted here, which they
+ * were, and it is the same field the signup path writes.
+ */
+export async function startAnonymously(formData: FormData) {
+  const supabase = await createClient();
+
+  // ANY existing session short-circuits this, and the anonymous case is the one
+  // that actually matters. `signInAnonymously` does not resume a session, it
+  // mints a NEW user, and the one-run cap is counted per user: a player who
+  // spent their free read and came back to this page would be handed a fresh
+  // row and a fresh free read, by us, in one tap. Clearing storage to get
+  // another read is a leak this decision accepts (D-118); putting a button on
+  // the site that does it is not.
+  //
+  // A player with a real account is sent on for a different reason: minting
+  // here would REPLACE the session they are holding and strand them in a lane
+  // with one analysis and no settings.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/analyze");
+
+  const { error } = await supabase.auth.signInAnonymously({
+    options: {
+      captchaToken: captchaTokenFrom(formData),
+      data: { terms_accepted_at: new Date().toISOString() },
+    },
+  });
+
+  if (error) {
+    redirect(
+      `/try?error=${encodeURIComponent(anonymousStartErrorMessage(error.status, error.code))}`,
+    );
+  }
+  redirect("/analyze");
+}
+
 export async function signup(formData: FormData) {
   const parsed = parseSignupInput(formData);
   if (!parsed.success) {
@@ -52,6 +110,37 @@ export async function signup(formData: FormData) {
     );
   }
   const supabase = await createClient();
+
+  // D-118. An anonymous player claiming the read they are already looking at.
+  // This is an UPDATE, not a second account: the row keeps its id, so the
+  // analysis, the rating and the skill history it already owns stay exactly
+  // where they are. Creating a fresh account here instead would silently orphan
+  // the one thing that made them willing to sign up.
+  const {
+    data: { user: current },
+  } = await supabase.auth.getUser();
+  if (current?.is_anonymous) {
+    const { data: claimed, error: claimError } = await supabase.auth.updateUser({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      data: { terms_accepted_at: new Date().toISOString() },
+    });
+    if (claimError) {
+      redirect(
+        `/signup?error=${encodeURIComponent(signupErrorMessage(claimError.status, claimError.code))}`,
+      );
+    }
+    // Email confirmation is off (D-102), so the address lands immediately and
+    // the row stops being anonymous inside this call. If it is ever turned back
+    // on, the update is held until the link is clicked and the player is STILL
+    // anonymous here: say so, rather than sending them onward into a product
+    // that will keep refusing them.
+    if (claimed?.user?.is_anonymous) {
+      redirect(`/login?message=${encodeURIComponent(CONFIRM_SENT_MESSAGE)}`);
+    }
+    redirect("/welcome");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,

@@ -15,7 +15,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/samples`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/learn`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/drills`, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${SITE_URL}/start`, changeFrequency: "yearly", priority: 0.9 },
+    // D-118. The front door is now the free read, so it outranks both the quiz
+    // and the signup form: it is the only one of the three that shows a
+    // stranger the product before asking them for anything.
+    { url: `${SITE_URL}/try`, changeFrequency: "yearly", priority: 0.9 },
+    { url: `${SITE_URL}/start`, changeFrequency: "yearly", priority: 0.8 },
     { url: `${SITE_URL}/signup`, changeFrequency: "yearly", priority: 0.8 },
     { url: `${SITE_URL}/login`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/privacy`, changeFrequency: "yearly", priority: 0.2 },

@@ -137,3 +137,45 @@ test("conflicts and unknown failures stay the coral error state", () => {
   assert.equal(analyzeFailureStatus(500, null).kind, "error");
   assert.equal(analyzeFailureStatus(400, null).kind, "error");
 });
+
+// D-118. The anonymous player's spent free read.
+test("a spent free read asks for an account and never for money", () => {
+  const s = analyzeFailureStatus(402, {
+    error: "That was your free read, and it's saved. Create an account to keep it and get three analyses a day.",
+    reason: "anonymous_used",
+    resets_at: null,
+  });
+  assert.equal(s.kind, "unavailable");
+  assert.equal(s.reason, "anonymous_used");
+  assert.equal(s.needsAccount, true);
+  // The whole point of the separate flag. Offering Pro to somebody with no
+  // account asks them to pay before there is anywhere for the payment to land.
+  assert.equal(s.canUpgrade, false);
+  assert.equal(s.resetsAt, null);
+});
+
+// The 402 fallback copy is a sentence about a month, and this player never had
+// one. A body lost in transit must not leave them reading about a window.
+test("a spent free read that loses its body still reads as an account, not a month", () => {
+  const s = analyzeFailureStatus(402, { reason: "anonymous_used" });
+  assert.equal(s.needsAccount, true);
+  assert.equal(s.canUpgrade, false);
+  assert.doesNotMatch(s.message, /month/i);
+  assert.match(s.message, /account/i);
+});
+
+// Every other refusal must be untouched by the flag: a free player at their
+// daily wall is still sold to, and a pro player is still not.
+test("the account flag is set for nothing else", () => {
+  for (const reason of [
+    "free_month_exhausted",
+    "free_day_exhausted",
+    "plan_month_exhausted",
+    "plan_day_exhausted",
+  ]) {
+    const s = analyzeFailureStatus(402, { reason, resets_at: "2026-09-01T00:00:00Z" });
+    assert.equal(s.needsAccount, false, reason);
+  }
+  assert.equal(analyzeFailureStatus(503, null).needsAccount, false);
+  assert.equal(analyzeFailureStatus(402, {}).needsAccount, false);
+});

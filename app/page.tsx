@@ -641,7 +641,7 @@ export default function Landing() {
                 counts.
               </p>
               <div className="mt-8 flex flex-col items-center gap-3">
-                <Link href="/start" className="btn-primary text-base">
+                <Link href="/try" className="btn-primary text-base">
                   Analyze your first rep
                 </Link>
                 {/* Secondary on purpose. Installing before there is anything to
@@ -737,7 +737,7 @@ export default function Landing() {
                   Log in
                 </Link>
                 <Link
-                  href="/start"
+                  href="/try"
                   className="block text-chalk-dim transition-colors hover:text-chalk"
                 >
                   Analyze your first rep
@@ -760,7 +760,7 @@ export default function Landing() {
       <StickyCta
         watch="hero-cta"
         label="Analyze your first rep"
-        href="/start"
+        href="/try"
       />
       <div
         className="md:hidden"

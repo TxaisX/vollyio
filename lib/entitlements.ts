@@ -34,6 +34,16 @@ type ReservationResult =
       reason: "day_exhausted";
       detail: AllowanceDetail | null;
     }
+  // D-118. The anonymous player's one run is spent, and this refusal is the
+  // conversion point rather than a wall: nothing resets, so `detail` is
+  // expected to be null (the database sends no `resets_at`) and the surface
+  // above names the account instead of a clock.
+  | {
+      ok: true;
+      allowed: false;
+      reason: "anonymous_used";
+      detail: AllowanceDetail | null;
+    }
   | { ok: false; allowed: false };
 
 const UUID_PATTERN =
@@ -102,6 +112,19 @@ export async function reserveAnalysisEntitlement(
       ok: true,
       allowed: false,
       reason: "day_exhausted",
+      detail: allowanceDetail(row),
+    };
+  }
+  // Migration 061, and the reason this branch has to exist BEFORE that
+  // migration is applied: the database decides the reason, so a function that
+  // answers 'anonymous_used' to code that has never heard of it falls through
+  // to `{ ok: false }` and the route turns that into a 503. The player it
+  // would 503 is the one this funnel exists to convert.
+  if (row.reason === "anonymous_used") {
+    return {
+      ok: true,
+      allowed: false,
+      reason: "anonymous_used",
       detail: allowanceDetail(row),
     };
   }

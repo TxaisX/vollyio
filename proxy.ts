@@ -10,13 +10,27 @@ import { guardDecision } from "@/lib/route-guard";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-async function verifiedUserId(
+// D-118. Who is asking, and whether they ever gave us an email address.
+//
+// `isAnonymous` defaults to FALSE whenever the claim is absent, and that
+// direction is deliberate. The two failure modes are not symmetric: reading a
+// real account as anonymous locks every existing player out of their own
+// settings, history and billing, while reading an anonymous session as a real
+// account costs them nothing but the run of a few pages that will be empty.
+// The boundary that must not fail is the one that spends money, and that one is
+// not here: `reserve_analysis_entitlement` reads `is_anonymous` off the same JWT
+// inside Postgres (migration 061), where no client can route around it.
+type Session = { userId: string | null; isAnonymous: boolean };
+
+const NOBODY: Session = { userId: null, isAnonymous: false };
+
+async function verifiedSession(
   request: NextRequest,
   onResponse: (next: NextResponse) => void,
-): Promise<string | null> {
+): Promise<Session> {
   // No configuration means no way to verify anyone. Report "nobody", which
   // guardDecision treats as fail-closed on protected paths.
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return NOBODY;
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -41,8 +55,13 @@ async function verifiedUserId(
   // auth at microseconds instead of an auth-server round trip.
   try {
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const sub = claimsData?.claims?.sub;
-    if (!claimsError && typeof sub === "string" && sub.length > 0) return sub;
+    const claims = claimsData?.claims as
+      | { sub?: unknown; is_anonymous?: unknown }
+      | undefined;
+    const sub = claims?.sub;
+    if (!claimsError && typeof sub === "string" && sub.length > 0) {
+      return { userId: sub, isAnonymous: claims?.is_anonymous === true };
+    }
   } catch {
     // Fall through to the refresh path.
   }
@@ -53,19 +72,20 @@ async function verifiedUserId(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    return user?.id ?? null;
+    if (!user) return NOBODY;
+    return { userId: user.id, isAnonymous: user.is_anonymous === true };
   } catch {
-    return null;
+    return NOBODY;
   }
 }
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const userId = await verifiedUserId(request, (next) => {
+  const { userId, isAnonymous } = await verifiedSession(request, (next) => {
     response = next;
   });
 
-  switch (guardDecision(request.nextUrl.pathname, userId)) {
+  switch (guardDecision(request.nextUrl.pathname, userId, isAnonymous)) {
     case "to-login": {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
@@ -74,6 +94,11 @@ export async function proxy(request: NextRequest) {
     case "to-dashboard": {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+    case "to-signup": {
+      const url = request.nextUrl.clone();
+      url.pathname = "/signup";
       return NextResponse.redirect(url);
     }
     default:

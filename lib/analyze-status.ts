@@ -18,7 +18,11 @@ export type AnalyzeFailureReason =
   // because every existing consumer switches on this union exhaustively, and a
   // flag would let a surface forget the day case while still typechecking.
   | "free_day_exhausted"
-  | "plan_day_exhausted";
+  | "plan_day_exhausted"
+  // D-118. Not a window at all: the anonymous player's one free read is spent
+  // and nothing refills it, so this is the only refusal here whose answer is an
+  // account rather than money or patience.
+  | "anonymous_used";
 
 // Which refusals belong to a paying player. Pro hits its own walls, and money
 // buys them nothing when they do, so they are never sold to (docs/billing.md
@@ -26,6 +30,15 @@ export type AnalyzeFailureReason =
 const PRO_REASONS: readonly AnalyzeFailureReason[] = [
   "plan_month_exhausted",
   "plan_day_exhausted",
+];
+
+// Every refusal that must NOT be answered with a checkout button. A pro player
+// at their wall cannot buy their way past it, and an anonymous player has
+// nothing to upgrade FROM: selling Pro to someone with no account would ask
+// them to pay before there is anywhere for the purchase to land.
+const NO_SALE_REASONS: readonly AnalyzeFailureReason[] = [
+  ...PRO_REASONS,
+  "anonymous_used",
 ];
 
 // The 402 body the route sends. Every field is `unknown` because this is JSON
@@ -49,6 +62,12 @@ export type AnalyzeFailure = {
   // limit: a pro player at theirs waits for the reset, and offering them a
   // purchase would promise something money cannot do this month.
   canUpgrade: boolean;
+  // D-118. The refusal is answered by creating an account, not by paying and
+  // not by waiting. Kept separate from `canUpgrade` being false, because "there
+  // is nothing to sell you" and "there is one specific thing to do" are
+  // different states, and a surface that conflated them would offer a pro
+  // player a signup link.
+  needsAccount: boolean;
 };
 
 const FALLBACKS: Record<number, string> = {
@@ -83,6 +102,7 @@ export function analyzeFailureStatus(
       reason: null,
       resetsAt: null,
       canUpgrade: false,
+      needsAccount: false,
     };
   }
   return {
@@ -96,7 +116,9 @@ export function analyzeFailureStatus(
     // here is a body that was lost in transit, and stranding a free player
     // with no way forward is the worse of the two mistakes: the destination is
     // the plan card, which is honest for either plan.
-    canUpgrade: exhausted && !PRO_REASONS.includes(reason as AnalyzeFailureReason),
+    canUpgrade:
+      exhausted && !NO_SALE_REASONS.includes(reason as AnalyzeFailureReason),
+    needsAccount: reason === "anonymous_used",
   };
 }
 
@@ -105,6 +127,7 @@ const REASONS: readonly string[] = [
   "plan_month_exhausted",
   "free_day_exhausted",
   "plan_day_exhausted",
+  "anonymous_used",
 ];
 
 function readReason(value: unknown): AnalyzeFailureReason | null {
@@ -131,6 +154,12 @@ function exhaustedFallback(
   reason: AnalyzeFailureReason | null,
   resetsAt: string | null,
 ): string {
+  // `base` is the 402 fallback, which is a sentence about a month. That is the
+  // wrong sentence entirely for a player who never had a month, so this case
+  // replaces it rather than appending to it.
+  if (reason === "anonymous_used") {
+    return "That was your free read, and it's saved. Create an account to keep it.";
+  }
   if (PRO_REASONS.includes(reason as AnalyzeFailureReason)) {
     return resetsAt ? `${base} More unlock on ${resetsAt}.` : base;
   }

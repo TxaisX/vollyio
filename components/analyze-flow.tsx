@@ -16,6 +16,7 @@ import {
 import { canTrimVideo, trimClip, type TrimmedClip } from "@/lib/video-clip";
 import { Reveal } from "@/components/motion";
 import { LimitNotice } from "@/components/limit-notice";
+import { ClaimAccountNotice } from "@/components/claim-account-notice";
 import {
   analyzeFailureStatus,
   type AnalyzeErrorBody,
@@ -66,6 +67,11 @@ type Status =
       plan?: Plan | null;
       // The reset date, formatted from the raw instant in the body.
       resetsOn?: string | null;
+      // D-118. The 402 was an anonymous player's spent free read, so the card
+      // asks for an account instead of a payment. Carried explicitly rather
+      // than inferred from a null plan: a plan that simply failed to survive
+      // the trip is also null, and that case must keep showing the offer.
+      needsAccount?: boolean;
     };
 
 // Whether there is anything to sell. `lib/billing.ts` owns the server-side view
@@ -1146,6 +1152,7 @@ export function AnalyzeFlow({
                 message: failure.message,
                 exhausted: res.status === 402,
                 plan: planFromReason(failure.reason),
+                needsAccount: failure.needsAccount,
                 // The raw instant, formatted in UTC, because the window is a
                 // UTC calendar month: rendering it in the viewer's own zone
                 // tells anyone west of Greenwich that an Aug 1 reset happens on
@@ -2008,7 +2015,10 @@ export function AnalyzeFlow({
               {status.kind === "unavailable" && !outOfAnalyses && (
                 <p className="animate-fade-up text-chalk">{status.message}</p>
               )}
-              {status.kind === "unavailable" && outOfAnalyses && (
+              {status.kind === "unavailable" && outOfAnalyses && status.needsAccount && (
+                <ClaimAccountNotice className="animate-fade-up font-sans" />
+              )}
+              {status.kind === "unavailable" && outOfAnalyses && !status.needsAccount && (
                 // Inside the live region so the refusal is announced, and
                 // font-sans so the card escapes the monospace status context
                 // around it. The card carries the message itself: this state
