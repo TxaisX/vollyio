@@ -5347,3 +5347,69 @@ inside the bearer token and the API answers 401 exactly as it would for a
 revoked key. This script trims. `scripts/pull-prod-clips.mjs` and
 `scripts/video-eval.mjs` carry the same trap.
 
+
+## D-119 - Pro is sold by the week or the month, and a lower rate on exit
+
+**2026-08-12, numbered at merge.** D-118 reserved this number rather than
+renumbering itself, because the entry was owed from the moment the branch was
+cut and the branch shipped before it was written.
+
+**Checkout had been dead and nobody knew.** Both Vollyio prices were found
+`active:false` on 2026-08-12, including the one `STRIPE_PRICE_ID` pointed at,
+and the provider cannot open a Checkout Session on an archived price. No sale
+was possible at all, for as long as that had been true. **"$0 lifetime revenue"
+is therefore not evidence about demand**, and every earlier reading of it as
+such was wrong.
+
+**Three live prices replace the one:** weekly **$7.99/wk**, monthly
+**$29.99/mo**, and a **$19.99/mo** exit-intent rate. The ladder is monotone,
+which is the only property that makes it honest: $7.99/wk is about $34.63/mo,
+above the $29.99, which is above the $19.99. Nobody who pays more often pays
+less.
+
+**The downsell is a FOREVER PRICE and not a coupon**, and the reason is
+mechanical rather than philosophical. A coupon scopes to a PRODUCT, and all
+three prices sit on one product, so a $10-off coupon would have made the weekly
+free. A permanent lower price also cannot quietly end, so nobody is repriced
+later by a discount they have forgotten agreeing to.
+
+**`lib/offers.ts` is the catalog and the only place the labels live, and it is
+deliberately NOT `server-only`.** The picker is a client component and needs the
+copy. What must never reach the browser is the provider price id, and that stays
+in `lib/stripe.ts` behind the env vars, keyed by the strings here. Split this
+way, a client import can leak a price LABEL that is already printed on the page,
+and can never leak an id.
+
+**The client posts an offer KEY; the server alone maps it to a price.**
+`readOffer` allowlists the three keys, defaults to monthly, and tolerates a
+request with no body so the 402 upsell paths keep working. A forged body is
+therefore bounded to naming one of our own three offers, and the worst it can
+name is the $19.99 we chose to sell.
+
+**The downsell being reachable by anyone who reads the network tab is inherent,
+not a hole.** It is a client-triggered offer, so the key has to be nameable by a
+client. `selectable: false` keeps it out of the picker so the $29.99 is not the
+price nobody ever pays; it is not, and cannot be, an access control.
+
+**The renewal disclosure moved into the picker** because it must change with the
+selection. "Renews every month" printed above a control that can select a weekly
+subscription is the wrong renewal terms on the surface that takes the card. The
+Terms carried the same monthly-only assumption in two clauses and now describe
+both cadences.
+
+**No fallback to `STRIPE_PRICE_ID`.** It names the archived price, so falling
+back would turn "not configured yet" into a 502 blamed on the provider. A
+missing `STRIPE_PRICE_MONTHLY` denies loudly and names itself in the log.
+`stripeConfigured()` is false until it is set, so **no upgrade button renders at
+all**, which is honest and is also no sale. **The three env vars are a
+deployment step, not a code step.**
+
+**Dropping the allowance from the disclosure was tried and `lib/stripe.test.ts`
+refused it, correctly.** A disclosure naming a price without naming what it buys
+is worse than the one it replaced.
+
+**The exit-intent modal is desktop-only in practice.** It hangs off `mouseout`
+with `clientY <= 0`, which is the only exit signal a page gets, and there is no
+mobile equivalent. This product is mobile-first inside a TWA, so the downsell
+reaches a minority of players. It fires once per tab via `sessionStorage`. Do
+not report it as a mobile feature.
