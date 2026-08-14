@@ -1,0 +1,69 @@
+BEFORE YOU RATE, ANSWER ONE QUESTION: IS THERE A REP HERE TO GRADE?
+
+The rule you were given asks whether the footage is too dark, too far, or cut
+off. That is not the only way a clip can be ungradeable, and it is not the
+common way. Measured on this product's own corpus, every clip that contained no
+rep at all was still given a score, and the two highest scores of the review
+went to a slow-motion training DIAGRAM and to a person talking to a camera.
+
+So check these explicitly, and set ratable to false if any of them is true:
+
+- The footage is a GRAPHIC rather than a rep: a stroboscopic or multi-exposure
+  composite showing one athlete drawn several times in the same frame, a
+  freeze-frame with annotations, a diagram, an animation, a title card, or a
+  slow-motion montage assembled from several different plays.
+- The footage is a PRESENTER TALKING: somebody explaining to camera, or a
+  studio shot, including when clips of real play are cut in around them.
+  A coach who actually PERFORMS the skill with a ball is a rep and must be
+  rated, however instructional the video around them is: a demonstration done
+  properly is the clearest rep you will ever be given, and refusing it costs a
+  player the analysis they came for.
+- The footage is BROADCAST or WIDE COVERAGE of a whole rally or a whole drill,
+  where several athletes touch the ball, the camera moves between them, and no
+  single athlete's rep can be isolated.
+- The subject you were asked to analyze IS in the clip but never performs the
+  named skill in it: they set while you were asked about the attack, they watch
+  the play, or their contact happens off-camera or with their body turned away.
+- The clip contains several DIFFERENT reps by different people rather than one
+  rep by one athlete.
+
+A busy, sharp, well-lit clip can fail every one of these. Confidence that you
+can SEE the footage is not evidence that the footage contains a rep to grade.
+
+If you refuse, say in one plain sentence what the clip actually shows. Do not
+guess at a score first and refuse afterwards, and do not compromise by scoring
+such a clip in the middle: a number attached to footage with no rep in it is
+the single most misleading thing you can return.
+
+TWO TESTS THAT DECIDE MOST CLIPS, AND THEY ARE NOT ABOUT IMAGE QUALITY.
+
+FIRST: IS THE SUBJECT THE ONE PLAYING THE BALL? A ball must be in play in this
+clip and the subject must be the person playing it with the named skill. Not
+approaching it while somebody else plays it, not standing on court during
+somebody else's rally, not swinging at nothing.
+
+You will usually NOT catch the instant of contact, and you must not require it.
+You are shown about one image per second and a contact lasts about fifty
+milliseconds, so the frame where hand meets ball is almost never in your sample.
+Seeing the ball in the air before and after, with the subject moving to it and
+playing it, IS seeing the rep. A drill where the same athlete plays ball after
+ball is a rep and must be rated.
+
+What fails this test is the absence of the ball or the absence of the subject
+from the action: shadow swings and footwork with no ball anywhere in the clip,
+a ball played by a different person, or a subject who is turned away or out of
+frame for the whole sequence. Those fail even when the picture is sharp and the
+action is exciting.
+
+SECOND: HOW MANY PEOPLE ARE PLAYING? Count them. A rep is one athlete's work.
+If the clip shows a match, a rally, a full-court drill, a warmup, a queue of
+players taking turns, or a competition with a crowd, scoreboard, officials or
+broadcast graphics, then several athletes are touching the ball and the footage
+is COVERAGE OF PLAY rather than a rep. Refuse it. This is the single most common
+kind of clip that gets scored when it should not be, and it does not look like a
+bad clip: it looks like great volleyball, sharply filmed, from a real match.
+
+Neither test is about whether the video is good. Broadcast footage of an
+international final is superb video and still contains no gradeable rep for one
+named athlete. Judge what you were asked to judge: one person, one skill, one
+contact you can point to.

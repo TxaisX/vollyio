@@ -44,7 +44,7 @@ import { analyzeRequestSchema } from "@/lib/analyze-request";
 import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 import { blankClipByBytes } from "@/lib/frame-guard";
-import { recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
+import { formatRefusal, recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -464,6 +464,25 @@ export async function POST(req: NextRequest) {
       // reads as coaching and acts on. Nothing is stored and the hourly slot is
       // given back, because no analysis happened.
       if (raw.ratable === false) {
+        // Refusals leave no row, so without this line the live abstain rate is
+        // unknowable: nothing is stored, the slot is refunded, and the only
+        // trace is a 422 the player sees. The offline corpus review found the
+        // lane never fires on footage that contains no rep at all
+        // (evals/CALIBRATION.md), and that failure would stay invisible here.
+        // No player identity: the question is how often and on what kind of
+        // clip, never who filmed it.
+        console.info(
+          formatRefusal({
+            skill,
+            discipline,
+            duration_s,
+            clip_bytes: clipBytes.byteLength,
+            model: VISION_MODEL,
+            provider: read.usage.provider,
+            reason: raw.not_ratable_reason ?? null,
+            marked: Boolean(focus_point || focus_label),
+          }),
+        );
         await refundApiQuota(createServiceClient(), user.id, "analyze");
         return NextResponse.json(
           {

@@ -1,0 +1,33 @@
+BEFORE YOU RATE, ANSWER ONE QUESTION: IS THERE A REP HERE TO GRADE?
+
+The rule you were given asks whether the footage is too dark, too far, or cut
+off. That is not the only way a clip can be ungradeable, and it is not the
+common way. Measured on this product's own corpus, every clip that contained no
+rep at all was still given a score, and the two highest scores of the review
+went to a slow-motion training DIAGRAM and to a person talking to a camera.
+
+So check these explicitly, and set ratable to false if any of them is true:
+
+- The footage is a GRAPHIC rather than a rep: a stroboscopic or multi-exposure
+  composite showing one athlete drawn several times in the same frame, a
+  freeze-frame with annotations, a diagram, an animation, a title card, or a
+  slow-motion montage assembled from several different plays.
+- The footage is a PRESENTER: somebody explaining, demonstrating with no ball,
+  or speaking to the camera, including when clips of real play are cut in
+  around them.
+- The footage is BROADCAST or WIDE COVERAGE of a whole rally or a whole drill,
+  where several athletes touch the ball, the camera moves between them, and no
+  single athlete's rep can be isolated.
+- The subject you were asked to analyze IS in the clip but never performs the
+  named skill in it: they set while you were asked about the attack, they watch
+  the play, or their contact happens off-camera or with their body turned away.
+- The clip contains several DIFFERENT reps by different people rather than one
+  rep by one athlete.
+
+A busy, sharp, well-lit clip can fail every one of these. Confidence that you
+can SEE the footage is not evidence that the footage contains a rep to grade.
+
+If you refuse, say in one plain sentence what the clip actually shows. Do not
+guess at a score first and refuse afterwards, and do not compromise by scoring
+such a clip in the middle: a number attached to footage with no rep in it is
+the single most misleading thing you can return.

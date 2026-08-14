@@ -1,0 +1,1638 @@
+{
+  "by_id": {
+    "prod-2873531a": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "grass rec jump attack: real approach, jump and swing, balanced landing; no visible fault, no elite detail",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-45f6ee8b": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "identical footage to prod-2873531a (duplicate upload)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-9c5ceb12": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "sand: short approach, genuine jump with sand spray and a real swing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-01657590": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "sand: jump and swing visible, but camera is low through grass and most frames miss the rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-02eb77fa": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "FRAME-VERIFIED: full approach, leaves the sand, arm cocked, contact above net. Rec level, not a push",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-22bee58a": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "FRAME-VERIFIED: same pair, real approach and jump attack",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-2c82a59e": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "sand set: gets under the ball, hands overhead, set is usable; hand shape unresolvable at this distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-21f56a0c": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "jump serve at long range; athlete is a few hundred pixels tall, detail unresolvable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-706ea215": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "CORRECTED: shadow approach jumps at the net with NO BALL in any frame. Verified at 3fps over the whole clip. The earlier band 7 was wrong and both models refused it correctly",
+      "labeled_by": "claude-frames",
+      "corrected": true,
+      "at": "2026-08-13T18:28:15.378Z"
+    },
+    "prod-a49925a7": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "indoor trained attack: full approach, arm draw, contact above net. Best rep in the production corpus",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "prod-d9a34f8f": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "branded promo footage; the marked setter is turned away and the contact is never visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:47:03.214Z"
+    },
+    "src-kgXAm48Ash0-w3": {
+      "band": "9",
+      "label": "band 9",
+      "mid": 89,
+      "unratable": false,
+      "note": "arena jump serve: full approach, high toss, contact well above the net at full extension, controlled landing. Genuinely excellent",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-2P7Rbdumu54-w4": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "college demonstrator standing float: stable base, clean extension; gym is dim and the sheet includes intro frames",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-WhXt-RqHQIM-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "STROBOSCOPIC MULTI-EXPOSURE DIAGRAM on black. The same athlete drawn six times per frame. No continuous rep exists to grade",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-EcDGpf8IoKM-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide full-court team defensive drill, several players, nobody isolable, athletes under 100px tall",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-aaJNUKIgIQM-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast beach rally, multiple athletes, camera pans; no single dig rep is isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-WdFfGlxdyiE-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "talking-head presenter frames spliced with broadcast rally footage. No blocking rep by any identifiable subject",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:50:33.677Z"
+    },
+    "src-WhXt-RqHQIM-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "CORRECTED: approach and arm-swing demonstration on black with NO BALL in any frame, verified at 4fps across the clip. The earlier band 8 was wrong. Second instance of this reviewer inferring a rep from approach motion without confirming a ball",
+      "labeled_by": "claude-frames",
+      "corrected": true,
+      "at": "2026-08-13T18:34:46.353Z"
+    },
+    "src-FAW_oKzB71Q-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast highlight COMPILATION with channel branding; several different plays by different athletes cut together",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:56:57.430Z"
+    },
+    "src-UForevjCu2Y-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "coach physically posing a player at the net plus annotated freeze-frames with ARMS EXTENDED OVER NET text overlay. A demonstration being staged, not a block rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:59:35.967Z"
+    },
+    "src-4W56sp-HS30-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "instructional slideshow: full-frame title cards (4. Hands Finish in the Shape of the Ball) with small pillarboxed demo insets",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:59:35.968Z"
+    },
+    "src-3DkpSA5CkbY-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "international broadcast rally with scoreboard graphics, several athletes, plus a promo title card",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:59:35.968Z"
+    },
+    "src-s6D8aVaf65o-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "stroboscopic multi-exposure diagram, same presentation as src-WhXt-RqHQIM-w1 from a different source video",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T17:59:35.968Z"
+    },
+    "src-zU12l62ME_w-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "animated court-diagram graphics spliced with wide fisheye gym footage; composite, and the athlete is small under heavy lens distortion",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:02:33.598Z"
+    },
+    "src-zU12l62ME_w-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "five frames of a presenter talking to camera in a studio, then grayscale fisheye gym footage. Composite, not a rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:02:33.598Z"
+    },
+    "prod-10b14975": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: wide gym warmup, a dozen people milling and hitting, no isolable rep by any subject",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.214Z"
+    },
+    "prod-13ee336b": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: sideways match footage with spectators, several athletes, camera rotated 90 degrees",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.215Z"
+    },
+    "prod-1d9c1409": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "grass rec attack: approach, jump and swing visible, short clip",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.215Z"
+    },
+    "prod-70995c73": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: a SCREEN RECORDING of a phone. Android status bar (10:23, 9% battery) and navigation buttons are in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.215Z"
+    },
+    "src-2P7Rbdumu54-w3": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "caption card then a college demonstrator performing the standing float; the rep itself is clean",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.215Z"
+    },
+    "src-7yseUMmvKPw-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide gym match footage with spectators, several athletes, subject distant and unidentified",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:08:47.215Z"
+    },
+    "src-3DkpSA5CkbY-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast match, then studio presenter frames, then a 50-50 FIGHT title card. Three different things in eight seconds",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:11:13.428Z"
+    },
+    "src-3NeaCi34GQU-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide gym with a drill queue lined up at the net, camera behind a players head, no isolable block",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:11:13.428Z"
+    },
+    "src-9a5LnBi8rro-w1": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "instructional slow-motion with Chinese captions but a genuine block rep: clear takeoff, hands penetrating over the net, controlled landing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:11:13.428Z"
+    },
+    "prod-01f707ac": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.633Z"
+    },
+    "prod-18dbaece": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.634Z"
+    },
+    "prod-207a5a24": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.634Z"
+    },
+    "prod-4886ba9c": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.634Z"
+    },
+    "prod-0ff74323": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.634Z"
+    },
+    "prod-28a1aa72": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "night grass rec set, dim, players small, camera partly blocked by the net pole. The set works; hand shape, the checkpoint that matters most for this skill, is not resolvable at this distance and light (duplicate upload group)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:12:00.634Z"
+    },
+    "prod-3858b2b4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: Folgen Summer branded promo, grass tournament. Subject faces away and her platform and contact are never shown",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:18.628Z"
+    },
+    "src-1wLydAdm0V8-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "caption card 2. Chest pass the ball to your head over a self-toss drill. The motion shown is not a pass rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:18.628Z"
+    },
+    "src-9oqeCiBW-4o-w3": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "solo outdoor passing drill: single athlete, whole body in frame, well lit. Moves to the ball with the platform out front",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:18.628Z"
+    },
+    "src-aaJNUKIgIQM-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast beach rally, two teams, several contacts, no marked subject",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:38.622Z"
+    },
+    "src-EcDGpf8IoKM-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide gym team defensive drill, players spread across the court, subject in the middle distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:38.623Z"
+    },
+    "src-D2PpiblF95s-w2": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "coach feeding balls from a box to one athlete digging: same athlete throughout, close range, whole body visible. Several reps rather than one, but all gradeable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:13:38.623Z"
+    },
+    "prod-40ca3c40": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: USA Volleyball tournament match, wide, many athletes and spectators, no marked subject. Scored 92",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:14:06.357Z"
+    },
+    "prod-4e78b124": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: same tournament footage as prod-40ca3c40 (duplicate). Scored 89",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:14:06.358Z"
+    },
+    "prod-5189ea5e": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: distant grass tournament, figures a few dozen pixels tall across a whole field",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:14:06.358Z"
+    },
+    "prod-5e3775e0": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: competitive indoor match with a channel watermark, officials and spectators, several athletes, camera pans. Scored 88",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:32.471Z"
+    },
+    "prod-67d7d515": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "sand rec attack: approach, jump and swing visible, balanced landing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:32.472Z"
+    },
+    "prod-705fb8c9": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "distant court through foreground grass; the rep occupies two frames of twelve and the athlete is small, so quality beyond gross mechanics is unresolvable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:32.472Z"
+    },
+    "src-MPmRiCadruU-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "professional match rally filmed from behind the serving team, packed crowd, many athletes. The named skill is serve and the visible action is a block at the net",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:56.178Z"
+    },
+    "src-PZ6BYglNt2Y-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "camera pointed largely at the bleachers; the athlete is cropped at the bottom edge of frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:56.178Z"
+    },
+    "src-qd5UVYmBjQM-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "convention-hall tournament, many courts and people, foreground athlete cropped",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:15:56.178Z"
+    },
+    "src-UForevjCu2Y-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "montage of several instructional demo shots at different framings, different athletes in each",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:23.798Z"
+    },
+    "src-WdFfGlxdyiE-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "single player shadow-blocking at the net in a grayscale gym with NO BALL in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:23.799Z"
+    },
+    "src-3DkpSA5CkbY-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast international match with sponsor overlays, several athletes, plus studio presenter frames",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:23.799Z"
+    },
+    "src-hluYOAklfnI-w5": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "beach dig reps by one isolated athlete with instructional caption overlays; the reps are genuine, ball present, crossover step and lay-out dig both visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:48.434Z"
+    },
+    "src-IAV0ltDhFzk-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "tournament hall with a crowd, coaches backs to camera in the foreground, players distant, plus a MIDLINE MOVING OUT title bar",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:48.434Z"
+    },
+    "src-MAFi2kguhYs-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "single athlete shuffling in a defensive stance with no ball visible in any frame; shadow footwork, and the last frame cuts to a different gym",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:42:48.434Z"
+    },
+    "src-dJbv0h6EH0o-w3": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "two-person passing drill across a net, one athlete per side, ball in play throughout. Subject is a couple of hundred pixels tall so gross mechanics only",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:17.344Z"
+    },
+    "src-IFFZNgN2n5Q-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "webcam talking-head in a room, then wide gym footage of two full teams warming up",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:17.345Z"
+    },
+    "src-o0AduQRRq-I-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "annotated analysis video: red arrow graphics drawn over the subject arms and caption text along the bottom, several players in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:17.345Z"
+    },
+    "prod-cc267048": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: distant grass tournament, several players across a wide field, figures a few dozen pixels tall. Duplicate upload group of three (same MD5), scored 74, 76 and 78",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:49.257Z"
+    },
+    "prod-cda226e1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: distant grass tournament, several players across a wide field, figures a few dozen pixels tall. Duplicate upload group of three (same MD5), scored 74, 76 and 78",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:49.257Z"
+    },
+    "prod-da4dd9e5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION upload: distant grass tournament, several players across a wide field, figures a few dozen pixels tall. Duplicate upload group of three (same MD5), scored 74, 76 and 78",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:43:49.257Z"
+    },
+    "src-Rm0yvvBx7oc-w5": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "outdoor youth drill with a Volleyball dig caption pill: one feeder, one receiver, ball in play, subject full body in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:48:47.906Z"
+    },
+    "src-Rp9LknLjqpc-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "branded frame graphics over a multi-player gym drill, and one frame is a full-screen orange transition card",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:48:47.907Z"
+    },
+    "src-xfCoHL6HvdQ-w5": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "very wide gym, single subject roughly eighty pixels tall receiving. Sole subject and the ball is played, but a platform cannot be judged at that size",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:48:47.907Z"
+    },
+    "src-oZ-VcYLAIxk-w1": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "single athlete, close, whole body, ball present: lateral step into a full lay-out dig and a controlled sprawl. A clean gradeable rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:09.427Z"
+    },
+    "src-twMHJhUqo80-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "coach beside a ball cart talking to camera for most of the clip, then two frames of a player digging",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:09.427Z"
+    },
+    "src-V-eZzmaKc_w-w1": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "single athlete reaction drill with a coach feeding and a German caption overlay; ball present, subject somewhat distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:09.427Z"
+    },
+    "src-3NeaCi34GQU-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "gym scrimmage with banners and spectators in the foreground, many players lined up at the net",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:40.826Z"
+    },
+    "src-9a5LnBi8rro-w2": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "instructional slow motion on black with a Chinese landing caption, but a genuine block rep: jump, hands over the net, ball present, controlled landing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:40.826Z"
+    },
+    "src-9a5LnBi8rro-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "instructional close-ups of hands and face at the net then a full-body jump, with NO BALL visible in any frame. Shadow block demonstration",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:49:40.826Z"
+    },
+    "src-9oqeCiBW-4o-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same outdoor athlete as w3 but this window shows jumps and landings with NO BALL visible in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:11.603Z"
+    },
+    "src-dJbv0h6EH0o-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide gym, two players mostly standing between reps; no ball confirmable in any frame at this sampling",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:11.603Z"
+    },
+    "src-o0AduQRRq-I-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "annotated instructional: caption text along the bottom over a receive line of several players",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:11.603Z"
+    },
+    "src-Rm0yvvBx7oc-w7": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "same outdoor youth pair as w5: feeder and receiver, ball in play, subject full body in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:34.418Z"
+    },
+    "src-xfCoHL6HvdQ-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "large dark hall with a big group drill, many players, subject distant and unidentified",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:34.418Z"
+    },
+    "src-9oqeCiBW-4o-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "outdoor athlete standing and jogging between reps with NO BALL visible in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:34.418Z"
+    },
+    "src-o0AduQRRq-I-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "annotated instructional: caption commentary along the bottom over a line drill with many players",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:52:55.931Z"
+    },
+    "src-aaJNUKIgIQM-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast beach rally, four athletes, camera pans, a dive by an unidentified player",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:53:49.832Z"
+    },
+    "src-D2PpiblF95s-w3": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "coach feeding from a box to one athlete digging, ball visible, close range, same drill as w2",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:53:49.833Z"
+    },
+    "src-EcDGpf8IoKM-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide gym team drill, players spread across the court, nobody isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:53:49.833Z"
+    },
+    "src-hluYOAklfnI-w6": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "beach: one feeder, one digger, ball present, subject isolable and close enough to judge the movement into the dig",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:11.802Z"
+    },
+    "src-IAV0ltDhFzk-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "tournament hall with a large crowd plus a full-width AVCA caption bar over the footage",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:11.803Z"
+    },
+    "src-MAFi2kguhYs-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "talking head in a room with anatomy posters, then broadcast college match footage with a crowd",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:11.803Z"
+    },
+    "src-twMHJhUqo80-w3": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "coach feeding from a ball cart to one athlete digging; ball visible, single subject, close and whole body in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:44.870Z"
+    },
+    "src-V-eZzmaKc_w-w2": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "single athlete playing balls fed by a seated partner, German caption overlay, subject moderately distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:44.871Z"
+    },
+    "src-VfiBnNToHIQ-w1": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "another players back fills the foreground out of focus, subject is mid-distance and no dig is visible in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:54:44.871Z"
+    },
+    "src-2P7Rbdumu54-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "two frames of a serve then four frames of a full-screen white title card, GMS ATTACKING: THE ORIGINAL GMS SPIKING KEYS",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:35.412Z"
+    },
+    "src-fGSgD2k-NEU-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "caption bar DIFFICULT FOR CONSISTENCY over gym footage, then two frames of a presenter in a room of jerseys",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:35.412Z"
+    },
+    "src-fJNgYeBJeD8-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "half the clip is a presenter in a Nebraska shirt holding balls and talking to camera",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:35.412Z"
+    },
+    "src-9a5LnBi8rro-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "instructional close-up cropped to hands at the net, with a white circle annotation drawn on the footage",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:59.197Z"
+    },
+    "src-d1aYvMBfE_o-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "gym practice with many players and a red arrow annotation drawn over one frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:59.197Z"
+    },
+    "src-fadS1Cjg58k-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "BLOCKING FUNDAMENTALS caption bar over a drill queue, coaches standing along the wall",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T18:55:59.197Z"
+    },
+    "prod-db19ba5c": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "PRODUCTION upload: dusk/night grass rec game, several players on court, subject mid-distance and the ball is in play. Gross mechanics only; hand shape is not resolvable at this light and distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:10:46.352Z"
+    },
+    "prod-dc008f22": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "PRODUCTION upload: dusk/night grass rec game, several players on court, subject mid-distance and the ball is in play. Gross mechanics only; hand shape is not resolvable at this light and distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:10:46.352Z"
+    },
+    "prod-eed9f542": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "PRODUCTION upload: dusk/night grass rec game, several players on court, subject mid-distance and the ball is in play. Gross mechanics only; hand shape is not resolvable at this light and distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:10:46.352Z"
+    },
+    "src--aDqyumtad0-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "single person against a plain wall miming setting hand motions overhead with NO BALL in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:12.601Z"
+    },
+    "src-2SooJTzhDQo-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "collegiate coach demonstrating to a group of players standing and watching; several people, instructional setting",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:12.602Z"
+    },
+    "src-4W56sp-HS30-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast Big Ten match with a crowd, then black frames carrying the caption 2. Bend at the Wrists (not elbows)",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:12.602Z"
+    },
+    "prod-204a9569": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "PRODUCTION: outdoor sand, two players, subject approaches and hits with the ball visible. Distant but isolable, gross mechanics only",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:43.617Z"
+    },
+    "prod-20b66ca2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: wide indoor facility with many players across several courts, nobody isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:43.617Z"
+    },
+    "prod-2b74cb9e": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "PRODUCTION: close indoor rep, single subject in a cap, full approach, jump and swing over the net with the ball visible. The clearest gradeable attack in the production set",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:11:43.617Z"
+    },
+    "src-s6D8aVaf65o-w6": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "isolated slow-motion jump serve on black, single subject, ball visible above the player at the peak. Backlit and small so gross mechanics only",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:27.215Z"
+    },
+    "src-SWGhtifrWsU-w1": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "warehouse gym FLOAT SERVE demo: single athlete, whole body, ball visible throughout, clean toss and contact at extension",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:27.216Z"
+    },
+    "src-tGzr7ArpY9Y-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "instructional with running caption commentary and a TOSS: GETS HIGH AND AHEAD title overlay; subject distant in a wide gym",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:27.216Z"
+    },
+    "src-w7ncD5bpsXk-w1": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "single athlete jump serve, close, whole body, ball visible entering and leaving frame; spectators present but the subject is unambiguous",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:55.353Z"
+    },
+    "src-WhXt-RqHQIM-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "black background product-style close-ups: a cropped torso then extreme close-ups of a ball on fingertips. No whole rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:55.354Z"
+    },
+    "src-zU12l62ME_w-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "grayscale fisheye wide shot of a gym with the server a few dozen pixels tall under heavy lens distortion",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:13:55.354Z"
+    },
+    "prod-cd3fe7d8": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: arena practice, several players warming up across the court, no isolable rep by a subject",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:14:31.463Z"
+    },
+    "prod-ef4f5e7c": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: same arena practice session as prod-cd3fe7d8, several players warming up",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:14:31.463Z"
+    },
+    "prod-ea2e536e": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: distant grass tournament. Byte-identical to the three set clips cc267048/cda226e1/da4dd9e5 but submitted as an ATTACK, so one file was analysed four times across two different skills",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:14:31.463Z"
+    },
+    "src-psPc4JBs0PU-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "wide COURT 2 scrimmage with two full teams in different colours, nobody isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:15:32.422Z"
+    },
+    "src-UForevjCu2Y-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "staged instructional: a player jumping at the net then two players posing with hands up then a coach talking, with NO BALL in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:15:32.422Z"
+    },
+    "src-WdFfGlxdyiE-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "single player repeatedly jumping at the net; a ball sits near the net in one frame but the subject never plays it. Shadow blocking",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:15:32.422Z"
+    },
+    "src-AOwk2QN0PdM-w3": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "single athlete self-setting facing the camera, ball visible, hands and whole body in frame. Ideal framing for a set: the checkpoint that matters is actually visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:15:52.153Z"
+    },
+    "src-lEkr3qgIDlI-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "CORRECTED: verified at 4fps across the whole clip, NO BALL in any of 24 frames. The athlete rehearses setting posture and footwork in empty space with a graphic arrow overlaid. Both models refused it correctly; the earlier band was this reviewer error",
+      "labeled_by": "claude-frames",
+      "corrected": true,
+      "at": "2026-08-13T19:56:32.300Z"
+    },
+    "src-tqFmaVEowBI-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "DAVID FISCHER / VOLLEYBALL1ON1 caption bar over a line of players standing, coach arm tossing from the foreground",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:15:52.154Z"
+    },
+    "src-YAoE8H_QFV8-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast beach match with a USA v BRA scoreboard overlay, four athletes, wide coverage",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:16:30.653Z"
+    },
+    "src-D2PpiblF95s-w4": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "coach feeding from a box to one athlete digging; ball visible, single subject, close and whole body",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:16:30.653Z"
+    },
+    "src-D2PpiblF95s-w5": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "same coach-fed drill with a different athlete; single subject, ball visible, close",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:16:30.653Z"
+    },
+    "src-FAW_oKzB71Q-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "ULTIMATE VOLLEYBALL compilation with a subscribe caption; several different clips of different athletes and venues in eight seconds",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:00.305Z"
+    },
+    "src-FMtUqoxfR50-w3": {
+      "band": "8",
+      "label": "band 8",
+      "mid": 80,
+      "unratable": false,
+      "note": "single athlete full approach and hit with the ball visible; instructional captions overlaid but the rep itself is complete and strong",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:00.305Z"
+    },
+    "src-WSieqgGFfk0-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "presenter standing and talking to camera in a gym for five of six frames",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:00.305Z"
+    },
+    "src-fGSgD2k-NEU-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "convention-hall tournament, many courts and many players, no subject isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:29.069Z"
+    },
+    "src-fJNgYeBJeD8-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "presenter talking to camera holding balls for half the clip, then a distant server in a wide gym",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:29.070Z"
+    },
+    "src-fJNgYeBJeD8-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "distant server in a wide gym cross-fading into presenter frames",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:29.070Z"
+    },
+    "src-fadS1Cjg58k-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "BLOCKING FUNDAMENTALS clinic footage: a gym full of players in group drills under a caption bar",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:56.564Z"
+    },
+    "src-fadS1Cjg58k-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same clinic, group drill across the whole court with a dozen players",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:56.565Z"
+    },
+    "src-fadS1Cjg58k-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same clinic plus a WATCH THE FULL 25 MIN CLINIC / COACHTUBE promotional overlay covering the frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:17:56.565Z"
+    },
+    "src-psPc4JBs0PU-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "half a wide COURT 2 scrimmage and half a presenter in a Volleyball Warriors shirt talking to camera",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:18:56.047Z"
+    },
+    "src-UForevjCu2Y-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "montage of separate instructional shots: a coach watching, two players jumping, a distant gym, a player in purple. Different athletes in each",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:18:56.048Z"
+    },
+    "src-WdFfGlxdyiE-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "two frames of Volleyball Nations League broadcast then four of a single player jumping at the net with no ball visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:18:56.048Z"
+    },
+    "src--aDqyumtad0-w5": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "single athlete throw-set-catch drill against a plain wall: ball visible, hands and whole body in frame, repeatable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:21.823Z"
+    },
+    "src--aDqyumtad0-w6": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "same throw-roof-set-catch drill; one of six frames is a title card but the rep is clearly visible in the rest",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:21.824Z"
+    },
+    "src-4W56sp-HS30-w3": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "black caption frames about hand and wrist movement spliced with broadcast match footage and a crowd",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:21.824Z"
+    },
+    "src-D2PpiblF95s-w6": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "coach-fed digging drill, single athlete, ball visible, close and whole body",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:43.402Z"
+    },
+    "src-D2PpiblF95s-w7": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "same coach-fed drill, another athlete, same clean framing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:43.403Z"
+    },
+    "src-hluYOAklfnI-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "beach footage under a large Sign up for our Elite Beach Volleyball Training Plan / FREE E-Book promotional banner, players distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:19:43.403Z"
+    },
+    "src-y7DboXOZDJs-w1": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "gym rep with three players around the net but one unambiguous hitter: approach, jump and swing with the ball visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:20:42.384Z"
+    },
+    "src-FAW_oKzB71Q-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast international match with federation banners, a crowd, a watermark and a subscribe caption",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:20:42.384Z"
+    },
+    "src-FAW_oKzB71Q-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "outdoor amateur game footage under the ULTIMATE logo and subscribe caption, several players, distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:20:42.384Z"
+    },
+    "src-tGzr7ArpY9Y-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "branded tutorial with running subtitle captions, a coach-and-athlete two-shot, and the server distant in a wide hall",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:00.265Z"
+    },
+    "src-tGzr7ArpY9Y-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same branded tutorial: posed two-shot then a distant serve, heavy editing and captions throughout",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:00.265Z"
+    },
+    "src-tGzr7ArpY9Y-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same branded tutorial: several athletes, a talking two-shot, distant serves, subtitles on every frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:00.265Z"
+    },
+    "src-FAW_oKzB71Q-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast professional match with sponsor boards, a crowd and a subscribe caption",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:37.865Z"
+    },
+    "src-FMtUqoxfR50-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "edited montage: two different framings of the same gym with a Swing Through The Ball caption and a whip-blur transition between them",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:37.865Z"
+    },
+    "src-FMtUqoxfR50-w5": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "single athlete approaching and hitting at a spike-trainer rig, consistent framing across the clip. The ball itself is held by the rig and is hard to resolve, so this label carries less confidence than most",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:21:37.865Z"
+    },
+    "src-IAV0ltDhFzk-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "tournament hall with a large crowd, coaches backs to camera in the foreground, players distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:22:32.681Z"
+    },
+    "src-twMHJhUqo80-w4": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "coach standing beside a ball cart holding a ball and talking to camera; no dig is performed",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:22:32.681Z"
+    },
+    "src-twMHJhUqo80-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "two wide gym frames then the same coach holding and tossing a ball beside the cart, talking rather than playing",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:22:32.681Z"
+    },
+    "src-w7ncD5bpsXk-w2": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "warehouse gym with two teams warming up, server in the background among many players",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:23:02.863Z"
+    },
+    "src-WhXt-RqHQIM-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "black background close crops of a torso and legs; no complete rep is visible in any frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:23:02.863Z"
+    },
+    "src-WhXt-RqHQIM-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "black background approach and jump; a small object appears above the player in one frame but a ball could not be confirmed, and three other windows of this same source were verified to contain no ball at all",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:23:02.863Z"
+    },
+    "src-FMtUqoxfR50-w6": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "same spike-trainer setup as w5: single athlete approaches, jumps and swings at the rig, then walks back. The ball is held by the rig so contact is inferred rather than seen, and this label carries less confidence than most",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:00.430Z"
+    },
+    "src-twMHJhUqo80-w7": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "single athlete moving to balls fed from a cart, ball visible in several frames, whole body in shot",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:29.780Z"
+    },
+    "src-V-eZzmaKc_w-w3": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "single athlete receiving from a feeder with a German task caption; ball present, subject moderately distant",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:29.780Z"
+    },
+    "src-V-eZzmaKc_w-w4": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "same drill, captions Annahme nach Aufkommen and Weite und Hoehe variieren; one athlete, ball visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:29.780Z"
+    },
+    "src-4W56sp-HS30-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "broadcast Big Ten match with a packed crowd and both full teams on court",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:57.539Z"
+    },
+    "src-AOwk2QN0PdM-w6": {
+      "band": "7",
+      "label": "band 7",
+      "mid": 70,
+      "unratable": false,
+      "note": "single athlete self-setting in a school gym, ball visible, whole body and hands in frame",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:24:57.539Z"
+    },
+    "src-lEkr3qgIDlI-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "CORRECTED: verified at 4fps across the whole clip, NO BALL in any of 24 frames. The athlete rehearses setting posture and footwork in empty space with a graphic arrow overlaid. Both models refused it correctly; the earlier band was this reviewer error",
+      "labeled_by": "claude-frames",
+      "corrected": true,
+      "at": "2026-08-13T19:56:32.301Z"
+    },
+    "src-V-eZzmaKc_w-w5": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "single athlete receiving from a feeder, German task caption, ball visible, whole body, mid-distance",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:25:56.486Z"
+    },
+    "src-V-eZzmaKc_w-w6": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "same drill without a caption on most frames; one athlete, ball present throughout",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:25:56.486Z"
+    },
+    "src-V-eZzmaKc_w-w7": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "same drill with easier/harder variation captions; one athlete, ball present, a gym ball used in the later reps",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:25:56.486Z"
+    },
+    "prod-7f0fbc23": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: USA Volleyball tournament, packed crowd, two full teams on competition courts. Scored 90, among the highest in the whole corpus",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:19.579Z"
+    },
+    "prod-910c0d77": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: distant grass tournament, figures a few dozen pixels tall across a field",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:19.579Z"
+    },
+    "prod-945b7103": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: indoor facility with a full match in progress, many players and spectators along the wall",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:19.579Z"
+    },
+    "prod-8671aaec": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "PRODUCTION: dusk grass rec game, several players but one unambiguous hitter jumping and swinging with the ball visible",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:46.562Z"
+    },
+    "prod-c09f59f4": {
+      "band": "6",
+      "label": "band 6",
+      "mid": 60,
+      "unratable": false,
+      "note": "PRODUCTION: solo practice on an outdoor multi-sport court, single subject tossing and hitting over a net, ball visible, whole body",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:46.563Z"
+    },
+    "prod-9435760b": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "PRODUCTION: distant grass tournament, the same wide field footage as prod-910c0d77",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:26:46.563Z"
+    },
+    "src-d1aYvMBfE_o-w5": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "collegiate team defensive drill, a full squad on court, no single athlete isolable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:16.676Z"
+    },
+    "src-d1aYvMBfE_o-w6": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same team drill with a coach in frame and players rotating through, several athletes touching the ball",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:16.676Z"
+    },
+    "src-d1aYvMBfE_o-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "same team drill under a red Keys text block listing five coaching points over the footage",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:16.676Z"
+    },
+    "src-zU12l62ME_w-w3": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "wide fisheye gym, single athlete serving with the ball visible; heavy lens distortion and the subject is small, so only gross mechanics are resolvable",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:43.464Z"
+    },
+    "src-zU12l62ME_w-w4": {
+      "band": "5",
+      "label": "band 5",
+      "mid": 50,
+      "unratable": false,
+      "note": "same fisheye setup, single athlete serving, ball visible; the final frame cuts to a different grayscale angle",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:43.464Z"
+    },
+    "src-zU12l62ME_w-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "fisheye gym frames, grayscale cutaways, and a closing presenter webcam shot in a room with a lamp",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:27:43.464Z"
+    },
+    "src-WhXt-RqHQIM-w7": {
+      "band": null,
+      "label": "cannot rate",
+      "mid": null,
+      "unratable": true,
+      "note": "black background, athlete miming arm actions with NO BALL in any frame. Consistent with w1, w2, w4 and w5 of this same source, all verified to contain no rep",
+      "labeled_by": "claude-frames",
+      "at": "2026-08-13T19:28:01.241Z"
+    }
+  },
+  "updated_at": "2026-08-13T17:50:33.677Z"
+}
