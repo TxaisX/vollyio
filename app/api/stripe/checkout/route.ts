@@ -4,6 +4,24 @@ import { hasTrustedMutationOrigin } from "@/lib/security/request";
 import { createCheckoutSession, stripeConfigured } from "@/lib/stripe";
 import { billingOpen } from "@/lib/billing";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
+import { DEFAULT_OFFER, isOfferKey, type OfferKey } from "@/lib/offers";
+
+/**
+ * Which offer the caller asked for, or the default.
+ *
+ * The body carries a KEY, never a price and never an amount. That is the whole
+ * security property of this function: the worst a forged body can do is name
+ * one of our own three offers, and the cheapest of those is a price we chose to
+ * sell. A body that carried a price id or a number would let the caller decide
+ * what to charge themselves.
+ *
+ * An unparseable or absent body is not an error. The plan card posts JSON, but
+ * the 402 upsell surfaces post nothing at all, and those should keep working.
+ */
+async function readOffer(req: NextRequest): Promise<OfferKey> {
+  const body = (await req.json().catch(() => null)) as { offer?: unknown } | null;
+  return isOfferKey(body?.offer) ? body.offer : DEFAULT_OFFER;
+}
 
 export const runtime = "nodejs";
 
@@ -111,8 +129,14 @@ export async function POST(req: NextRequest) {
   // processing instead of inviting a second purchase.
   const returnUrl = `${new URL(req.url).origin}/settings?checkout=complete#plan`;
 
+  // Read after the auth, origin, quota and plan checks rather than before, so a
+  // malformed body from an unauthenticated caller is refused on identity and
+  // never gets as far as being parsed.
+  const offer = await readOffer(req);
+
   const session = await createCheckoutSession({
     userId: user.id,
+    offer,
     // A returning player already has a provider customer record; a first-time
     // upgrade has only the verified address on their session, which is what the
     // provider needs to open one.

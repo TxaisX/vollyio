@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SUPPORT_EMAIL } from "@/lib/site";
+import { OFFERS } from "@/lib/offers";
 import {
   MONTHLY_ALLOWANCE,
   SIGNUP_GRANT,
@@ -24,6 +25,12 @@ const EFFECTIVE = "August 11, 2026";
 // offer quote, rather than retyped here, because a stale number on this page is
 // a false statement about money in the document that governs the charge.
 const PRO_PRICE = PRO_PRICE_LABEL.replace("/mo", "");
+// Quoted from the offer catalog, never retyped: a price in the Terms that
+// disagrees with the price the card is charged is a false statement in a legal
+// document, which is the same trap the SIGNUP_GRANT comment in lib/plans.ts
+// records having already sprung once.
+const WEEKLY_PRICE = OFFERS.weekly.priceLabel;
+const DOWNSELL_PRICE = OFFERS.downsell.priceLabel;
 
 // The short-term wall from migration 028 (`consume_api_quota`, scope 'analyze').
 // Stated on this page because the monthly count is not the only thing that can
@@ -83,13 +90,19 @@ export default function TermsPage() {
         </p>
         <p>
           <strong className="text-chalk">What {PLAN_LABEL.pro} costs.</strong>{" "}
-          {PRO_PRICE} a month, in US dollars, for a larger monthly allowance of
-          analyses. There is no free trial and no annual plan.
+          {PRO_PRICE} a month, in US dollars, for a larger allowance of
+          analyses. A weekly option is also offered at {WEEKLY_PRICE}, and a
+          reduced monthly rate of {DOWNSELL_PRICE} is sometimes offered; both
+          buy exactly the same {PLAN_LABEL.pro} allowance and differ only in
+          what you pay and how often. The price you are shown before you
+          confirm is the price you are charged. There is no free trial and no
+          annual plan.
         </p>
         <p>
           <strong className="text-chalk">When you are charged.</strong> The
-          first charge is taken at checkout, then on that same date every month
-          until you cancel.
+          first charge is taken at checkout, then on that same date every
+          billing period until you cancel: every month on a monthly plan, every
+          week on the weekly one.
         </p>
         <p>
           <strong className="text-chalk">How to stop.</strong> Cancel yourself
@@ -205,10 +218,11 @@ export default function TermsPage() {
         </p>
         <p>
           The first charge is taken at checkout. After that you are charged on
-          that same date each month, and that is also the date your analyses
-          reset: one clock, not two. Your subscription details, including the
-          date of your next charge, are on the payment provider&rsquo;s billing
-          page, which Settings opens.
+          that same date each billing period, monthly or weekly depending on
+          the plan you chose, and that is also the date your analyses reset:
+          one clock, not two. Your subscription details, including the date of
+          your next charge, are on the payment provider&rsquo;s billing page,
+          which Settings opens.
         </p>
         <p>
           If you are under 18, the parent or guardian who agreed to these terms

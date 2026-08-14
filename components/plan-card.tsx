@@ -1,17 +1,16 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { billingOpen, shouldEnforceFreeTier } from "@/lib/billing";
-import { stripeConfigured } from "@/lib/stripe";
+import { availableOffers, downsellConfigured, stripeConfigured } from "@/lib/stripe";
 import { allowanceCopy, readAllowance, resetCopy } from "@/lib/allowance";
 import {
   MONTHLY_ALLOWANCE,
   SIGNUP_GRANT,
   PLAN_LABEL,
-  PRO_PRICE_LABEL,
   allowanceSentence,
   type Plan,
 } from "@/lib/plans";
 import { PlanAction } from "@/components/plan-actions";
+import { PlanOfferPicker } from "@/components/plan-offer-picker";
 
 // Which button, if any, the card is allowed to show (docs/billing.md 4.4, D-066).
 //
@@ -57,6 +56,10 @@ export async function PlanCard({
   // what makes that impossible rather than merely unlikely.
   const allowance = metered ? await readAllowance(await createClient()) : null;
   const action = planAction(pro, sellable, canPay, checkoutPending);
+  // Resolved on the server so no price id crosses to the client: the picker
+  // receives keys, and lib/offers.ts turns those into labels it already prints.
+  const offers = availableOffers();
+  const downsellAvailable = downsellConfigured();
 
   return (
     // Both billing routes and NEXT_PUBLIC_UPGRADE_URL land on /settings#plan.
@@ -136,43 +139,27 @@ export async function PlanCard({
         </p>
       )}
 
-      {action === "upgrade" && (
-        <>
-          {/* Auto-renewal, price, and how to stop must all be here, in the
-              metered state too. They used to sit inside `!metered`, so the
-              PAYING state, the only one where a charge actually recurs, was
-              the one state that disclosed neither renewal nor cancellation.
-              California's ARL asks for that disclosure before the purchase,
-              not after it. The "nothing is capped yet" sentence is the only
-              part that is genuinely posture-dependent, so it is the only part
-              still behind the flag. */}
-          <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
-            {PLAN_LABEL.pro} is {PRO_PRICE_LABEL} for {MONTHLY_ALLOWANCE.pro}{" "}
-            analyses a month. It renews automatically at {PRO_PRICE_LABEL} on
-            the day you subscribe, each month, until you cancel. Cancel any
-            time from this page; you keep {PLAN_LABEL.pro} until the end of the
-            period you already paid for, and unused time is not refunded.
-            {!metered &&
-              " Monthly limits are not switched on yet, so this is early support rather than more reps today."}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-chalk-dim">
-            By subscribing you agree to the{" "}
-            <Link
-              href="/terms"
-              className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
-            >
-              Terms of Service
-            </Link>
-            .
-          </p>
-          <PlanAction
-            endpoint="/api/stripe/checkout"
-            label={`Upgrade to ${PLAN_LABEL.pro}`}
-            busyLabel="Opening…"
-            variant="primary"
-            attestation="I am authorized to use this payment method and I understand this subscription renews until I cancel it."
-          />
-        </>
+      {/* The renewal disclosure moved INTO the picker because it has to change
+          with the selected cadence. Leaving it here would have
+          left "each month" printed above a control that can select a weekly
+          subscription, which is the wrong renewal terms on the surface that
+          takes the card. The ARL point the old comment made still holds and is
+          why the sentence is rendered before the button, not after it. */}
+      {action === "upgrade" && offers.length > 0 && (
+        <PlanOfferPicker
+          offers={offers}
+          downsellAvailable={downsellAvailable}
+          metered={metered}
+        />
+      )}
+
+      {/* Configured to sell, but no offer has a price id. Distinct from
+          "upgrading is not open yet": the switches are on and the environment
+          is half-set, which is an operator problem, not a product state. */}
+      {action === "upgrade" && offers.length === 0 && (
+        <p className="mt-4 text-xs leading-relaxed text-chalk-dim">
+          Upgrading is briefly unavailable. Nothing has been charged.
+        </p>
       )}
 
       {action === "manage" && (
