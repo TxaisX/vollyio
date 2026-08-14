@@ -1,5 +1,6 @@
 import { SKILL_LABEL, type Skill } from "@/lib/skills";
 import {
+  isChartable,
   progressCopy,
   type ProgressSeries,
 } from "@/lib/progress-series";
@@ -52,15 +53,22 @@ export function ProgressChart({
 
   // One rep is a dot, not a line. Drawing a "trend" through it would be the
   // first thing a player learns not to trust.
-  if (reps < 2) {
+  //
+  // /progress no longer sends one here: it splits on `isChartable` and renders
+  // these as compact rows instead (D-117), because the branch below used to be
+  // a 120px framed box holding one number and one date. This stays as a GUARD
+  // rather than being deleted with that box - the hazard it exists for is a
+  // future caller charting a single point, and a guard that has stopped being
+  // reachable is not the same as a guard that has stopped being needed. What
+  // it draws now is one line of text at the size the rest of the card uses,
+  // not a reserved 120px of emptiness.
+  if (!isChartable(series)) {
     return (
       <figure className="card p-5">
         <Header label={label} discipline={series.discipline} copy={copy} />
-        <div className="mt-4 flex h-[120px] items-center justify-center rounded-control border border-line">
-          <p className="text-body text-chalk-dim">
-            {points[0]?.score ?? "--"} on {points[0] ? dayLabel(points[0].at) : "--"}
-          </p>
-        </div>
+        <p className="mt-3 font-mono text-xs text-chalk-dim">
+          {points[0]?.score ?? "--"} on {points[0] ? dayLabel(points[0].at) : "--"}
+        </p>
       </figure>
     );
   }

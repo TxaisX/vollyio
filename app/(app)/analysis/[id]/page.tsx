@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
@@ -12,8 +11,6 @@ import { ScoreRing } from "@/components/score-ring";
 import { ShareLink } from "@/components/share-link";
 import { AnalysisFeedback } from "@/components/analysis-feedback";
 import { ReportContent } from "@/components/report-content";
-import { LinkPending } from "@/components/link-pending";
-import { drillBySlug } from "@/content/drills";
 import { RepToasts } from "@/components/xp-toast";
 import { claimAchievements } from "@/lib/achievements";
 import { ClipViewer } from "@/components/clip-viewer";
@@ -253,10 +250,6 @@ export default async function AnalysisDetail({
     (result.strengths?.length ?? 0);
   const fixCount = changes.length > 0 ? changes.length : 1;
   const drillCount = result.drill_slugs.length;
-  // The model already ranked these, so the first one is the drill for the
-  // priority fix. Resolved against the catalog because a slug that no longer
-  // exists must not render an empty card.
-  const startHere = result.drill_slugs.map(drillBySlug).find(Boolean) ?? null;
   const valueChips = [
     {
       count: strengthCount,
@@ -382,37 +375,16 @@ export default async function AnalysisDetail({
         )}
       </Reveal>
 
-      {/* One action, above everything. The drill was already chosen by the
-          model and stored on the row (drill_slugs), so this costs nothing to
-          generate -- it was simply sitting three sections down the page. */}
-      {startHere && (
-        <Reveal delay={60}>
-          <div className="card card-lift mt-5 flex flex-wrap items-center justify-between gap-4 p-5">
-            <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-gold">
-                Start here
-              </p>
-              <p className="mt-1 font-display text-lg font-bold">
-                {startHere.name}
-              </p>
-              <p className="mt-1 max-w-prose text-body leading-relaxed text-chalk-dim">
-                {startHere.summary}
-              </p>
-              <p className="mt-1.5 font-mono text-[11px] uppercase text-chalk-dim">
-                {startHere.duration_min} min · {startHere.equipment.join(", ")}
-              </p>
-            </div>
-            <Link
-              href={`/drills/${startHere.slug}`}
-              transitionTypes={["nav-forward"]}
-              className="btn-primary relative shrink-0 text-sm"
-            >
-              Open the drill
-              <LinkPending />
-            </Link>
-          </div>
-        </Reveal>
-      )}
+      {/* THE RECOMMENDED DRILL IS NOT THE FIRST THING ON THIS PAGE (D-116).
+          It stood here, above the clip and the whole breakdown, under a "Start
+          here" label. That was the wrong instruction at the wrong moment: a
+          player who has just finished a rep has already started, and the first
+          screen after a read has to answer "how did that go" before it hands
+          out homework. The drill did not disappear -- it is the leading card of
+          the "Recommended training" section that now closes the breakdown, and
+          it keeps the "Start here" eyebrow and the primary button it had here,
+          so nothing about the emphasis was lost, only its position. The section
+          nav's drill count still jumps straight to it. */}
 
       {lastTime && lastTimeCopy && (
         <Reveal delay={90}>

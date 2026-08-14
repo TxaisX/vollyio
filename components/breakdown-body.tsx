@@ -82,6 +82,13 @@ export function BreakdownBody({
   // there are such rows in production, renders every section except this one.
   const checkpoints = result.checkpoints ?? [];
   const repScores = result.rep_scores ?? [];
+  // Resolved once, in rank order, so the "Recommended training" section at the
+  // foot of this file can lead with the model's first choice and know it will
+  // render. A slug the catalog no longer carries drops out here rather than
+  // producing an empty card (D-115).
+  const drills = result.drill_slugs
+    .map(drillBySlug)
+    .filter((d): d is NonNullable<typeof d> => d != null);
   const discipline = result.discipline ?? "indoor";
   const difficultyLabel: Record<string, string> = {
     quick: "Quick win",
@@ -422,22 +429,60 @@ export function BreakdownBody({
         </Reveal>
       )}
 
-      {result.drill_slugs.length > 0 && (
+      {/* RECOMMENDED TRAINING CLOSES THE BREAKDOWN (D-116).
+          The leading card here is the drill that used to open the analysis page
+          under a "Start here" heading, above the clip and above the score. It
+          kept its eyebrow, its equipment line and its primary button; what it
+          gave up is the top of the page, because a player who has just filmed a
+          rep has already started and wants the read before the homework.
+
+          The model ranks `drill_slugs`, so the first slug that RESOLVES against
+          the catalog is the drill for the priority fix. Resolving first and
+          rendering second matters: a retired slug must not take the lead card
+          and render an empty one (D-115), and it must not leave the section
+          headed by nothing either. */}
+      {drills.length > 0 && (
         <Reveal delay={300}>
           <h2
             id="drills"
             className="mt-6 mb-2 scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] font-display text-sm font-bold uppercase tracking-wide"
           >
-            Drills for this
+            Recommended training
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {result.drill_slugs.map((slug) => {
-              const drill = drillBySlug(slug);
-              if (!drill) return null;
-              return (
+            {drills.map((drill, i) =>
+              i === 0 ? (
                 <Link
-                  key={slug}
-                  href={`/drills/${slug}`}
+                  key={drill.slug}
+                  href={`/drills/${drill.slug}`}
+                  transitionTypes={["nav-forward"]}
+                  className="card card-lift relative flex flex-wrap items-center justify-between gap-4 p-5 sm:col-span-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.1em] text-gold">
+                      Start here
+                    </span>
+                    <span className="mt-1 block font-display text-lg font-bold">
+                      {drill.name}
+                    </span>
+                    <span className="mt-1 block max-w-prose text-body leading-relaxed text-chalk-dim">
+                      {drill.summary}
+                    </span>
+                    <span className="mt-1.5 block font-mono text-[11px] uppercase text-chalk-dim">
+                      {drill.duration_min} min · {drill.equipment.join(", ")}
+                    </span>
+                  </span>
+                  {/* Not a nested <a>: the whole card is already the link, so
+                      this is the button's look on a span. */}
+                  <span className="btn-primary shrink-0 text-sm">
+                    Open the drill
+                  </span>
+                  <LinkPending />
+                </Link>
+              ) : (
+                <Link
+                  key={drill.slug}
+                  href={`/drills/${drill.slug}`}
                   transitionTypes={["nav-forward"]}
                   className="card card-lift relative p-4"
                 >
@@ -448,8 +493,8 @@ export function BreakdownBody({
                   </div>
                   <LinkPending />
                 </Link>
-              );
-            })}
+              ),
+            )}
           </div>
         </Reveal>
       )}

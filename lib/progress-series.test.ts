@@ -9,8 +9,10 @@ import assert from "node:assert/strict";
 import {
   buildSeries,
   classifyTrend,
+  isChartable,
   progressCopy,
   targetProgress,
+  CHARTABLE_MIN_REPS,
   TREND_MIN_REPS,
   TREND_MIN_SPAN_DAYS,
   TREND_FLAT_BAND,
@@ -179,4 +181,42 @@ test("target progress clamps and refuses nonsense", () => {
   assert.equal(targetProgress(50, 0), null, "a zero target is not a target");
   assert.equal(targetProgress(null, 100), null);
   assert.equal(targetProgress(50, undefined), null);
+});
+
+// D-117. /progress splits on this rather than charting everything: a one-rep
+// series used to reach ProgressChart and render a 120px framed box holding one
+// number and one date, which is the shape D-116 demoted everywhere else. The
+// rule lives here so the split is tested arithmetic rather than a `>= 2` typed
+// into a page, and so "these stopped being charted" cannot be mistaken for
+// "these stopped being shown" in a diff a month later.
+test("a single rep is not chartable, and two reps are", () => {
+  assert.equal(CHARTABLE_MIN_REPS, 2);
+  assert.equal(isChartable({ reps: 0 }), false);
+  assert.equal(isChartable({ reps: 1 }), false);
+  assert.equal(isChartable({ reps: 2 }), true);
+  assert.equal(isChartable({ reps: 40 }), true);
+});
+
+test("splitting a real corpus loses no series", () => {
+  const rows = [
+    rep("serving", "indoor", 60, 1),
+    rep("serving", "indoor", 68, 4),
+    rep("serving", "indoor", 71, 6),
+    // One rep, and the only one on this skill: the common case on this page.
+    rep("blocking", "indoor", 55, 2),
+    // Same skill, different environment, so a series of its own with one rep.
+    rep("serving", "grass", 49, 3),
+  ];
+  const series = buildSeries(rows);
+  const charted = series.filter(isChartable);
+  const sparse = series.filter((s) => !isChartable(s));
+
+  assert.equal(charted.length + sparse.length, series.length);
+  assert.equal(charted.length, 1);
+  assert.equal(sparse.length, 2);
+  // Every rep is still accounted for on one side or the other.
+  assert.equal(
+    [...charted, ...sparse].reduce((n, s) => n + s.reps, 0),
+    rows.length,
+  );
 });
