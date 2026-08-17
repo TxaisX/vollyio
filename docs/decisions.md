@@ -5555,3 +5555,38 @@ anonymous insert on `share_links` is a property of the deployed database, the
 same shape as every probe in `docs/security.md`: apply 062, then as an anonymous
 session attempt the insert through the data API and expect the policy refusal,
 and as a converted account confirm sharing still works.
+
+## D-122 - The quiz is the front door again, and nothing renders without an account
+
+**2026-08-17.** Txais's direction, hours after D-121 shipped: "change it back to
+the original funnel so that we do not expose what vollyio has. so go back to the
+questions." Clarified in the same exchange: the original funnel is the /start
+quiz (D-018), several questions before signing up so the account is situated,
+and /try is removed entirely rather than redirected.
+
+**This supersedes D-118's entry and D-121's teaser, and the reason is exposure,
+not conversion.** D-118 showed a stranger the full breakdown; D-121 narrowed
+that to the score. Both still put the product's output in front of someone who
+never signed up. The standing rule is now: NO model output, score included,
+renders to anyone without an account. What a stranger sees is the marketing
+site, the samples page, and the quiz.
+
+**What was removed is the ENTRY, and only the entry.** `app/(auth)/try/` is
+deleted, `startAnonymously` and `anonymousStartErrorMessage` with it, the six
+landing CTAs point at `/start` as they did through D-117, and the sitemap ranks
+`/start` at 0.9 with `/try` gone. Old /try links (two Reddit threads) now 404,
+chosen knowingly over a redirect.
+
+**Everything server-side from D-118/D-121 STAYS, deliberately.** Migration 061's
+lifetime-one anonymous cap, 062's share-link refusal, the route guard's
+anonymous branches, the walled breakdown on /analysis/[id], signup's claim
+branch and the retention sweep are all fail-closed guards over sessions that no
+page mints any more. Removing them would be work spent making a closed lane
+slightly more closed, and the wall is the correct rendering if a stray anonymous
+session ever exists. The Supabase anonymous provider stays OFF, and is now the
+DESIRED state rather than the blocker it was under D-118: do not flip it.
+
+**The one live dependency to keep true:** /start parks its answers in
+localStorage and hands off to /signup (`components/funnel-handoff.tsx`), which
+is what "the account gets situated" means. Nothing in this change touched that
+path; it is the funnel again, so regressions to it are funnel outages now.
