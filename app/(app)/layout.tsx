@@ -69,6 +69,7 @@ export default function AppLayout({
         tabIndex={-1}
         className="shell-app relative isolate min-w-0 flex-1 px-5 pb-28 pt-8 md:px-10 md:pb-12"
       >
+        <div aria-hidden="true" className="app-atmosphere -z-10" />
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-y-0 right-0 -z-10 hidden w-[min(72rem,78vw)] overflow-hidden md:block"

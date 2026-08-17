@@ -53,8 +53,15 @@
   --radius-card: 1rem;
   --radius-control: 0.625rem;
 
-  --shadow-lift: 0 12px 32px -16px rgb(0 0 0 / 0.55);
+  --shadow-lift: 0 16px 40px -18px rgb(0 0 0 / 0.6);
   --shadow-glow: 0 0 28px -6px rgb(232 185 59 / 0.4);
+  /* Resting depth for every .card (D-123): a 1px chalk light along the top
+     edge, as if lit from above, plus a soft grounding drop. The inset comes
+     first so the drop can be swapped (e.g. by .card-lift's hover) without
+     losing the lit edge. Cheap: no blur filter, no extra element. */
+  --shadow-card:
+    inset 0 1px 0 rgb(242 239 230 / 0.055),
+    0 10px 28px -22px rgb(0 0 0 / 0.6);
 
   --ease-court: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -386,6 +393,7 @@ body {
       var(--color-navy-light),
       color-mix(in oklab, var(--color-navy-light) 55%, var(--color-navy))
     );
+    box-shadow: var(--shadow-card);
   }
 
   .skeleton {
@@ -427,7 +435,12 @@ body {
   }
   .card-lift:hover {
     border-color: color-mix(in oklab, var(--color-gold) 35%, var(--color-line));
-    box-shadow: var(--shadow-lift);
+    /* Restate the lit top edge: box-shadow is one property, so a bare
+       --shadow-lift here would strip .card's inset highlight at the exact
+       moment the card raises, reading as the light going out. */
+    box-shadow:
+      inset 0 1px 0 rgb(242 239 230 / 0.055),
+      var(--shadow-lift);
     transform: translateY(-2px);
   }
   /* Tactile press: a subtle settle under the pointer/tap. Transform-only, so
@@ -443,21 +456,38 @@ body {
     justify-content: center;
     gap: 0.5rem;
     border-radius: var(--radius-control);
-    background: var(--color-gold);
+    /* A vertical grade and an inset light edge make the button read as a
+       physical key rather than a flat fill (D-123). Both ends are mixes of
+       gold, so the identity is untouched and the hover below still lands. */
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-gold) 90%, var(--color-chalk)),
+      var(--color-gold) 45%,
+      color-mix(in oklab, var(--color-gold) 88%, var(--color-navy))
+    );
     color: var(--color-navy);
     font-family: var(--font-display);
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     cursor: pointer;
-    box-shadow: var(--shadow-glow);
+    box-shadow:
+      inset 0 1px 0 rgb(242 239 230 / 0.5),
+      var(--shadow-glow);
     transition:
       background 0.2s ease,
       box-shadow 0.3s var(--ease-court),
       transform 0.2s var(--ease-court);
   }
   .btn-primary:hover {
-    background: color-mix(in oklab, var(--color-gold) 88%, var(--color-chalk));
-    box-shadow: 0 0 36px -4px color-mix(in oklab, var(--color-gold) 55%, transparent);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-gold) 80%, var(--color-chalk)),
+      color-mix(in oklab, var(--color-gold) 92%, var(--color-chalk)) 45%,
+      var(--color-gold)
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(242 239 230 / 0.55),
+      0 0 36px -4px color-mix(in oklab, var(--color-gold) 55%, transparent);
   }
   .btn-primary:active {
     transform: translateY(1px);
@@ -1092,6 +1122,31 @@ body {
   .analytics-metric-fill {
     transform: scaleX(0);
     animation: hero-metric-grow 0.62s var(--ease-court) both;
+  }
+
+  /* Ambient depth for the signed-in app (D-123). Two stationary washes, gold
+     falling from the top-right and teal rising from the bottom-left, both so
+     faint they read as light in the room rather than as graphics. The falloff
+     is baked into the radial-gradient, so there is no blur filter and no
+     animation: a fixed, pointer-events-none layer that costs one composited
+     element and nothing per frame. Sits behind the seam arcs where they
+     render; on phones, where the arcs are hidden, this is what keeps the app
+     from being flat navy. */
+  .app-atmosphere {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        90% 60% at 100% 0%,
+        color-mix(in oklab, var(--color-gold) 7%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        80% 55% at 0% 100%,
+        color-mix(in oklab, var(--color-teal) 6%, transparent),
+        transparent 60%
+      );
   }
 
   /* THE DASHBOARD'S OPENING BAND (D-116).
