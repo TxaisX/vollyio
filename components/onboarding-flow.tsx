@@ -8,6 +8,7 @@ import { completeOnboarding } from "@/app/(app)/welcome/actions";
 import {
   FREQUENCY_LABEL,
   FREQUENCY_OPTIONS,
+  FUNNEL_PENDING_COOKIE,
   FUNNEL_STORAGE_KEY,
   LEVEL_LABEL,
   LEVEL_OPTIONS,
@@ -104,6 +105,10 @@ export function OnboardingFlow({
     };
     try {
       localStorage.setItem(FUNNEL_STORAGE_KEY, JSON.stringify(answers));
+      // Only beside a successful write: the cookie promises /welcome that
+      // parked answers exist, and a promise with nothing behind it would hold
+      // the player on a loading card until the handoff's refresh fallback.
+      document.cookie = `${FUNNEL_PENDING_COOKIE}=1; path=/; max-age=1800; SameSite=Lax`;
     } catch {
       // Storage unavailable: the /welcome fallback re-asks after signup.
     }
