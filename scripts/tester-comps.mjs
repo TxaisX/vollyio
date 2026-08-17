@@ -15,6 +15,11 @@
 // DRY RUN BY DEFAULT. Pass --apply to write.
 //
 // Usage:
+//   node scripts/tester-comps.mjs [--apply]
+//     (reads scripts/testers-members.txt, the list the session assistant
+//      scrapes from the group's members page; refused once its `# generated:`
+//      stamp is older than 7 days, because a stale list reads as "everyone
+//      left" and would mass-revoke)
 //   node scripts/tester-comps.mjs --members a@x.com,b@y.com [--apply]
 //   node scripts/tester-comps.mjs --members-file members.txt [--apply]
 //     (one address per line; blank lines and # comments ignored)
@@ -31,6 +36,41 @@ const args = {};
   }
 }
 
+const DEFAULT_MEMBERS_FILE = "scripts/testers-members.txt";
+const MEMBERS_FILE_MAX_AGE_DAYS = 7;
+
+function readMembersFile(file, enforceFreshness) {
+  const body = readFileSync(file, "utf8");
+  if (enforceFreshness) {
+    // The default file is a scraped SNAPSHOT of the group, and this sync
+    // treats absence from the list as "left the group". A week-old snapshot
+    // is a list of who WAS there, so acting on it would revoke people who
+    // never left. The stamp is written by the scrape; no stamp = no trust.
+    const stamp = body.match(/^# generated: (.+)$/m)?.[1];
+    const at = stamp ? Date.parse(stamp) : NaN;
+    if (!Number.isFinite(at)) {
+      console.error(
+        `tester-comps: ${file} has no readable "# generated:" stamp. ` +
+          "Re-scrape the member list before syncing.",
+      );
+      process.exit(1);
+    }
+    const ageDays = (Date.now() - at) / (24 * 60 * 60 * 1000);
+    if (ageDays > MEMBERS_FILE_MAX_AGE_DAYS) {
+      console.error(
+        `tester-comps: ${file} is ${ageDays.toFixed(1)} days old ` +
+          `(limit ${MEMBERS_FILE_MAX_AGE_DAYS}). A stale snapshot reads as ` +
+          "'everyone left' and would mass-revoke; re-scrape the member list first.",
+      );
+      process.exit(1);
+    }
+  }
+  return body
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"));
+}
+
 let members = [];
 if (args.members) {
   members = args.members.split(",");
@@ -39,14 +79,15 @@ if (args.members) {
     console.error(`tester-comps: no such file: ${args["members-file"]}`);
     process.exit(1);
   }
-  members = readFileSync(args["members-file"], "utf8")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith("#"));
+  members = readMembersFile(args["members-file"], false);
+} else if (existsSync(DEFAULT_MEMBERS_FILE)) {
+  members = readMembersFile(DEFAULT_MEMBERS_FILE, true);
+  console.log(`tester-comps: using ${DEFAULT_MEMBERS_FILE}`);
 }
 if (members.length === 0) {
   console.error(
-    "tester-comps: pass the group's CURRENT member emails via --members or --members-file.\n" +
+    "tester-comps: pass the group's CURRENT member emails via --members or --members-file,\n" +
+      `or keep ${DEFAULT_MEMBERS_FILE} freshly scraped.\n` +
       "An empty list would read as 'everyone left' and revoke every live comp, so it is refused.",
   );
   process.exit(1);
