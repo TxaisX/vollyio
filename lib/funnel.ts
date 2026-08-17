@@ -113,6 +113,17 @@ export type TimeframeDays = (typeof TIMEFRAMES)[number];
 // the FunnelHandoff once an authed page mounts.
 export const FUNNEL_STORAGE_KEY = "vollyio.funnel.v1";
 
+// Set beside the storage key when the quiz hands off to signup, so the SERVER
+// can know parked answers exist before any client code runs. Without it,
+// /welcome's first authenticated frame was the quiz the player had just
+// finished, re-asked from step 1 for the second or so the handoff took to
+// apply and redirect. localStorage cannot close that gap: the flash happens in
+// server-rendered HTML, before hydration. The cookie is a hint, never a
+// record: it carries no answers, the handoff deletes it on its first run
+// whatever it finds, and it expires on its own in 30 minutes so an abandoned
+// signup cannot park /welcome on a loading card forever.
+export const FUNNEL_PENDING_COOKIE = "vollyio.funnel.pending";
+
 export type FunnelAnswers = {
   discipline: Discipline;
   level: Level;
