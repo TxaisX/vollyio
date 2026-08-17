@@ -54,7 +54,7 @@ export function CinematicHero() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
                 id="hero-cta"
-                href="/try"
+                href="/start"
                 className="btn-primary min-h-12 text-base"
               >
                 Analyze your first rep
