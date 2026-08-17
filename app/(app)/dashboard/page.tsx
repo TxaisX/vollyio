@@ -12,6 +12,8 @@ import { SeamArcs } from "@/components/motif";
 import { LimitNotice } from "@/components/limit-notice";
 import { GoalsBoard, type Goal } from "@/components/goals";
 import { BadgeShelf } from "@/components/achievements";
+import { TesterInvite } from "@/components/tester-invite";
+import { TEST_COUNTS_TOWARD_PRODUCTION } from "@/lib/android-test";
 import { claimAchievements, readAchievements } from "@/lib/achievements";
 import { overallScore, scoreBand } from "@/lib/ratings";
 import { relativeDay } from "@/lib/relative-day";
@@ -657,6 +659,21 @@ export default async function Dashboard({
               <BadgeShelf earned={earnedAchievements} />
             </Reveal>
           </div>
+
+          {/* The tester ask, on the page players actually return to. It used
+              to live only on /welcome, which the quiz-first funnel SKIPS (the
+              saving ramp redirects straight to /analyze), so the exact people
+              most willing to help never saw it. Gated on the programme flag so
+              the card retires itself with one line when the closed test ends.
+              Last on purpose: it is a favour, and a favour never sits above
+              the player's own work. */}
+          {TEST_COUNTS_TOWARD_PRODUCTION && (
+            <div className="mt-4">
+              <Reveal delay={340}>
+                <TesterInvite />
+              </Reveal>
+            </div>
+          )}
         </div>
 
         {/* The rail no longer repeats today's work, and no longer repeats the
