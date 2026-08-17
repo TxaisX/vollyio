@@ -5590,3 +5590,37 @@ DESIRED state rather than the blocker it was under D-118: do not flip it.
 localStorage and hands off to /signup (`components/funnel-handoff.tsx`), which
 is what "the account gets situated" means. Nothing in this change touched that
 path; it is the funnel again, so regressions to it are funnel outages now.
+
+## D-123 - The design ceiling lifts: depth, light, and atmosphere within the same identity
+
+**2026-08-17.** Txais: "lets unlock the design system and use our mcps to make it
+asthetically appealing." Scoped in the same exchange: EVOLVE the navy/gold/chalk
+identity rather than replace it, across the whole product.
+
+**What "unlocked" means, precisely.** The palette, the three fonts, and the
+dependency budget are all UNCHANGED; what lifts is the expressiveness ceiling on
+how the existing tokens are used. Gradients, inset light, resting shadows and
+ambient washes built from mixes of the standing colors are now house style, not
+exceptions needing a grant. A NEW hue, a new font, or a motion/effects library
+still needs its own decision entry, because those change identity and cost, and
+this entry deliberately does not.
+
+**Shipped under this entry, all in `app/globals.css` plus one layout line:**
+- `--shadow-card`: every `.card` now rests with a 1px chalk light along its top
+  edge and a soft grounding drop, so surfaces read as lit objects instead of
+  outlined rectangles. `.card-lift`'s hover restates the inset, because
+  box-shadow is one property and the plain `--shadow-lift` was stripping the
+  light at the exact moment the card raised.
+- `.btn-primary`: a vertical gold-to-gold grade with an inset top light, both
+  ends mixes of the standing gold, so the primary action reads as a physical
+  key. Hover brightens the same grade rather than flattening it.
+- `.app-atmosphere`: the signed-in app's fixed ambient layer, gold falling from
+  top-right and teal rising from bottom-left at 6-7% mix. No blur filter, no
+  animation, one composited element; on phones, where the seam arcs are hidden,
+  this is what keeps app screens from being flat navy.
+- `--shadow-lift` deepened to match the new resting baseline.
+
+**Verified rendered** on /drills (full app chrome + atmosphere), the landing
+hero, and /start, at phone width, off the dev server before shipping. The
+Lighthouse >= 90 discipline and the reduced-motion contract stand unchanged:
+everything here is static paint, nothing moves per frame.
