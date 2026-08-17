@@ -29,7 +29,11 @@ export function TesterInvite({ className = "" }: { className?: string }) {
       </p>
       <p className="mt-2 text-body leading-relaxed text-chalk-dim">
         Vollyio runs in your browser already. There is also a real Android app,
-        and it needs testers before Google will let it onto the store.
+        and it needs testers before Google will let it onto the store.{" "}
+        <span className="text-chalk">
+          Testers get a month of Pro free
+        </span>{" "}
+        while they stay in the test.
       </p>
 
       <ol className="mt-4 space-y-3">
@@ -68,6 +72,15 @@ export function TesterInvite({ className = "" }: { className?: string }) {
           </p>
         </li>
       </ol>
+
+      {/* The condition is stated where the offer is, not discovered at
+          revocation (D-124). The comp is applied by the owner from the group's
+          member list, so "within a day" is the honest cadence, not "instantly". */}
+      <p className="mt-3 text-xs leading-relaxed text-chalk-dim">
+        Pro is applied to the account with this email within a day of joining,
+        runs for 30 days, and ends early if you leave the group before the test
+        finishes.
+      </p>
 
       <p className="mt-4 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
         Group: {TESTER_GROUP_EMAIL}

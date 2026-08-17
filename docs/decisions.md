@@ -5624,3 +5624,42 @@ this entry deliberately does not.
 hero, and /start, at phone width, off the dev server before shipping. The
 Lighthouse >= 90 discipline and the reduced-motion contract stand unchanged:
 everything here is static paint, nothing moves per frame.
+
+## D-124 - A month of Pro buys testing, and leaving the test takes it back
+
+**2026-08-17.** Txais: "for those who join the tester group, give them a month
+free of pro but if they exit out just to get the free monthly pro, revoke it."
+
+**The verification constraint shapes everything.** vollyio-testers is a
+consumer Google Group, and consumer Groups has NO membership API: no code can
+ask who is in it. The owner can see the member list, so the design is a SYNC
+the owner runs: `scripts/tester-comps.mjs --members <emails>` (or
+--members-file), dry-run by default, fed by copying the member list out of
+groups.google.com. Weekly, or after a recruiting push.
+
+**The rules, decided in `lib/tester-comp.ts` and tested there:**
+- GRANT: a group member whose vollyio account (same email) is on `free`, has no
+  real subscription, and has never been comped before. 30 days, via
+  `set_subscription_plan` with `p_event_at null` (the set-plan.sql discipline,
+  so a comp never makes a later real webhook look stale).
+- REVOKE: a comped account whose email has LEFT the member list, immediately,
+  which is the "exit out just to get the free pro" case; or whose 30 days are
+  up, member or not. Revocation goes back to `free` and keeps the marker.
+- NEVER touched: any account with a `stripe_subscription_id`. Money outranks
+  the comp in both directions.
+- ONE COMP PER ACCOUNT, EVER. The marker is `tester_comp_until` in auth
+  app_metadata, which no player can write, and it survives revocation, so
+  leave-and-rejoin farms nothing.
+- A hand comp with no marker is not the programme's to take back: the sweep
+  only revokes what it granted.
+- Grant order is marker-then-plan, so a partial failure leaves a marked free
+  account (repaired toward nothing) rather than an unmarked comp the revoke
+  pass could never find.
+
+**The card states the deal where the offer is made**, not at revocation: a
+month of Pro, applied within a day to the account with the same email, ends
+early on leaving the group. "Within a day" because the grant is an owner-run
+sync, and a card that said "instantly" would manufacture support mail.
+
+**The empty member list is refused**, because an empty list reads as "everyone
+left" and would revoke every live comp in one keystroke.
