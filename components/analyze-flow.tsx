@@ -17,6 +17,8 @@ import { canTrimVideo, trimClip, type TrimmedClip } from "@/lib/video-clip";
 import { Reveal } from "@/components/motion";
 import { LimitNotice } from "@/components/limit-notice";
 import { ClaimAccountNotice } from "@/components/claim-account-notice";
+import { TesterInvite } from "@/components/tester-invite";
+import { TEST_COUNTS_TOWARD_PRODUCTION } from "@/lib/android-test";
 import {
   analyzeFailureStatus,
   type AnalyzeErrorBody,
@@ -2060,6 +2062,22 @@ export function AnalyzeFlow({
                 </div>
               )}
             </div>
+
+            {/* The scoring wait is the one captive moment in the product: the
+                player is watching a progress line for half a minute or more
+                with nothing to do. The tester ask fills it. OUTSIDE the
+                aria-live region above, deliberately, so a screen reader is not
+                interrupted mid-scoring-announcement by a favour; both links in
+                the card open new tabs, so tapping one cannot abandon the
+                analysis in flight. font-sans escapes the mono status context. */}
+            {status.kind === "sending" && TEST_COUNTS_TOWARD_PRODUCTION && (
+              <div className="mt-4 animate-fade-up font-sans">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.1em] text-chalk-dim">
+                  While the coach reads your rep
+                </p>
+                <TesterInvite />
+              </div>
+            )}
           </div>
         )}
       </div>
