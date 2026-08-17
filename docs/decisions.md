@@ -5500,3 +5500,58 @@ right account are all properties of a live database and a live token. They belon
 with the B2 through B5 probes in `docs/security.md`, run as a signed-in test
 player, and the same-shaped gap is what let the 011 reservation-link defect reach
 production.
+
+## D-121 - The score is the free read, and the breakdown is what signing up buys
+
+**2026-08-17.** Txais's direction: "lock the evaluations behind a sign up wall to
+get them into the app." Choices confirmed in the same exchange: the wall sits
+AFTER the analysis, and the stranger sees the score only.
+
+**This amends D-118's one full read, and keeps its machinery.** The funnel shape
+is unchanged: a stranger uploads, marks, waits, and the analysis runs on an
+anonymous session with everything D-118 built (lifetime-one in Postgres, the
+captcha on the mint, retention, conversion by `updateUser` on the same row). What
+changes is what the first breakdown page renders to that session: the score ring,
+the band, the honesty line when coverage was too low to grade, a COUNT of what is
+inside (strengths, fixes, drills), and a signup ask. The checkpoints, the
+priority fix, the clip overlays, coach and the drill recommendations are what the
+account buys. D-118 spent the full value before asking; the score is the proof
+now, and the details are the reason to hand over an email address.
+
+**The lock is server-rendered absence, not concealment.** The anonymous branch of
+`app/(app)/analysis/[id]/page.tsx` never fetches the frames, never signs a URL,
+and never puts the locked content in the HTML, so there is nothing a client-side
+unhide recovers. It is still not a secrecy boundary: the row belongs to the
+anonymous session and the data API will serve `result` to its owner, and that is
+accepted, because the wall is a conversion device and the person it converts is
+not the person running curl against their own row.
+
+**The one real leak was the share link, and it is closed in SQL.** `/share/[token]`
+renders the FULL breakdown to anyone holding the link, and an anonymous session
+owns its row like any other player, so it could have minted a public copy of the
+page it was refused. The share control is hidden on the walled page, but the
+control was never the boundary: migration 062 adds the `is_anonymous` claim check
+to the `own share links` write policy, same posture and same claim-read as
+migration 061. Reads and revokes stay open, because a link an anonymous session
+could never create is not a row it can hold. Pinned by `lib/signup-wall.test.ts`.
+
+**Conversion returns to the point of refusal.** The wall links
+`/signup?next=/analysis/<id>`; the claim branch of the signup action sends the
+new account back to that exact page, now open, instead of `/welcome`. The value
+rides the form as a hidden field, so `claimDestination` (lib/signup-destination.ts)
+allowlists the single shape the wall writes, one app-local `/analysis/<uuid>`
+path, and everything else, full URLs and protocol-relative hosts included, falls
+back to `/welcome`. The error redirects carry it too, so a mistyped password does
+not cost the player the way back.
+
+**/try may no longer promise everything.** Its copy said "Nothing is held back",
+which D-121 makes false, so the page and its metadata now name the split exactly:
+the score is free with no account, the full breakdown opens with a free one. The
+funnel beacon gains `wall_view`, so the demand test can read the wall's
+conversion rate rather than guess it.
+
+**What no test here can prove.** That the live policy actually refuses an
+anonymous insert on `share_links` is a property of the deployed database, the
+same shape as every probe in `docs/security.md`: apply 062, then as an anonymous
+session attempt the insert through the data API and expect the policy refusal,
+and as a converted account confirm sharing still works.

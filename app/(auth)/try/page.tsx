@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Score one rep, free",
   description:
-    "Film one rep, mark yourself on the frame, and get the full breakdown. No account, no card.",
+    "Film one rep, mark yourself on the frame, and see your score. No account, no card.",
   alternates: { canonical: "/try" },
 };
 
@@ -76,10 +76,16 @@ export default async function Try({
           <h1 className="mt-2 font-display text-2xl font-bold">
             Score one rep, free
           </h1>
+          {/* D-121 amended what this page may promise. The SCORE is the free
+              read now; the checkpoints, the fix and the drills sit behind the
+              free account, so this copy names exactly that split. A page that
+              still said "nothing is held back" would be the funnel opening on
+              a lie, and the wall it feeds would be the first thing to prove it. */}
           <p className="mt-3 text-sm leading-relaxed text-chalk-dim">
-            Film one rep of one skill, tap yourself on the frame, and read the
-            whole breakdown: the score, the checkpoints in order, and the one fix
-            worth making next. Nothing is held back and there is no card.
+            Film one rep of one skill, tap yourself on the frame, and see your
+            score on the spot. No account and no card to get scored; the full
+            breakdown, with the checkpoints and the one fix worth making next,
+            opens with a free account.
           </p>
           {error && (
             <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
