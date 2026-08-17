@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { hasTrustedMutationOrigin } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 import { createPortalSession, stripeConfigured } from "@/lib/stripe";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
 
@@ -17,20 +16,13 @@ type BillingProfile = {
 // Like the checkout route this consumes the atomic 'billing' quota (migration
 // 028, 10 per hour, shared with checkout), never 'analyze': spending an
 // analysis slot to open a cancellation page would punish the player for
-// leaving. Same-origin plus a verified session gate the call, and the
-// customer id comes from their own profile row rather than the request.
+// leaving. A proven credential plus a verified session gate the call (D-120:
+// same-origin for a browser, a bearer token for the app), and the customer id
+// comes from their own profile row rather than the request.
 export async function POST(req: NextRequest) {
-  if (!hasTrustedMutationOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   if (!stripeConfigured()) {
     return NextResponse.json(

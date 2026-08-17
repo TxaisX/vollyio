@@ -64,6 +64,50 @@ export function hasTrustedMutationOrigin(request: Request): boolean {
   }
 }
 
+export type MutationGate =
+  | { mode: "bearer"; token: string }
+  | { mode: "cookie" }
+  | { mode: "reject" };
+
+/**
+ * Which credential a mutation request is allowed to be authenticated by.
+ *
+ * Every mutation route used to open with `hasTrustedMutationOrigin`, which is
+ * correct for a browser and denies every native client by construction: an
+ * Android app sends no `Origin` header, so the check that exists to stop
+ * another SITE from riding a player's cookies also stopped our own app from
+ * calling anything at all (D-120).
+ *
+ * The origin check is not a general proof of the sender. It compensates for one
+ * specific property of cookies: the user agent attaches them automatically, so
+ * a request carrying a valid session is not by itself evidence that the player
+ * meant to send it. A Bearer token has the opposite property. Nothing attaches
+ * it for you, so possession IS the intent, and a cross-site page cannot read
+ * one: the web session's token is not reachable from another origin, and a
+ * cross-origin request that sets `Authorization` is preflighted, which this app
+ * answers with no CORS headers at all. That is this route family's answer to
+ * rule 12's "then what authenticates the sender".
+ *
+ * THE ONE RULE THAT MAKES THIS SAFE, and the reason this is a gate rather than
+ * two independent checks: an `Authorization` header COMMITS the request to the
+ * bearer path, whether or not the token turns out to be any good. There is
+ * deliberately no fallback to cookies, because a fallback is exactly the hole
+ * this shape would otherwise open - evil.com cannot obtain a real token, but it
+ * could send a junk one, and a gate that shrugged and reached for the cookie
+ * jar instead would hand it the victim's session with the origin check already
+ * behind it. Reject beats retry here every time.
+ */
+export function mutationGate(request: Request): MutationGate {
+  const authorization = request.headers.get("authorization");
+  if (authorization !== null) {
+    // Case-insensitive scheme: RFC 7235 says auth schemes are, and rejecting a
+    // spec-legal `bearer` would be a trap for any client but the one we wrote.
+    const match = /^Bearer[ \t]+([^\s]+)$/i.exec(authorization.trim());
+    return match ? { mode: "bearer", token: match[1] } : { mode: "reject" };
+  }
+  return hasTrustedMutationOrigin(request) ? { mode: "cookie" } : { mode: "reject" };
+}
+
 export function isLocalRequest(request: Request): boolean {
   try {
     const hostname = new URL(request.url).hostname.toLowerCase();

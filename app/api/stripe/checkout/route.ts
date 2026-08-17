@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { hasTrustedMutationOrigin } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 import { createCheckoutSession, stripeConfigured } from "@/lib/stripe";
 import { billingOpen } from "@/lib/billing";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
@@ -41,17 +40,9 @@ type BillingProfile = {
 // buy more of. Every session created below is bound to the verified user id
 // rather than to anything the caller sent.
 export async function POST(req: NextRequest) {
-  if (!hasTrustedMutationOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   if (!stripeConfigured()) {
     return NextResponse.json(
@@ -117,10 +108,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "You're already on Pro." }, { status: 409 });
   }
 
-  // Same-origin passed above, so the request's own origin is the one the
-  // player's browser is on: correct on production, preview deployments, and
-  // localhost with no domain compiled in, and a caller-supplied return URL
-  // never enters the calculation.
+  // The SERVER's own origin, read off the URL this handler was reached at, not
+  // the caller's `Origin` header. That distinction stopped being academic with
+  // D-120: a native caller sends no Origin at all, and this still resolves to
+  // production, a preview deployment, or localhost correctly, because it never
+  // asked the client where to send anyone. A caller-supplied return URL never
+  // enters the calculation.
+  //
+  // The native app opens the returned URL in a Custom Tab, so a player who
+  // upgrades from the app lands back on this same web settings page. That is
+  // the deliberate shape: the purchase happens on the web, off the app's own
+  // surface (D-120).
   const planCard = `${new URL(req.url).origin}/settings#plan`;
   // The plan only turns pro when the webhook lands, which is seconds after the
   // player is returned here. Without a marker they arrive back on a card that

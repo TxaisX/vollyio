@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { VISION_MODEL } from "@/lib/ai/client";
 import { readFrames, readVideo, VisionError, hasVisionKey } from "@/lib/ai/vision";
-import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
+import { readJsonRequest } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 import { isJpegPayload } from "@/lib/security/request";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
 import { MAX_CLIP_BYTES } from "@/lib/analysis-types";
@@ -127,16 +127,9 @@ const SPOT_TIMEOUT_MS = 12_000;
 const SPOT_CLIP_TIMEOUT_MS = 25_000;
 
 export async function POST(req: NextRequest) {
-  if (!hasTrustedMutationOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   const json = await readJsonRequest(req, MAX_SPOT_FRAME_BYTES * 2);
   if (!json.ok) {

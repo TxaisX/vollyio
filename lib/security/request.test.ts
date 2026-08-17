@@ -5,6 +5,7 @@ import {
   hasTrustedMutationOrigin,
   isJpegPayload,
   isLocalRequest,
+  mutationGate,
   readJsonRequest,
 } from "./request.ts";
 
@@ -115,6 +116,79 @@ test("local eval access also requires the server-side bearer token", () => {
   assert.equal(hasLocalEvalAccess(missing, "test-eval-token"), false);
   assert.equal(hasLocalEvalAccess(remote, "test-eval-token"), false);
   assert.equal(hasLocalEvalAccess(local, undefined), false);
+});
+
+const ROUTE = "https://vollyio.example/api/analyze";
+
+test("mutationGate keeps the browser's same-origin rule", () => {
+  const same = new Request(ROUTE, {
+    method: "POST",
+    headers: { origin: "https://vollyio.example" },
+  });
+  const foreign = new Request(ROUTE, {
+    method: "POST",
+    headers: { origin: "https://evil.example" },
+  });
+  const bare = new Request(ROUTE, { method: "POST" });
+
+  assert.deepEqual(mutationGate(same), { mode: "cookie" });
+  assert.deepEqual(mutationGate(foreign), { mode: "reject" });
+  assert.deepEqual(mutationGate(bare), { mode: "reject" });
+});
+
+test("mutationGate admits a bearer token with no Origin at all", () => {
+  // The native client, exactly: OkHttp sends no Origin, which is precisely the
+  // request the old guard rejected and the whole reason D-120 exists.
+  const native = new Request(ROUTE, {
+    method: "POST",
+    headers: { authorization: "Bearer player-access-token" },
+  });
+  assert.deepEqual(mutationGate(native), {
+    mode: "bearer",
+    token: "player-access-token",
+  });
+});
+
+test("an Authorization header NEVER falls back to the cookie jar", () => {
+  // The security property of the whole gate. A hostile page cannot read a real
+  // token, but it can certainly send a junk one from a browser that will attach
+  // the victim's cookies for free. If a failed bearer parse degraded to the
+  // cookie path, that request would arrive past the origin check carrying
+  // somebody else's session. Every one of these must reject rather than shrug.
+  for (const header of ["Bearer", "Bearer ", "Basic abc123", "Bearer a b"]) {
+    const request = new Request(ROUTE, {
+      method: "POST",
+      headers: { origin: "https://vollyio.example", authorization: header },
+    });
+    assert.deepEqual(
+      mutationGate(request),
+      { mode: "reject" },
+      `${JSON.stringify(header)} must reject, never fall back to cookies`,
+    );
+  }
+});
+
+test("the bearer scheme is matched case-insensitively", () => {
+  const request = new Request(ROUTE, {
+    method: "POST",
+    headers: { authorization: "bearer player-access-token" },
+  });
+  assert.deepEqual(mutationGate(request), {
+    mode: "bearer",
+    token: "player-access-token",
+  });
+});
+
+test("a valid bearer wins over the Origin header rather than combining with it", () => {
+  const request = new Request(ROUTE, {
+    method: "POST",
+    headers: { origin: "https://evil.example", authorization: "Bearer real-token" },
+  });
+  // Not a hole: a foreign page cannot obtain a token, and a cross-origin
+  // request that sets Authorization is preflighted, which this app answers with
+  // no CORS headers. Anyone holding a real token can call from a server anyway,
+  // where Origin is whatever they typed, so the header adds nothing here.
+  assert.deepEqual(mutationGate(request), { mode: "bearer", token: "real-token" });
 });
 
 test("JPEG payload validation checks type and decoded size", () => {

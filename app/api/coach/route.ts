@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { CHAT_MODEL } from "@/lib/ai/client";
 import { streamChat, hasChatKey } from "@/lib/ai/chat";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
@@ -9,7 +8,8 @@ import { techniqueFor } from "@/content/technique";
 import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
-import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
+import { readJsonRequest } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 import { COACH_ENABLED } from "@/lib/flags";
 import { hasJourney, journeySummary, type JourneyRow } from "@/lib/journey";
 
@@ -77,17 +77,9 @@ export async function POST(req: NextRequest) {
   if (!COACH_ENABLED) {
     return NextResponse.json({ error: "Coach is unavailable right now." }, { status: 404 });
   }
-  if (!hasTrustedMutationOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   // Read and validate BEFORE spending the player's allowance. The two quotas
   // below are a player's own hourly and daily budget, so a typo in a client

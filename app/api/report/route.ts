@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
+import { readJsonRequest } from "@/lib/security/request";
+import { mutationClient } from "@/lib/security/api-auth";
 import {
   formatReportAlert,
   isReportStatus,
@@ -46,9 +46,14 @@ async function alertOwner(request: ReportRequest): Promise<void> {
 }
 
 export async function POST(request: Request) {
-  if (!hasTrustedMutationOrigin(request)) {
-    return NextResponse.json({ error: "Bad request." }, { status: 403 });
-  }
+  // Proves the credential without demanding one belong to somebody, which is
+  // what keeps the anonymous share-page path above working (D-120). A native
+  // reporter presents a bearer token and is a signed-in player; a stranger on
+  // /share/<token> presents neither and stays anonymous, and the RPC decides
+  // what that is allowed to reach.
+  const caller = await mutationClient(request, { forbiddenMessage: "Bad request." });
+  if (!caller.ok) return caller.response;
+  const supabase = caller.supabase;
 
   const body = await readJsonRequest(request, MAX_BODY_BYTES);
   if (!body.ok) {
@@ -62,7 +67,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: httpStatus });
   }
 
-  const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "submit_content_report",
     reportRpcArgs(parsed.data),

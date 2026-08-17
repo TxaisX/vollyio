@@ -5413,3 +5413,90 @@ with `clientY <= 0`, which is the only exit signal a page gets, and there is no
 mobile equivalent. This product is mobile-first inside a TWA, so the downsell
 reaches a minority of players. It fires once per tab via `sessionStorage`. Do
 not report it as a mobile feature.
+
+## D-120 - The origin check is a browser rule, and the app needed a credential of its own
+
+**2026-08-14.** The Android app is being rewritten from a Trusted Web Activity
+into a native Kotlin client (reversing the shell half of D-111). The first thing
+that rewrite hit is not a UI problem, and it would have stopped every screen
+before one was drawn.
+
+**Every mutation route denied the app by construction.** All seven opened with
+`hasTrustedMutationOrigin`, which returns false when there is no `Origin`
+header. A browser always sends one. An OkHttp call never does. So `/api/analyze`,
+`/api/coach`, `/api/players`, `/api/report`, `/api/account/delete` and both
+payment routes answered 403 to our own app, and the failure is not diagnosable
+from the client: a 403 with `{"error":"Forbidden."}` reads as an auth bug, not as
+a header the platform declines to send.
+
+**The origin check was never a general proof of the sender, and treating it as
+one is what made this look like a wall.** It compensates for one specific
+property of cookies, that the user agent attaches them automatically, so a
+request carrying a valid session is not by itself evidence the player meant to
+send it. That is the whole content of CSRF. A Bearer token has the opposite
+property: nothing attaches it for you, so possession is the intent. That is this
+route family's answer to rule 12's "then what authenticates the sender", and it
+is why the answer is a different credential rather than a hole in the old one.
+
+**A hostile page cannot reach the bearer path with a real token.** The web
+session's token is not readable from another origin, and a cross-origin request
+that sets `Authorization` is preflighted, which this app answers with no CORS
+headers at all. Anyone who does hold a real token can call from a server, where
+`Origin` is whatever they chose to type, so the header would have added nothing
+to that case anyway.
+
+**THE ONE RULE THAT MAKES THIS SAFE, and the reason it is a gate rather than two
+independent checks.** An `Authorization` header COMMITS the request to the bearer
+path, whether or not the token turns out to be any good. There is deliberately no
+fallback to cookies. The fallback is the entire hole this shape would otherwise
+open: evil.com cannot obtain a real token, but it can certainly send a junk one
+from a browser that will attach the victim's cookies for free, and a gate that
+shrugged and reached for the cookie jar instead would hand it the victim's
+session with the origin check already behind it. `lib/security/request.test.ts`
+pins this with four malformed headers that must every one reject rather than
+degrade.
+
+**The helper returns the CLIENT, not just a verdict, and that is load-bearing.**
+A route that proved a bearer token and then called `createClient()` out of habit
+would authorize the app's request and then perform it as whoever the cookie jar
+held, which on a shared device is a different player. `authenticateMutation`
+hands back the one client matching the credential it just verified, so that
+mistake cannot be made quietly. `lib/supabase/bearer.ts` builds that client on
+the ANON key with the player's token in the request headers, so `auth.uid()`
+resolves inside every RPC and policy and row security stays the tenant boundary.
+It is not a second privileged client and rule 10's two-importer limit on
+`lib/supabase/service.ts` is untouched.
+
+**`/api/report` keeps a separate entry point on purpose.** It must work with no
+account at all, because the person best placed to report a public share page is
+the stranger who opened the link. So `mutationClient` proves the credential
+without demanding one belong to anybody, and the SECURITY DEFINER function stays
+the only thing that decides what an anonymous caller may reach. A bad token is
+still an error there and never a silent downgrade to anonymous: an expired app
+session would otherwise file reports the database attributes to nobody, and the
+reporter would never learn their session had lapsed.
+
+**`mode` is returned for surface, never for authorization.** Nothing may become
+more permissive because a request called itself native. The mode is derived from
+which credential was proven, not from anything the caller asserted about itself,
+and today it is read only where a payment route wants to hand back a URL to open
+rather than a redirect.
+
+**Payments stay on the existing provider, at the owner's explicit direction, and
+this entry records the risk rather than resolving it.** Play's payments policy
+requires Google Play Billing for in-app purchases of digital goods. The
+implementation here is the defensible half of that choice: `/api/stripe/checkout`
+returns a URL the app opens in a Custom Tab, so the purchase happens on the web
+off the app's own surface, rather than an embedded payment sheet inside the app.
+The return URLs were already computed from the SERVER's own origin rather than
+the caller's header, so they needed no change and no caller-supplied return URL
+enters the calculation. This remains a live policy exposure on an app whose
+closed test is already approved, and it was made with that stated.
+
+**What no test here can prove.** Every assertion in this change is about request
+shape. That a real Supabase access token verifies, that `auth.uid()` resolves
+inside a policy under the bearer client, and that the quota RPCs decrement the
+right account are all properties of a live database and a live token. They belong
+with the B2 through B5 probes in `docs/security.md`, run as a signed-in test
+player, and the same-shaped gap is what let the 011 reservation-link defect reach
+production.

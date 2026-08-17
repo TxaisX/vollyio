@@ -161,8 +161,8 @@ test("marking moves to the server rather than being dropped", () => {
 // exactly this reason: a second endpoint is a second place to forget one.
 test("the clip mode inherits every guard the frame mode already had", () => {
   for (const guard of [
-    /hasTrustedMutationOrigin\(req\)/,
-    /supabase\.auth\.getUser\(\)/,
+    /authenticateMutation\(req\)/,
+    /if \(!auth\.ok\) return auth\.response;/,
     /consumeApiQuota\(supabase, "coach"\)/,
     /!hasVisionKey\(\)/,
   ]) {

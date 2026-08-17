@@ -62,8 +62,11 @@ test("spotting degrades to an empty list and never blocks the tap-anywhere path"
   // and the manual tap stays available. The 4xx guards are the exception on
   // purpose: those are requests the client never makes.
   for (const guard of [
-    /hasTrustedMutationOrigin\(req\)/,
-    /supabase\.auth\.getUser\(\)/,
+    // D-120 folded the origin check and the getUser pair into one helper, so
+    // the guard to pin is that the route still OPENS with it and refuses on
+    // anything but a proven credential. Same two properties, one call.
+    /authenticateMutation\(req\)/,
+    /if \(!auth\.ok\) return auth\.response;/,
     /consumeApiQuota\(supabase, "coach"\)/,
     /isJpegPayload\(data, MAX_SPOT_FRAME_BYTES\)/,
   ]) {

@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { VISION_MODEL } from "@/lib/ai/client";
 import { readVideo, VisionError } from "@/lib/ai/vision";
 import { alertOwnerOnLowCredit } from "@/lib/credit-alert";
@@ -41,7 +40,8 @@ import {
   type AnalysisResult,
 } from "@/lib/analysis-types";
 import { analyzeRequestSchema } from "@/lib/analyze-request";
-import { hasTrustedMutationOrigin, readJsonRequest } from "@/lib/security/request";
+import { readJsonRequest } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 import { consumeApiQuota, refundApiQuota } from "@/lib/security/rate-limit";
 import { blankClipByBytes } from "@/lib/frame-guard";
 import { formatRefusal, recordAnalysisTelemetry } from "@/lib/analysis-telemetry";
@@ -186,17 +186,9 @@ function exhaustedMessage(
 }
 
 export async function POST(req: NextRequest) {
-  if (!hasTrustedMutationOrigin(req)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   // The self-imposed monthly spend cap that used to sit here is GONE (D-104).
   // It answered the wrong question: once tripped it degraded the product to a

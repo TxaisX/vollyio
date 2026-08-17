@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
-import { hasTrustedMutationOrigin } from "@/lib/security/request";
+import { authenticateMutation } from "@/lib/security/api-auth";
 
 // Self-serve account deletion: the Privacy Policy's deletion promise, in-app.
 // Stored footage goes first (own-folder storage policies, while the session
@@ -10,17 +9,9 @@ import { hasTrustedMutationOrigin } from "@/lib/security/request";
 // profiles). Storage listing failures never block the account deletion
 // itself: rows and access die with the user even if a blob lingers.
 export async function POST(request: NextRequest) {
-  if (!hasTrustedMutationOrigin(request)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Please log in." }, { status: 401 });
-  }
+  const auth = await authenticateMutation(request);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   // Deleting the account here does not cancel anything at the payment
   // provider: the subscription lives on their side, keyed on a customer record
