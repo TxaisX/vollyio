@@ -19,6 +19,7 @@ import {
   parseSignupInput,
 } from "@/lib/auth-input";
 import { SITE_URL } from "@/lib/site";
+import { claimDestination } from "@/lib/signup-destination";
 
 export async function login(formData: FormData) {
   const parsed = parseLoginInput(formData);
@@ -103,10 +104,16 @@ export async function startAnonymously(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  // D-121. The wall's return address, allowlisted before anything trusts it.
+  // Carried through the error redirects below so a typo in the password does
+  // not cost an anonymous player the way back to their locked breakdown.
+  const next = claimDestination(formData.get("next"));
+  const nextParam = next === "/welcome" ? "" : `&next=${encodeURIComponent(next)}`;
+
   const parsed = parseSignupInput(formData);
   if (!parsed.success) {
     redirect(
-      `/signup?error=${encodeURIComponent("Check your name, email, password, and terms agreement.")}`,
+      `/signup?error=${encodeURIComponent("Check your name, email, password, and terms agreement.")}${nextParam}`,
     );
   }
   const supabase = await createClient();
@@ -127,7 +134,7 @@ export async function signup(formData: FormData) {
     });
     if (claimError) {
       redirect(
-        `/signup?error=${encodeURIComponent(signupErrorMessage(claimError.status, claimError.code))}`,
+        `/signup?error=${encodeURIComponent(signupErrorMessage(claimError.status, claimError.code))}${nextParam}`,
       );
     }
     // Email confirmation is off (D-102), so the address lands immediately and
@@ -138,7 +145,9 @@ export async function signup(formData: FormData) {
     if (claimed?.user?.is_anonymous) {
       redirect(`/login?message=${encodeURIComponent(CONFIRM_SENT_MESSAGE)}`);
     }
-    redirect("/welcome");
+    // Back to the breakdown the wall refused them (D-121), which their row now
+    // opens in full; /welcome only when the claim started somewhere else.
+    redirect(next);
   }
 
   const { data, error } = await supabase.auth.signUp({

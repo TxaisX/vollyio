@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthUserId } from "@/lib/supabase/user";
+import { getAuthIdentity } from "@/lib/supabase/user";
+import { FunnelBeacon } from "@/app/(auth)/funnel-beacon";
 import { metricLabel } from "@/lib/ai/metrics";
 import { scoreBand } from "@/lib/ratings";
 import { BreakdownBody } from "@/components/breakdown-body";
@@ -38,7 +40,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const userId = await getAuthUserId(supabase);
+  const { userId, isAnonymous } = await getAuthIdentity(supabase);
   if (!userId) {
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
@@ -57,7 +59,9 @@ export async function generateMetadata({
   const meta = data as Pick<Row, "skill" | "overall_score" | "result">;
   const label = SKILL_LABEL[meta.skill];
   const score = meta.overall_score;
-  const fix = meta.result?.priority_fix?.title;
+  // Behind the wall (D-121) the fix title is part of what signing up buys, so
+  // it stays out of the tab title's description too.
+  const fix = isAnonymous ? undefined : meta.result?.priority_fix?.title;
   return {
     title: `${label} breakdown, ${score}/100`,
     description: fix
@@ -77,7 +81,132 @@ export default async function AnalysisDetail({
   const { id } = await params;
   const { xp } = await searchParams;
   const supabase = await createClient();
-  const userId = await getAuthUserId(supabase);
+  const { userId, isAnonymous } = await getAuthIdentity(supabase);
+
+  // D-121. THE FIRST BREAKDOWN IS WALLED: an anonymous session sees the score
+  // and nothing else, and the details are what signing up buys. This reverses
+  // D-118's "one full read" - the read proved the product is real, and then
+  // the account ask arrived after the value was already spent. The score alone
+  // is the proof now; the checkpoints, the fix, and the drills are the reason
+  // to give an email address.
+  //
+  // The lock is server-side: the locked content is never rendered, not hidden
+  // with CSS, so nothing a client unhides recovers it. What this wall is NOT is
+  // a secrecy boundary - the row is the session's own and the data API will
+  // serve it to its owner - it is a conversion device, and the one artifact
+  // that would carry the content past it for OTHER people, a public share
+  // link, is closed at the policy instead (migration 062).
+  if (isAnonymous) {
+    const { data } = await supabase
+      .from("analyses")
+      .select("id, skill, discipline, overall_score, created_at, result")
+      .eq("id", id)
+      .eq("user_id", userId!)
+      .maybeSingle();
+    if (!data) notFound();
+    const row = data as Omit<Row, "frame_paths" | "clip_path">;
+    const result = row.result;
+
+    const dateLabel = new Date(row.created_at).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    // The same counting the open page does, because the teaser must promise
+    // exactly what unlocking shows and nothing it does not.
+    const strengthCount =
+      (result.insights ?? []).filter((i) => i.type === "strength").length +
+      (result.strengths?.length ?? 0);
+    const fixCount = (result.changes ?? []).length || 1;
+    const drillCount = result.drill_slugs.length;
+    const waiting = [
+      { count: strengthCount, label: strengthCount === 1 ? "strength" : "strengths" },
+      { count: fixCount, label: fixCount === 1 ? "fix to make" : "fixes to make" },
+      { count: drillCount, label: drillCount === 1 ? "drill to train it" : "drills to train them" },
+    ].filter((c) => c.count > 0);
+
+    return (
+      <section className="mx-auto max-w-2xl">
+        <FunnelBeacon event="wall_view" />
+        <Reveal>
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
+          </p>
+          <div className="mt-5 flex items-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <ScoreRing score={row.overall_score} size={88} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+                {scoreBand(row.overall_score)}
+              </span>
+            </div>
+            <div className="min-w-0 border-l border-line pl-4">
+              <h1 className="font-display text-page-title">Your rep is scored</h1>
+              <p className="mt-1 font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-chalk-dim">
+                40 developing · 70 solid · 90 advanced
+              </p>
+            </div>
+          </div>
+          {/* The honesty rule survives the wall (D-081): a rep the model could
+              barely see must say so HERE, before the signup ask, or the wall is
+              selling a breakdown this clip cannot fund. */}
+          {result.low_confidence && (
+            <p className="mt-4 max-w-prose text-body text-chalk-dim">
+              Most of this rep was out of frame or too far away to judge. Next
+              clip, fill the frame with the athlete and keep the whole motion in
+              the shot, and the checklist has something to score.
+            </p>
+          )}
+        </Reveal>
+
+        <Reveal delay={120}>
+          <div className="card mt-8 p-6">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-teal">
+              In this breakdown
+            </p>
+            <ul className="mt-3 flex flex-col gap-2">
+              {waiting.map((c) => (
+                <li key={c.label} className="flex items-center gap-3 text-body text-chalk">
+                  <span aria-hidden="true" className="font-mono text-xs text-chalk-dim">
+                    ●
+                  </span>
+                  {c.count} {c.label}
+                </li>
+              ))}
+              <li className="flex items-center gap-3 text-body text-chalk">
+                <span aria-hidden="true" className="font-mono text-xs text-chalk-dim">
+                  ●
+                </span>
+                The one change worth making next
+              </li>
+            </ul>
+            <p className="mt-4 text-sm leading-relaxed text-chalk-dim">
+              Create a free account to open the full breakdown. This rep is
+              already scored and stays on your account, so nothing re-uploads
+              and nothing is lost.
+            </p>
+            <Link
+              href={`/signup?next=/analysis/${row.id}`}
+              className="btn-primary mt-5 inline-flex"
+            >
+              Sign up to open it
+            </Link>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+              Free · no card
+            </p>
+          </div>
+        </Reveal>
+
+        <Reveal delay={200}>
+          <div className="mt-4 flex justify-end">
+            <ReportContent
+              target={{ surface: "analysis", analysisId: row.id }}
+              label="Report this breakdown"
+            />
+          </div>
+        </Reveal>
+      </section>
+    );
+  }
 
   // The rep this page shows may be the one that tipped a badge over (first
   // read, all six, a new best), and the celebration belongs at the moment of

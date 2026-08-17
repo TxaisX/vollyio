@@ -24,9 +24,9 @@ export const metadata: Metadata = {
 export default async function Signup({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
   const providers = enabledOAuthProviders(process.env.OAUTH_PROVIDERS);
   const siteKey = captchaSiteKey();
 
@@ -61,6 +61,11 @@ export default async function Signup({
           )}
           <OAuthButtons providers={providers} />
           <form action={signup} className="mt-6 flex flex-col gap-4">
+            {/* D-121. The wall on a locked breakdown arrives with ?next= so the
+                claim branch of the action can send the player back to the page
+                they were refused. Allowlisted server-side (claimDestination);
+                absent or mangled it falls back to /welcome. */}
+            {next && <input type="hidden" name="next" value={next} />}
             <div>
               <label
                 htmlFor="email"
