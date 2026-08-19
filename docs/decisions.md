@@ -5663,3 +5663,33 @@ sync, and a card that said "instantly" would manufacture support mail.
 
 **The empty member list is refused**, because an empty list reads as "everyone
 left" and would revoke every live comp in one keystroke.
+
+## D-125 - Nothing in the app hands the player to a browser
+
+**Date**: 2026-08-18. **Decided by**: Txais ("there should never be a redirect
+from the app to the web").
+
+The native app (2.2.0) still opened a Custom Tab for drills, technique,
+progress, the breakdown's "open on web", password reset, terms, and both
+Stripe surfaces. All of it goes native. The one surviving external intent is
+the Google Groups tester join, which is Google's own site and retires with
+`TEST_COUNTS_TOWARD_PRODUCTION`.
+
+**Content reaches the app by API, never by bundle.** Drills, technique and
+rehab are checked-in TypeScript; `/api/app/content` serves the corpus as one
+JSON payload behind the D-120 credential gate. Bundling it into the APK was
+rejected because an APK is a zip anybody can open, and D-122 decided the
+corpus is what an account buys. Progress needs no new route: the app reads the
+same `analyses`/`goals` rows the web page reads and ports the pure
+`lib/progress-series.ts` arithmetic to Kotlin.
+
+**Billing moves to Google Play Billing.** Chosen over the two alternatives:
+keeping the Stripe Custom Tab (the standing Play payments-policy exposure this
+decision exists to close) and stripping purchase from the app entirely (free
+app, web-only upgrades). Play subscriptions `pro_weekly` and `pro_monthly`
+mirror the Stripe prices; the server verifies every purchase with the Play
+Developer API before writing a plan, and plan writes go through
+`set_subscription_plan` like every other writer. A Play sub and a Stripe sub
+must resolve to one plan state, and a real `stripe_subscription_id` is never
+touched by the Play path (the D-124 discipline). Google's 15% cut on the first
+$1M/yr is accepted as the cost of being on Play at all.
