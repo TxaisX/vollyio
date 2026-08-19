@@ -73,7 +73,7 @@ export function AnalyticsShowcase() {
     <div ref={ref} className="analytics-stage">
       <div className="flex flex-col gap-6 border-b border-line p-5 md:flex-row md:items-end md:justify-between md:p-7">
         <div>
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-teal-ink">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-teal-ink">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
             Rep intelligence · example attack session
           </div>
@@ -102,7 +102,7 @@ export function AnalyticsShowcase() {
           <div aria-hidden="true" className="analytics-grid absolute inset-0" />
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+              <p className="font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
                 Attack path · load to contact
               </p>
               <p className="mt-1 text-sm text-chalk-dim">

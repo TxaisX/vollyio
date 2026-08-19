@@ -106,9 +106,14 @@ export default async function Login({
               that recovers a forgotten password AND an unconfirmed email, so it
               has to be here whatever went wrong. */}
           <p className="mt-5 text-center text-sm">
+            {/* -my-3 py-3 grows the tap target to 44px without moving
+                anything: the padding expands the hit box and the negative
+                margin gives the space back to the layout. A standalone
+                recovery link is not an inline sentence link, so WCAG 2.5.5's
+                inline exception does not cover it. */}
             <Link
               href="/forgot"
-              className="text-chalk-dim underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
+              className="-my-3 inline-block py-3 text-chalk-dim underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
             >
               Forgot your password?
             </Link>
@@ -118,7 +123,7 @@ export default async function Login({
           New here?{" "}
           <Link
             href="/signup"
-            className="text-gold-ink underline-offset-4 transition-colors hover:underline"
+            className="-my-3 inline-block py-3 text-gold-ink underline-offset-4 transition-colors hover:underline"
           >
             Create an account
           </Link>

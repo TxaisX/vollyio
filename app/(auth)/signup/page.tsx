@@ -148,7 +148,7 @@ export default async function Signup({
               pendingLabel="Creating your account…"
               trackEvent="auth_signup_submit"
             />
-            <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+            <p className="mt-3 text-center font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
               No card. Your first breakdown in about a minute.
             </p>
           </form>

@@ -311,7 +311,7 @@ export default function Landing() {
               <p className="mt-4">
                 <Link
                   href="/samples"
-                  className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
+                  className="font-mono text-xs uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
                 >
                   Or browse three real breakdowns first &rarr;
                 </Link>
@@ -549,7 +549,7 @@ export default function Landing() {
               <h2 className="mt-3 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
                 A rating that moves when you do.
               </h2>
-              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
+              <p className="mt-3 font-mono text-xs uppercase tracking-[0.14em] text-chalk-dim">
                 Example data. Yours starts at your first rep.
               </p>
             </Reveal>
