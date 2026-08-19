@@ -1,25 +1,61 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0f212c;
-  --color-navy-light: #16303f;
-  --color-navy-lighter: #1e3d4e;
-  --color-chalk: #f2efe6;
-  --color-chalk-dim: #b9c4c9;
-  --color-gold: #e8b93b;
-  --color-teal: #6fbfae;
+  /* DAYLIGHT ON SAND (D-126). The product moved from a dark navy room to a
+     lit one: sand-white surfaces, deep court ink, and the warm sun accent it
+     always had. Beach and grass are the primary disciplines, so the palette
+     is the one those players stand in.
+
+     THE TOKEN NAMES ARE UNCHANGED ON PURPOSE. Each name kept its ROLE and
+     only moved value: `navy` was the room and is still the room, `chalk` was
+     the text and is still the text. That is what let a thousand existing
+     usages flip correctly in one commit instead of a thousand hand edits, and
+     it is why `bg-navy` reading as sand is correct rather than a bug.
+
+     Every pairing below was measured, not eyeballed: ink on sand 15.07,
+     ink-dim 6.04, gold-ink 5.73, teal-ink 5.87, coral-ink 5.75, sky 5.23,
+     ink on gold 7.18. All clear WCAG AA for body text. */
+
+  /* Surfaces, lightest use first. */
+  --color-navy: #fdfbf7; /* the page: warm sand white, never pure #fff */
+  --color-navy-light: #ffffff; /* a card lifted off it */
+  --color-navy-lighter: #f4eee3; /* a well sunk into it */
+
+  /* Ink. */
+  --color-chalk: #14262f; /* body and headings */
+  --color-chalk-dim: #4c6470; /* supporting copy */
+  --color-chalk-faint: #617680; /* mono labels; 4.61 on sand, still AA */
+
+  /* ACCENTS COME IN PAIRS, and this is the one structural change the light
+     palette forced. A fill bright enough to feel cheerful is never dark
+     enough to read as text on white: the sun at #e8a317 is 1.9:1 on sand.
+     So each accent has a FILL (bright, carries ink on top) and an INK (deep,
+     safe as text). Use `bg-gold` + `text-chalk`, or `text-gold-ink` alone.
+     Reaching for `text-gold` on a light surface is the one way to get this
+     wrong, so it is not a token. */
+  --color-gold: #e8a317;
+  --color-gold-ink: #8a5a00;
+  --color-teal: #178a6b;
+  --color-teal-ink: #1c6f58;
   --color-coral: #e2604f;
-  --color-court-blue: #4f9de2;
-  --color-line: rgb(242 239 230 / 0.12);
-  /* Boundary for anything you can press or type into. 12% chalk reads as a
-     1.40:1 edge, under the 3:1 WCAG 1.4.11 floor for a control whose border is
-     the only thing identifying it (.btn-ghost and .input-field carry no fill of
-     their own). 41% is the lowest value that clears 3:1 on all three surfaces
-     the app puts controls on: navy 3.54, navy-light 3.32, navy-lighter 3.03
-     (navy-lighter is the binding one; below 41% it drops under the floor).
-     Static labels (.tag) deliberately keep --color-line, so the heavier edge
-     now means "this does something". */
-  --color-line-control: rgb(242 239 230 / 0.41);
+  --color-coral-ink: #b23a2a;
+  --color-sky: #1a6fa8;
+  --color-sky-ink: #12608f;
+
+  /* The court itself, kept literal for the few places that need deep
+     regardless of theme: text on a bright fill, and the dark mode's room. */
+  --color-deep: #14262f;
+  --color-deep-soft: #1c3542;
+
+  --color-line: rgb(20 38 47 / 0.12);
+  /* Boundary for anything you can press or type into. 12% ink reads as a
+     1.26:1 edge, under the 3:1 WCAG 1.4.11 floor for a control whose border
+     is the only thing identifying it (.btn-ghost and .input-field carry no
+     fill of their own). 50% is the lowest value that clears 3:1 on all three
+     light surfaces: sand and white both need 49%, and the sunk well needs 50%
+     (it is the binding one). Static labels (.tag) deliberately keep
+     --color-line, so the heavier edge still means "this does something". */
+  --color-line-control: rgb(20 38 47 / 0.5);
 
   --font-sans: var(--font-instrument), system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), sans-serif;
@@ -50,18 +86,26 @@
   --text-page-title--letter-spacing: -0.025em;
   --text-page-title--font-weight: 700;
 
-  --radius-card: 1rem;
-  --radius-control: 0.625rem;
+  /* Rounder than the navy era. A 1rem card on a dark field reads precise; the
+     same corner on white reads severe, and the brief was friendlier. */
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
 
-  --shadow-lift: 0 16px 40px -18px rgb(0 0 0 / 0.6);
-  --shadow-glow: 0 0 28px -6px rgb(232 185 59 / 0.4);
-  /* Resting depth for every .card (D-123): a 1px chalk light along the top
-     edge, as if lit from above, plus a soft grounding drop. The inset comes
-     first so the drop can be swapped (e.g. by .card-lift's hover) without
-     losing the lit edge. Cheap: no blur filter, no extra element. */
+  /* Light UI is lit from above and grounded by SHADOW, where the dark theme
+     was lit from within and grounded by GLOW. The shadows are warm (a brown
+     cast, never neutral black) so they sit in the sand rather than smudging
+     it. */
+  --shadow-lift: 0 18px 40px -20px rgb(58 42 22 / 0.28);
+  --shadow-glow: 0 6px 20px -6px rgb(232 163 23 / 0.42);
+  /* Resting depth for every .card (D-123, restated for daylight): a hairline
+     of white along the top edge as if lit from above, plus a soft warm drop.
+     The inset comes first so the drop can be swapped (e.g. by .card-lift's
+     hover) without losing the lit edge. Cheap: no blur filter, no extra
+     element. */
   --shadow-card:
-    inset 0 1px 0 rgb(242 239 230 / 0.055),
-    0 10px 28px -22px rgb(0 0 0 / 0.6);
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 2px 4px -2px rgb(58 42 22 / 0.08),
+    0 12px 26px -18px rgb(58 42 22 / 0.22);
 
   --ease-court: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -371,7 +415,66 @@ body {
 
 ::selection {
   background: var(--color-gold);
-  color: var(--color-navy);
+  color: var(--color-deep);
+}
+
+/* DARK MODE IS A CHOICE, NOT THE OS'S (D-126).
+   The navy room was the product's face for a year and stays available: a phone
+   held courtside at 9pm should not be a floodlight. But it is opt-in via the
+   theme control rather than `prefers-color-scheme`, and that is deliberate.
+   Most phones ship dark-on, so following the OS would have meant the daylight
+   identity this decision exists to establish was the one most players never
+   saw. Light is what Vollyio looks like; dark is what a player can ask for.
+
+   Only the token VALUES move; every component rule is written against the
+   tokens, so nothing here restates a layout. The accent pairs invert: on a
+   dark field the bright fill IS readable as text, so `-ink` variants brighten
+   rather than deepen. */
+:root[data-theme="dark"] {
+  --color-navy: #0f212c;
+  --color-navy-light: #16303f;
+  --color-navy-lighter: #1e3d4e;
+
+  --color-chalk: #f2efe6;
+  --color-chalk-dim: #b9c4c9;
+  --color-chalk-faint: #9aa9b1;
+
+  --color-gold: #e8b93b;
+  --color-gold-ink: #f0cb66;
+  --color-teal: #6fbfae;
+  --color-teal-ink: #8ed3c4;
+  --color-coral: #e2604f;
+  --color-coral-ink: #f08b7c;
+  --color-sky: #4f9de2;
+  --color-sky-ink: #7cb8ea;
+
+  --color-deep: #0f212c;
+  --color-deep-soft: #16303f;
+
+  --color-line: rgb(242 239 230 / 0.12);
+  --color-line-control: rgb(242 239 230 / 0.41);
+
+  --shadow-lift: 0 16px 40px -18px rgb(0 0 0 / 0.6);
+  --shadow-glow: 0 0 28px -6px rgb(232 185 59 / 0.4);
+  --shadow-card:
+    inset 0 1px 0 rgb(242 239 230 / 0.055),
+    0 10px 28px -22px rgb(0 0 0 / 0.6);
+}
+
+/* On a dark field the card grade runs between two navies again, so the light
+   theme's "sheet of white on sand" mix would flatten it. One restatement,
+   scoped to the opted-in theme. */
+:root[data-theme="dark"] .card {
+  background: linear-gradient(
+    160deg,
+    var(--color-navy-light),
+    color-mix(in oklab, var(--color-navy-light) 55%, var(--color-navy))
+  );
+}
+
+:root[data-theme="dark"] .btn-destructive {
+  background: var(--color-coral);
+  color: var(--color-deep);
 }
 
 /* The outline already follows whatever corner radius the element carries, so
@@ -388,10 +491,12 @@ body {
     display: block;
     border-radius: var(--radius-card);
     border: 1px solid var(--color-line);
+    /* A card on sand is a sheet of white lifted off it, so the grade runs
+       from white to a whisper of the page rather than between two navies. */
     background: linear-gradient(
       160deg,
       var(--color-navy-light),
-      color-mix(in oklab, var(--color-navy-light) 55%, var(--color-navy))
+      color-mix(in oklab, var(--color-navy-light) 88%, var(--color-navy))
     );
     box-shadow: var(--shadow-card);
   }
@@ -434,12 +539,12 @@ body {
       transform 0.3s var(--ease-court);
   }
   .card-lift:hover {
-    border-color: color-mix(in oklab, var(--color-gold) 35%, var(--color-line));
+    border-color: color-mix(in oklab, var(--color-gold) 55%, var(--color-line));
     /* Restate the lit top edge: box-shadow is one property, so a bare
        --shadow-lift here would strip .card's inset highlight at the exact
        moment the card raises, reading as the light going out. */
     box-shadow:
-      inset 0 1px 0 rgb(242 239 230 / 0.055),
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
       var(--shadow-lift);
     transform: translateY(-2px);
   }
@@ -461,17 +566,17 @@ body {
        gold, so the identity is untouched and the hover below still lands. */
     background: linear-gradient(
       to bottom,
-      color-mix(in oklab, var(--color-gold) 90%, var(--color-chalk)),
-      var(--color-gold) 45%,
-      color-mix(in oklab, var(--color-gold) 88%, var(--color-navy))
+      color-mix(in oklab, var(--color-gold) 88%, #ffffff),
+      var(--color-gold) 55%,
+      color-mix(in oklab, var(--color-gold) 90%, var(--color-deep))
     );
-    color: var(--color-navy);
+    color: var(--color-deep);
     font-family: var(--font-display);
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     cursor: pointer;
     box-shadow:
-      inset 0 1px 0 rgb(242 239 230 / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.55),
       var(--shadow-glow);
     transition:
       background 0.2s ease,
@@ -481,13 +586,13 @@ body {
   .btn-primary:hover {
     background: linear-gradient(
       to bottom,
-      color-mix(in oklab, var(--color-gold) 80%, var(--color-chalk)),
-      color-mix(in oklab, var(--color-gold) 92%, var(--color-chalk)) 45%,
+      color-mix(in oklab, var(--color-gold) 80%, #ffffff),
+      color-mix(in oklab, var(--color-gold) 94%, #ffffff) 55%,
       var(--color-gold)
     );
     box-shadow:
-      inset 0 1px 0 rgb(242 239 230 / 0.55),
-      0 0 36px -4px color-mix(in oklab, var(--color-gold) 55%, transparent);
+      inset 0 1px 0 rgb(255 255 255 / 0.6),
+      0 8px 26px -6px color-mix(in oklab, var(--color-gold) 60%, transparent);
   }
   .btn-primary:active {
     transform: translateY(1px);
@@ -511,8 +616,8 @@ body {
       transform 0.2s var(--ease-court);
   }
   .btn-ghost:hover {
-    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line-control));
-    background: color-mix(in oklab, var(--color-chalk) 4%, transparent);
+    border-color: color-mix(in oklab, var(--color-gold) 60%, var(--color-line-control));
+    background: color-mix(in oklab, var(--color-gold) 10%, transparent);
   }
   .btn-ghost:active {
     transform: translateY(1px) scale(0.99);
@@ -524,8 +629,10 @@ body {
     justify-content: center;
     gap: 0.5rem;
     border-radius: var(--radius-control);
-    background: var(--color-coral);
-    color: var(--color-navy);
+    /* The deep coral, not the fill: white on coral-ink is 5.95, where white
+       on the bright coral is 3.4 and fails for a button's own label. */
+    background: var(--color-coral-ink);
+    color: #ffffff;
     font-family: var(--font-display);
     font-weight: 700;
     padding: 0.75rem 1.5rem;
@@ -536,7 +643,7 @@ body {
       transform 0.2s var(--ease-court);
   }
   .btn-destructive:hover {
-    background: color-mix(in oklab, var(--color-coral) 88%, var(--color-chalk));
+    background: color-mix(in oklab, var(--color-coral-ink) 88%, var(--color-deep));
   }
   .btn-destructive:active {
     transform: translateY(1px);
@@ -558,7 +665,7 @@ body {
   }
   .icon-btn:hover {
     color: var(--color-chalk);
-    background: color-mix(in oklab, var(--color-chalk) 4%, transparent);
+    background: color-mix(in oklab, var(--color-chalk) 7%, transparent);
   }
 
   .chip {
@@ -580,18 +687,20 @@ body {
   }
   .chip:hover {
     color: var(--color-chalk);
-    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-line-control));
+    border-color: color-mix(in oklab, var(--color-gold) 60%, var(--color-line-control));
+    background: color-mix(in oklab, var(--color-gold) 8%, transparent);
   }
   .chip:active {
     transform: scale(0.97);
   }
   .chip-active {
-    color: var(--color-navy);
+    color: var(--color-deep);
     background: var(--color-gold);
     border-color: var(--color-gold);
   }
   .chip-active:hover {
-    color: var(--color-navy);
+    color: var(--color-deep);
+    background: var(--color-gold);
     border-color: var(--color-gold);
   }
 
@@ -601,7 +710,7 @@ body {
      .chip-active is a component class, not a registered utility, so a variant
      would silently generate nothing. */
   input.sr-only:checked + .chip {
-    color: var(--color-navy);
+    color: var(--color-deep);
     background: var(--color-gold);
     border-color: var(--color-gold);
   }
@@ -614,9 +723,14 @@ body {
     width: 100%;
     border-radius: var(--radius-control);
     border: 1px solid var(--color-line-control);
-    background: color-mix(in oklab, var(--color-navy) 60%, transparent);
+    /* An input is a well cut into the sheet, so it takes the page colour
+       rather than the card's white: that is what makes it read as somewhere
+       to type on a surface that is already light. */
+    background: var(--color-navy);
     padding: 0.75rem 1rem;
     color: var(--color-chalk);
+    /* 16px minimum, or iOS Safari zooms the whole page on focus. */
+    font-size: max(1rem, 16px);
     transition:
       border-color 0.2s ease,
       box-shadow 0.25s var(--ease-court);
@@ -627,19 +741,23 @@ body {
   .input-field:focus {
     border-color: var(--color-gold);
     outline: none;
+    background: var(--color-navy-light);
     box-shadow:
-      0 0 0 3px color-mix(in oklab, var(--color-gold) 16%, transparent),
-      0 0 20px -8px color-mix(in oklab, var(--color-gold) 40%, transparent);
+      0 0 0 3px color-mix(in oklab, var(--color-gold) 28%, transparent),
+      0 2px 10px -6px color-mix(in oklab, var(--color-gold) 45%, transparent);
   }
 
+  /* Sheen across a headline. Both stops are readable INK on light, so the
+     sweep is a shift in warmth rather than a dip into an unreadable bright
+     gold: the fill tokens are for fills, never for type. */
   .text-sheen {
     background: linear-gradient(
       100deg,
-      var(--color-gold) 0%,
-      color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk)) 25%,
+      var(--color-gold-ink) 0%,
+      color-mix(in oklab, var(--color-gold-ink) 55%, var(--color-chalk)) 25%,
       var(--color-chalk) 50%,
-      color-mix(in oklab, var(--color-gold) 55%, var(--color-chalk)) 75%,
-      var(--color-gold) 100%
+      color-mix(in oklab, var(--color-gold-ink) 55%, var(--color-chalk)) 75%,
+      var(--color-gold-ink) 100%
     );
     background-size: 200% auto;
     background-clip: text;
@@ -661,7 +779,7 @@ body {
     transition: opacity 0.4s ease;
     background: radial-gradient(
       420px circle at var(--mx, 50%) var(--my, 50%),
-      color-mix(in oklab, var(--color-gold) 9%, transparent),
+      color-mix(in oklab, var(--color-gold) 16%, transparent),
       transparent 65%
     );
   }
@@ -730,9 +848,9 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    border: 1px solid color-mix(in oklab, var(--color-gold) 55%, var(--color-line));
-    background: color-mix(in oklab, var(--color-gold) 12%, transparent);
-    color: var(--color-gold);
+    border: 1px solid color-mix(in oklab, var(--color-gold) 65%, var(--color-line));
+    background: color-mix(in oklab, var(--color-gold) 20%, transparent);
+    color: var(--color-gold-ink);
   }
 
   .reward-mark path,
@@ -1139,12 +1257,12 @@ body {
     background:
       radial-gradient(
         90% 60% at 100% 0%,
-        color-mix(in oklab, var(--color-gold) 7%, transparent),
+        color-mix(in oklab, var(--color-gold) 13%, transparent),
         transparent 62%
       ),
       radial-gradient(
         80% 55% at 0% 100%,
-        color-mix(in oklab, var(--color-teal) 6%, transparent),
+        color-mix(in oklab, var(--color-teal) 10%, transparent),
         transparent 60%
       );
   }
@@ -1159,13 +1277,13 @@ body {
     background:
       radial-gradient(
         124% 148% at 88% 0%,
-        color-mix(in oklab, var(--color-gold) 13%, transparent),
+        color-mix(in oklab, var(--color-gold) 22%, transparent),
         transparent 62%
       ),
       linear-gradient(
         158deg,
-        var(--color-navy-lighter),
-        color-mix(in oklab, var(--color-navy-light) 62%, var(--color-navy))
+        var(--color-navy-light),
+        color-mix(in oklab, var(--color-navy-lighter) 70%, var(--color-navy-light))
       );
   }
 
@@ -1177,12 +1295,12 @@ body {
     background:
       radial-gradient(
         128% 176% at 0% 50%,
-        color-mix(in oklab, var(--color-gold) 20%, transparent),
+        color-mix(in oklab, var(--color-gold) 28%, transparent),
         transparent 58%
       ),
       linear-gradient(
         120deg,
-        color-mix(in oklab, var(--color-teal) 14%, var(--color-navy-light)),
+        color-mix(in oklab, var(--color-teal) 12%, var(--color-navy-light)),
         var(--color-navy-light)
       );
   }
@@ -1223,13 +1341,17 @@ body {
     justify-content: center;
     border-radius: 0.6rem;
     border: 1px solid var(--color-line);
-    background: color-mix(in oklab, var(--color-navy) 55%, transparent);
+    background: var(--color-navy);
     color: var(--color-chalk-dim);
-    transition: color 0.2s ease, border-color 0.2s ease;
+    transition:
+      color 0.2s ease,
+      background 0.2s ease,
+      border-color 0.2s ease;
   }
   .group:hover .row-tile {
-    color: var(--color-gold);
-    border-color: color-mix(in oklab, var(--color-gold) 35%, var(--color-line));
+    color: var(--color-gold-ink);
+    background: color-mix(in oklab, var(--color-gold) 14%, var(--color-navy));
+    border-color: color-mix(in oklab, var(--color-gold) 45%, var(--color-line));
   }
 
   /* Two-option switch drawn as a pill inside a track. Real radios carry the
@@ -1246,7 +1368,7 @@ body {
     gap: 0.125rem;
     border-radius: 9999px;
     border: 1px solid var(--color-line);
-    background: color-mix(in oklab, var(--color-navy) 70%, transparent);
+    background: var(--color-navy-lighter);
     padding: 0.1875rem;
   }
   .segmented-option {
@@ -1270,11 +1392,11 @@ body {
     color: var(--color-chalk);
   }
   input.sr-only:checked + .segmented-option {
-    color: var(--color-navy);
+    color: var(--color-deep);
     background: var(--color-gold);
   }
   input.sr-only:checked + .segmented-option:hover {
-    color: var(--color-navy);
+    color: var(--color-deep);
   }
   input.sr-only:focus-visible + .segmented-option {
     outline: 2px solid var(--color-gold);

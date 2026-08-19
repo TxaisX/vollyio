@@ -78,6 +78,25 @@ for (const absolute of sourceRoots.flatMap((dir) => walk(join(root, dir)))) {
       ) {
         report(file, source, node.getStart(source), "user-facing copy contains a vendor name");
       }
+
+      // PRECISION THE SCORING PATH CANNOT PRODUCE.
+      // The live read samples roughly one low-resolution image per second, so
+      // no frame index and no sub-second timestamp sits behind anything the
+      // UI says. Copy citing one is a false statement about the product, and
+      // it had shipped twice: the landing page advertised "cited: frame 6,
+      // t=1.2s" and the film scene "Priority fix, frame 12". Both are gone;
+      // this stops them being retyped.
+      if (
+        !isModuleSpecifier(node) &&
+        /\bframes?\s*[#:]?\s*\d|\bt\s*=\s*\d+(?:\.\d+)?\s*s\b/i.test(value ?? "")
+      ) {
+        report(
+          file,
+          source,
+          node.getStart(source),
+          "copy cites a frame or timestamp; the scoring path samples ~1 low-res image per second and cannot support one",
+        );
+      }
     }
     ts.forEachChild(node, visit);
   }

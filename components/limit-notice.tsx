@@ -44,7 +44,7 @@ export function LimitNotice({
 
   return (
     <div className={`card p-5 ${className}`}>
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
         Out of analyses
       </p>
       <Heading className="mt-2 font-display text-xl font-bold leading-snug text-chalk">

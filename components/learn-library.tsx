@@ -41,9 +41,9 @@ const TABS: { id: Tab; label: string; blurb: string; placeholder: string }[] = [
 ];
 
 const TONE_CLASS: Record<NonNullable<LibraryItem["tone"]>, string> = {
-  urgent: "text-coral",
-  assess: "text-gold",
-  self: "text-teal",
+  urgent: "text-coral-ink",
+  assess: "text-gold-ink",
+  self: "text-teal-ink",
 };
 
 export function LearnLibrary({

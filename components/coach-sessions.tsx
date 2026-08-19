@@ -20,7 +20,7 @@ function DeleteButton({ session }: { session: CoachSession }) {
       <button
         type="submit"
         aria-label={`Delete session: ${session.title}`}
-        className="icon-btn transition-colors hover:text-coral"
+        className="icon-btn transition-colors hover:text-coral-ink"
       >
         <svg
           viewBox="0 0 24 24"
@@ -61,7 +61,7 @@ function SessionList({
         href="/coach?s=new"
         aria-current={activeId == null ? "true" : undefined}
         className={`btn-ghost mb-2 min-h-11 shrink-0 justify-center py-2 text-xs ${
-          activeId == null ? "border-gold text-gold" : ""
+          activeId == null ? "border-gold text-gold-ink" : ""
         }`}
       >
         New chat

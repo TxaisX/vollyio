@@ -126,7 +126,7 @@ export function ProgressChart({
               x={W - PAD_X}
               y={targetY - 6}
               textAnchor="end"
-              className="fill-teal font-mono"
+              className="fill-teal-ink font-mono"
               fontSize="10"
             >
               target {target}

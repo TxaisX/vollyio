@@ -30,7 +30,7 @@ function Section({
 export default function PrivacyPage() {
   return (
     <article>
-      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
         Effective {EFFECTIVE}
       </p>
       <h1 className="mt-3 font-display text-page-title md:text-4xl">
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
             href="https://www.cloudflare.com/turnstile-privacy-policy/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             Turnstile Privacy Addendum
           </a>
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
           contact{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>{" "}
@@ -220,7 +220,7 @@ export default function PrivacyPage() {
           account. Questions or requests:{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>

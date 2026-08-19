@@ -22,7 +22,7 @@ import { DAILY_ALLOWANCE } from "@/lib/plans";
 export function ClaimAccountNotice({ className = "" }: { className?: string }) {
   return (
     <div className={`card border-gold/25 bg-navy/80 p-5 ${className}`}>
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
         Your free read is done
       </p>
       <p className="mt-2 text-sm leading-relaxed text-chalk">

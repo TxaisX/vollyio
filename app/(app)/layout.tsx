@@ -6,6 +6,7 @@ import {
   TabBar,
   HomeMark,
 } from "@/components/app-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { FunnelHandoff } from "@/components/funnel-handoff";
 import { SeamArcs } from "@/components/motif";
 import { logout } from "@/app/(auth)/actions";
@@ -40,6 +41,7 @@ export default function AppLayout({
             are the daily loop, and the gear keeps the monthly page one tap
             away without costing a slot. */}
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <SettingsTopBarLink />
           <form action={logout}>
             <LogoutButton variant="mobile" />
@@ -58,6 +60,12 @@ export default function AppLayout({
         />
         <SideNavLinks />
         <div className="mt-auto flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-1 px-3">
+            <span className="font-mono text-[0.6875rem] uppercase tracking-wide text-chalk-faint">
+              Theme
+            </span>
+            <ThemeToggle />
+          </div>
           <SettingsNavLink />
           <form action={logout}>
             <LogoutButton variant="sidebar" />

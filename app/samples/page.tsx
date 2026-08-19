@@ -49,7 +49,7 @@ export default function SamplesPage() {
       <div className="flex items-center justify-between border-b border-line pb-5">
         <Link
           href="/"
-          className="font-display text-lg font-bold tracking-wide text-gold"
+          className="font-display text-lg font-bold tracking-wide text-gold-ink"
         >
           Vollyio
         </Link>
@@ -76,12 +76,12 @@ export default function SamplesPage() {
             <Link href={s.href} className="card card-lift group flex h-full flex-col p-5">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 font-display text-sm font-bold">
-                  <span className="text-chalk-dim transition-colors group-hover:text-gold">
+                  <span className="text-chalk-dim transition-colors group-hover:text-gold-ink">
                     <SkillIcon skill={s.skill} className="h-4.5 w-4.5" />
                   </span>
                   {s.label}
                 </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-ink">
                   {scoreBand(s.score)}
                 </span>
               </div>
@@ -89,7 +89,7 @@ export default function SamplesPage() {
                 <ScoreRing score={s.score} size={84} label={s.label} />
               </div>
               <p className="mt-4 grow text-sm leading-relaxed text-chalk-dim">{s.note}</p>
-              <span className="mt-4 font-mono text-[11px] uppercase tracking-[0.08em] text-gold">
+              <span className="mt-4 font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink">
                 Open the full breakdown
               </span>
             </Link>

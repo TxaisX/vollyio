@@ -70,7 +70,7 @@ export function OnboardingFlow({
   const [timeframe, setTimeframe] = useState<TimeframeDays | null>(null);
 
   const stepMeta = (
-    <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+    <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
       {STEPS[step]} · {step + 1} of {STEPS.length}
     </p>
   );
@@ -303,7 +303,7 @@ export function OnboardingFlow({
                 }`}
               >
                 <span className="font-display text-2xl font-bold">{t.value}</span>
-                <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gold">
+                <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-gold-ink">
                   {t.band}
                 </span>
                 <span className="mt-1 block text-xs text-chalk-dim">
@@ -327,7 +327,7 @@ export function OnboardingFlow({
                       setStep(6);
                     }}
                     className={`chip min-h-11 ${
-                      timeframe === t ? "border-gold text-gold" : ""
+                      timeframe === t ? "border-gold text-gold-ink" : ""
                     }`}
                     aria-pressed={timeframe === t}
                   >

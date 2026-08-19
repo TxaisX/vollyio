@@ -81,7 +81,7 @@ export function SkillPicker({
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="absolute right-2.5 top-2.5 h-4 w-4 text-gold"
+                className="absolute right-2.5 top-2.5 h-4 w-4 text-gold-ink"
                 aria-hidden="true"
               >
                 <path d="M3 8.5l3.5 3.5L13 5" />
@@ -95,7 +95,7 @@ export function SkillPicker({
                   icon inside it. */}
               <span
                 className={`row-tile h-9 w-9 ${
-                  active ? "border-gold/40 text-gold" : ""
+                  active ? "border-gold/40 text-gold-ink" : ""
                 }`}
               >
                 <SkillIcon skill={skill} className="h-4.5 w-4.5" />

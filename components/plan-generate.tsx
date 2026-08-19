@@ -20,7 +20,7 @@ export function PlanGenerate({ label }: { label: string }) {
         {pending ? "Building your week…" : label}
       </button>
       {state.error && (
-        <p role="alert" className="mt-3 text-sm text-coral">
+        <p role="alert" className="mt-3 text-sm text-coral-ink">
           {state.error}
         </p>
       )}

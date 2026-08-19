@@ -48,14 +48,14 @@ export default async function Signup({
           Vollyio
         </Link>
         <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             First rep is free
           </p>
           <h1 className="mt-2 font-display text-2xl font-bold">
             Create your account
           </h1>
           {error && (
-            <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
+            <p id="form-error" role="alert" className="mt-3 text-sm text-coral-ink">
               {error}
             </p>
           )}
@@ -127,7 +127,7 @@ export default async function Signup({
                 href="/terms"
                 target="_blank"
                 rel="noopener"
-                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
               >
                 Terms of Service
               </Link>{" "}
@@ -136,7 +136,7 @@ export default async function Signup({
                 href="/privacy"
                 target="_blank"
                 rel="noopener"
-                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
               >
                 Privacy Policy
               </Link>
@@ -157,7 +157,7 @@ export default async function Signup({
           Already have an account?{" "}
           <Link
             href="/login"
-            className="text-gold underline-offset-4 transition-colors hover:underline"
+            className="text-gold-ink underline-offset-4 transition-colors hover:underline"
           >
             Log in
           </Link>

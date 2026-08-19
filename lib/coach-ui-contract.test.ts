@@ -200,8 +200,11 @@ test("the server-built link map reaches the inline renderer", () => {
   assert.match(CHAT_CODE, /renderInline\([^\n]*links\)/);
   assert.match(CHAT_CODE, /const href = resolveCoachLink\(links, label\)/);
   // And a resolved phrase renders as a real next/link, still gold, still bold.
+  // `text-gold-ink` rather than `text-gold` since D-126: on the daylight
+  // surfaces the bright fill token is 1.9:1 against sand and unreadable as
+  // type, so every accent used AS TEXT takes the deep `-ink` half of the pair.
   assert.match(CHAT_CODE, /href \? \([\s\S]{0,200}<Link/);
-  assert.match(CHAT_CODE, /className="font-bold text-gold underline/);
+  assert.match(CHAT_CODE, /className="font-bold text-gold-ink underline/);
   assert.match(CHAT_CODE, /import Link from "next\/link"/);
 });
 

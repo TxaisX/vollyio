@@ -149,7 +149,7 @@ export function PlanOfferPicker({
         By subscribing you agree to the{" "}
         <Link
           href="/terms"
-          className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
         >
           Terms of Service
         </Link>
@@ -176,7 +176,7 @@ export function PlanOfferPicker({
         {busy ? "Opening…" : `Upgrade to ${PLAN_LABEL.pro}`}
       </button>
       {error && (
-        <p role="alert" className="mt-2 text-xs text-coral">
+        <p role="alert" className="mt-2 text-xs text-coral-ink">
           {error}
         </p>
       )}
@@ -235,7 +235,7 @@ export function PlanOfferPicker({
               </button>
             </div>
             {error && (
-              <p role="alert" className="mt-2 text-xs text-coral">
+              <p role="alert" className="mt-2 text-xs text-coral-ink">
                 {error}
               </p>
             )}

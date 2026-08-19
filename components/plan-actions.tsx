@@ -88,7 +88,7 @@ export function PlanAction({
         {busy ? busyLabel : label}
       </button>
       {error && (
-        <p role="alert" className="mt-2 text-xs text-coral">
+        <p role="alert" className="mt-2 text-xs text-coral-ink">
           {error}
         </p>
       )}

@@ -61,7 +61,7 @@ function SparseRow({ series }: { series: ProgressSeries }) {
             so far
           </span>
         </span>
-        <span className="stat-num shrink-0 text-lg text-gold">
+        <span className="stat-num shrink-0 text-lg text-gold-ink">
           {point?.score ?? "--"}
         </span>
       </Link>
@@ -124,7 +124,7 @@ export default async function Progress() {
             chips, and they belong beside the question they answer. */}
         <Reveal>
           <div className="hero-band card spot p-5 sm:p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
               Progress
             </p>
             <h1 className="mt-1.5 font-display text-page-title">
@@ -212,7 +212,7 @@ export default async function Progress() {
                 Want a line to aim at? Set a target in{" "}
                 <Link
                   href="/goals"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
                 >
                   Goals
                 </Link>

@@ -50,9 +50,9 @@ export async function generateMetadata({
 }
 
 const TRIAGE_STYLE: Record<RehabEntry["triage"], string> = {
-  urgent: "border-coral text-coral",
-  get_assessed: "border-gold text-gold",
-  self_manage: "border-teal text-teal",
+  urgent: "border-coral text-coral-ink",
+  get_assessed: "border-gold text-gold-ink",
+  self_manage: "border-teal text-teal-ink",
 };
 
 function List({
@@ -69,7 +69,7 @@ function List({
     <div className="mt-8">
       <h2
         className={`font-display text-sm font-bold uppercase tracking-wide ${
-          tone === "danger" ? "text-coral" : ""
+          tone === "danger" ? "text-coral-ink" : ""
         }`}
       >
         {title}
@@ -107,12 +107,12 @@ export default async function RehabDetail({
       <Reveal>
         <Link
           href="/learn?tab=rehab"
-          className="relative font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim transition-colors hover:text-gold"
+          className="relative font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim transition-colors hover:text-gold-ink"
         >
           &larr; Injury &amp; recovery
           <LinkPending />
         </Link>
-        <p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+        <p className="mt-4 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
           {REGION_LABEL[entry.region]}
         </p>
         <h1 className="mt-2 text-balance font-display text-page-title">

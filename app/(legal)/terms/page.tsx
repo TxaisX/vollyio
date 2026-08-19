@@ -63,7 +63,7 @@ function Section({
 export default function TermsPage() {
   return (
     <article>
-      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
         Effective {EFFECTIVE}
       </p>
       <h1 className="mt-3 font-display text-page-title md:text-4xl">
@@ -75,7 +75,7 @@ export default function TermsPage() {
         How we handle your data is covered separately in the{" "}
         <Link
           href="/privacy"
-          className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+          className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
         >
           Privacy Policy
         </Link>
@@ -256,7 +256,7 @@ export default function TermsPage() {
           to cancel. If the billing page will not open for you, write to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>{" "}
@@ -365,7 +365,7 @@ export default function TermsPage() {
           Write to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>{" "}
@@ -405,7 +405,7 @@ export default function TermsPage() {
           account and your film gone sooner than that, write to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>{" "}
@@ -490,7 +490,7 @@ export default function TermsPage() {
           You can also write to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>
@@ -588,7 +588,7 @@ export default function TermsPage() {
           anything about a charge:{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             {SUPPORT_EMAIL}
           </a>

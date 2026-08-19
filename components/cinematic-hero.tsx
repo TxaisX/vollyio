@@ -33,7 +33,7 @@ export function CinematicHero() {
       <div className="pointer-events-none relative z-10 mx-auto w-full max-w-6xl px-5 pb-40 pt-32 md:px-8 md:pb-32 md:pt-28">
         <div className="pointer-events-auto max-w-3xl">
           <Reveal immediate>
-            <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-gold md:text-xs">
+            <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-gold-ink md:text-xs">
               <span aria-hidden="true" className="hero-live-mark" />
               Your film <span aria-hidden="true">·</span> your fix
               <span className="hidden sm:inline" aria-hidden="true">·</span>
@@ -74,7 +74,7 @@ export function CinematicHero() {
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-chalk-dim">
                 0{index + 1}
               </span>
-              <span className={`hero-analysis-value ${item.accent ? "text-teal" : "text-chalk"}`}>
+              <span className={`hero-analysis-value ${item.accent ? "text-teal-ink" : "text-chalk"}`}>
                 {item.value}
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chalk-dim">

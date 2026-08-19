@@ -149,7 +149,7 @@ export default async function Settings({
           page shared with /history before both were converted. */}
       <Reveal>
         <div className="hero-band card spot p-5 sm:p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
             Settings
           </p>
           <h1 className="mt-1.5 font-display text-page-title">

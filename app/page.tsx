@@ -92,7 +92,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
           the period you paid for. Full detail is in the{" "}
           <Link
             href="/terms"
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             terms
           </Link>
@@ -117,7 +117,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
           your whole account. The details live in the{" "}
           <Link
             href="/privacy"
-            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+            className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
           >
             Privacy Policy
           </Link>
@@ -235,7 +235,7 @@ export default function Landing() {
         <section id="film" className="cinematic-film-section scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                 The film room
               </p>
               <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
@@ -254,7 +254,7 @@ export default function Landing() {
               <p className="mt-4">
                 <Link
                   href="/samples"
-                  className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold transition-colors hover:text-chalk"
+                  className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
                 >
                   Or browse three real breakdowns first &rarr;
                 </Link>
@@ -296,7 +296,7 @@ export default function Landing() {
 
         <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
           <Reveal>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
               How it works
             </p>
             <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
@@ -308,7 +308,7 @@ export default function Landing() {
               <Reveal key={step.n} delay={i * 90} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot h-full p-6">
-                    <span className="font-mono text-sm text-gold">{step.n}</span>
+                    <span className="font-mono text-sm text-gold-ink">{step.n}</span>
                     <h3 className="mt-3 font-display text-xl font-bold">
                       {step.title}
                     </h3>
@@ -325,7 +325,7 @@ export default function Landing() {
         <section id="analytics" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                 Analytics that coach you
               </p>
               <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
@@ -348,11 +348,11 @@ export default function Landing() {
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <div className="flex items-end gap-4">
-                <span className="stat-num text-gold text-6xl md:text-7xl">
+                <span className="stat-num text-gold-ink text-6xl md:text-7xl">
                   <CountUp to={6} />
                 </span>
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                  <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                     Skills scored
                   </p>
                   <h2 className="mt-2 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
@@ -374,7 +374,7 @@ export default function Landing() {
                       className="card card-lift spot h-full p-6"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-gold">
+                        <span className="text-gold-ink">
                           <SkillIcon skill={skill} />
                         </span>
                         <h3 className="font-display text-lg font-bold">
@@ -384,7 +384,7 @@ export default function Landing() {
                       <p className="mt-3 text-body text-chalk-dim">
                         {SKILL_BLURB[skill]}
                       </p>
-                      <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wide text-gold">
+                      <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wide text-gold-ink">
                         Read the technique
                         <svg
                           viewBox="0 0 16 16"
@@ -409,7 +409,7 @@ export default function Landing() {
                 Or go straight to the{" "}
                 <Link
                   href="/drills"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
                 >
                   drill library
                 </Link>
@@ -424,7 +424,7 @@ export default function Landing() {
           <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:items-center md:px-8 md:py-28">
             <div>
               <Reveal>
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                   Evidence, not vibes
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
@@ -464,8 +464,18 @@ export default function Landing() {
                   ))}
                 </div>
                 <div className="mt-5 border-t border-line pt-4">
+                  {/* This tag used to cite a specific sampled image and an
+                      instant within the clip. The product cannot produce
+                      either: the scoring path takes roughly one low-resolution
+                      sample a second and `/api/analyze` returns no instant at
+                      all, so the claim was false on a page a parent reads
+                      first. Saying the read covers the whole rep is the honest
+                      version, and it is what the breakdown actually shows.
+                      lib/landing-cinematic.test.ts holds the whole claim
+                      family down, comments included, which is why this note
+                      describes the ban rather than restating the words. */}
                   <span className="tag uppercase">
-                    Example · cited: frame 6 · t=1.2s
+                    Example · read across the whole rep
                   </span>
                 </div>
               </div>
@@ -476,7 +486,7 @@ export default function Landing() {
         <section id="progress" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                 Progress
               </p>
               <h2 className="mt-3 max-w-lg font-display text-3xl font-bold tracking-tight md:text-4xl">
@@ -517,7 +527,7 @@ export default function Landing() {
               <Reveal delay={140} className="reveal-3d h-full">
                 <Tilt className="h-full">
                   <div className="card card-lift spot flex h-full flex-col justify-center p-6">
-                    <span className="stat-num text-gold text-5xl">
+                    <span className="stat-num text-gold-ink text-5xl">
                       <CountUp to={12} />
                     </span>
                     <p className="mt-2 font-display font-bold">day streak</p>
@@ -551,7 +561,7 @@ export default function Landing() {
           <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:items-center md:px-8 md:py-28">
             <div>
               <Reveal>
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                   Coach chat{" "}
                   <span className="ml-2 inline-block rounded-full border border-line-control px-2.5 py-0.5 text-[10px] tracking-[0.12em] text-chalk-dim">
                     Coming soon
@@ -569,7 +579,7 @@ export default function Landing() {
             <Reveal delay={140}>
               <div className="card p-6">
                 <div className="space-y-3">
-                  <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm font-medium text-navy">
+                  <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-gold px-4 py-2.5 text-sm font-medium text-deep">
                     Why is my passing score stuck at 64?
                   </div>
                   <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-line bg-navy-light px-4 py-2.5 text-sm text-chalk">
@@ -592,7 +602,7 @@ export default function Landing() {
         <section id="faq" className="scroll-mt-24 border-t border-line">
           <div className="mx-auto max-w-3xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                 Straight answers
               </p>
               <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
@@ -613,7 +623,7 @@ export default function Landing() {
                         strokeLinecap="round"
                         aria-hidden
                         focusable="false"
-                        className="h-4 w-4 shrink-0 text-gold transition-transform duration-200 ease-court group-open:rotate-45"
+                        className="h-4 w-4 shrink-0 text-gold-ink transition-transform duration-200 ease-court group-open:rotate-45"
                       >
                         <path d="M12 5v14M5 12h14" />
                       </svg>
@@ -668,7 +678,7 @@ export default function Landing() {
                 Your film stays private to your account:{" "}
                 <Link
                   href="/privacy"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
                 >
                   see how we handle it
                 </Link>

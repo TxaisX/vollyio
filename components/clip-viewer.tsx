@@ -35,7 +35,7 @@ export function ClipViewer({ clipUrl, frames, focusIndex, contactIndex }: Viewer
 /** Small mono badge used to mark the contact / focus frame in a strip. */
 function StripTag({ text }: { text: string }) {
   return (
-    <span className="absolute bottom-1 left-1 rounded bg-gold px-1 py-px font-mono text-[9px] uppercase tracking-wide text-navy">
+    <span className="absolute bottom-1 left-1 rounded bg-gold px-1 py-px font-mono text-[9px] uppercase tracking-wide text-deep">
       {text}
     </span>
   );
@@ -95,7 +95,7 @@ function FrameStrip({
               )}
               <span
                 className={`absolute left-1 top-1 rounded px-1 py-px font-mono text-[9px] ${
-                  i === active ? "bg-gold text-navy" : "bg-navy/85 text-chalk"
+                  i === active ? "bg-gold text-deep" : "bg-navy/85 text-chalk"
                 }`}
               >
                 {f.time_s != null ? `${f.time_s}s` : i + 1}
@@ -141,7 +141,7 @@ function ClipPlayer({
 
   return (
     <div>
-      <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+      <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
         Clip
       </p>
 
@@ -218,7 +218,7 @@ function FramePlayer({
   if (frames.length === 0) {
     return (
       <div>
-        <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
           Frame by frame
         </p>
         <div className="card border-dashed border-line p-10 text-center text-sm text-chalk-dim">
@@ -237,7 +237,7 @@ function FramePlayer({
 
   return (
     <div>
-      <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+      <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
         Frame by frame
       </p>
       <p role="status" aria-live="polite" className="sr-only">

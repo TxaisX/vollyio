@@ -73,7 +73,7 @@ export default async function LearnSkill({
         <Link
           href={`/learn${q}`}
           transitionTypes={["nav-back"]}
-          className="inline-flex min-h-11 items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
+          className="inline-flex min-h-11 items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold-ink"
         >
           <svg
             viewBox="0 0 24 24"
@@ -89,7 +89,7 @@ export default async function LearnSkill({
           </svg>
           Learn
         </Link>
-        <p className="mt-4 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+        <p className="mt-4 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
           <SkillIcon skill={skill} className="h-4 w-4" />
           {SKILL_LABEL[skill]}
         </p>
@@ -121,7 +121,7 @@ export default async function LearnSkill({
 
       <Reveal delay={80}>
         <div className="card mt-6 border-l-2 border-teal p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-teal">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-teal-ink">
             Highest leverage · {metricLabel(skill, t.highest_leverage_metric)}
           </p>
           <p className="mt-1 text-body leading-relaxed">{t.highest_leverage_note}</p>
@@ -136,7 +136,7 @@ export default async function LearnSkill({
       <ol className="grid gap-4 sm:grid-cols-2">
         {t.phases.map((p, i) => (
           <Reveal key={p.name} as="li" delay={Math.min(i, 4) * 55} className="flex gap-4 text-sm">
-              <span className="font-display text-2xl font-bold leading-none text-gold/70">
+              <span className="font-display text-2xl font-bold leading-none text-gold-ink/70">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="pt-1 leading-relaxed">
@@ -164,7 +164,7 @@ export default async function LearnSkill({
                   {k.what} {k.why}
                 </p>
 
-                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-teal">
+                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-teal-ink">
                   Elite marker
                 </p>
                 <p className="mt-1 text-body leading-relaxed">{k.elite_marker}</p>
@@ -174,7 +174,7 @@ export default async function LearnSkill({
                   </p>
                 )}
 
-                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-coral">
+                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-coral-ink">
                   Common faults
                 </p>
                 <ul className="mt-1 space-y-1">

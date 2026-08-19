@@ -128,7 +128,7 @@ export function ReportContent({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
-        className={`font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim underline underline-offset-4 transition-colors hover:text-gold ${className}`}
+        className={`font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim underline underline-offset-4 transition-colors hover:text-gold-ink ${className}`}
       >
         {label}
       </button>
@@ -158,7 +158,7 @@ export function ReportContent({
                   key={r}
                   className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-card border px-3 py-2 text-sm transition ${
                     reason === r
-                      ? "border-gold bg-gold/10 text-gold"
+                      ? "border-gold bg-gold/10 text-gold-ink"
                       : "border-chalk-dim/25 bg-navy-lighter text-chalk hover:border-gold/60"
                   }`}
                 >
@@ -194,7 +194,7 @@ export function ReportContent({
           />
 
           {error && (
-            <p role="alert" className="mt-3 text-xs text-coral">
+            <p role="alert" className="mt-3 text-xs text-coral-ink">
               {error}
             </p>
           )}

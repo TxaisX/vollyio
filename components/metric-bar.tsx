@@ -78,7 +78,7 @@ export function MetricBar({
           )}
         </span>
         {observed ? (
-          <span className="shrink-0 font-mono text-lg font-semibold text-gold">{shown}</span>
+          <span className="shrink-0 font-mono text-lg font-semibold text-gold-ink">{shown}</span>
         ) : (
           <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
             Not visible
@@ -134,7 +134,7 @@ export function MetricBar({
       {note && <p className="mt-1 text-sm text-chalk-dim">{note}</p>}
       {elite && (
         <details className="mt-1">
-          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wide text-teal">
+          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wide text-teal-ink">
             What 90 looks like
           </summary>
           <p className="mt-1 text-xs text-chalk-dim">{elite}</p>

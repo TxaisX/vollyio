@@ -76,7 +76,7 @@ function GoalForm({
           aria-describedby={errors?.title ? "goal-title-error" : undefined}
         />
         {errors?.title && (
-          <p id="goal-title-error" className="mt-1.5 text-xs text-coral">
+          <p id="goal-title-error" className="mt-1.5 text-xs text-coral-ink">
             {errors.title}
           </p>
         )}
@@ -123,7 +123,7 @@ function GoalForm({
           })}
         </div>
         {errors?.skill && (
-          <p id="goal-skill-error" className="mt-1.5 text-xs text-coral">
+          <p id="goal-skill-error" className="mt-1.5 text-xs text-coral-ink">
             {errors.skill}
           </p>
         )}
@@ -151,7 +151,7 @@ function GoalForm({
             }
           />
           {errors?.target_rating && (
-            <p id="goal-target-error" className="mt-1.5 text-xs text-coral">
+            <p id="goal-target-error" className="mt-1.5 text-xs text-coral-ink">
               {errors.target_rating}
             </p>
           )}
@@ -170,7 +170,7 @@ function GoalForm({
             aria-describedby={errors?.deadline ? "goal-deadline-error" : undefined}
           />
           {errors?.deadline && (
-            <p id="goal-deadline-error" className="mt-1.5 text-xs text-coral">
+            <p id="goal-deadline-error" className="mt-1.5 text-xs text-coral-ink">
               {errors.deadline}
             </p>
           )}
@@ -222,7 +222,7 @@ function Deadline({ date }: { date: string }) {
   return (
     <span
       suppressHydrationWarning
-      className={`font-mono text-[11px] ${days < 0 ? "text-coral" : "text-chalk-dim"}`}
+      className={`font-mono text-[11px] ${days < 0 ? "text-coral-ink" : "text-chalk-dim"}`}
     >
       {label}
     </span>
@@ -306,7 +306,7 @@ function GoalRow({
               {rating != null ? Math.round(rating) : "·"}/{target}
             </span>
             {hit && (
-              <span className="font-mono text-[10px] uppercase tracking-wide text-teal">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-teal-ink">
                 Target hit
               </span>
             )}
@@ -325,7 +325,7 @@ function GoalRow({
                 setIntent("abandon");
                 startTransition(() => abandonGoal(goal.id));
               }}
-              className="btn-ghost min-h-11 px-3.5 py-1.5 text-xs text-coral disabled:opacity-60"
+              className="btn-ghost min-h-11 px-3.5 py-1.5 text-xs text-coral-ink disabled:opacity-60"
             >
               Abandon
             </button>
@@ -420,7 +420,7 @@ export function GoalsBoard({
       <div className="flex items-center justify-between gap-3">
         <h2
           id="goals-heading"
-          className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold"
+          className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink"
         >
           Goals
           {goals.length > 0 && (
@@ -458,7 +458,7 @@ export function GoalsBoard({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-gold transition-colors hover:text-chalk"
+            className="text-gold-ink transition-colors hover:text-chalk"
           >
             Set a target.
           </button>

@@ -57,7 +57,7 @@ function renderInline(text: string, keyBase: string, links: CoachLinkMap): React
           <Link
             key={`${keyBase}-b${i}`}
             href={href}
-            className="font-bold text-gold underline decoration-gold/40 underline-offset-2 transition-colors hover:decoration-gold"
+            className="font-bold text-gold-ink underline decoration-gold-ink/40 underline-offset-2 transition-colors hover:decoration-gold-ink"
           >
             {plain(label)}
           </Link>
@@ -620,7 +620,7 @@ export function CoachChat({
       <div className="shrink-0 bg-navy pb-1 pt-2">
         {error && (
           <div role="alert" className="mb-1.5 flex items-center gap-3">
-            <span className="text-sm text-coral">{error}</span>
+            <span className="text-sm text-coral-ink">{error}</span>
             {failedText && (
               <button
                 type="button"

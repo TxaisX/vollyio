@@ -84,7 +84,7 @@ export function StickyClip({
       className="sticky top-[var(--clip-top)] z-20 -mx-[var(--clip-bleed)] bg-navy/95 px-[var(--clip-bleed)] pb-2.5 pt-2 backdrop-blur-md"
     >
       {label && (
-        <p className="mb-1.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
+        <p className="mb-1.5 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-gold-ink">
           {label}
         </p>
       )}

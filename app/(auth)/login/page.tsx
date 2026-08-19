@@ -42,17 +42,17 @@ export default async function Login({
           Vollyio
         </Link>
         <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             Welcome back
           </p>
           <h1 className="mt-2 font-display text-2xl font-bold">Log in</h1>
           {message && (
-            <p role="status" className="mt-3 text-sm text-teal">
+            <p role="status" className="mt-3 text-sm text-teal-ink">
               {message}
             </p>
           )}
           {error && (
-            <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
+            <p id="form-error" role="alert" className="mt-3 text-sm text-coral-ink">
               {error}
             </p>
           )}
@@ -108,7 +108,7 @@ export default async function Login({
           <p className="mt-5 text-center text-sm">
             <Link
               href="/forgot"
-              className="text-chalk-dim underline decoration-line underline-offset-4 transition-colors hover:text-gold"
+              className="text-chalk-dim underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
             >
               Forgot your password?
             </Link>
@@ -118,7 +118,7 @@ export default async function Login({
           New here?{" "}
           <Link
             href="/signup"
-            className="text-gold underline-offset-4 transition-colors hover:underline"
+            className="text-gold-ink underline-offset-4 transition-colors hover:underline"
           >
             Create an account
           </Link>

@@ -17,7 +17,7 @@ export default function GlobalError({
       <body className="bg-navy text-chalk">
         <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
           <div className="card w-full max-w-sm p-8">
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
               Vollyio
             </p>
             <h1 className="mt-2 font-display text-2xl font-bold">

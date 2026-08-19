@@ -49,7 +49,7 @@ export function DailyAssignmentCard({
   return (
     <div className="challenge-card card card-lift spot p-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
           Today
         </h2>
         <span className="font-mono text-[11px] text-chalk-dim">+{xpAward} XP</span>
@@ -58,7 +58,7 @@ export function DailyAssignmentCard({
       <Link
         href={href}
         transitionTypes={["nav-forward"]}
-        className="relative mt-2 block font-display text-lg font-bold leading-snug transition-colors hover:text-gold"
+        className="relative mt-2 block font-display text-lg font-bold leading-snug transition-colors hover:text-gold-ink"
       >
         {active.title}
         <LinkPending />
@@ -76,7 +76,7 @@ export function DailyAssignmentCard({
       <p className="mt-2 text-body leading-relaxed text-chalk-dim">{active.why}</p>
 
       {logged ? (
-        <p className="reward-earned mt-3 flex items-center gap-2 text-sm text-teal">
+        <p className="reward-earned mt-3 flex items-center gap-2 text-sm text-teal-ink">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -144,7 +144,7 @@ export function DailyAssignmentCard({
           )}
 
           {state.error && (
-            <p role="alert" className="mt-3 text-sm text-coral">
+            <p role="alert" className="mt-3 text-sm text-coral-ink">
               {state.error}
             </p>
           )}

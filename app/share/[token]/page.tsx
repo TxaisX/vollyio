@@ -77,7 +77,7 @@ export default async function SharedBreakdown({
         <div className="flex items-center justify-between border-b border-line pb-5">
           <Link
             href="/"
-            className="font-display text-lg font-bold tracking-wide text-gold"
+            className="font-display text-lg font-bold tracking-wide text-gold-ink"
           >
             Vollyio
           </Link>
@@ -90,7 +90,7 @@ export default async function SharedBreakdown({
       <Reveal delay={60}>
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
               {!shared.clip_path && `${SKILL_LABEL[shared.skill]} · ${dateLabel}`}
             </p>
             <h1 className="mt-2 font-display text-page-title">
@@ -99,7 +99,7 @@ export default async function SharedBreakdown({
           </div>
           <div className="flex flex-col items-center gap-1">
             <ScoreRing score={shared.overall_score} size={84} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-ink">
               {scoreBand(shared.overall_score)}
             </span>
           </div>

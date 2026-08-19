@@ -77,7 +77,7 @@ export function DeleteAccount() {
           }}
         >
           <div className="card w-full max-w-md p-6">
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-coral">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-coral-ink">
               This cannot be undone
             </p>
             <h2 id="delete-account-title" className="mt-2 font-display text-xl font-bold">
@@ -99,7 +99,7 @@ export function DeleteAccount() {
               className="input-field mt-4 w-full font-mono"
             />
             {error && (
-              <p role="alert" className="mt-3 text-sm text-coral">
+              <p role="alert" className="mt-3 text-sm text-coral-ink">
                 {error}
               </p>
             )}

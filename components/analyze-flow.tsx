@@ -415,7 +415,7 @@ function ScoringProgress({ elapsedMs }: { elapsedMs: number }) {
           style={{ width: `${waitProgress(elapsedMs) * 100}%` }}
         />
       </div>
-      <span className="flex items-center gap-2.5 text-teal">
+      <span className="flex items-center gap-2.5 text-teal-ink">
         <WorkingDots />
         <span key={stage.line} className="message-in inline-block">
           {stage.line}
@@ -452,7 +452,7 @@ function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
   const maxScore = Math.max(1, ...debug.curve.map((c) => c.score));
   return (
     <div className="card mt-4 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-ink">
         Frame debug
       </p>
       <p className="mt-1 font-mono text-[11px] text-chalk-dim">
@@ -496,7 +496,7 @@ function FrameDebugPanel({ debug }: { debug: FrameDebug }) {
             key={i}
             className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
               c.kind === "peak"
-                ? "bg-gold text-navy"
+                ? "bg-gold text-deep"
                 : c.kind === "burst"
                   ? "border border-line text-chalk"
                   : "text-chalk-dim"
@@ -1440,7 +1440,7 @@ export function AnalyzeFlow({
           D-116 gave the app one opening shape. Nothing was added to it: the
           eyebrow and the title are the two things that were already here. */}
       <div className="hero-band card spot p-5 sm:p-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
           Analyze
         </p>
         <h1 className="mt-1.5 font-display text-page-title">Film the rep.</h1>
@@ -1464,7 +1464,7 @@ export function AnalyzeFlow({
                 is, and a capture flow is the one place in the app where that
                 ordering is the point. */}
             <h2 id="where-playing" className="section-head mb-3">
-              <span className="font-mono text-xs text-gold">01</span> Where are you
+              <span className="font-mono text-xs text-gold-ink">01</span> Where are you
               playing?
             </h2>
             <div
@@ -1494,7 +1494,7 @@ export function AnalyzeFlow({
                 id="pick-a-skill"
                 className="section-head mb-3"
               >
-                <span className="font-mono text-xs text-gold">02</span> Pick a skill
+                <span className="font-mono text-xs text-gold-ink">02</span> Pick a skill
               </h2>
               <SkillPicker value={skill} onChange={setSkill} labelledBy="pick-a-skill" />
             </div>
@@ -1507,7 +1507,7 @@ export function AnalyzeFlow({
                 tabIndex={-1}
                 className="section-head mb-3"
               >
-                <span className="font-mono text-xs text-gold">03</span> Capture your{" "}
+                <span className="font-mono text-xs text-gold-ink">03</span> Capture your{" "}
                 {SKILL_LABEL[skill].toLowerCase()} rep
               </h2>
 
@@ -1533,20 +1533,20 @@ export function AnalyzeFlow({
                 </p>
                 <ul className="mx-auto mt-3 max-w-xs space-y-1 text-left text-xs text-chalk-dim">
                   <li className="flex gap-2">
-                    <span aria-hidden="true" className="text-gold">
+                    <span aria-hidden="true" className="text-gold-ink">
                       &middot;
                     </span>
                     Fill the frame with the athlete, not the whole court
                   </li>
                   <li className="flex gap-2">
-                    <span aria-hidden="true" className="text-gold">
+                    <span aria-hidden="true" className="text-gold-ink">
                       &middot;
                     </span>
                     Start before the rep and stop after it, so the whole motion
                     is in the clip
                   </li>
                   <li className="flex gap-2">
-                    <span aria-hidden="true" className="text-gold">
+                    <span aria-hidden="true" className="text-gold-ink">
                       &middot;
                     </span>
                     From the side beats head on, and one rep beats a rally
@@ -1590,7 +1590,7 @@ export function AnalyzeFlow({
               openingPick ? "lg:col-span-2" : "lg:sticky lg:top-8"
             }`}
           >
-            <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            <p className="mb-3 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
               Preview
             </p>
 
@@ -1615,7 +1615,7 @@ export function AnalyzeFlow({
                 pick from a list the coach read off the clip itself. */}
             {noPreview && (
               <div className="card mb-3 p-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-ink">
                   No preview, full analysis
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
@@ -1627,7 +1627,7 @@ export function AnalyzeFlow({
                 </p>
 
                 {noPreview.spotting && (
-                  <p className="mt-3 flex items-center gap-2.5 font-mono text-xs text-teal">
+                  <p className="mt-3 flex items-center gap-2.5 font-mono text-xs text-teal-ink">
                     <WorkingDots /> Looking for players in your clip…
                   </p>
                 )}
@@ -1650,7 +1650,7 @@ export function AnalyzeFlow({
                           noPreview.chosen === label ? "chip-active" : ""
                         }`}
                       >
-                        <span className="mr-2 font-mono text-gold">{i + 1}</span>
+                        <span className="mr-2 font-mono text-gold-ink">{i + 1}</span>
                         {label}
                       </button>
                     ))}
@@ -1729,7 +1729,7 @@ export function AnalyzeFlow({
 
             {openingPick && (
               <div className="card mb-3 p-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-ink">
                   Who should I watch?
                 </p>
                 <p className="mt-1 text-xs text-chalk-dim">
@@ -1778,7 +1778,7 @@ export function AnalyzeFlow({
                       style={{ left: `${mark.x * 100}%`, top: `${mark.y * 100}%` }}
                     >
                       <span className="block h-14 w-14 rounded-full border-4 border-gold shadow-[0_0_0_3px_var(--color-navy)]" />
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-navy">
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-gold px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-deep">
                         watching
                       </span>
                     </span>
@@ -1791,7 +1791,7 @@ export function AnalyzeFlow({
                         className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
                         style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
                       >
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gold/80 bg-navy/70 font-mono text-[10px] text-gold">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gold/80 bg-navy/70 font-mono text-[10px] text-gold-ink">
                           {i + 1}
                         </span>
                       </span>
@@ -1818,7 +1818,7 @@ export function AnalyzeFlow({
                         }}
                         className="chip block min-h-11 w-full text-left text-xs"
                       >
-                        <span className="mr-2 font-mono text-gold">{i + 1}</span>
+                        <span className="mr-2 font-mono text-gold-ink">{i + 1}</span>
                         {p.label}
                       </button>
                     ))}
@@ -2000,7 +2000,7 @@ export function AnalyzeFlow({
 
             <div className="mt-4 min-h-6 font-mono text-sm" aria-live="polite">
               {status.kind === "reading" && (
-                <span className="flex items-center gap-2.5 text-teal">
+                <span className="flex items-center gap-2.5 text-teal-ink">
                   <WorkingDots /> Reading your clip…
                 </span>
               )}
@@ -2008,7 +2008,7 @@ export function AnalyzeFlow({
                 <ScoringProgress elapsedMs={scoringElapsedMs} />
               )}
               {status.kind === "error" && (
-                <p className="animate-fade-up text-coral">{status.message}</p>
+                <p className="animate-fade-up text-coral-ink">{status.message}</p>
               )}
               {/* Extraction failed but the clip and its opening frame survive:
                   reopen the framing card instead of stranding the player. The
@@ -2090,7 +2090,7 @@ export function AnalyzeFlow({
           aria-labelledby="training-consent-title"
         >
           <div className="card w-full max-w-md p-6">
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
               One-time question
             </p>
             <h2 id="training-consent-title" className="mt-2 font-display text-xl font-bold">

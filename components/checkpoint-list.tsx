@@ -68,8 +68,8 @@ export function CheckpointList({
                 <span
                   className={`tag shrink-0 ${
                     ranked === "worked"
-                      ? "border-teal/40 text-teal"
-                      : "border-gold/40 text-gold"
+                      ? "border-teal/40 text-teal-ink"
+                      : "border-gold/40 text-gold-ink"
                   }`}
                 >
                   {ranked === "worked" ? "Worked" : "To change"}
@@ -89,7 +89,7 @@ export function CheckpointList({
               // client JS, and it survives a page whose JavaScript never runs.
               // Same treatment MetricBar already gives "what 90 looks like".
               <details className="mt-2">
-                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center font-mono text-[10px] uppercase tracking-wide text-teal">
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center font-mono text-[10px] uppercase tracking-wide text-teal-ink">
                   {/* Five identical toggles on one page are five identical
                       entries in a screen reader's control list, so each one
                       names its own checkpoint. */}
@@ -112,7 +112,7 @@ export function CheckpointList({
                       the disclosure already sits inside the checkpoint row, and
                       nesting a filled card inside a filled row muddies both. */}
                   <div className="mt-2 rounded-lg border border-teal/30 px-3 py-2">
-                    <p className="font-mono text-[10px] uppercase tracking-wide text-teal">
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-teal-ink">
                       What 90 looks like
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-chalk-dim">

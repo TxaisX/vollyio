@@ -65,7 +65,7 @@ export default async function History({
         {/* Same header rhythm as the dashboard and settings: kicker, title,
             controls, then one rule closing the block off from the content. */}
         <div className="border-b border-line pb-5">
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             History
           </p>
           <h1 className="mt-2 font-display text-page-title">
@@ -184,7 +184,7 @@ export default async function History({
                     default="none"
                   >
                     <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
-                      <span className="stat-num text-lg text-gold">
+                      <span className="stat-num text-lg text-gold-ink">
                         {r.overall_score}
                       </span>
                       <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">

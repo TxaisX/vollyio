@@ -129,13 +129,13 @@ export default async function AnalysisDetail({
       <section className="mx-auto max-w-2xl">
         <FunnelBeacon event="wall_view" />
         <Reveal>
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
           </p>
           <div className="mt-5 flex items-center gap-4">
             <div className="flex flex-col items-center gap-1">
               <ScoreRing score={row.overall_score} size={88} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-ink">
                 {scoreBand(row.overall_score)}
               </span>
             </div>
@@ -160,7 +160,7 @@ export default async function AnalysisDetail({
 
         <Reveal delay={120}>
           <div className="card mt-8 p-6">
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-teal">
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-teal-ink">
               In this breakdown
             </p>
             <ul className="mt-3 flex flex-col gap-2">
@@ -412,7 +412,7 @@ export default async function AnalysisDetail({
                 so it stays on screen naming the rep being read about, rather
                 than scrolling away in the first swipe. */}
             {!clipUrl && (
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
                 {SKILL_LABEL[row.skill]} breakdown · {dateLabel}
               </p>
             )}
@@ -451,7 +451,7 @@ export default async function AnalysisDetail({
             >
               <div className="flex flex-col items-center gap-1">
                 <ScoreRing score={row.overall_score} size={72} />
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-ink">
                   {scoreBand(row.overall_score)}
                 </span>
               </div>
@@ -473,7 +473,7 @@ export default async function AnalysisDetail({
               {typeof result.coverage_pct === "number" && (
                 <p
                   className={`mt-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
-                    result.low_confidence ? "text-coral" : "text-chalk-dim"
+                    result.low_confidence ? "text-coral-ink" : "text-chalk-dim"
                   }`}
                 >
                   {result.coverage_pct}% graded
@@ -518,7 +518,7 @@ export default async function AnalysisDetail({
       {lastTime && lastTimeCopy && (
         <Reveal delay={90}>
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal-ink">
               Last time
             </span>
             <span className="min-w-0 text-sm text-chalk">
@@ -528,9 +528,9 @@ export default async function AnalysisDetail({
             <span
               className={`font-mono text-xs ${
                 lastTime.movement === "up"
-                  ? "text-teal"
+                  ? "text-teal-ink"
                   : lastTime.movement === "down"
-                    ? "text-coral"
+                    ? "text-coral-ink"
                     : "text-chalk-dim"
               }`}
             >
@@ -585,7 +585,7 @@ export default async function AnalysisDetail({
           {result.focus && (
             <Reveal delay={90}>
               <div className="mb-4 rounded-card border-l-[3px] border-teal bg-navy-lighter p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal">
+                <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-teal-ink">
                   Focus · {result.focus.label}
                 </p>
                 <p className="mt-1 text-body leading-relaxed text-chalk-dim">
@@ -599,7 +599,7 @@ export default async function AnalysisDetail({
               <p
                 className={`mb-3 text-xs ${
                   result.subject_check.marker_match.toLowerCase() === "mismatch"
-                    ? "text-coral"
+                    ? "text-coral-ink"
                     : "text-chalk-dim"
                 }`}
               >

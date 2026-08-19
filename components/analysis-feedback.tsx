@@ -74,12 +74,12 @@ export function AnalysisFeedback({
   if (saved && !correcting && !revising) {
     return (
       <div className="card mt-8 p-5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">Your call</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-ink">Your call</p>
         <p className="mt-2 text-body text-chalk">
           {saved.wasRight ? (
-            <>You marked this breakdown <span className="font-semibold text-teal">helpful</span>.</>
+            <>You marked this breakdown <span className="font-semibold text-teal-ink">helpful</span>.</>
           ) : (
-            <>You said this breakdown <span className="font-semibold text-coral">did not help</span>
+            <>You said this breakdown <span className="font-semibold text-coral-ink">did not help</span>
               {saved.reasons.length > 0 && (
                 <>: {saved.reasons.map((r) => REASON_PHRASE[r]).join(", ")}</>
               )}
@@ -90,7 +90,7 @@ export function AnalysisFeedback({
         <button
           type="button"
           onClick={() => setRevising(true)}
-          className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim underline underline-offset-4 hover:text-gold"
+          className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim underline underline-offset-4 hover:text-gold-ink"
         >
           Change
         </button>
@@ -111,7 +111,7 @@ export function AnalysisFeedback({
             type="button"
             disabled={busy}
             onClick={() => send(true)}
-            className="rounded-card border border-teal/50 bg-navy-lighter px-4 py-2 text-sm font-semibold text-teal transition hover:border-teal disabled:opacity-50"
+            className="rounded-card border border-teal/50 bg-navy-lighter px-4 py-2 text-sm font-semibold text-teal-ink transition hover:border-teal disabled:opacity-50"
           >
             Yes, helpful
           </button>
@@ -148,7 +148,7 @@ export function AnalysisFeedback({
                 aria-pressed={reasons.includes(r.key)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                   reasons.includes(r.key)
-                    ? "border-gold bg-gold/15 text-gold"
+                    ? "border-gold bg-gold/15 text-gold-ink"
                     : "border-chalk-dim/30 bg-navy-lighter text-chalk hover:border-gold"
                 }`}
               >
@@ -168,7 +168,7 @@ export function AnalysisFeedback({
               type="button"
               disabled={busy}
               onClick={() => send(false, reasons, note)}
-              className="rounded-card border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition hover:border-gold disabled:opacity-50"
+              className="rounded-card border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold-ink transition hover:border-gold disabled:opacity-50"
             >
               {busy ? "Saving..." : "Save"}
             </button>
@@ -184,7 +184,7 @@ export function AnalysisFeedback({
         </div>
       )}
 
-      {error && <p className="mt-2 text-xs text-coral">{error}</p>}
+      {error && <p className="mt-2 text-xs text-coral-ink">{error}</p>}
     </div>
   );
 }

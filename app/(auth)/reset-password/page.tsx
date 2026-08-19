@@ -47,7 +47,7 @@ export default async function ResetPassword({
           Vollyio
         </Link>
         <div className="card border-chalk/15 bg-navy/90 p-7 shadow-lift backdrop-blur-xl">
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             Almost back in
           </p>
           <h1 className="mt-2 font-display text-2xl font-bold">
@@ -60,7 +60,7 @@ export default async function ResetPassword({
                 one you set on an earlier signup attempt.
               </p>
               {error && (
-                <p id="form-error" role="alert" className="mt-3 text-sm text-coral">
+                <p id="form-error" role="alert" className="mt-3 text-sm text-coral-ink">
                   {error}
                 </p>
               )}
@@ -127,7 +127,7 @@ export default async function ResetPassword({
           Know your password?{" "}
           <Link
             href="/login"
-            className="text-gold underline-offset-4 transition-colors hover:underline"
+            className="text-gold-ink underline-offset-4 transition-colors hover:underline"
           >
             Log in
           </Link>

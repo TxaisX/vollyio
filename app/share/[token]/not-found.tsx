@@ -9,7 +9,7 @@ export default function SharedBreakdownNotFound() {
       <div className="flex items-center justify-between border-b border-line pb-5">
         <Link
           href="/"
-          className="font-display text-lg font-bold tracking-wide text-gold"
+          className="font-display text-lg font-bold tracking-wide text-gold-ink"
         >
           Vollyio
         </Link>

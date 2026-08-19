@@ -93,6 +93,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html:
               "document.documentElement.classList.add('js');" +
+              // Theme, applied before first paint so a player who chose dark
+              // never sees a white flash on the way to it. Light is the
+              // default and the OS preference is deliberately NOT consulted
+              // (D-126): dark is a choice made here, not one inherited.
+              "try{var t=localStorage.getItem('vollyio.theme');" +
+              "if(t==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}" +
               "window.__installPrompt=null;" +
               "addEventListener('beforeinstallprompt',function(e){" +
               "e.preventDefault();window.__installPrompt=e;" +

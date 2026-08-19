@@ -73,7 +73,7 @@ export default async function PlanPage() {
     <section className="max-w-4xl">
       <Reveal>
         <div className="border-b border-line pb-5">
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
             Week of {weekLabel}
           </p>
           <h1 className="mt-2 font-display text-page-title">This week</h1>
@@ -113,7 +113,7 @@ export default async function PlanPage() {
                   }`}
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
                       {label}
                       {isToday && <span className="ml-2 text-chalk">Today</span>}
                     </p>
@@ -128,7 +128,7 @@ export default async function PlanPage() {
                     <Link
                       href={`/drills/${drill.slug}`}
                       transitionTypes={["nav-forward"]}
-                      className="relative mt-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.08em] text-gold transition-colors hover:text-chalk"
+                      className="relative mt-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
                     >
                       {drill.name}
                       <LinkPending />

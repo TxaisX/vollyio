@@ -169,7 +169,7 @@ export function InstallApp({
       <div className="sticky top-0 z-50 border-b border-line bg-navy-lighter/95 backdrop-blur-md">
         <div className="mx-auto flex h-11 max-w-6xl items-center gap-3 px-5 md:px-8">
           <p className="min-w-0 flex-1 truncate text-sm text-chalk">
-            <span className="text-gold">Install Vollyio</span>{" "}
+            <span className="text-gold-ink">Install Vollyio</span>{" "}
             <span className="text-chalk-dim">
               {ios
                 ? "· Share, then Add to Home Screen"
@@ -179,7 +179,7 @@ export function InstallApp({
           {ios ? (
             // No API exists on iOS, so the sentence above IS the instruction
             // and there is nothing to click.
-            <span aria-hidden="true" className="shrink-0 text-gold">
+            <span aria-hidden="true" className="shrink-0 text-gold-ink">
               &uarr;
             </span>
           ) : (
@@ -213,7 +213,7 @@ export function InstallApp({
           type="button"
           onClick={() => setShowIosSteps((v) => !v)}
           aria-expanded={showIosSteps}
-          className="min-h-11 font-mono text-[11px] uppercase tracking-[0.08em] text-gold transition-colors hover:text-chalk"
+          className="min-h-11 font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
         >
           Install on your iPhone &rarr;
         </button>
@@ -233,7 +233,7 @@ export function InstallApp({
       <button
         type="button"
         onClick={install}
-        className="min-h-11 font-mono text-[11px] uppercase tracking-[0.08em] text-gold transition-colors hover:text-chalk"
+        className="min-h-11 font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
       >
         Install the app &rarr;
       </button>

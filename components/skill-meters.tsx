@@ -171,13 +171,13 @@ function MeterList({
                   )}
                   {fix && rated && (
                     <span className="mt-1.5 block truncate font-mono text-[10px] text-chalk-dim">
-                      <span className="text-gold">Focus:</span> {fix}
+                      <span className="text-gold-ink">Focus:</span> {fix}
                     </span>
                   )}
                 </span>
                 <span className="shrink-0 text-right">
                   {rated ? (
-                    <span className="stat-num text-lg text-gold">{shown}</span>
+                    <span className="stat-num text-lg text-gold-ink">{shown}</span>
                   ) : (
                     <span className="font-mono text-sm text-chalk-dim">
                       <span className="sr-only">

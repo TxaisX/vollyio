@@ -37,7 +37,7 @@ export function Filmstrip({
               />
               <span
                 className={`absolute left-1.5 top-1.5 rounded px-1.5 py-0.5 font-mono text-[11px] ${
-                  on ? "bg-gold text-navy" : "bg-navy/85 text-chalk"
+                  on ? "bg-gold text-deep" : "bg-navy/85 text-chalk"
                 }`}
               >
                 {f.time_s != null ? `${f.time_s}s` : f.index + 1}
@@ -69,7 +69,7 @@ export function Filmstrip({
             />
             <span
               className={`absolute left-1 top-1 rounded px-1.5 py-px font-mono text-[10px] ${
-                on ? "bg-gold text-navy" : "bg-navy/85 text-chalk"
+                on ? "bg-gold text-deep" : "bg-navy/85 text-chalk"
               }`}
             >
               {f.time_s != null ? `${f.time_s}s` : f.index + 1}

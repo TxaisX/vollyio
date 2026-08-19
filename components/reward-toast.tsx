@@ -67,7 +67,7 @@ export function RewardToast({
       >
         <RewardMark />
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-sm font-bold text-gold">
+          <span className="block font-display text-sm font-bold text-gold-ink">
             {title}
           </span>
           {detail && (

@@ -14,7 +14,7 @@ export function BadgeShelf({ earned }: { earned: EarnedAchievement[] }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
           Milestones
         </h2>
         {/* Padded for the 44px target, negative-margined so the header row
@@ -38,7 +38,7 @@ export function BadgeShelf({ earned }: { earned: EarnedAchievement[] }) {
               const def = ACHIEVEMENT_BY_KEY[e.key];
               return (
                 <li key={e.key} className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold/50 bg-gold/10 text-gold">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold/50 bg-gold/10 text-gold-ink">
                     <BadgeIcon badge={e.key} className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
@@ -79,7 +79,7 @@ export function BadgeGrid({ earned }: { earned: EarnedAchievement[] }) {
             <span
               className={`flex h-9 w-9 items-center justify-center rounded-full border ${
                 has
-                  ? "border-gold/50 bg-gold/10 text-gold"
+                  ? "border-gold/50 bg-gold/10 text-gold-ink"
                   : "border-line text-chalk-dim"
               }`}
             >
@@ -93,7 +93,7 @@ export function BadgeGrid({ earned }: { earned: EarnedAchievement[] }) {
             </p>
             <p
               className={`mt-2 font-mono text-[10px] uppercase tracking-wide ${
-                has ? "text-gold" : "text-chalk-dim"
+                has ? "text-gold-ink" : "text-chalk-dim"
               }`}
             >
               {has

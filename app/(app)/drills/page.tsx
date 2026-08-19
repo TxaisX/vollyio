@@ -25,10 +25,10 @@ const LEVEL_ORDER: Record<Level, number> = {
 };
 
 const LEVEL_CLASS: Record<Level, string> = {
-  beginner: "bg-teal/15 text-teal",
+  beginner: "bg-teal/15 text-teal-ink",
   intermediate: "bg-chalk/10 text-chalk",
-  expert: "bg-gold/15 text-gold",
-  pro: "bg-gold text-navy",
+  expert: "bg-gold/15 text-gold-ink",
+  pro: "bg-gold text-deep",
 };
 
 export default function Drills() {
@@ -40,7 +40,7 @@ export default function Drills() {
           discipline chips. */}
       <Reveal>
         <div className="hero-band card spot p-5 sm:p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
             Drills
           </p>
           <h1 className="mt-1.5 font-display text-page-title">The library</h1>
@@ -74,7 +74,7 @@ export default function Drills() {
                   the bar, because on this page the label IS the skill and the
                   glyph is the fastest way to find the one you came for. */}
               <h2 className="section-head mb-2">
-                <span className="text-gold">
+                <span className="text-gold-ink">
                   <SkillIcon skill={skill} className="h-4 w-4" />
                 </span>
                 {SKILL_LABEL[skill]}

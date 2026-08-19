@@ -60,7 +60,7 @@ export default async function Analyze({
         // the player made.
         <p
           className={`mb-5 font-mono text-[11px] ${
-            allowanceTone(allowance) === "last" ? "text-gold" : "text-chalk-dim"
+            allowanceTone(allowance) === "last" ? "text-gold-ink" : "text-chalk-dim"
           }`}
         >
           {allowanceLine(allowance)}

@@ -122,7 +122,7 @@ export default async function Learn({
           rather than reading as its own step. */}
       <Reveal>
         <div className="hero-band card spot p-5 sm:p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
             Learn
           </p>
           <h1 className="mt-1.5 font-display text-page-title">

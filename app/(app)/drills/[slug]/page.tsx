@@ -66,7 +66,7 @@ export default async function DrillDetail({
         <Link
           href="/drills"
           transitionTypes={["nav-back"]}
-          className="inline-flex items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold"
+          className="inline-flex items-center gap-1 font-mono text-xs text-chalk-dim transition-colors hover:text-gold-ink"
         >
           <svg
             viewBox="0 0 24 24"
@@ -82,7 +82,7 @@ export default async function DrillDetail({
           </svg>
           Drills
         </Link>
-        <p className="mt-4 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-gold">
+        <p className="mt-4 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
           <SkillIcon skill={drill.skill} className="h-4 w-4" />
           {SKILL_LABEL[drill.skill]} · {drill.level}
         </p>
@@ -111,7 +111,7 @@ export default async function DrillDetail({
           <ol className="space-y-4">
             {drill.steps.map((step, i) => (
               <li key={i} className="flex gap-4 text-sm">
-                <span className="font-display text-2xl font-bold leading-none text-gold/70">
+                <span className="font-display text-2xl font-bold leading-none text-gold-ink/70">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="pt-1 leading-relaxed">{step}</span>

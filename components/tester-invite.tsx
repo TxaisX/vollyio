@@ -24,7 +24,7 @@ import {
 export function TesterInvite({ className = "" }: { className?: string }) {
   return (
     <div className={`card p-5 ${className}`}>
-      <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-gold">
+      <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-gold-ink">
         Help test the Android app
       </p>
       <p className="mt-2 text-body leading-relaxed text-chalk-dim">
@@ -46,7 +46,7 @@ export function TesterInvite({ className = "" }: { className?: string }) {
               href={TESTER_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal underline-offset-2 hover:underline"
+              className="text-teal-ink underline-offset-2 hover:underline"
             >
               Join the testers group
             </a>{" "}
@@ -64,7 +64,7 @@ export function TesterInvite({ className = "" }: { className?: string }) {
               href={TEST_OPT_IN_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal underline-offset-2 hover:underline"
+              className="text-teal-ink underline-offset-2 hover:underline"
             >
               Open the tester link
             </a>{" "}

@@ -59,6 +59,26 @@ function popCss(names: ReadonlyArray<readonly [string, number]>) {
 const mark = { x: sx(MARK[0]), y: sy(MARK[1]) };
 
 const FILM_CSS = `
+/* THE SCENE IS A FIXED 1280x720 CANVAS, and it has to stay one: every overlay
+   below is placed at an exact pixel so the gold ring lands on the athlete's
+   shoulder rather than near it. Percentages would drift the registration.
+
+   So the canvas keeps its pixels and the FRAME scales it. .film-frame is a
+   size container, and the stage is scaled by the ratio of the frame's own
+   width to 1280 using container query units, which is a pure CSS read of the
+   available width: no ResizeObserver, no layout thrash, and it is correct on
+   the very first paint rather than after a JS tick.
+
+   Before this, .film-stage rendered at its literal 1280px on a 375px phone
+   and the page carried 905px of horizontal scroll (measured, every phone
+   viewport). The scale factor is capped at 1 so the scene never enlarges past
+   its native resolution on a desktop. */
+.film-frame {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 1280px;
+  overflow: hidden;
+}
 .film-stage {
   position: relative;
   width: 1280px;
@@ -66,6 +86,23 @@ const FILM_CSS = `
   overflow: hidden;
   background: var(--color-navy);
   font-variant-numeric: tabular-nums;
+  transform-origin: top left;
+  transform: scale(min(1, calc(100cqw / 1280)));
+  /* Reclaim the space the scaled-away pixels would otherwise still occupy:
+     transform does not affect layout, so without this the frame stays 720px
+     tall on a phone where the scene is only ~211px. */
+  margin-bottom: calc(-720px + min(720px, 100cqw * 0.5625));
+}
+/* No container query units (older Safari): fall back to fitting by width with
+   the aspect ratio preserved, which loses nothing but the pixel-exactness. */
+@supports not (width: 100cqw) {
+  .film-stage {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    transform: none;
+    margin-bottom: 0;
+  }
 }
 .film-world {
   position: absolute;
@@ -246,8 +283,9 @@ export function FilmScene({
       className="grid min-h-svh place-items-center bg-navy"
     >
       <style dangerouslySetInnerHTML={{ __html: FILM_CSS }} />
-      <div className={`film-stage${debug ? " film-debug" : ""}`} aria-hidden="true">
-        <div className="film-world">
+      <div className="film-frame">
+        <div className={`film-stage${debug ? " film-debug" : ""}`} aria-hidden="true">
+          <div className="film-world">
           {/* The vertical clip being analyzed. Deterministic pixel placement
               (not next/image) keeps the overlay registration exact. */}
           <div className="film-panel">
@@ -323,7 +361,7 @@ export function FilmScene({
                     <span className="text-[10px] uppercase tracking-[0.16em] text-chalk-dim">
                       {label}
                     </span>
-                    <span className="text-sm font-medium text-gold">{value}</span>
+                    <span className="text-sm font-medium text-gold-ink">{value}</span>
                   </div>
                 ))}
               </div>
@@ -332,8 +370,12 @@ export function FilmScene({
                 className="film-hud-pop max-w-xs rounded-control border-l-2 border-gold bg-navy/80 p-3.5 backdrop-blur-md"
                 style={{ animation: `film-fix-in ${FILM_SECONDS}s linear infinite` }}
               >
-                <p className="text-[10px] uppercase tracking-[0.16em] text-gold">
-                  Priority fix &middot; frame 12
+                {/* This cited a specific sampled image by number. The scoring
+                    path takes roughly one low-resolution sample a second, so
+                    that index is a number the product cannot stand behind.
+                    The skill is the honest label for the same line. */}
+                <p className="text-[10px] uppercase tracking-[0.16em] text-gold-ink">
+                  Priority fix &middot; attack
                 </p>
                 <p className="mt-1.5 font-sans text-sm leading-snug normal-case text-chalk">
                   Meet the ball six inches farther into the court.
@@ -346,18 +388,19 @@ export function FilmScene({
                 className="film-hud-pop text-[11px] uppercase tracking-[0.24em] text-chalk-dim"
                 style={{ animation: `film-caption-in ${FILM_SECONDS}s linear infinite` }}
               >
-                Vollyio <span className="text-gold">&middot;</span> film room
+                Vollyio <span className="text-gold-ink">&middot;</span> film room
               </p>
             </div>
           </div>
         )}
 
-        <div className="film-vignette pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, color-mix(in oklab, var(--color-navy) 55%, transparent), transparent 30%)",
-          }}
-        />
+          <div className="film-vignette pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, color-mix(in oklab, var(--color-navy) 55%, transparent), transparent 30%)",
+            }}
+          />
+        </div>
       </div>
     </main>
   );

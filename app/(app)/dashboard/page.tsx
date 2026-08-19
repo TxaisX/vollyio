@@ -87,7 +87,7 @@ function ActionCard({
       }`}
     >
       <span
-        className={`row-tile ${primary ? "h-11 w-11 border-gold/35 text-gold" : ""}`}
+        className={`row-tile ${primary ? "h-11 w-11 border-gold/35 text-gold-ink" : ""}`}
       >
         {icon}
       </span>
@@ -107,7 +107,7 @@ function ActionCard({
         strokeLinecap="round"
         strokeLinejoin="round"
         className={`h-4.5 w-4.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
-          primary ? "text-gold" : "text-chalk-dim"
+          primary ? "text-gold-ink" : "text-chalk-dim"
         }`}
         aria-hidden
       >
@@ -121,12 +121,12 @@ function ActionCard({
 function FocusNowCard({ analysis }: { analysis: AnalysisRow }) {
   return (
     <div className="card card-lift p-5">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
         Focus now
       </h2>
       <Link
         href={`/analysis/${analysis.id}`}
-        className="relative mt-2 block text-sm leading-snug text-chalk transition-colors hover:text-gold"
+        className="relative mt-2 block text-sm leading-snug text-chalk transition-colors hover:text-gold-ink"
       >
         {analysis.fix}
         <LinkPending />
@@ -323,7 +323,7 @@ export default async function Dashboard({
         <div className="hero-band card spot p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
                 Home
               </p>
               <h1 className="mt-1.5 font-display text-page-title">
@@ -341,7 +341,7 @@ export default async function Dashboard({
                     strokeWidth="1.75"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`h-3.5 w-3.5 ${progress.streak > 0 ? "text-gold" : "text-chalk-dim"}`}
+                    className={`h-3.5 w-3.5 ${progress.streak > 0 ? "text-gold-ink" : "text-chalk-dim"}`}
                     aria-hidden
                   >
                     <path d="M12 3c.5 3-1.5 4.5-2.5 6C8.5 10.5 8 12 8 13.5A4.4 4.4 0 0 0 12.5 18a4.6 4.6 0 0 0 4.5-4.75c0-2.25-1.25-3.5-2-5.25-.5 1-1.5 1.5-1.5 3C12 8.5 12.5 5.5 12 3Z" />
@@ -353,7 +353,7 @@ export default async function Dashboard({
                   {progress.streak === 1 ? "" : "s"}
                 </span>
                 <span className="tag">
-                  <span className="text-gold">
+                  <span className="text-gold-ink">
                     <span className="sr-only">Level </span>
                     <span aria-hidden="true">LV</span> {progress.level}
                   </span>
@@ -423,7 +423,7 @@ export default async function Dashboard({
             {allowance && allowanceTone(allowance) !== "out" && (
               <p
                 className={`ml-auto font-mono text-[11px] ${
-                  allowanceTone(allowance) === "last" ? "text-gold" : "text-chalk-dim"
+                  allowanceTone(allowance) === "last" ? "text-gold-ink" : "text-chalk-dim"
                 }`}
               >
                 {allowanceLine(allowance)}
@@ -597,7 +597,7 @@ export default async function Dashboard({
                           inert on every other transition. */}
                       <ViewTransition name={`rep-${a.id}`} share="morph" default="none">
                         <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
-                          <span className="stat-num text-lg text-gold">
+                          <span className="stat-num text-lg text-gold-ink">
                             {a.overall_score}
                           </span>
                           <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">
@@ -616,7 +616,7 @@ export default async function Dashboard({
                         </span>
                         {a.fix && (
                           <span className="mt-0.5 block truncate text-xs text-chalk-dim">
-                            <span className="text-gold">Fix:</span> {a.fix}
+                            <span className="text-gold-ink">Fix:</span> {a.fix}
                           </span>
                         )}
                         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">

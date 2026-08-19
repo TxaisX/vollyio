@@ -73,7 +73,7 @@ export function AnalyticsShowcase() {
     <div ref={ref} className="analytics-stage">
       <div className="flex flex-col gap-6 border-b border-line p-5 md:flex-row md:items-end md:justify-between md:p-7">
         <div>
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-teal">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-teal-ink">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-teal" />
             Rep intelligence · example attack session
           </div>
@@ -109,7 +109,7 @@ export function AnalyticsShowcase() {
                 The trace lifts as your timing locks in.
               </p>
             </div>
-            <span className="tag border-teal/40 text-teal">{rep.time}</span>
+            <span className="tag border-teal/40 text-teal-ink">{rep.time}</span>
           </div>
 
           <svg
@@ -156,7 +156,7 @@ export function AnalyticsShowcase() {
           <div className="relative grid grid-cols-3 gap-2 border-t border-line pt-4">
             {["LOAD", "LIFT", "CONTACT"].map((phase, index) => (
               <div key={phase}>
-                <p className={`font-mono text-[11px] tracking-[0.14em] ${index === 2 ? "text-gold" : "text-chalk-dim"}`}>
+                <p className={`font-mono text-[11px] tracking-[0.14em] ${index === 2 ? "text-gold-ink" : "text-chalk-dim"}`}>
                   0{index + 1} · {phase}
                 </p>
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-line/60">
@@ -176,12 +176,12 @@ export function AnalyticsShowcase() {
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim">
                 Spike score
               </p>
-              <p className="stat-num mt-2 text-6xl text-gold md:text-7xl">
+              <p className="stat-num mt-2 text-6xl text-gold-ink md:text-7xl">
                 <CountUp to={rep.score} duration={620} />
               </p>
             </div>
             <div className="text-right">
-              <p className="font-display text-xl font-bold text-teal">
+              <p className="font-display text-xl font-bold text-teal-ink">
                 {rep.delta > 0 ? `+${rep.delta}` : "Start"}
               </p>
               <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-chalk-dim">
@@ -208,7 +208,7 @@ export function AnalyticsShowcase() {
           </div>
 
           <div className="mt-auto rounded-control border-l-2 border-gold bg-navy/55 p-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
               Frame {rep.frame} · next best move
             </p>
             <p className="mt-2 text-sm font-medium text-chalk">{rep.fix}</p>

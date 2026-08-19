@@ -75,7 +75,7 @@ export default async function Milestones() {
     <section className="max-w-4xl">
       <Reveal>
         <div className="border-b border-line pb-5">
-          <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold">
+          <p className="font-mono text-xs uppercase tracking-[0.12em] text-gold-ink">
             Progress
           </p>
           <h1 className="mt-2 font-display text-page-title">The trophy case</h1>
@@ -110,7 +110,7 @@ export default async function Milestones() {
                   </span>
                   <span className="truncate">{SKILL_LABEL[skill]}</span>
                 </span>
-                <span className="font-display text-xl font-bold text-gold">
+                <span className="font-display text-xl font-bold text-gold-ink">
                   {bests[skill] ?? (
                     <span className="text-chalk-dim">
                       <span className="sr-only">No best yet</span>
@@ -124,7 +124,7 @@ export default async function Milestones() {
         ) : (
           <p className="mt-3 text-body text-chalk-dim">
             Bests appear after your first scored rep.{" "}
-            <Link href="/analyze" className="text-gold">
+            <Link href="/analyze" className="text-gold-ink">
               Film one.
             </Link>
           </p>
@@ -138,7 +138,7 @@ export default async function Milestones() {
         {doneGoals.length === 0 ? (
           <p className="mt-3 text-body text-chalk-dim">
             Nothing finished yet. Goals live on your{" "}
-            <Link href="/dashboard#goals" className="text-gold">
+            <Link href="/dashboard#goals" className="text-gold-ink">
               home board
             </Link>
             ; what you complete there is recorded here.
@@ -154,7 +154,7 @@ export default async function Milestones() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-4 w-4 shrink-0 text-teal"
+                  className="h-4 w-4 shrink-0 text-teal-ink"
                   aria-hidden
                 >
                   <path d="M5 12.5l4.5 4.5L19 7.5" />

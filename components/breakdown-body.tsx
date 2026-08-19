@@ -238,7 +238,7 @@ export function BreakdownBody({
                             rather than stacking two labels above every card. */}
                         {(i === 0 || name) && (
                           <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em]">
-                            {i === 0 && <span className="text-gold">Your #1 fix</span>}
+                            {i === 0 && <span className="text-gold-ink">Your #1 fix</span>}
                             {i === 0 && name && <span className="text-chalk-dim"> · </span>}
                             {name && <span className="text-chalk-dim">{name}</span>}
                           </p>
@@ -258,7 +258,7 @@ export function BreakdownBody({
                               (D-097). `key` above is NOT this: it names the
                               checkpoint without promising a number. */}
                           {c.expected_gain != null && (
-                            <span className="chip shrink-0 border-teal/40 text-teal">
+                            <span className="chip shrink-0 border-teal/40 text-teal-ink">
                               +{c.expected_gain} pts
                             </span>
                           )}
@@ -290,7 +290,7 @@ export function BreakdownBody({
                 id="changes"
                 className="scroll-mt-[calc(var(--clip-top)+var(--clip-lane)+1rem)] rounded-card border-l-[3px] border-gold bg-navy-lighter p-5 shadow-lift"
               >
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold">
+                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink">
                   Priority fix
                 </p>
                 <p className="mt-1 font-display text-lg font-bold">
@@ -459,7 +459,7 @@ export function BreakdownBody({
                   className="card card-lift relative flex flex-wrap items-center justify-between gap-4 p-5 sm:col-span-2"
                 >
                   <span className="min-w-0">
-                    <span className="block font-mono text-[10px] uppercase tracking-[0.1em] text-gold">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.1em] text-gold-ink">
                       Start here
                     </span>
                     <span className="mt-1 block font-display text-lg font-bold">

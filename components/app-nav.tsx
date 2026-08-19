@@ -124,7 +124,7 @@ export function SideNavLinks() {
               {active && (
                 <span className="nav-active-marker absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
               )}
-              <span className={active ? "nav-active-icon text-gold" : ""}>
+              <span className={active ? "nav-active-icon text-gold-ink" : ""}>
                 {item.icon}
               </span>
               {item.label}
@@ -155,7 +155,7 @@ export function SettingsNavLink() {
       {active && (
         <span className="nav-active-marker absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gold" />
       )}
-      <span className={active ? "nav-active-icon text-gold" : ""}>
+      <span className={active ? "nav-active-icon text-gold-ink" : ""}>
         {ICONS.settings}
       </span>
       Settings
@@ -174,7 +174,7 @@ export function SettingsTopBarLink() {
       aria-label="Settings"
       aria-current={active ? "page" : undefined}
       className={`flex min-h-11 min-w-11 items-center justify-center rounded-control transition-colors ${
-        active ? "text-gold" : "text-chalk-dim hover:text-chalk"
+        active ? "text-gold-ink" : "text-chalk-dim hover:text-chalk"
       }`}
     >
       {ICONS.settings}
@@ -208,7 +208,7 @@ export function TabBar() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`relative flex min-h-14 flex-col items-center justify-center gap-1 py-2 transition-colors ${
-                  active ? "text-gold" : "text-chalk-dim"
+                  active ? "text-gold-ink" : "text-chalk-dim"
                 }`}
               >
                 {/* Non-color active signal: a top indicator bar plus a
