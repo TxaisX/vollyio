@@ -78,13 +78,13 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         <p>
-          {PLAN_LABEL.free} gives you {SIGNUP_GRANT} breakdowns to start and{" "}
-          {MONTHLY_ALLOWANCE.free} a month after that, at no cost and with no
-          card. The {SIGNUP_GRANT} are one time, and they are there so you can
-          analyze a rep, work the fix and film it again while it is still fresh,
-          which is the only way to watch a rating actually move.{" "}
-          {PLAN_LABEL.pro} is {MONTHLY_ALLOWANCE.pro} a month for {PRO_PRICE},
-          and it renews on the day you subscribed rather than on the 1st.
+          {PLAN_LABEL.free} is {allowanceSentence("free")}, at no cost and with
+          no card. {PLAN_LABEL.pro} is {allowanceSentence("pro")} for{" "}
+          {PRO_PRICE}, and it renews on the day you subscribed rather than on
+          the 1st. Both limits are DAILY and reset at midnight UTC: the monthly
+          figures ({MONTHLY_ALLOWANCE.free} and {MONTHLY_ALLOWANCE.pro}) are
+          just those day rates across thirty days, so you cannot save them up
+          and spend a month&rsquo;s worth at one tournament.
         </p>
         <p>
           You are never charged without choosing {PLAN_LABEL.pro} yourself, and
@@ -171,7 +171,7 @@ const FAQ_PLAIN: { q: string; a: string }[] = [
   },
   {
     q: "What does it cost?",
-    a: `${PLAN_LABEL.free} gives you ${SIGNUP_GRANT} breakdowns to start and ${MONTHLY_ALLOWANCE.free} a month after that, at no cost and with no card. ${PLAN_LABEL.pro} is ${MONTHLY_ALLOWANCE.pro} a month for ${PRO_PRICE}, and it renews on the day you subscribed rather than on the 1st. You are never charged without choosing ${PLAN_LABEL.pro} yourself, and you can cancel from Settings at any time and keep it until the end of the period you paid for.`,
+    a: `${PLAN_LABEL.free} is ${allowanceSentence("free")}, at no cost and with no card. ${PLAN_LABEL.pro} is ${allowanceSentence("pro")} for ${PRO_PRICE}, and it renews on the day you subscribed rather than on the 1st. Both limits are daily and reset at midnight UTC, so the monthly figures (${MONTHLY_ALLOWANCE.free} and ${MONTHLY_ALLOWANCE.pro}) are those day rates across thirty days rather than a balance you can save up. You are never charged without choosing ${PLAN_LABEL.pro} yourself, and you can cancel from Settings at any time and keep it until the end of the period you paid for.`,
   },
   {
     q: "What happens to my film?",
@@ -252,7 +252,10 @@ export default function Landing() {
           name: `${PLAN_LABEL.pro} plan`,
           price: PRO_PRICE_AMOUNT,
           priceCurrency: "USD",
-          description: `${MONTHLY_ALLOWANCE.pro} analyses a month, billed monthly and renewing on the day you subscribe until cancelled.`,
+          // The free offer beside this one already quoted the day rate; this
+          // one quoted the month and was the only place left where a machine
+          // could read "540 a month" and repeat it as a monthly balance.
+          description: `${allowanceSentence("pro")}, billed monthly and renewing on the day you subscribe until cancelled.`,
         },
       ],
     },
@@ -721,14 +724,22 @@ export default function Landing() {
                   first breakdown is free" and put the real numbers behind a
                   collapsed FAQ, which asked a stranger to commit before they
                   could see what they were committing to. */}
+              {/* STATED AS A DAY RATE, which is the wall a player actually
+                  meets. This said "90 a month" and "540 a month", and both
+                  are the hidden asterisk D-110 exists to refuse: they are
+                  arithmetically true and practically unreachable, because the
+                  limit that binds is daily. Someone reading "540 a month"
+                  reasonably plans to film a tournament on Saturday and finds
+                  out at rep 19 that they cannot. `allowanceSentence` in
+                  lib/plans.ts has encoded the honest phrasing all along; this
+                  page simply was not using it. */}
               <p className="mx-auto mt-6 max-w-md text-body">
                 <span className="text-chalk">
-                  {SIGNUP_GRANT} breakdowns free to start, then{" "}
-                  {MONTHLY_ALLOWANCE.free} a month. No card.
+                  {PLAN_LABEL.free} is {allowanceSentence("free")}. No card.
                 </span>{" "}
                 <span className="text-chalk-dim">
-                  {PLAN_LABEL.pro} is {MONTHLY_ALLOWANCE.pro} a month for{" "}
-                  {PRO_PRICE}, cancel any time.
+                  {PLAN_LABEL.pro} is {allowanceSentence("pro")} for {PRO_PRICE},
+                  cancel any time.
                 </span>
               </p>
               <p className="mx-auto mt-3 max-w-md text-body text-chalk-dim">
