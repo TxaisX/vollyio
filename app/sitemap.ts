@@ -14,6 +14,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 },
     { url: `${SITE_URL}/samples`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/learn`, changeFrequency: "monthly", priority: 0.9 },
+    // The injury library's own index. Until the IA split it was a tab query on
+    // /learn, so it had no address to list here and its 34 entries hung off a
+    // page that never linked to them in a way a crawler could follow. These
+    // are the highest-intent pages on the site: "jumper's knee" and
+    // "volleyball shoulder pain" are things people search at 11pm.
+    { url: `${SITE_URL}/learn/rehab`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/drills`, changeFrequency: "monthly", priority: 0.9 },
     // D-122. The quiz is the front door again: the product's output is not
     // shown to anyone without an account, so the entry that ranks is the one

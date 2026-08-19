@@ -102,8 +102,37 @@ export default async function RehabDetail({
   const entry = await load(slug);
   if (!entry) notFound();
 
+  // MedicalWebPage, and deliberately NOT MedicalCondition.
+  //
+  // These are the pages a stranger reaches at 11pm searching "jumper's knee"
+  // or "volleyball shoulder pain", both of which the keyword harvest confirms
+  // are frequent real queries. Marking them up is what lets a search or answer
+  // engine surface them at all. But the type chosen says "a page ABOUT a
+  // medical topic", not "a description OF a condition": the second invites an
+  // engine to present this as clinical fact about the reader, and the
+  // library's whole posture, stated on every entry and in the disclaimer, is
+  // that it is education and cannot examine anyone. `lastReviewed` is absent
+  // rather than invented; there is no review date to claim.
+  const medical = {
+    "@context": "https://schema.org",
+    "@type": "MedicalWebPage",
+    name: `${entry.name} in volleyball`,
+    description: entry.summary,
+    audience: { "@type": "Audience", audienceType: "Volleyball players" },
+    about: { "@type": "Thing", name: entry.name },
+    specialty: "Sports medicine",
+    isAccessibleForFree: true,
+    inLanguage: "en",
+  };
+
   return (
     <section className="max-w-3xl">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(medical).replace(/</g, "\\u003c"),
+        }}
+      />
       <Reveal>
         <Link
           href="/learn/rehab"

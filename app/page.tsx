@@ -150,7 +150,58 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
 ];
 
+/**
+ * The FAQ answers again, as plain text, for FAQPage structured data.
+ *
+ * WHY A SECOND COPY EXISTS. The rendered answers above are React nodes with
+ * links and multiple paragraphs; there is no way to hand those to JSON-LD.
+ * Authoring twice is normally the exact mistake this file's other comments
+ * warn about, so the drift that actually matters is closed the only way that
+ * works: every NUMBER here is the same imported constant the rendered answer
+ * interpolates. The prose can fall out of step and cost clarity; the price,
+ * the allowance and the grant cannot fall out of step and become false, which
+ * is the failure mode that reaches an answer engine and gets quoted at a
+ * stranger. `lib/landing-faq.test.ts` pins the two lists to the same length
+ * and the same questions.
+ */
+const FAQ_PLAIN: { q: string; a: string }[] = [
+  {
+    q: "What do I need to get started?",
+    a: `A phone and a browser. Film up to 10 seconds of one skill with your camera app and upload it, or trim a clip you already have. One rep reads better than a rally, and a whole game is not what this scores. iPhone and Android clips both work. No wearables, no rig, and no second person required. Vollyio runs on the web on iOS, Android and desktop, and installs to your home screen like an app.`,
+  },
+  {
+    q: "What does it cost?",
+    a: `${PLAN_LABEL.free} gives you ${SIGNUP_GRANT} breakdowns to start and ${MONTHLY_ALLOWANCE.free} a month after that, at no cost and with no card. ${PLAN_LABEL.pro} is ${MONTHLY_ALLOWANCE.pro} a month for ${PRO_PRICE}, and it renews on the day you subscribed rather than on the 1st. You are never charged without choosing ${PLAN_LABEL.pro} yourself, and you can cancel from Settings at any time and keep it until the end of the period you paid for.`,
+  },
+  {
+    q: "What happens to my film?",
+    a: `Your clips stay private to your account: never published, never shared with other users, never sold. Images from your clip are processed by the coaching service to produce your breakdown, and your footage helps train future features only if you opt in, which is off by default. Ask and we will delete footage or your whole account.`,
+  },
+  {
+    q: "How accurate is the analysis?",
+    a: `Every skill is graded on the checkpoints a coach actually watches: on a serve that is toss, arm swing, contact and follow-through. Every note says what was seen in the rep, so you can play your own clip back against it and disagree. It reads about one low-resolution sample a second, so it judges the rep as a whole rather than any single moment inside it. Treat it as a sharp second opinion whose work you can always check, not as ground truth.`,
+  },
+  {
+    q: "What is the rating?",
+    a: `A rolling 0-100 rating per skill, built from your most recent scored reps. It weighs your latest film rather than a lifetime average, so it reflects how you play now, and it moves when you do.`,
+  },
+];
+
 export default function Landing() {
+  // FAQPage is the single highest-value markup on this site for answer
+  // engines: it is the shape they lift verbatim when someone asks "how much
+  // is Vollyio" or "is my volleyball footage private". Publishing it is how
+  // the product's own words get quoted instead of a model's guess at them.
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_PLAIN.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -218,6 +269,12 @@ export default function Landing() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqLd).replace(/</g, "\\u003c"),
         }}
       />
       <CursorGlow />

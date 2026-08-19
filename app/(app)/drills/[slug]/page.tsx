@@ -40,6 +40,25 @@ export default async function DrillDetail({
   const drill = drillBySlug(slug);
   if (!drill) notFound();
 
+  // A drill IS a HowTo: a named outcome, a duration, equipment and ordered
+  // steps. Saying so in the vocabulary search and answer engines already parse
+  // is the difference between this page being a line in an index and being the
+  // answer to "beach volleyball drills to do by yourself", which is a query
+  // people actually type. Nothing is authored twice: every field reads the
+  // same content module the page renders, so the markup cannot drift from the
+  // visible text the way a hand-kept copy would.
+  const howTo = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: drill.name,
+    description: drill.summary,
+    // ISO 8601 duration; the catalog stores whole minutes.
+    totalTime: `PT${drill.duration_min}M`,
+    supply: drill.equipment.map((item) => ({ "@type": "HowToSupply", name: item })),
+    step: drill.steps.map((text, i) => ({ "@type": "HowToStep", position: i + 1, text })),
+    about: { "@type": "Thing", name: `${SKILL_LABEL[drill.skill]} (volleyball)` },
+  };
+
   return (
     // Directional slide: arriving from the drills list (tagged nav-forward)
     // slides this content in from the right; the back link below (nav-back)
@@ -62,6 +81,12 @@ export default async function DrillDetail({
       default="none"
     >
       <section className="max-w-4xl">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(howTo).replace(/</g, "\\u003c"),
+        }}
+      />
       <Reveal>
         <Link
           href="/drills"
