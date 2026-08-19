@@ -34,14 +34,44 @@ export function overallScore(ratings: (number | null)[]): number | null {
 
 export type ScoreBand = "Developing" | "Solid" | "Advanced" | "Elite";
 
-// The rubric anchors every metric at ~40 developing, ~70 solid, ~90 advanced.
+/**
+ * Where each band starts. THE CAPTION IS GENERATED FROM THESE, and that is the
+ * point of exporting them.
+ *
+ * Every surface that showed a score also printed "40 developing / 70 solid /
+ * 90 advanced" beside it, and those are the RUBRIC's anchors: the numbers the
+ * model is told a developing or a solid rep looks like. They are not these
+ * bands. So a player scoring 56 was labelled Solid by a caption claiming solid
+ * begins at 70, and a player scoring 85 was labelled Advanced beside a caption
+ * putting advanced at 90. The label and the scale printed under it disagreed
+ * on both edges.
+ *
+ * One array now feeds both the naming and the caption, so they cannot drift
+ * again.
+ */
+export const SCORE_BANDS: { readonly floor: number; readonly name: ScoreBand }[] = [
+  { floor: 0, name: "Developing" },
+  { floor: 55, name: "Solid" },
+  { floor: 80, name: "Advanced" },
+  { floor: 92, name: "Elite" },
+];
+
 // These bands give the number its coach-honest name wherever a score renders,
 // so a 62 reads as real progress against an elite standard instead of a bad grade.
 export function scoreBand(score: number): ScoreBand {
-  if (score < 55) return "Developing";
-  if (score < 80) return "Solid";
-  if (score < 92) return "Advanced";
-  return "Elite";
+  let name: ScoreBand = SCORE_BANDS[0].name;
+  for (const band of SCORE_BANDS) if (score >= band.floor) name = band.name;
+  return name;
+}
+
+/**
+ * The scale, spelled the way the bands actually work: where each named band
+ * BEGINS. Rendered wherever a score appears with its band name.
+ */
+export function scoreScaleCaption(): string {
+  return SCORE_BANDS.filter((b) => b.floor > 0)
+    .map((b) => `${b.floor} ${b.name.toLowerCase()}`)
+    .join(" · ");
 }
 
 // The model emits overall_score independently of its five metric scores. Keep

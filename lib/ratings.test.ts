@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   updateRating,
   overallScore,
+  SCORE_BANDS,
   scoreBand,
+  scoreScaleCaption,
   coherentOverall,
   ALPHA_UP,
   ALPHA_DOWN,
@@ -88,4 +90,34 @@ test("coherent overall keeps a headline near the metric mean", () => {
   assert.equal(coherentOverall(60, [80, 82, 78, 84, 76]), 80);
   // No metrics: nothing to reconcile against.
   assert.equal(coherentOverall(75, []), 75);
+});
+
+// THE LABEL AND THE SCALE PRINTED UNDER IT HAVE TO AGREE.
+//
+// Every surface showing a score also printed "40 developing / 70 solid /
+// 90 advanced", which are the RUBRIC's anchors and not these bands. A rep
+// scoring 56 was therefore labelled Solid beside a caption saying solid starts
+// at 70, and an 85 was labelled Advanced beside a caption putting advanced at
+// 90. Both edges disagreed, on the one screen the whole product exists to
+// deliver. This pins the caption to the same table the naming reads.
+test("the printed scale names the boundary each band actually starts at", () => {
+  for (const band of SCORE_BANDS) {
+    if (band.floor === 0) continue;
+    assert.equal(
+      scoreBand(band.floor),
+      band.name,
+      `the caption claims ${band.name} starts at ${band.floor}, and scoreBand disagrees`,
+    );
+    assert.notEqual(
+      scoreBand(band.floor - 1),
+      band.name,
+      `${band.floor - 1} is already ${band.name}, so the caption understates the band`,
+    );
+    assert.match(scoreScaleCaption(), new RegExp(`${band.floor} ${band.name.toLowerCase()}`));
+  }
+});
+
+test("the caption never advertises the rubric anchors as band boundaries", () => {
+  // The exact string that was on screen. It is not a boundary set.
+  assert.doesNotMatch(scoreScaleCaption(), /40 developing|70 solid|90 advanced/);
 });

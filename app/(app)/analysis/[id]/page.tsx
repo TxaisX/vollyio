@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
+import { Fragment, ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthIdentity } from "@/lib/supabase/user";
 import { FunnelBeacon } from "@/app/(auth)/funnel-beacon";
 import { metricLabel } from "@/lib/ai/metrics";
-import { scoreBand } from "@/lib/ratings";
+import { SCORE_BANDS, scoreBand, scoreScaleCaption } from "@/lib/ratings";
 import { BreakdownBody } from "@/components/breakdown-body";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
@@ -142,7 +142,7 @@ export default async function AnalysisDetail({
             <div className="min-w-0 border-l border-line pl-4">
               <h1 className="font-display text-page-title">Your rep is scored</h1>
               <p className="mt-1 font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-chalk-dim">
-                40 developing · 70 solid · 90 advanced
+                {scoreScaleCaption()}
               </p>
             </div>
           </div>
@@ -464,11 +464,12 @@ export default async function AnalysisDetail({
                 from being three more lines to scroll past before the fix. */}
             <div className="min-w-0 border-l border-line pl-3">
               <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-chalk-dim">
-                40 developing
-                <br />
-                70 solid
-                <br />
-                90 advanced
+                {SCORE_BANDS.filter((b) => b.floor > 0).map((b, i) => (
+                  <Fragment key={b.name}>
+                    {i > 0 && <br />}
+                    {b.floor} {b.name.toLowerCase()}
+                  </Fragment>
+                ))}
               </p>
               {typeof result.coverage_pct === "number" && (
                 <p

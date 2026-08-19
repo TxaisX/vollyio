@@ -7,7 +7,7 @@ import { BreakdownBody } from "@/components/breakdown-body";
 import { Reveal } from "@/components/motion";
 import { ReportContent } from "@/components/report-content";
 import { ScoreRing } from "@/components/score-ring";
-import { scoreBand } from "@/lib/ratings";
+import { scoreBand, scoreScaleCaption } from "@/lib/ratings";
 import { SKILL_LABEL } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
@@ -105,7 +105,7 @@ export default async function SharedBreakdown({
           </div>
         </div>
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
-          Scored like a coach · 40 developing · 70 solid · 90 advanced
+          Scored like a coach · {scoreScaleCaption()}
         </p>
         {typeof shared.result.coverage_pct === "number" && (
           <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
