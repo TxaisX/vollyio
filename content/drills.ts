@@ -1,4 +1,4 @@
-import type { Drill } from "./drills-types";
+import type { Drill, DrillSurface } from "./drills-types";
 import type { Skill } from "@/lib/skills";
 
 export const DRILLS: Drill[] = [
@@ -875,11 +875,186 @@ export const DRILLS: Drill[] = [
       "movement_pursuit",
       "recovery"
     ]
+  },
+  {
+    "slug": "serve-wind-read-float-sand",
+    "name": "Wind-Read Float Serve",
+    "skill": "serve",
+    "level": "intermediate",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court"],
+    "summary": "Serve into wind rather than fight it: read the flag before every toss and move your target instead of your swing.",
+    "steps": [
+      "Before each serve, look at the net tape, a flag, or loose sand blowing across the court and name the wind out loud: into you, behind you, or across.",
+      "Into the wind, toss lower and closer to your body and expect the ball to hold up, so aim two feet deeper than you normally would.",
+      "With the wind behind you, toss lower still and take pace off, contacting flatter so the ball does not sail long.",
+      "In a crosswind, aim one body-width upwind of your target and let the wind carry it back.",
+      "Serve 5 in each condition you can find, calling the read and the adjusted target before contact, and score only whether the ball landed in the third you named."
+    ],
+    "common_mistakes": [
+      "Swinging harder into a headwind, which adds spin and makes the ball drop shorter still.",
+      "Keeping the same toss height in wind, so the ball moves before contact and the swing chases it.",
+      "Aiming at the target instead of upwind of it in a crosswind."
+    ],
+    "focus_metrics": ["toss_quality", "contact_point"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "pass-sand-shuffle-platform",
+    "name": "Sand Shuffle Platform",
+    "skill": "pass",
+    "level": "beginner",
+    "duration_min": 12,
+    "equipment": ["volleyball", "partner", "sand or grass court"],
+    "summary": "Replace the indoor crossover step with the shuffle that actually works in soft footing, so the platform arrives square instead of sideways.",
+    "steps": [
+      "Start in a ready position wider than you would indoors, weight through the whole foot rather than the balls, because there is nothing solid to push off.",
+      "Have a partner toss two to four feet to one side. Move with short shuffle steps that never cross, keeping your shoulders square to the target the whole way.",
+      "Stop moving BEFORE contact. In sand you cannot pass on the move and control the ball, so a rep only counts if the feet are set at contact.",
+      "Angle the platform with your shoulders, not by swinging your arms, and let the ball come to you rather than reaching for it.",
+      "20 reps each side, scoring a rep only when the feet were set and the pass reached your partner above head height."
+    ],
+    "common_mistakes": [
+      "Crossing over as you would indoors, which buries the lead foot and turns the shoulders away from target.",
+      "Standing tall between reps, so the first movement is downward instead of sideways.",
+      "Swinging the arms at the ball to make up for feet that never arrived."
+    ],
+    "focus_metrics": ["footwork_to_ball", "platform_angle", "body_posture"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "set-hand-set-tolerance-sand",
+    "name": "Clean Hand-Set Tolerance",
+    "skill": "set",
+    "level": "intermediate",
+    "duration_min": 14,
+    "equipment": ["volleyball", "partner", "sand or grass court"],
+    "summary": "Build a hand set clean enough for beach officiating, where a double contact that passes indoors is whistled, and drill the bump set as the honest alternative.",
+    "steps": [
+      "Set 20 balls straight up to yourself, watching for rotation on release. Any visible spin is the tell that the hands left at different moments.",
+      "Have a partner stand behind you and call rotation on each set. You cannot see it on your own ball, so you need the outside eye.",
+      "Fix rotation by getting both thumbs behind the ball and releasing with the wrists together, not by squeezing tighter.",
+      "Now set 20 to a partner along the net, keeping the ball off-spin, and have them call any set they would whistle.",
+      "Finally take 20 balls that arrive below your chest and BUMP set them instead. A clean bump set beats a doubled hand set every time on this surface."
+    ],
+    "common_mistakes": [
+      "Setting a low ball with the hands because it feels more skilful, and getting called for it.",
+      "Releasing with one hand fractionally ahead, which shows up as spin rather than as feel.",
+      "Turning the shoulders during the release, which curves the ball toward the antenna."
+    ],
+    "focus_metrics": ["hand_shape", "release"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "attack-sand-two-step-approach",
+    "name": "Sand Two-Step Approach",
+    "skill": "attack",
+    "level": "beginner",
+    "duration_min": 15,
+    "equipment": ["volleyball", "net", "sand or grass court"],
+    "summary": "Trade the indoor four-step run-up for the short, tall approach soft ground rewards, so you jump up out of the surface instead of sinking into it.",
+    "steps": [
+      "Shadow the approach with no ball: two steps only, left-right for a right-hander, planted wide and at the same moment rather than rolled heel to toe.",
+      "Keep the chest taller through the plant than you would indoors. Sinking low to load only digs the feet in and costs height.",
+      "Swing both arms back on the plant and drive them up hard, because in sand the arms supply the lift the floor will not.",
+      "Add a tossed ball and hit 10, landing on two feet, then check your own footprints: the plant marks should be even, not one deep and one shallow.",
+      "Take 10 more from a partner's set, keeping the same two steps and the same tall plant."
+    ],
+    "common_mistakes": [
+      "Running a full indoor approach, which buries the last step and kills the jump.",
+      "Loading deep as if on a hard floor, so the surface swallows the push-off.",
+      "Landing on one foot, which in soft footing is how ankles roll."
+    ],
+    "focus_metrics": ["approach_footwork", "jump_timing", "contact_height"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "attack-shot-menu-sand",
+    "name": "Shot Menu: Cut, Line, Deep",
+    "skill": "attack",
+    "level": "intermediate",
+    "duration_min": 16,
+    "equipment": ["volleyball", "net", "partner", "sand or grass court"],
+    "summary": "Beat a two-person defence with placement rather than power, drilling the three shots that win outdoor rallies from one identical approach.",
+    "steps": [
+      "Hit 10 hard-driven balls first, so the arm speed the shots hide behind is established.",
+      "Cut shot: same approach and same arm speed, but slice across the outside of the ball with an open hand to send it sharp cross-court just over the net.",
+      "High line: same approach, contact behind the ball and push it deep down the line over the blocker's outside hand.",
+      "Deep corner: same approach, roll the wrist over the top and drop it behind the defender into the back corner.",
+      "Have a partner stand in one defensive position and call your shot AFTER you leave the ground. 15 balls, scoring only shots that beat where they actually were."
+    ],
+    "common_mistakes": [
+      "Slowing the arm on the shot, which tells the defence what is coming while the ball is still up.",
+      "Aiming shots at the middle of the court rather than at the space the defender left.",
+      "Only ever swinging hard, so a disciplined two-person defence simply waits."
+    ],
+    "focus_metrics": ["arm_swing", "power_followthrough", "contact_height"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "block-pull-off-transition-sand",
+    "name": "Block, Pull, Cover",
+    "skill": "block",
+    "level": "intermediate",
+    "duration_min": 14,
+    "equipment": ["volleyball", "net", "partner", "sand or grass court"],
+    "summary": "Drill the decision the outdoor blocker owns and the indoor blocker never faces: commit at the net, or pull off it and dig, with nobody behind you either way.",
+    "steps": [
+      "Stand at the net in blocking position. A partner across the net holds a ball and either shows an attack or shows a set going away from you.",
+      "On an attack, press both hands over the net and penetrate, landing balanced on two feet with the feet under you.",
+      "On the away-set signal, turn and pull off the net with two hard shuffle steps and get low, because you are now the second defender and nobody is covering behind you.",
+      "Alternate the two at random for 20 reps, so you are reading rather than guessing.",
+      "Add a live ball for the last 10: block it, or pull and dig it, and the rep only counts if you chose correctly before the ball was struck."
+    ],
+    "common_mistakes": [
+      "Staying at the net after the set goes away, which leaves the whole court open behind you.",
+      "Pulling off while still facing the net, so the first defensive step is backwards.",
+      "Landing off balance, which in soft footing costs the half-second the next contact needed."
+    ],
+    "focus_metrics": ["read_timing", "landing_recovery", "lateral_footwork"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "dig-two-player-court-coverage-sand",
+    "name": "Two-Player Court Coverage",
+    "skill": "dig",
+    "level": "intermediate",
+    "duration_min": 15,
+    "equipment": ["volleyball", "partner", "sand or grass court"],
+    "summary": "Cover a full court with one teammate by defending your zone honestly and pursuing everything else, which is the whole defensive game outdoors.",
+    "steps": [
+      "Split the court with your partner and agree out loud who owns the line and who owns the angle before the drill starts.",
+      "Have a third person hit or throw balls into random space from across the net.",
+      "Defend only your own zone, letting balls in your partner's zone go, so the boundary becomes real rather than polite.",
+      "Then release the rule: any ball landing between you is pursued by BOTH, and the rep is scored on whether either of you got a platform to it.",
+      "Run 20 balls, then swap zones so you defend the side you are weaker on."
+    ],
+    "common_mistakes": [
+      "Both players chasing every ball, which leaves the rest of the court empty for the next one.",
+      "Standing up between contacts, so the first step of every pursuit is a drop rather than a drive.",
+      "Digging with the platform only, rather than moving the whole body behind the ball."
+    ],
+    "focus_metrics": ["movement_pursuit", "ready_position", "read_anticipation"],
+    "surface": "outdoor"
   }
 ];
 
-export function drillsForSkill(skill: Skill): Drill[] {
-  return DRILLS.filter((d) => d.skill === skill);
+/**
+ * Drills for a skill, optionally cut to the surface being played.
+ *
+ * `surface` is absent on most of the catalog and those drills come back for
+ * every discipline, which is the honest answer: a wall contact drill does not
+ * care what you are standing on. Only drills whose mechanics genuinely belong
+ * to one surface carry the field, so passing a discipline removes those rather
+ * than narrowing everything to a handful.
+ *
+ * Called with no surface this behaves exactly as it always did, which is why
+ * the breakdown and the daily assignment did not have to change.
+ */
+export function drillsForSkill(skill: Skill, surface?: DrillSurface): Drill[] {
+  return DRILLS.filter(
+    (d) => d.skill === skill && (!surface || !d.surface || d.surface === surface),
+  );
 }
 
 /**

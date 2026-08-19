@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { techniqueFor } from "@/content/technique";
 import { DRILLS } from "@/content/drills";
-import { REHAB } from "@/content/rehab";
-import { REGION_LABEL, TRIAGE_LABEL, type RehabEntry } from "@/content/rehab-types";
 import { metricLabel, metricKeys } from "@/lib/ai/metrics";
 import { Reveal } from "@/components/motion";
 import { TrainNav } from "@/components/section-nav";
@@ -14,54 +11,48 @@ import {
   SKILL_LABEL,
   ANALYZE_DISCIPLINES,
   DISCIPLINE_LABEL,
+  disciplineGroup,
   isDiscipline,
   type Discipline,
 } from "@/lib/skills";
 
 export const metadata: Metadata = {
-  title: "Learn",
+  title: "Technique",
   description:
-    "Two libraries: what good technique looks like for every skill, and what volleyball's common injuries are, how the sport causes them, and what recovery looks like.",
+    "What good technique looks like for every volleyball skill, cut for the surface you play on: indoor, or grass and sand.",
   alternates: { canonical: "/learn" },
 };
 
-const TONE: Record<string, LibraryItem["tone"]> = {
-  urgent: "urgent",
-  get_assessed: "assess",
-  self_manage: "self",
-};
-
+/**
+ * TECHNIQUE. Only technique.
+ *
+ * This page used to carry the injury library too, behind a tab row that
+ * repeated the two links already sitting in the hub strip above it. That made
+ * three rows of chips before any content, and let the page contradict its own
+ * URL: /learn with the Injury tab selected is a Technique address showing an
+ * injury library. Injury and recovery now has its own page at /learn/rehab,
+ * which is also where the hub strip points.
+ *
+ * The discipline switcher stays, because it is the one control here that
+ * changes what the content SAYS rather than which content is shown: the same
+ * skill is coached differently on sand than indoors, and the scoring already
+ * splits on exactly this axis.
+ */
 export default async function Learn({
   searchParams,
 }: {
-  searchParams: Promise<{ discipline?: string; tab?: string }>;
+  searchParams: Promise<{ discipline?: string }>;
 }) {
-  const { discipline: raw, tab } = await searchParams;
-  const discipline: Discipline = isDiscipline(raw ?? "")
-    ? (raw as Discipline)
-    : "indoor";
+  const { discipline: raw } = await searchParams;
+  const discipline: Discipline = isDiscipline(raw ?? "") ? (raw as Discipline) : "indoor";
   const q = discipline === "indoor" ? "" : `?discipline=${discipline}`;
+  // Grass and sand are one group to the scoring and one group to the drills.
+  const surface = disciplineGroup(discipline) === "indoor" ? "indoor" : "outdoor";
 
-  // The injury library lives in the table so it can be corrected without a
-  // deploy (D-074). content/rehab.ts is the authored source and the seed
-  // reconciles the two; if the read fails we fall back to the module rather
-  // than showing an empty library, because this is public reference content and
-  // an outage should not make it disappear.
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("rehab_entries")
-    .select("slug, name, also_called, region, triage, summary")
-    .order("region");
-  const rehabRows =
-    (data as Pick<
-      RehabEntry,
-      "slug" | "name" | "also_called" | "region" | "triage" | "summary"
-    >[] | null) ?? REHAB;
-
-  // Both libraries flatten to one shape so a single search box can serve them.
-  // The `terms` haystack is built here, once per request, rather than on every
+  // The library flattens to one shape so the search box can serve it. The
+  // `terms` haystack is built here, once per request, rather than on every
   // keystroke in the browser.
-  const training: LibraryItem[] = [
+  const technique: LibraryItem[] = [
     ...SKILLS.map((skill) => {
       const t = techniqueFor(skill, discipline);
       const checkpoints = metricKeys(skill).map((k) => metricLabel(skill, k));
@@ -76,7 +67,12 @@ export default async function Learn({
           .toLowerCase(),
       };
     }),
-    ...DRILLS.map((d) => ({
+    // Drills are cut to the surface too, not just the technique prose. Most
+    // of the catalog carries no surface and appears for everyone; the sand
+    // and grass entries teach mechanics that would actively mislead an indoor
+    // player (a two-step approach, a shuffle that never crosses), so showing
+    // them under Indoor was the filter quietly lying about what it filtered.
+    ...DRILLS.filter((d) => !d.surface || d.surface === surface).map((d) => ({
       id: `drill-${d.slug}`,
       title: d.name,
       subtitle: d.summary,
@@ -96,40 +92,18 @@ export default async function Learn({
     })),
   ];
 
-  const rehab: LibraryItem[] = rehabRows.map((e) => ({
-    id: `rehab-${e.slug}`,
-    title: e.name,
-    subtitle: e.summary,
-    meta: `${REGION_LABEL[e.region]} · ${TRIAGE_LABEL[e.triage]}`,
-    href: `/learn/rehab/${e.slug}`,
-    tone: TONE[e.triage],
-    // also_called is the load-bearing part: nobody searches "patellar
-    // tendinopathy", they search "jumper's knee".
-    terms: [e.name, e.summary, REGION_LABEL[e.region], ...e.also_called]
-      .join(" ")
-      .toLowerCase(),
-  }));
-
   return (
     <section className="max-w-5xl">
-      {/* THE OPENING BAND (D-117). THREE CHIP ROWS still land on this page in
-          a row (hub sections, then discipline, then the library tabs), and the
-          band is what finally separates them: the first two are chrome about
-          where you are and now sit inside it, and the third is a control over
-          the content and stays out on the page with the search box it belongs
-          to. The discipline row is the least of the three - it only re-cuts
-          the technique text - so it keeps sitting tight under the hub strip
-          rather than reading as its own step. */}
       <Reveal>
         <div className="hero-band card spot p-5 sm:p-6">
           <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
             Learn
           </p>
           <h1 className="mt-1.5 font-display text-page-title">
-            Get better, and stay on the court
+            What good looks like 🏐
           </h1>
           <div className="mt-4 border-t border-line pt-3.5">
-            <TrainNav active={tab === "rehab" ? "recovery" : "technique"} />
+            <TrainNav active="technique" />
             <div className="mt-3 flex items-center gap-2">
               {ANALYZE_DISCIPLINES.map((d) => (
                 <Link
@@ -148,20 +122,12 @@ export default async function Learn({
 
       <Reveal delay={60}>
         <LearnLibrary
-          training={training}
-          rehab={rehab}
-          initialTab={tab === "rehab" ? "rehab" : "training"}
+          items={technique}
+          label="technique"
+          blurb="What good looks like for every skill, and the drills that get you there. Start with the skill you want to fix."
+          placeholder="Search technique: a skill, a checkpoint, a drill…"
+          emptyHint="Try a skill name, a checkpoint like toss or platform, or the name of a drill."
         />
-      </Reveal>
-
-      <Reveal delay={140}>
-        <p className="mt-8 max-w-prose border-t border-line pt-5 text-xs leading-relaxed text-chalk-dim">
-          The injury library is general education about how volleyball hurts
-          people and what recovery usually looks like. It is not a diagnosis and
-          it is not treatment. Vollyio cannot examine you, and two injuries that
-          feel identical are often not. If something is not settling, or any of
-          the warning signs on an entry apply to you, see a clinician.
-        </p>
       </Reveal>
     </section>
   );

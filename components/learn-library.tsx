@@ -21,147 +21,96 @@ export type LibraryItem = {
   tone?: "urgent" | "assess" | "self";
 };
 
-type Tab = "training" | "rehab";
-
-const TABS: { id: Tab; label: string; blurb: string; placeholder: string }[] = [
-  {
-    id: "training",
-    label: "Training",
-    blurb:
-      "What good looks like, and the drills that get you there. Start with the skill you want to fix.",
-    placeholder: "Search training: a skill, a checkpoint, a drill…",
-  },
-  {
-    id: "rehab",
-    label: "Injury & recovery",
-    blurb:
-      "What common volleyball injuries are, how this sport causes them, what recovery usually looks like, and the signs that mean stop and get seen. Education, not a diagnosis.",
-    placeholder: "Search injuries: jumper's knee, rolled ankle, sore shoulder…",
-  },
-];
-
 const TONE_CLASS: Record<NonNullable<LibraryItem["tone"]>, string> = {
   urgent: "text-coral-ink",
   assess: "text-gold-ink",
   self: "text-teal-ink",
 };
 
+/**
+ * ONE LIBRARY, SEARCHED. Not two behind a switcher.
+ *
+ * This carried its own Training / Injury-and-recovery tab row until the IA
+ * changed. The hub strip directly above it already offered exactly those two
+ * destinations, so the page asked the same question twice, three chip rows
+ * deep, and the two answers could disagree: the URL said Technique while the
+ * panel sat on Injury. Technique is now technique, injury and recovery is its
+ * own page, and the only filter left on either is the one that changes what
+ * the content SAYS, which is the discipline you play.
+ *
+ * The search box, the live count and the empty state survive unchanged;
+ * those were never the problem.
+ */
 export function LearnLibrary({
-  training,
-  rehab,
-  initialTab = "training",
+  items,
+  label,
+  blurb,
+  placeholder,
+  emptyHint,
 }: {
-  training: LibraryItem[];
-  rehab: LibraryItem[];
-  initialTab?: Tab;
+  items: LibraryItem[];
+  /** Lower-case noun for the counts and the empty state: "technique". */
+  label: string;
+  blurb: string;
+  placeholder: string;
+  emptyHint: string;
 }) {
-  const [tab, setTab] = useState<Tab>(initialTab);
-  // The query deliberately SURVIVES a tab switch and is re-run against the
-  // other library. Someone who typed "shoulder" under Training and switched has
-  // not changed their mind about what they are looking for.
   const [query, setQuery] = useState("");
-
-  const active = tab === "training" ? training : rehab;
-  const meta = TABS.find((t) => t.id === tab)!;
 
   const results = useMemo(() => {
     const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) return active;
+    if (tokens.length === 0) return items;
     // Every token must appear somewhere. "sore knee" should not match anything
     // that merely mentions a knee.
-    return active.filter((item) => tokens.every((t) => item.terms.includes(t)));
-  }, [active, query]);
+    return items.filter((item) => tokens.every((t) => item.terms.includes(t)));
+  }, [items, query]);
 
   return (
     <div className="mt-5">
-      <div
-        role="tablist"
-        aria-label="Library"
-        className="flex flex-wrap items-center gap-2"
-      >
-        {TABS.map((t) => {
-          const selected = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`lib-tab-${t.id}`}
-              aria-selected={selected}
-              aria-controls="lib-panel"
-              onClick={() => setTab(t.id)}
-              className={`chip min-h-11 ${selected ? "chip-active" : ""}`}
-            >
-              {t.label}
-              <span className="ml-1.5 font-mono text-[10px] opacity-70">
-                {(t.id === "training" ? training : rehab).length}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Kept word for word, just quieter. This is orientation copy, not the
-          thing anyone came for, and the injury blurb in particular ran four
-          lines of text-body straight under the page title. Nothing is cut here
-          on purpose: the injury one is safety framing, and trimming safety
-          framing to save two lines is not a trade worth making. */}
-      <p className="mt-3 max-w-prose text-sm leading-relaxed text-chalk-dim">
-        {meta.blurb}
-      </p>
+      {/* Orientation copy, kept quiet. It is not the thing anyone came for,
+          and on the injury page it is safety framing, which is never trimmed
+          to save two lines. */}
+      <p className="max-w-prose text-sm leading-relaxed text-chalk-dim">{blurb}</p>
 
       <div className="mt-3">
         <label htmlFor="lib-search" className="sr-only">
-          Search the {tab === "training" ? "training" : "injury"} library
+          Search the {label} library
         </label>
         <input
           id="lib-search"
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={meta.placeholder}
+          placeholder={placeholder}
           autoComplete="off"
           className="input-field"
         />
         <p aria-live="polite" className="mt-2 font-mono text-[11px] text-chalk-dim">
           {query
-            ? `${results.length} of ${active.length} in ${meta.label.toLowerCase()}`
-            : `${active.length} in ${meta.label.toLowerCase()}`}
+            ? `${results.length} of ${items.length} in ${label}`
+            : `${items.length} in ${label}`}
         </p>
       </div>
 
-      <div
-        role="tabpanel"
-        id="lib-panel"
-        aria-labelledby={`lib-tab-${tab}`}
-        className="mt-4"
-      >
+      <div className="mt-4">
         {results.length === 0 ? (
           <div className="card p-6 text-center">
-            <p className="font-display text-base font-bold">
-              Nothing in {meta.label.toLowerCase()} matches that.
-            </p>
-            <p className="mx-auto mt-1 max-w-sm text-body text-chalk-dim">
-              {tab === "training"
-                ? "Try a skill name, a checkpoint like toss or platform, or the name of a drill."
-                : "Try where it hurts, like knee, shoulder or ankle, or what you call it, like jumper's knee."}
-            </p>
+            <p className="font-display text-base font-bold">Nothing in {label} matches that.</p>
+            <p className="mx-auto mt-1 max-w-sm text-body text-chalk-dim">{emptyHint}</p>
             <button
               type="button"
-              onClick={() => setTab(tab === "training" ? "rehab" : "training")}
+              onClick={() => setQuery("")}
               className="btn-ghost mt-5 inline-flex min-h-11 text-sm"
             >
-              Search {tab === "training" ? "injury & recovery" : "training"} instead
+              Clear the search
             </button>
           </div>
         ) : (
           // THE GRID IS THE RIGHT SHAPE and stays one (D-117). These are
           // thirty-odd things to CHOOSE between, not six of one thing with a
           // number each, so there is no ranking a single axis would reveal -
-          // and folding two columns into one on a library this long doubles the
-          // scroll on every screen wide enough to hold both. What was wrong was
-          // the density, so that is what changed: the padding, and a ceiling on
-          // the blurb.
+          // and folding two columns into one on a library this long doubles
+          // the scroll on every screen wide enough to hold both.
           <ul className="grid items-stretch gap-2.5 sm:grid-cols-2">
             {results.map((item) => (
               <li key={item.id} className="h-full">
@@ -172,9 +121,7 @@ export function LearnLibrary({
                 >
                   {/* text-base, not text-lg. This grid is thirty-odd cards
                       long and every title was set two steps above the copy
-                      under it, so the list read as a wall of headlines. The
-                      display face and the weight still separate a title from
-                      its blurb without the extra size doing it as well. */}
+                      under it, so the list read as a wall of headlines. */}
                   <span className="font-display text-base font-bold leading-snug">
                     {item.title}
                   </span>
@@ -186,11 +133,10 @@ export function LearnLibrary({
                     {item.meta}
                   </span>
                   {/* Clamped to three lines. Cards in a row stretch to the
-                      tallest of them (`items-stretch`), and the injury summaries
-                      run to six lines where a drill's runs to two, so one entry
-                      was setting the height of the card beside it. Nothing is
-                      lost: the entry's own page carries the full text, which is
-                      where anyone reading past three lines is going anyway. */}
+                      tallest of them, and the injury summaries run to six
+                      lines where a drill's runs to two, so one entry was
+                      setting the height of the card beside it. The entry's own
+                      page carries the full text. */}
                   <span className="mt-1.5 line-clamp-3 block text-sm leading-relaxed text-chalk-dim">
                     {item.subtitle}
                   </span>

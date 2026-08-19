@@ -106,7 +106,7 @@ export default async function RehabDetail({
     <section className="max-w-3xl">
       <Reveal>
         <Link
-          href="/learn?tab=rehab"
+          href="/learn/rehab"
           className="relative font-mono text-[11px] uppercase tracking-[0.14em] text-chalk-dim transition-colors hover:text-gold-ink"
         >
           &larr; Injury &amp; recovery

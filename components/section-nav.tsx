@@ -22,10 +22,14 @@ export const TRAIN_NAV: SectionNavItem[] = [
   { key: "drills", href: "/drills", label: "Drills" },
   { key: "technique", href: "/learn", label: "Technique" },
   // "Injury & recovery", not "Recovery". The library underneath is about what
-  // volleyball injuries are and when to stop and get seen, and the tab inside
-  // it and the back link on every entry both already said so; this chip was the
-  // one place that read as a training-recovery day and sent the wrong player in.
-  { key: "recovery", href: "/learn?tab=rehab", label: "Injury & recovery" },
+  // volleyball injuries are and when to stop and get seen, and the back link on
+  // every entry already said so; this chip was the one place that read as a
+  // training-recovery day and sent the wrong player in.
+  //
+  // A real address now rather than a tab query. `/learn?tab=rehab` meant the
+  // Technique URL rendered the injury library, so neither the page title nor
+  // the canonical agreed with what was on screen.
+  { key: "recovery", href: "/learn/rehab", label: "Injury & recovery" },
 ];
 
 export const PROGRESS_NAV: SectionNavItem[] = [
