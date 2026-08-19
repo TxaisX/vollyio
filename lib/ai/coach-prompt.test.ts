@@ -119,14 +119,47 @@ test("what the coach is, is not a subject it may discuss or deny", () => {
   assert.doesNotMatch(prompt, /You are simply their coach\./);
 });
 
-// The data was already required; LEADING with it was not, and a coach who waits
-// to be asked the right question is a search box.
-test("the coach opens on what the player's own numbers say is costing them", () => {
+// REVERSED 2026-08-19, and the reversal is the point of this test.
+//
+// This used to pin "lead with what their own numbers say is costing them
+// most", on the reasoning that a coach who waits to be asked the right
+// question is a search box. That was right about a player asking about their
+// game and wrong about everything else, and a recording from a real device
+// showed the cost: the player typed "hello" and got four paragraphs about
+// their setting tempo. A report firing on a trigger is not a coach either.
+//
+// The data stays required and stops being the subject. What is pinned now is
+// that the answer belongs to the question, that the corpus can answer without
+// any of the player's own film, and that the reply is SHORT, which is both a
+// readability fix on a phone and the latency fix: output tokens are what the
+// player waits on, and one recorded answer took about fifty seconds.
+test("the coach answers the question asked, at the size it was asked", () => {
   const prompt = coachSystemPrompt(context());
-  assert.match(prompt, /Lead with what their own numbers say is costing them most/i);
-  assert.match(prompt, /weakest measured skill/i);
-  assert.match(prompt, /never a generic explanation of the sport/i);
+  assert.match(prompt, /Answer the question they actually asked, first and directly/i);
+  assert.match(prompt, /Match the size of the answer to the size of the question/i);
+  assert.match(prompt, /Keep it SHORT/);
+  assert.match(prompt, /Never open with a preamble/i);
   assert.match(prompt, /Every answer ends somewhere they can go/i);
+  // The rule that produced the essay-on-a-greeting must not come back.
+  assert.doesNotMatch(prompt, /Lead with what their own numbers say is costing them most/i);
+});
+
+// A coach who can only discuss this player's own reps is useless to someone
+// who just wants to know how to play, and the product ships a real corpus to
+// answer exactly that.
+test("the coach answers from the corpus even with no film of the player's own", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /You can always answer/i);
+  assert.match(prompt, /Never refuse a volleyball question for lack of their data/i);
+});
+
+// The two opposite failure modes on a pain question: playing clinician, or
+// hiding behind a disclaimer and being useless.
+test("an injury question gets the disclaimer AND real help", () => {
+  const prompt = coachSystemPrompt(context());
+  assert.match(prompt, /not a doctor or physio/i);
+  assert.match(prompt, /do not use the disclaimer as a reason to say nothing useful/i);
+  assert.match(prompt, /Do not diagnose them/i);
 });
 
 // Bold is load-bearing, not decoration: components/coach-chat.tsx resolves an
