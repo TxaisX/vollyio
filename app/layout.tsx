@@ -32,12 +32,22 @@ const plexMono = IBM_Plex_Mono({
 // what a PERSON reads and missed every string a MACHINE reads, and the
 // machine-read ones travel further, because they reach a search result, an
 // answer engine and an install prompt before anyone opens the site.
+// Written against what people actually type, not against what the product
+// calls itself internally. The free keyword harvest (docs/business-position.md)
+// puts "volleyball video analysis", "volleyball training app" and "volleyball
+// form" at the most frequent rank, and this string named none of them. Every
+// term added is one the product genuinely is: it analyses volleyball video, it
+// coaches form, and it installs to a home screen. Nothing here promises a
+// capability the boundary in llms.txt then takes away.
 const description =
-  "Record a rep, get it scored 0-100 against the checkpoints for that skill, with the one fix that matters most.";
+  "Volleyball video analysis on your phone. Film one rep, get it scored 0-100 against the checkpoints a coach watches, with the one fix that matters most. Indoor, grass and sand.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Vollyio · Volleyball Form Coach", template: "%s · Vollyio" },
+  title: {
+    default: "Vollyio · Volleyball Video Analysis & Form Coach",
+    template: "%s · Vollyio",
+  },
   description,
   applicationName: "Vollyio",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Vollyio" },
@@ -49,12 +59,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Vollyio",
-    title: "Vollyio · Volleyball Form Coach",
+    title: "Vollyio · Volleyball Video Analysis & Form Coach",
     description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vollyio · Volleyball Form Coach",
+    title: "Vollyio · Volleyball Video Analysis & Form Coach",
     description,
   },
 };

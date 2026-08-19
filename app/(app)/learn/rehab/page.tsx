@@ -7,9 +7,9 @@ import { TrainNav } from "@/components/section-nav";
 import { LearnLibrary, type LibraryItem } from "@/components/learn-library";
 
 export const metadata: Metadata = {
-  title: "Injury & recovery",
+  title: "Volleyball Injuries & Recovery",
   description:
-    "What volleyball's common injuries are, how the sport causes them, what recovery usually looks like, and the signs that mean stop and get seen. Education, not a diagnosis.",
+    "Volleyball injuries explained: jumper's knee, rolled ankles, shoulder pain and more. How the sport causes them, what recovery usually looks like, and the signs that mean stop and get seen. Education, not a diagnosis.",
   alternates: { canonical: "/learn/rehab" },
 };
 

@@ -10,9 +10,13 @@ import { SKILLS, SKILL_LABEL } from "@/lib/skills";
 import type { Level } from "@/lib/skills";
 
 export const metadata: Metadata = {
-  title: "Drills",
+  title: "Volleyball Drills",
+  // Named for what people search rather than for what the nav calls it. The
+  // solo and two-person framing is deliberate: "beach volleyball drills to do
+  // by yourself" and "for 2 people" are real, frequent queries, and they are
+  // exactly what this catalog serves.
   description:
-    "Step-by-step drills for every volleyball skill, beginner to pro.",
+    "Step-by-step volleyball drills for every skill, indoor, grass and sand. Solo drills, two-person drills, and what each one fixes, beginner to pro.",
   alternates: { canonical: "/drills" },
   robots: { index: true, follow: true },
 };

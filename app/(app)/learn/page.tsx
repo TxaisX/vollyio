@@ -17,9 +17,9 @@ import {
 } from "@/lib/skills";
 
 export const metadata: Metadata = {
-  title: "Technique",
+  title: "Volleyball Technique",
   description:
-    "What good technique looks like for every volleyball skill, cut for the surface you play on: indoor, or grass and sand.",
+    "What good volleyball technique looks like for every skill: serve, pass, set, attack, block and dig. Cut for the surface you play on, indoor or grass and sand.",
   alternates: { canonical: "/learn" },
 };
 
