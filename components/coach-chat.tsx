@@ -264,7 +264,7 @@ export function CoachDrawer({ children }: { children: ReactNode }) {
         onClick={(e) => {
           if (e.target === dialogRef.current) setOpen(false);
         }}
-        className="fixed inset-0 m-0 h-auto max-h-none w-auto max-w-none bg-transparent p-0 backdrop:bg-navy/80 lg:hidden"
+        className="fixed inset-0 m-0 h-auto max-h-none w-auto max-w-none bg-transparent p-0 backdrop:bg-deep/60 lg:hidden"
       >
         <div
           // A tap on any link in here is a navigation, and the panel must not

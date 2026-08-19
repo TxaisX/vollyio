@@ -186,7 +186,7 @@ export function PlanOfferPicker({
           role="dialog"
           aria-modal="true"
           aria-labelledby="downsell-heading"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-deep/60 p-4"
         >
           <div className="card w-full max-w-sm p-5">
             <h3 id="downsell-heading" className="font-display text-lg font-bold">

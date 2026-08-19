@@ -225,8 +225,12 @@ test("the drawer is a real modal dialog, not a div with a z-index", () => {
   // Overlays, never reflows: it is fixed to the viewport and in the top layer,
   // so the pinned non-scrolling section underneath is untouched by it.
   assert.match(CHAT_CODE, /className="fixed inset-0 m-0 h-auto max-h-none w-auto max-w-none/);
-  // The dim is ::backdrop, in vollyio's own navy, not an element of our own.
-  assert.match(CHAT_CODE, /backdrop:bg-navy\/80/);
+  // The dim is ::backdrop, in one of vollyio's own colours, not an element of
+  // our own. `deep` rather than `navy` since D-126: navy is the sand PAGE now,
+  // so a navy scrim would lighten the screen instead of dimming it, which is
+  // the one thing a modal backdrop exists to do. `deep` is the court ink in
+  // the light theme and the room in the dark one, so it dims in both.
+  assert.match(CHAT_CODE, /backdrop:bg-deep\/60/);
 });
 
 test("the trigger announces the panel it controls", () => {

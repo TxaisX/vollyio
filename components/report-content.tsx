@@ -139,7 +139,7 @@ export function ReportContent({
         onClick={(e) => {
           if (e.target === dialogRef.current) setOpen(false);
         }}
-        className="fixed inset-0 m-auto max-h-[90dvh] w-[min(28rem,92vw)] overflow-y-auto rounded-card border border-line bg-navy p-0 text-chalk shadow-lift backdrop:bg-navy/80"
+        className="fixed inset-0 m-auto max-h-[90dvh] w-[min(28rem,92vw)] overflow-y-auto rounded-card border border-line bg-navy-light p-0 text-chalk shadow-lift backdrop:bg-deep/60"
       >
         <div className="p-5">
           <h2 className="font-display text-lg font-bold">Report this</h2>
