@@ -5,6 +5,8 @@ import { streamChat, hasChatKey } from "@/lib/ai/chat";
 import { coachSystemPrompt, type CoachContext } from "@/lib/ai/coach-prompt";
 import { DRILLS, drillsForSkill } from "@/content/drills";
 import { techniqueFor } from "@/content/technique";
+import { REHAB } from "@/content/rehab";
+import { REGION_LABEL, TRIAGE_LABEL, TRIAGE_NOTE } from "@/content/rehab-types";
 import { METRICS, metricLabel } from "@/lib/ai/metrics";
 import { SKILL_LABEL, type Level, type Skill } from "@/lib/skills";
 import { consumeApiQuota } from "@/lib/security/rate-limit";
@@ -210,7 +212,7 @@ export async function POST(req: NextRequest) {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, level, position, play_frequency")
+      .select("display_name, level, position, play_frequency, discipline")
       .eq("id", user.id)
       .single(),
     supabase
@@ -269,8 +271,13 @@ export async function POST(req: NextRequest) {
     .slice(0, 2)
     .map((r) => r.skill);
 
+  // The player's OWN surface. This read "indoor" for everyone, so a player who
+  // set themselves to grass and sand in the quiz was coached off indoor
+  // technique, on a product whose outdoor half is the half being marketed.
+  const surface = profile?.discipline === "grass" ? "grass" : "indoor";
+
   const techniqueNotes = weakestSkills.map((skill) => {
-    const v = techniqueFor(skill, "indoor");
+    const v = techniqueFor(skill, surface);
     return {
       skill,
       overview: v.overview,
@@ -345,6 +352,19 @@ export async function POST(req: NextRequest) {
       slug: d.slug,
       skill: d.skill,
       level: d.level,
+    })),
+    // Every entry, every request. See CoachContext.injury_library for why this
+    // is not filtered the way the drills are.
+    injury_library: REHAB.map((r) => ({
+      name: r.name,
+      slug: r.slug,
+      also_called: r.also_called,
+      region: REGION_LABEL[r.region],
+      triage: TRIAGE_LABEL[r.triage],
+      triage_note: TRIAGE_NOTE[r.triage],
+      summary: r.summary,
+      how_it_happens: r.how_it_happens,
+      red_flags: r.red_flags,
     })),
     ...(techniqueNotes.length > 0 ? { technique_notes: techniqueNotes } : {}),
     ...(journeys.length > 0 ? { journey: journeys } : {}),

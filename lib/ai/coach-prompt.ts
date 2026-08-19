@@ -106,6 +106,32 @@ export type CoachContext = {
     stuck: { key: string; times: number }[];
     excluded: number;
   }[];
+  /**
+   * THE INJURY LIBRARY, and it was missing while the rules cited it.
+   *
+   * The prompt has told the model to answer injury questions "from the injury
+   * library below" since that rule was written, and no such section was ever
+   * assembled. Asked "my shoulder hurts when I serve, what should I do", the
+   * coach answered that it had no data on the player's game and could not pull
+   * up their numbers, which is the exact refusal two other rules forbid. It was
+   * not disobeying them: it had nothing to answer from.
+   *
+   * Carried on EVERY request rather than filtered to the player's weakest
+   * skills, because which body part hurts has nothing to do with which skill
+   * scores lowest. One compact line per entry, so the whole library costs less
+   * than the technique notes for two skills.
+   */
+  injury_library: {
+    name: string;
+    slug: string;
+    also_called: string[];
+    region: string;
+    triage: string;
+    triage_note: string;
+    summary: string;
+    how_it_happens: string;
+    red_flags: string[];
+  }[];
   // Optional "what good looks like" reference for the player's weakest skills.
   technique_notes?: {
     skill: Skill;

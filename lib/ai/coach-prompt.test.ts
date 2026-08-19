@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   coachSystemPrompt,
   PLAYER_DATA_OPEN,
@@ -14,6 +15,7 @@ function context(overrides: Partial<CoachContext["player"]> = {}): CoachContext 
     recent_analyses: [],
     active_goals: [],
     drill_catalog: [],
+    injury_library: [],
   };
 }
 
@@ -232,4 +234,48 @@ test("the coach remembers the player's work rather than citing data about them",
   assert.match(prompt, /Never name the data you were given/i);
   assert.match(prompt, /the journey data/i);
   assert.match(prompt, /you REMEMBER their work/i);
+});
+
+// THE RULE CITED A SECTION THAT DID NOT EXIST. The injury rule has said
+// "from the injury library below" since it was written, and CoachContext had no
+// such field, so on a real device the coach answered a shoulder-pain question
+// with "no data yet on your game, so I can't pull up your numbers" - the exact
+// refusal the corpus rule forbids. It was not disobeying anything; it had
+// nothing to answer from. This pins the two halves together.
+test("the injury library the rules point at is actually part of the context", () => {
+  const prompt = coachSystemPrompt({
+    ...context(),
+    injury_library: [
+      {
+        name: "Rotator cuff tendinopathy",
+        slug: "rotator-cuff-tendinopathy",
+        also_called: ["swimmer's shoulder"],
+        region: "Shoulder",
+        triage: "Get it assessed",
+        triage_note: "Worth a proper assessment.",
+        summary: "Overload of the cuff tendons.",
+        how_it_happens: "Repeated overhead swings.",
+        red_flags: ["Night pain that wakes you"],
+      },
+    ],
+  });
+  assert.match(prompt, /rotator-cuff-tendinopathy/);
+  assert.match(prompt, /Night pain that wakes you/);
+});
+
+test("the coach route ships the whole injury library, not a filtered slice", () => {
+  // The drills are filtered to the player's weakest skills to save tokens
+  // (D-047). Injuries must not be: which body part hurts has nothing to do
+  // with which skill scores lowest, and a knee question from a player whose
+  // weakest skill is serving still has to be answerable.
+  const route = readFileSync(new URL("../../app/api/coach/route.ts", import.meta.url), "utf8");
+  assert.match(route, /injury_library: REHAB\.map/);
+});
+
+// The technique reference read `techniqueFor(skill, "indoor")` for everyone,
+// which coached a sand player off indoor markers.
+test("technique notes follow the player's own surface", () => {
+  const route = readFileSync(new URL("../../app/api/coach/route.ts", import.meta.url), "utf8");
+  assert.match(route, /techniqueFor\(skill, surface\)/);
+  assert.match(route, /profile\?\.discipline === "grass"/);
 });
