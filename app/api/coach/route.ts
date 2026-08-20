@@ -289,12 +289,28 @@ export async function POST(req: NextRequest) {
     };
   });
 
-  // A player with no rated skills yet keeps the full catalog so the coach can
-  // still point somewhere concrete.
-  const drillPool =
-    weakestSkills.length > 0
-      ? DRILLS.filter((d) => weakestSkills.includes(d.skill))
-      : DRILLS;
+  /**
+   * THE WHOLE CATALOG, REVERSING D-047's FILTER, because the premise it was
+   * decided on no longer holds.
+   *
+   * D-047 cut the catalog to the player's weakest one or two skills as token
+   * spend "the answer never used", and that was true of a coach whose job was
+   * to talk about this player's own reps. It is not true of the coach this is
+   * now: the corpus is what it answers FROM, and the filter keyed off
+   * skill_ratings, which only exist for skills the player has already filmed.
+   *
+   * So a player with one attacking analysis asked for the best drill to work
+   * on passing alone and was told there was no passing drill in the catalog.
+   * There are seven. The model was reporting what it had been sent, which was
+   * attacking drills and nothing else, and no prompt rule can talk a model out
+   * of a gap in its own context. Observed on a device, 2026-08-20.
+   *
+   * All 37 entries are name, slug, skill and level: about 3.8KB, under a
+   * thousand tokens, on a request that already carries the injury library and
+   * the player's history. That is the correct price for a coach that can
+   * answer about the five skills a player has not filmed yet.
+   */
+  const drillPool = DRILLS;
 
   // THE JOURNEY (D-101), derived here rather than asked of the model.
   //

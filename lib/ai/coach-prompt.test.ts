@@ -279,3 +279,21 @@ test("technique notes follow the player's own surface", () => {
   assert.match(route, /techniqueFor\(skill, surface\)/);
   assert.match(route, /profile\?\.discipline === "grass"/);
 });
+
+// SAME SHAPE AS THE INJURY LIBRARY, found the same way: on a device.
+//
+// The drill catalog was filtered to the player's weakest skills (D-047), and
+// those come from skill_ratings, which only exist for skills already filmed. A
+// player with one attacking analysis asked for the best drill to work on
+// passing alone and was told there was no passing drill in the catalog. There
+// are seven. No prompt rule fixes a gap in the context, so the fix is the
+// context.
+test("the coach route sends the whole drill catalog, not the player's rated slice", () => {
+  const route = readFileSync(new URL("../../app/api/coach/route.ts", import.meta.url), "utf8");
+  assert.match(route, /const drillPool = DRILLS;/);
+  assert.doesNotMatch(
+    route,
+    /weakestSkills\.includes\(d\.skill\)/,
+    "the catalog is filtered by rated skills again, which makes every unfilmed skill unanswerable",
+  );
+});
