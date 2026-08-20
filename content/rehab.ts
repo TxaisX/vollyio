@@ -3028,6 +3028,420 @@ export const REHAB: RehabEntry[] = [
       "dig",
       "pass"
     ]
+  },
+  {
+    "slug": "medial-tibial-stress-syndrome",
+    "name": "Shin splints",
+    "also_called": [
+      "medial tibial stress syndrome",
+      "MTSS",
+      "shin pain"
+    ],
+    "region": "calf",
+    "triage": "self_manage",
+    "summary": "Aching along the inside edge of the shin bone that comes on with jumping and settles with rest, and is the body objecting to a jump in load rather than an injury to any one structure.",
+    "what_it_is": "Irritation of the bone surface and the soft tissue attaching to it along the inner border of the tibia. It sits on a spectrum: at the mild end the tissue is simply overloaded and recovers quickly, and at the far end the bone itself is stressed and heading toward a stress fracture. The difference matters because the treatment is the same at first and the timeline is not.",
+    "how_it_happens": "Volleyball is jumping and landing, hundreds of times a session, and the shin takes the shock every time. It shows up when the load changes faster than the bone can adapt: preseason after a quiet summer, a move from one session a week to four, a switch from a sprung indoor floor to a hard gym or a beach court, or new shoes with less under the heel. Sand cuts both ways here, softening the landing while making every push-off longer and harder.",
+    "signs": [
+      "A diffuse ache along the inner edge of the shin, over a stretch of several centimetres rather than one point.",
+      "Sore at the start of a session, easing as you warm up, then worse afterwards and the next morning.",
+      "Tender to press along that inner border, over a broad area.",
+      "Both legs often, though usually one is worse.",
+      "Settles within a day or two of resting, and returns at the same point in the next hard session."
+    ],
+    "red_flags": [
+      "Pain that narrows to one small point you can cover with a fingertip, especially if pressing it is sharp.",
+      "Pain that continues at rest or wakes you at night.",
+      "Pain that no longer warms up but gets worse through a session.",
+      "Swelling over the bone, or pain on hopping on that leg alone.",
+      "Any of the above in a player with low energy availability, missed periods, or a previous stress fracture."
+    ],
+    "phases": [
+      {
+        "name": "Settle the load",
+        "goal": "Get the shin out of the range that is aggravating it without stopping everything.",
+        "typical_window": "1 to 3 weeks",
+        "markers": [
+          "Jumping volume cut, not necessarily to zero: skills, ball control and upper body work continue.",
+          "Walking and daily life are pain free.",
+          "Morning soreness is gone or nearly gone.",
+          "Footwear and surface have been looked at rather than assumed."
+        ]
+      },
+      {
+        "name": "Build the tissue",
+        "goal": "Make the calf, foot and shin tolerate load again, and address why the load spiked.",
+        "typical_window": "3 to 6 weeks",
+        "markers": [
+          "Calf raise strength and endurance is building, both straight and bent knee.",
+          "Hopping on that leg is comfortable.",
+          "Jump volume is climbing gradually rather than returning to where it was.",
+          "No return of morning soreness as volume rises."
+        ]
+      },
+      {
+        "name": "Back to full jumping",
+        "goal": "Return to full training volume with the load progressed rather than resumed.",
+        "typical_window": "2 to 4 weeks",
+        "markers": [
+          "Full practice without symptoms during or after.",
+          "Repeat jumping and blocking sequences are comfortable.",
+          "The week's jump count is being tracked, at least roughly.",
+          "Confident landing and pushing off on that leg."
+        ]
+      }
+    ],
+    "prevention": [
+      "Build calf raises to real capacity: straight-knee for the gastrocnemius and bent-knee for the soleus, working toward sets in the twenties on one leg. The soleus takes several times body weight on landing, and a weak one hands that load to the shin.",
+      "Add a foot intrinsic routine, arch doming and toe spreading, especially if you play barefoot on sand. The foot is the first shock absorber and beach players train everything above it and nothing in it.",
+      "Progress jump volume by roughly ten percent a week rather than by however many sessions the schedule happens to hold, and treat a tournament week as the spike it is.",
+      "Land quietly and through the whole foot rather than slapping flat. Noise on landing is load that went somewhere, and it is a cue a partner can give you from the sideline.",
+      "Replace shoes before the midsole is dead, and be honest about the change when you move between a sprung floor, a hard gym floor, grass and sand in the same month.",
+      "Eat enough for the training you are actually doing. Bone adapts to load only when there is energy to build with, and shin pain in an underfuelled player is a different and more serious conversation."
+    ],
+    "return_markers": [
+      "No pain during or after a full session, and none the following morning.",
+      "Able to hop 20 times on the affected leg without pain.",
+      "Calf raise strength and endurance comparable side to side.",
+      "Full jump volume reached by progression rather than by jumping straight back in.",
+      "No tenderness to press along the shin."
+    ],
+    "loads": [
+      "attack",
+      "block",
+      "serve"
+    ]
+  },
+  {
+    "slug": "peroneal-tendinopathy",
+    "name": "Peroneal tendinopathy",
+    "also_called": [
+      "peroneal tendinitis",
+      "outside ankle tendon pain",
+      "fibularis tendinopathy"
+    ],
+    "region": "ankle",
+    "triage": "self_manage",
+    "summary": "Pain in the tendons running behind and below the bony bump on the outside of the ankle, from the constant small corrections a soft or uneven surface demands.",
+    "what_it_is": "Overload of the peroneal tendons, which run down the outside of the lower leg, hook behind the outer ankle bone and attach under the foot. Their job is to turn the foot outward and, more importantly here, to stop it rolling inward. In a tendinopathy the tendon has been asked for more than it can currently supply and has become irritated and sore rather than torn.",
+    "how_it_happens": "These tendons are the ankle's brake against rolling over, and every step in sand asks them to work. They flare after a spell of beach or grass volleyball, after a lateral ankle sprain when the ankle is relying on them for stability it used to get from ligament, and in players who habitually land slightly on the outside of the foot. Uneven ground, an unraked court, or a partner's foot underfoot all add sudden demand.",
+    "signs": [
+      "Pain behind or just below the bony bump on the outside of the ankle.",
+      "Worse with pushing off, cutting, or walking on soft or uneven ground.",
+      "Tender to press along the tendon rather than over the bone itself.",
+      "Sometimes a swelling or thickening you can feel along the tendon line.",
+      "Often follows a period of increased beach play, or an old ankle sprain that never fully rehabilitated."
+    ],
+    "red_flags": [
+      "A snapping or clicking sensation as the tendon moves over the bone, especially with a feeling of it slipping out of place.",
+      "Sudden inability to turn the foot outward against resistance.",
+      "Marked swelling, bruising, or an inability to bear weight.",
+      "Pain over the bone itself rather than the tendon, which needs a fracture ruled out.",
+      "Numbness or pins and needles into the foot."
+    ],
+    "phases": [
+      {
+        "name": "Calm it down",
+        "goal": "Reduce the daily provocation while keeping the tendon loaded enough not to deteriorate.",
+        "typical_window": "1 to 2 weeks",
+        "markers": [
+          "Walking and stairs are comfortable.",
+          "Isometric holds turning the foot outward can be done without pain.",
+          "The aggravating volume, usually sand hours, has been cut rather than pushed through.",
+          "Pain settles within 24 hours of activity rather than lingering."
+        ]
+      },
+      {
+        "name": "Load the tendon",
+        "goal": "Build capacity in the peroneals and the whole ankle rather than resting and hoping.",
+        "typical_window": "4 to 8 weeks",
+        "markers": [
+          "Resisted eversion is getting stronger and is comfortable through range.",
+          "Single-leg balance is steady, including on an unstable or soft surface.",
+          "Calf raises are strong both straight and bent knee.",
+          "Hopping and lateral movement are tolerable."
+        ]
+      },
+      {
+        "name": "Back to the surface",
+        "goal": "Return to full play on the surface that caused it, at a volume the tendon can hold.",
+        "typical_window": "2 to 4 weeks",
+        "markers": [
+          "Cutting and lateral defensive movement are pain free.",
+          "A full session on sand is tolerated without a flare the next day.",
+          "Confidence pushing off the outside of the foot.",
+          "Symptoms do not return as the weekly hours climb."
+        ]
+      }
+    ],
+    "prevention": [
+      "Train resisted eversion directly, turning the foot outward against a band for sets of fifteen to twenty. Almost nobody trains this direction, and it is the exact action these tendons exist for.",
+      "Build single-leg balance on a soft surface, thirty to sixty seconds a side, eyes open then closed. Sand is an unstable surface and the ankle needs to be trained on one.",
+      "Rehabilitate ankle sprains properly rather than to the point where they stop hurting. A ligament that never regained its stability leaves the peroneals doing its job every session.",
+      "Build beach volume gradually when you move outdoors for a season, rather than going from indoor courts to five sand sessions a week in the first fortnight.",
+      "Rake or walk the court before playing, and level obvious holes. Most sudden ankle loads outdoors come from a foot landing somewhere it did not expect.",
+      "Strengthen the calf as a whole, both straight and bent knee, so the peroneals are not the only structure controlling the ankle when you are tired."
+    ],
+    "return_markers": [
+      "Full pain-free range turning the foot in and out.",
+      "Eversion strength comparable side to side.",
+      "Able to hop and cut on the leg without pain.",
+      "A full session on the aggravating surface without a next-day flare.",
+      "No tenderness along the tendon."
+    ],
+    "loads": [
+      "dig",
+      "block",
+      "attack"
+    ]
+  },
+  {
+    "slug": "metatarsal-stress-fracture",
+    "name": "Metatarsal stress fracture",
+    "also_called": [
+      "march fracture",
+      "foot stress fracture",
+      "forefoot stress injury"
+    ],
+    "region": "ankle",
+    "triage": "get_assessed",
+    "summary": "A crack developing in one of the long bones of the forefoot from repeated load, common in barefoot sand players, and one of the injuries where playing through it makes the timeline much longer.",
+    "what_it_is": "A stress injury to one of the metatarsals, the long bones running from the midfoot to the toes. Repeated loading outpaces the bone's ability to repair, and what starts as a stress reaction becomes a true fracture line. The second and third metatarsals take the most load and are the most commonly affected; a fracture at the base of the fifth has a poorer blood supply and is managed differently, which is one reason this needs imaging rather than a guess.",
+    "how_it_happens": "Push-off in sand loads the forefoot heavily and repeatedly, and beach players do it barefoot with no midsole between the bone and the ground. It builds over weeks rather than arriving in one moment: a preseason volume jump, a tournament block, a move from indoor shoes to barefoot sand, or a long stretch of jumping on hard ground. Low energy availability makes it far more likely, because bone cannot repair on a deficit.",
+    "signs": [
+      "Pain in the forefoot that you can point to with one finger.",
+      "Worse with push-off, jumping and running, better with rest at first.",
+      "Progressively less activity is needed to bring it on.",
+      "Tender to press directly on the bone, sometimes with swelling on the top of the foot.",
+      "Aching after the session and the following morning."
+    ],
+    "red_flags": [
+      "Pain at rest or at night, which suggests the injury has progressed.",
+      "Inability to bear weight, or a limp you cannot hide.",
+      "Pain at the base of the fifth metatarsal, on the outer edge of the midfoot, which heals poorly and often needs specific management.",
+      "Any suspected stress fracture in a player with low energy availability, disordered eating, or absent periods.",
+      "Sudden sharp pain with a pop, which may be a complete fracture."
+    ],
+    "phases": [
+      {
+        "name": "Diagnosis and offloading",
+        "goal": "Confirm what it is and take the load off so the bone can heal.",
+        "typical_window": "2 to 6 weeks",
+        "markers": [
+          "Imaging has been done: an early stress fracture often does not show on plain x-ray.",
+          "Walking is pain free, in a boot or stiff-soled shoe if that is what it takes.",
+          "No jumping or running at all.",
+          "Fitness maintained through non-impact work such as cycling or swimming."
+        ]
+      },
+      {
+        "name": "Reload the bone",
+        "goal": "Return load gradually and rebuild the foot and calf.",
+        "typical_window": "3 to 6 weeks",
+        "markers": [
+          "Walking normally without pain or tenderness.",
+          "Foot intrinsic and calf strength work underway.",
+          "Impact reintroduced in small, controlled doses on a firm surface first.",
+          "No symptoms in the 24 hours after each step up."
+        ]
+      },
+      {
+        "name": "Back to sand",
+        "goal": "Return to full volleyball including the surface that caused it.",
+        "typical_window": "3 to 6 weeks",
+        "markers": [
+          "Jumping and landing pain free on a firm surface.",
+          "Barefoot sand work reintroduced gradually rather than resumed.",
+          "Full practice tolerated without next-day pain.",
+          "Training load being tracked, and the cause understood rather than repeated."
+        ]
+      }
+    ],
+    "prevention": [
+      "Build barefoot sand volume gradually, especially in the first month of a beach season. Going from shod indoor courts to daily barefoot sand is the single most common way this arrives.",
+      "Train the foot itself: arch doming, toe spreading and short-foot holds, several sets most days. Beach players load the forefoot harder than anyone and rarely strengthen it.",
+      "Build calf capacity straight and bent knee, so the forefoot is not absorbing load a strong calf should be taking.",
+      "Eat and sleep for the training you are doing. Bone is living tissue that remodels only with enough energy, and stress fractures cluster in underfuelled athletes.",
+      "Wear shoes off the court during a heavy beach block rather than staying barefoot all day, so the forefoot gets some hours of reduced load.",
+      "Treat a new, localised forefoot ache as a load question immediately rather than a fortnight later. A stress reaction caught early costs weeks; a fracture costs months."
+    ],
+    "return_markers": [
+      "No tenderness when pressing directly on the bone.",
+      "Pain-free hopping and jumping on a firm surface.",
+      "Full sessions on sand without pain during or afterwards.",
+      "Cleared by the clinician who managed the injury.",
+      "The training load that caused it has actually changed."
+    ],
+    "loads": [
+      "attack",
+      "block",
+      "serve"
+    ]
+  },
+  {
+    "slug": "wrist-extension-impingement",
+    "name": "Wrist impingement",
+    "also_called": [
+      "dorsal wrist impingement",
+      "back of wrist pain",
+      "wrist extension pain"
+    ],
+    "region": "hand",
+    "triage": "self_manage",
+    "summary": "Pinching pain across the back of the wrist at full extension, felt when blocking, setting or pressing up off the floor.",
+    "what_it_is": "Compression of the soft tissue at the back of the wrist when the joint is taken to its end range of extension under load. The tissue between the bones gets pinched repeatedly and becomes irritated and thickened, which narrows the space further. It is a mechanical and load problem rather than damage to a specific structure, which is why it usually responds well to changing how the wrist is loaded.",
+    "how_it_happens": "Blocking puts the wrist into extension with a ball hitting it. Setting loads it at the top of the range hundreds of times a session. Pressing up off the floor after a dig does the same with body weight behind it. It tends to appear in players with limited wrist extension range or weak forearms, and in beach players pushing up out of the sand repeatedly.",
+    "signs": [
+      "A sharp pinch at the back of the wrist when you bend it fully back.",
+      "Worse blocking, setting, or pushing up off the floor.",
+      "Usually little or no pain with the wrist in neutral.",
+      "Sometimes a tender spot or slight swelling on the back of the wrist.",
+      "Grip strength is normal, which distinguishes it from most tendon problems."
+    ],
+    "red_flags": [
+      "Pain following a fall onto an outstretched hand, which needs a fracture ruled out, particularly at the base of the thumb.",
+      "Numbness, pins and needles, or weakness in the hand.",
+      "Marked swelling, deformity, or inability to move the wrist.",
+      "Pain that persists at rest or wakes you at night.",
+      "A lump that is growing rather than settling."
+    ],
+    "phases": [
+      {
+        "name": "Get out of the pinch",
+        "goal": "Stop repeatedly loading the exact position that hurts.",
+        "typical_window": "1 to 2 weeks",
+        "markers": [
+          "Push-ups and floor presses done on fists or handles rather than flat palms.",
+          "Setting volume reduced, with bump setting used where it is legal and sensible.",
+          "Daily activities are comfortable.",
+          "Symptoms settle rather than accumulate across a week."
+        ]
+      },
+      {
+        "name": "Build the forearm",
+        "goal": "Strengthen the wrist through range so the end position is supported rather than raw.",
+        "typical_window": "3 to 6 weeks",
+        "markers": [
+          "Wrist extension and flexion strength work is progressing.",
+          "Extension range is improving and comfortable.",
+          "Loaded positions such as a plank on flat hands are tolerable.",
+          "Blocking a controlled ball does not provoke it."
+        ]
+      },
+      {
+        "name": "Back to full load",
+        "goal": "Return to full blocking, setting and floor work.",
+        "typical_window": "2 to 4 weeks",
+        "markers": [
+          "Full setting volume without a flare.",
+          "Blocking hard-hit balls comfortably.",
+          "Pushing up out of the sand repeatedly without pinching.",
+          "No morning stiffness after a heavy session."
+        ]
+      }
+    ],
+    "prevention": [
+      "Build forearm strength in both directions, wrist curls and reverse wrist curls, two or three sets a few times a week. A strong forearm supports the end of the range instead of collapsing into it.",
+      "Work wrist extension range gently and regularly, hands on a table with fingers pointing back, rocking into range without forcing the pinch.",
+      "Press up off a fist or a handle rather than a flat palm when your wrists are sore, so you keep training without repeating the exact provoking position.",
+      "Get setting technique looked at: a set caught deep with the wrist collapsed backwards loads the joint far more than one contacted with a firm, shaped hand.",
+      "Build up beach volume gradually, because pushing out of sand loads the wrist in extension over and over in a way indoor play does not.",
+      "Warm the wrists up before blocking and setting rather than making the first hard ball of the session the first thing they meet."
+    ],
+    "return_markers": [
+      "Full pain-free wrist extension under body weight.",
+      "Forearm strength comparable side to side.",
+      "A full setting session without pain during or afterwards.",
+      "Blocking hard balls without a pinch.",
+      "No swelling or tenderness at the back of the wrist."
+    ],
+    "loads": [
+      "block",
+      "set",
+      "dig"
+    ]
+  },
+  {
+    "slug": "prepatellar-bursitis",
+    "name": "Prepatellar bursitis",
+    "also_called": [
+      "housemaid's knee",
+      "kneecap bursitis",
+      "swollen kneecap"
+    ],
+    "region": "knee",
+    "triage": "get_assessed",
+    "summary": "A soft, swollen lump sitting directly on the front of the kneecap after repeated diving and landing on the knees, which looks alarming and is usually straightforward unless it is infected.",
+    "what_it_is": "Inflammation of the bursa, a small fluid-filled cushion that sits between the kneecap and the skin to let them slide over each other. Repeated impact or pressure makes it fill with fluid, producing a swelling you can see and move that sits on top of the kneecap rather than inside the joint. That distinction matters: the knee joint itself is usually fine.",
+    "how_it_happens": "Diving and sliding onto the knees does it, which in volleyball means defence, pancakes and any dig that ends on the floor. It builds up over a run of heavy defensive sessions, or arrives after one hard landing on a knee. Grass and sand are kinder here than a gym floor, but an abrasion on any surface can let bacteria in, which turns a mechanical problem into an infected one.",
+    "signs": [
+      "A soft, squashy swelling directly over the kneecap that moves under the skin.",
+      "Sore to kneel on, often more uncomfortable than genuinely painful.",
+      "The knee bends and straightens normally and feels stable.",
+      "No swelling inside the joint itself.",
+      "Often follows a run of diving-heavy sessions or one hard landing."
+    ],
+    "red_flags": [
+      "Redness, heat, or skin that looks angry over the swelling.",
+      "Fever, feeling unwell, or spreading redness up or down the leg, which suggests infection and needs same-day care.",
+      "A break in the skin, graze or cut over the swelling.",
+      "Rapidly increasing pain or swelling.",
+      "Inability to bend the knee, or swelling inside the joint rather than on top of it."
+    ],
+    "phases": [
+      {
+        "name": "Rule out infection and settle it",
+        "goal": "Confirm it is not infected, then take the pressure off.",
+        "typical_window": "1 to 2 weeks",
+        "markers": [
+          "No redness, heat or fever, or infection has been treated.",
+          "Kneeling avoided, and diving onto the knee stopped for now.",
+          "Swelling reducing rather than growing.",
+          "Full knee range and normal walking."
+        ]
+      },
+      {
+        "name": "Protect and rebuild",
+        "goal": "Get back to defensive work without reloading the bursa immediately.",
+        "typical_window": "2 to 4 weeks",
+        "markers": [
+          "Swelling largely resolved.",
+          "Kneepads in use, and the landing technique looked at rather than assumed.",
+          "Lower-limb strength work continuing throughout.",
+          "Controlled dives onto a mat tolerated."
+        ]
+      },
+      {
+        "name": "Back to defence",
+        "goal": "Full defensive volume without the swelling returning.",
+        "typical_window": "1 to 3 weeks",
+        "markers": [
+          "Full dig and pancake volume without recurrence.",
+          "Kneeling is comfortable.",
+          "No swelling after a heavy defensive session.",
+          "Landing technique has actually changed if that was the cause."
+        ]
+      }
+    ],
+    "prevention": [
+      "Wear kneepads that still have padding in them, and position them over the kneecap rather than pushed down the shin. Most volleyball kneepads are worn until they are decorative.",
+      "Learn to slide and roll rather than land square on the kneecap. A dig that finishes along the thigh and hip spreads the impact; one that finishes on the point of the knee concentrates it.",
+      "Build quad and hip strength so you can get low and stay low, which means reaching more balls without dropping onto the knee at all.",
+      "Clean and cover any graze over the kneecap properly. An infected bursa is a different and more serious problem, and it starts with broken skin.",
+      "On grass and sand, check the court for stones, shells and glass before a defensive session, because the surface hides them and a knee finds them.",
+      "Cut diving volume during a heavy tournament block rather than adding to it, and let the bursa recover between competition weekends."
+    ],
+    "return_markers": [
+      "Swelling resolved and the kneecap looks like the other one.",
+      "Kneeling comfortable.",
+      "Full defensive session including dives without recurrence.",
+      "No redness, heat or signs of infection.",
+      "Kneepads and landing technique addressed rather than ignored."
+    ],
+    "loads": [
+      "dig",
+      "pass"
+    ]
   }
 ];
 
