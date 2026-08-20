@@ -17,6 +17,7 @@ import {
   DISCIPLINE_LABEL,
   ANALYZE_DISCIPLINES,
 } from "./skills.ts";
+import { SCORE_BANDS } from "./ratings.ts";
 
 /**
  * Bumped when the shape changes in a way an old client would misread.
@@ -34,6 +35,13 @@ export function appContentPayload() {
       blurb: SKILL_BLURB[key],
     })),
     discipline_labels: DISCIPLINE_LABEL,
+    // THE BANDS TRAVEL, so the app stops carrying its own copy of them. A
+    // threshold lives in lib/ratings.ts and the native app had hardcoded the
+    // same three numbers, which meant changing one was a Play release away from
+    // changing the other: for however long review took, the app would call a
+    // score SOLID while the site called it ADVANCED. Sending them makes it a
+    // deploy instead.
+    score_bands: SCORE_BANDS,
     analyze_disciplines: ANALYZE_DISCIPLINES,
     drills: DRILLS,
     technique: TECHNIQUE,

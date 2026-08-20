@@ -253,8 +253,6 @@ test("the injury library the rules point at is actually part of the context", ()
         region: "Shoulder",
         triage: "Get it assessed",
         triage_note: "Worth a proper assessment.",
-        summary: "Overload of the cuff tendons.",
-        how_it_happens: "Repeated overhead swings.",
         red_flags: ["Night pain that wakes you"],
       },
     ],
@@ -296,4 +294,22 @@ test("the coach route sends the whole drill catalog, not the player's rated slic
     /weakestSkills\.includes\(d\.skill\)/,
     "the catalog is filtered by rated skills again, which makes every unfilmed skill unanswerable",
   );
+});
+
+// THE INJURY BLOCK IS AN INDEX AND HAS TO STAY ONE.
+//
+// It first shipped carrying `summary` and `how_it_happens`, both paragraphs,
+// for all 39 entries: 17,900 tokens on every message, against 1,300 for the
+// whole drill catalog. Every message, including "hello". The prose belongs on
+// the entry the coach links to, which the app renders natively in full, and
+// putting it back would quietly restore an order of magnitude of cost and the
+// latency a player waits through before the first word.
+test("the injury library travels as an index, not as prose", () => {
+  const route = readFileSync(new URL("../../app/api/coach/route.ts", import.meta.url), "utf8");
+  const block = route.slice(route.indexOf("injury_library: REHAB.map"));
+  const entry = block.slice(0, block.indexOf("})),"));
+  assert.doesNotMatch(entry, /summary:/, "summary is a paragraph per entry and must not be sent");
+  assert.doesNotMatch(entry, /how_it_happens:/, "how_it_happens is a paragraph per entry");
+  // red_flags stays: "stop and get seen" has to reach somebody who will not tap.
+  assert.match(entry, /red_flags:/);
 });

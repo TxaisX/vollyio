@@ -378,8 +378,6 @@ export async function POST(req: NextRequest) {
       region: REGION_LABEL[r.region],
       triage: TRIAGE_LABEL[r.triage],
       triage_note: TRIAGE_NOTE[r.triage],
-      summary: r.summary,
-      how_it_happens: r.how_it_happens,
       red_flags: r.red_flags,
     })),
     ...(techniqueNotes.length > 0 ? { technique_notes: techniqueNotes } : {}),

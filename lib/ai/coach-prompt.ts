@@ -118,8 +118,21 @@ export type CoachContext = {
    *
    * Carried on EVERY request rather than filtered to the player's weakest
    * skills, because which body part hurts has nothing to do with which skill
-   * scores lowest. One compact line per entry, so the whole library costs less
-   * than the technique notes for two skills.
+   * scores lowest.
+   *
+   * IT IS AN INDEX, NOT THE LIBRARY, and the first version of this got that
+   * wrong. It shipped with `summary` and `how_it_happens`, both full
+   * paragraphs, across every entry: 17,900 tokens on every message including
+   * someone typing "hello", against 1,300 for the whole drill catalog. The
+   * comment claiming it was cheaper than two skills' technique notes was off by
+   * more than an order of magnitude.
+   *
+   * What survives is what the model needs to RECOGNISE an injury and name it:
+   * the name, what players actually call it, the region and the triage. Plus
+   * `red_flags`, which is the one field with a safety argument for being in the
+   * reply rather than a tap away, because "stop and get seen" has to reach
+   * somebody who is not going to tap. The prose is on the entry the coach
+   * links to, which the app renders natively in full.
    */
   injury_library: {
     name: string;
@@ -128,8 +141,6 @@ export type CoachContext = {
     region: string;
     triage: string;
     triage_note: string;
-    summary: string;
-    how_it_happens: string;
     red_flags: string[];
   }[];
   // Optional "what good looks like" reference for the player's weakest skills.

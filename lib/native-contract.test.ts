@@ -68,6 +68,7 @@ test("/api/app/content still serves the shape the Android client models", () => 
     "technique",
     "rehab",
     "discipline_labels",
+    "score_bands",
     "analyze_disciplines",
   ]) {
     assert.match(
