@@ -1036,6 +1036,282 @@ export const DRILLS: Drill[] = [
     ],
     "focus_metrics": ["movement_pursuit", "ready_position", "read_anticipation"],
     "surface": "outdoor"
+  },
+  {
+    "slug": "serve-deep-corner-sand",
+    "name": "Deep Corner Serve Ladder",
+    "skill": "serve",
+    "level": "intermediate",
+    "duration_min": 14,
+    "equipment": ["volleyball", "sand or grass court", "4 markers"],
+    "summary": "Two players cover a whole court, so the deep corners are the longest run either of them can be asked to make. Serve there on purpose.",
+    "steps": [
+      "Mark a two-metre box in each deep corner of the far court.",
+      "Serve five to the deep right box, then five to the deep left, calling the box before the toss.",
+      "Score a rep only when the ball lands in the named box: a good serve to the wrong corner is a miss for this drill.",
+      "Once you hit 3 of 5 to both, alternate corners every serve so the target moves and the toss has to stay identical.",
+      "Finish with five serves where a partner stands in one corner and you serve the other."
+    ],
+    "common_mistakes": [
+      "Adding pace to reach depth instead of raising the contact and swinging through the top of the ball.",
+      "Letting the toss drift toward the corner you are aiming at, which tells the receiver where it is going.",
+      "Serving deep down the middle, which is the one deep ball two defenders can both reach."
+    ],
+    "focus_metrics": ["contact_point", "toss_quality", "follow_through"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "serve-short-deep-split-sand",
+    "name": "Short-Deep Split",
+    "skill": "serve",
+    "level": "expert",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner"],
+    "summary": "Pull a defender forward, then serve behind them. On two-a-side the metres you move somebody are the point of serving at all.",
+    "steps": [
+      "Have your partner receive from a normal depth.",
+      "Serve short, just over the net into the front third, and watch how far forward they have to come.",
+      "Serve the next ball deep to the same side, into the space they just vacated.",
+      "Run the pair ten times, and count only the pairs where both balls landed in their thirds.",
+      "Swap so you receive ten pairs yourself and feel the distance the pattern actually costs."
+    ],
+    "common_mistakes": [
+      "Changing your toss or approach between the short and deep ball, which gives the pattern away.",
+      "Serving the short ball so short it goes into the net, which resets the receiver for free.",
+      "Running the pattern so often it becomes the read."
+    ],
+    "focus_metrics": ["toss_quality", "contact_point"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "pass-sun-and-wind-sand",
+    "name": "Sun and Wind Platform",
+    "skill": "pass",
+    "level": "beginner",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner"],
+    "summary": "Outdoors the ball keeps moving after it leaves the hand, and the sun sits exactly where you want to look. Pass with both of those true.",
+    "steps": [
+      "Set up facing into the sun, or into the wind if there is no sun to fight.",
+      "Have a partner serve or toss floaters at you from across the net.",
+      "Track the ball with a flat hand shading your eyes until the last moment, then get both hands to the platform.",
+      "Take the ball early and in front rather than letting it drift: outdoors a late ball is still moving.",
+      "Pass 15, then turn around and pass 15 with the sun and wind behind you so the difference is obvious."
+    ],
+    "common_mistakes": [
+      "Squinting and tracking with the head rather than shading with a hand, so the ball disappears at the top of its arc.",
+      "Waiting for the ball to arrive, which outdoors means passing it after the wind has already moved it.",
+      "Swinging the platform at a floater instead of angling it and letting the ball rebound."
+    ],
+    "focus_metrics": ["platform_angle", "posture_base", "footwork_to_ball"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "pass-two-player-seam-sand",
+    "name": "Two-Player Seam Reads",
+    "skill": "pass",
+    "level": "intermediate",
+    "duration_min": 15,
+    "equipment": ["volleyball", "sand or grass court", "2 partners"],
+    "summary": "With two receivers the seam is half the court wide. Decide it before the serve, not during it.",
+    "steps": [
+      "Stand in serve receive with a partner, splitting the court left and right.",
+      "Before each serve, call out loud who takes the middle third on this ball.",
+      "Have a third player serve, aiming at the seam roughly half the time.",
+      "Whoever called the middle takes anything in it; the other player releases and moves to set.",
+      "Run 20 serves, then swap sides. Score only whether the call was made before contact and honoured after it."
+    ],
+    "common_mistakes": [
+      "Calling the ball after it crosses the net, by which point both players have already moved.",
+      "Both players playing it safe and leaving the seam, which is exactly where a good server aims.",
+      "The releasing player watching the pass instead of moving to the setting position."
+    ],
+    "focus_metrics": ["footwork_to_ball", "posture_base", "platform_angle"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "set-bump-set-accuracy-sand",
+    "name": "Bump-Set Accuracy Ladder",
+    "skill": "set",
+    "level": "beginner",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner"],
+    "summary": "Outdoor hand-setting is judged hard and wind punishes a loose ball, so the bump set is the reliable one. Make it accurate rather than merely legal.",
+    "steps": [
+      "Stand at the net with a partner five metres away who tosses you a pass at chest height.",
+      "Bump set to a target one metre off the net, using the platform and the legs rather than the arms.",
+      "Hold the finish, platform still pointing where the ball went, so you can see what you actually did.",
+      "Score a rep only if the ball lands inside a two-metre box at the target.",
+      "Do 10 from the right, 10 from the left, and 10 from a ball that pulls you off the net."
+    ],
+    "common_mistakes": [
+      "Swinging the arms at the ball, which sends it flat and long in any wind.",
+      "Setting square to the net when the pass pulls you off it, so the ball drifts across.",
+      "Setting tight to the net, which on two-a-side hands the blocker the whole play."
+    ],
+    "focus_metrics": ["hand_shape_contact", "footwork_positioning", "release_accuracy"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "set-wind-hold-sand",
+    "name": "Set Into the Wind",
+    "skill": "set",
+    "level": "intermediate",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner"],
+    "summary": "The same set travels three different distances depending on the wind. Aim at where the ball will be, not where you want it.",
+    "steps": [
+      "Name the wind out loud before every rep: into you, behind you, or across.",
+      "Into the wind, set lower and further off the net, because the ball will hold and come back toward you.",
+      "With the wind behind, set lower and closer, because it will carry.",
+      "In a crosswind, set one body-width upwind of your hitter.",
+      "Take 10 in each condition you can find and score only whether the hitter could take a full swing without adjusting their approach."
+    ],
+    "common_mistakes": [
+      "Setting the same height in every wind and asking the hitter to fix it.",
+      "Setting higher into a headwind, which gives the wind longer to work on the ball.",
+      "Aiming at the hitter in a crosswind rather than upwind of them."
+    ],
+    "focus_metrics": ["release_accuracy", "tempo_consistency", "footwork_positioning"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "attack-high-line-deep-sand",
+    "name": "High Line, Deep Corner",
+    "skill": "attack",
+    "level": "intermediate",
+    "duration_min": 14,
+    "equipment": ["volleyball", "sand or grass court", "partner", "2 markers"],
+    "summary": "Against one blocker and one defender the deep line is the longest ball on the court. Hit it high and heavy rather than hard and out.",
+    "steps": [
+      "Mark a three-metre box in the deep line corner.",
+      "Have a partner set you from a normal pass, and hit ten balls at the box.",
+      "Contact above and slightly behind the ball, finishing long rather than snapping down: the ball has to travel.",
+      "Score only balls that land in the box, and count how many of your misses were long.",
+      "Then add a blocker taking the line, and hit the same ball anyway to feel how much space is still there."
+    ],
+    "common_mistakes": [
+      "Swinging down on a ball that has to travel the length of the court, so it lands in the net or mid-court.",
+      "Turning the shoulders to the line so early the blocker moves with you.",
+      "Hitting the line hard when the defender is already there, instead of high and deep behind them."
+    ],
+    "focus_metrics": ["arm_swing_mechanics", "contact_height", "approach_footwork"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "attack-use-the-block-sand",
+    "name": "Use the Block",
+    "skill": "attack",
+    "level": "expert",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner at the net"],
+    "summary": "One blocker with two hands is a target, not only an obstacle. Score off them on purpose instead of hoping.",
+    "steps": [
+      "Have a partner block with hands deliberately wide and still.",
+      "From a set, aim at the outside hand and swing high, so the ball deflects out rather than down.",
+      "Take five at each hand, calling which one before you approach.",
+      "Then have the blocker move late, and take whichever hand they give you.",
+      "Score only balls that land out of bounds off the block, or in the court past it."
+    ],
+    "common_mistakes": [
+      "Aiming at the middle of the block, which is the one place two hands are solid.",
+      "Swinging down into the hands, which deflects straight to the defender.",
+      "Deciding to use the block after the approach has started, so the arm slows down."
+    ],
+    "focus_metrics": ["arm_swing_mechanics", "contact_height", "approach_timing"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "block-take-one-give-one-sand",
+    "name": "Take One, Give One",
+    "skill": "block",
+    "level": "intermediate",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner", "hitter"],
+    "summary": "On two-a-side the blocker takes one shot away and the defender covers the rest. Make the choice loudly and early.",
+    "steps": [
+      "Before each rep, signal behind your back which shot you are taking: line or angle.",
+      "Have your defender set up in the shot you are giving away.",
+      "Block the shot you called, whether or not the hitter takes it.",
+      "Run 15 reps and score only whether you blocked the shot you signalled, not whether you got a touch.",
+      "Then let the defender make the call instead, so the pair practises both directions of the conversation."
+    ],
+    "common_mistakes": [
+      "Changing the call mid-air when the hitter opens up, which leaves both shots open.",
+      "Signalling so late the defender is still moving at contact.",
+      "Reaching across to the shot you gave away, which opens the one you took."
+    ],
+    "focus_metrics": ["read_positioning", "penetration_hands", "footwork_timing"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "block-peel-and-dig-sand",
+    "name": "Peel and Dig",
+    "skill": "block",
+    "level": "expert",
+    "duration_min": 14,
+    "equipment": ["volleyball", "sand or grass court", "partner", "hitter"],
+    "summary": "Outdoors a blocker who stays up on a bad set costs their team the dig. Practise leaving the net as a decision rather than a panic.",
+    "steps": [
+      "Have a feeder deliver sets that are deliberately mixed: some tight and hittable, some far off the net.",
+      "Read the set at its peak and either stay to block or peel back off the net to defend.",
+      "When you peel, turn and open to the hitter rather than backpedalling blind.",
+      "Score each rep on whether the decision matched the set, not on whether you won the point.",
+      "Run 20 sets so the read has to be made under fatigue."
+    ],
+    "common_mistakes": [
+      "Deciding after the hitter's approach rather than off the set, which is always too late.",
+      "Backpedalling with the back to the ball, so the first defensive step is a stumble.",
+      "Peeling on every ball, which hands a good hitter an unblocked court."
+    ],
+    "focus_metrics": ["read_positioning", "footwork_timing", "landing_recovery"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "dig-short-ball-sprint-sand",
+    "name": "Short Ball Sprint",
+    "skill": "dig",
+    "level": "beginner",
+    "duration_min": 12,
+    "equipment": ["volleyball", "sand or grass court", "partner"],
+    "summary": "Sand takes the first step away from you. The only cure is starting lower and moving before the ball is hit.",
+    "steps": [
+      "Start in a deep defensive position, feet buried and knees bent.",
+      "Have a partner poke or roll short balls just over the net at random.",
+      "Sprint forward and play the ball up with one hand or a platform, whichever gets there.",
+      "Get back to your start position before the next ball: the recovery is the drill.",
+      "Run 90 seconds on and 60 off, three rounds, counting only balls you got airborne again."
+    ],
+    "common_mistakes": [
+      "Standing tall between balls, so every sprint starts with a drop.",
+      "Reaching for the short ball instead of running through it and playing it in front.",
+      "Digging the short ball flat and hard, when it only has to go up."
+    ],
+    "focus_metrics": ["ready_position", "movement_pursuit", "platform_control"],
+    "surface": "outdoor"
+  },
+  {
+    "slug": "dig-read-the-shoulder-sand",
+    "name": "Read the Shoulder",
+    "skill": "dig",
+    "level": "expert",
+    "duration_min": 14,
+    "equipment": ["volleyball", "sand or grass court", "hitter", "partner"],
+    "summary": "With one defender behind one blocker, guessing is the job. Guess off the hitter's shoulder rather than off the ball.",
+    "steps": [
+      "Set up in defence behind a blocker who is taking a called shot.",
+      "Watch the hitter's hitting shoulder through their approach and call out loud what you expect: hard, cut, or deep.",
+      "Move to it before contact, accepting that you will sometimes be wrong.",
+      "Score the rep on whether your call matched what they actually hit, separately from whether you dug it.",
+      "Run 20 reps, then have the hitter deliberately disguise two of every five."
+    ],
+    "common_mistakes": [
+      "Watching the ball rather than the hitter, which means moving after contact.",
+      "Committing so early the hitter simply hits the space you left.",
+      "Standing still because the last guess was wrong, which is guessing without the upside."
+    ],
+    "focus_metrics": ["read_anticipation", "ready_position", "movement_pursuit"],
+    "surface": "outdoor"
   }
 ];
 
