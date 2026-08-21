@@ -186,7 +186,11 @@ export function InstallApp({
             <button
               type="button"
               onClick={install}
-              className="btn-primary shrink-0 px-4 py-1.5 text-xs"
+              // THE TOUCH FLOOR APPLIES HERE MOST OF ALL. This banner only
+              // ever renders on a phone, and it shipped a 28px-tall primary
+              // button: the one control in the product guaranteed never to be
+              // clicked with a mouse was the shortest one in it.
+              className="btn-primary min-h-11 shrink-0 px-4 text-xs"
             >
               Install
             </button>
@@ -195,7 +199,9 @@ export function InstallApp({
             type="button"
             onClick={dismiss}
             aria-label="Dismiss install offer"
-            className="flex h-11 w-8 shrink-0 items-center justify-center text-chalk-dim transition-colors hover:text-chalk"
+            // 32px wide against a 44px floor, and it is the control a player
+            // reaches for when they do not want the banner at all.
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-chalk-dim transition-colors hover:text-chalk"
           >
             <span aria-hidden="true" className="text-lg leading-none">
               &times;

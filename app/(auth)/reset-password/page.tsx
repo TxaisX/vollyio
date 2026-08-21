@@ -127,7 +127,7 @@ export default async function ResetPassword({
           Know your password?{" "}
           <Link
             href="/login"
-            className="text-gold-ink underline-offset-4 transition-colors hover:underline"
+            className="-my-3 inline-block py-3 text-gold-ink underline-offset-4 transition-colors hover:underline"
           >
             Log in
           </Link>

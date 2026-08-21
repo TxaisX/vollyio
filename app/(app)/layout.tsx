@@ -37,15 +37,17 @@ export default function AppLayout({
           markClass="h-6 w-6"
           className="flex min-h-11 items-center gap-2 font-display text-lg font-bold tracking-tight"
         />
-        {/* Settings lives here rather than in the tab bar: the five tabs below
-            are the daily loop, and the gear keeps the monthly page one tap
-            away without costing a slot. */}
+        {/* SETTINGS IS THE TOP-RIGHT CONTROL, and it is last on purpose.
+            The gear was the middle of three with sign-out beyond it, so the
+            corner a thumb reaches most easily held the one action a player
+            wants monthly and the one that ends their session. Sign out already
+            lives inside Settings, one tap further in, which is where a rare
+            and mildly destructive action belongs. The five tabs below are the
+            daily loop; the gear keeps the monthly page one tap away without
+            costing a slot. */}
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <SettingsTopBarLink />
-          <form action={logout}>
-            <LogoutButton variant="mobile" />
-          </form>
         </div>
       </header>
       <nav
