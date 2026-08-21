@@ -8,6 +8,7 @@ import {
   focusInstruction,
   focusLabelInstruction,
   notRatableMessage,
+  repGate,
   simpleRatingSchema,
   simpleRubric,
   type RubricCheckpoint,
@@ -400,7 +401,7 @@ export async function POST(req: NextRequest) {
       const readOnce = () =>
         readVideo({
           model: VISION_MODEL,
-          system: [simpleRubric(skill, discipline, drillSlugs(skill), catalog)],
+          system: [simpleRubric(skill, discipline, drillSlugs(skill), catalog), repGate()],
           video: {
             data: clipBytes.toString("base64"),
             mime: CLIP_MIME[clipPathFinalExt],

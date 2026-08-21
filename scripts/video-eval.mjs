@@ -30,6 +30,7 @@ import {
   simpleRubric,
   simpleRatingSchema,
   focusLabelInstruction,
+  repGate,
 } from "../lib/ai/simple-rubric.ts";
 import { METRICS } from "../lib/ai/metrics.ts";
 import { metricKnowledge } from "../content/technique.ts";
@@ -79,8 +80,10 @@ const MODEL = args.model ?? DEFAULT_MODEL;
 // request succeeds or fails by routing luck. Pinning it on a non-Google model
 // would route the request to a provider that does not serve it at all.
 const PIN_VERTEX = MODEL.startsWith("google/");
-// An extra system block appended after the rubric, for A/B-ing a prompt change
-// against the labeled set BEFORE it is written into lib/ai/simple-rubric.ts.
+// A candidate rep gate, REPLACING the shipped repGate() block so the candidate
+// is measured in the exact shape it would ship: rubric first, ONE gate second
+// (D-126). Stacked after the shipped gate instead, it would grade two
+// overlapping refusal policies at once, a prompt no production config sends.
 // D-034 forbids tuning calibration by wording; this exists so a change to the
 // ABSTAIN rule is measured against labeled cases rather than argued about.
 const EXTRA_SYSTEM = args["extra-system"] ? readFileSync(args["extra-system"], "utf8") : null;
@@ -141,7 +144,7 @@ async function readOnce(entry, clipB64, durationS) {
     ...withPrivateRouting(PIN_VERTEX ? { only: ["google-vertex"] } : undefined),
     messages: [
       { role: "system", content: simpleRubric(entry.skill, entry.discipline, drillSlugs(entry.skill), catalog) },
-      ...(EXTRA_SYSTEM ? [{ role: "system", content: EXTRA_SYSTEM }] : []),
+      { role: "system", content: EXTRA_SYSTEM ?? repGate() },
       {
         role: "user",
         content: [

@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   focusInstruction,
   focusLabelInstruction,
   notRatableMessage,
+  repGate,
   simpleRatingSchema,
   simpleRubric,
 } from "./simple-rubric.ts";
@@ -351,4 +353,31 @@ test("no refusal message blames the player or names a vendor", () => {
     assert.equal(msg.includes(name), false);
   }
   assert.match(msg, /nothing was counted/);
+});
+
+// The rep gate ships verbatim from the variant file the 181-clip measurement
+// graded (D-126). Equality is the point: the moment the shipped text and the
+// measured text differ, the measurement stops describing production.
+// Iterating means a NEW variant file, measured, then repointed here. Only the
+// file side is normalized: template literals normalize line terminators to LF
+// at parse time, so repGate() is LF on every checkout, while git may hand the
+// variant file CRLF, or a stray tool a lone CR.
+test("the rep gate is the measured v7 text, verbatim", async () => {
+  const measured = await readFile(
+    new URL("../../evals/variants/refusal-v7.txt", import.meta.url),
+    "utf8",
+  );
+  assert.equal(repGate(), measured.replace(/\r\n?/g, "\n"));
+});
+
+// The two tests that decide most clips, and the three carve-outs that each
+// cost a measured false refusal (D-126). A v8 that loses one of these has to
+// say so here.
+test("the rep gate carries the contact test, the crowd test, and the carve-outs", () => {
+  const gate = repGate();
+  assert.match(gate, /CAN YOU POINT TO THE CONTACT/);
+  assert.match(gate, /HOW MANY PEOPLE ARE PLAYING/);
+  assert.match(gate, /A CASUAL GAME IS NOT "COVERAGE OF PLAY"/);
+  assert.match(gate, /NO BALL UNTIL YOU HAVE LOOKED AT THE WHOLE CLIP/);
+  assert.match(gate, /SEVERAL REPS BY ONE ATHLETE IS A REP, NOT A MONTAGE/);
 });

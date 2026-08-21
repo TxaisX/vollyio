@@ -277,6 +277,118 @@ export function notRatableMessage(reason: string | undefined): string {
 }
 
 /**
+ * The rep gate: refusal v7, sent as its OWN system block after the rubric.
+ *
+ * Measured over the 181-clip labeled corpus (evals/CALIBRATION.md, D-126):
+ * 113 clips contain no gradeable rep, the shipped refusal rule caught 1 of
+ * them, and the median score awarded to that footage was 81. v7 catches 73
+ * of the 113 while wrongly refusing 6 of 68 real reps, against v4's 83 and
+ * 12; a false refusal is the failure a player actually experiences, so v7's
+ * trade is the shipped one.
+ *
+ * A separate block rather than a paragraph of the rubric because that is how
+ * every variant was measured (scripts/video-eval.mjs sends --extra-system as
+ * its own system message); merged in, it would be a prompt shape nothing has
+ * graded. The text is evals/variants/refusal-v7.txt verbatim, test-guarded,
+ * so iterating means measuring a new variant file and repointing both.
+ */
+export function repGate(): string {
+  return `BEFORE YOU RATE, ANSWER ONE QUESTION: IS THERE A REP HERE TO GRADE?
+
+The rule you were given asks whether the footage is too dark, too far, or cut
+off. That is not the only way a clip can be ungradeable, and it is not the
+common way. Measured on this product's own corpus, every clip that contained no
+rep at all was still given a score, and the two highest scores of the review
+went to a slow-motion training DIAGRAM and to a person talking to a camera.
+
+So check these explicitly, and set ratable to false if any of them is true:
+
+- The footage is a GRAPHIC rather than a rep: a stroboscopic or multi-exposure
+  composite showing one athlete drawn several times in the same frame, a
+  freeze-frame with annotations, a diagram, an animation, a title card, or a
+  slow-motion montage assembled from several different plays.
+- The footage is a PRESENTER TALKING: somebody explaining to camera, or a
+  studio shot, including when clips of real play are cut in around them.
+  A coach who actually PERFORMS the skill with a ball is a rep and must be
+  rated, however instructional the video around them is: a demonstration done
+  properly is the clearest rep you will ever be given, and refusing it costs a
+  player the analysis they came for.
+- The footage is BROADCAST or WIDE COVERAGE of a whole rally or a whole drill,
+  where several athletes touch the ball, the camera moves between them, and no
+  single athlete's rep can be isolated.
+- The subject you were asked to analyze IS in the clip but never performs the
+  named skill in it: they set while you were asked about the attack, they watch
+  the play, or their contact happens off-camera or with their body turned away.
+- The clip contains several DIFFERENT reps by different people rather than one
+  rep by one athlete.
+
+A busy, sharp, well-lit clip can fail every one of these. Confidence that you
+can SEE the footage is not evidence that the footage contains a rep to grade.
+
+If you refuse, say in one plain sentence what the clip actually shows. Do not
+guess at a score first and refuse afterwards, and do not compromise by scoring
+such a clip in the middle: a number attached to footage with no rep in it is
+the single most misleading thing you can return.
+
+TWO TESTS THAT DECIDE MOST CLIPS, AND THEY ARE NOT ABOUT IMAGE QUALITY.
+
+FIRST: CAN YOU POINT TO THE CONTACT? You must be able to see the subject
+actually touch the ball performing the named skill. Not approach it, not stand
+near it, not be on the court while somebody else plays it. If you cannot say
+where in this clip the subject's hand or platform met the ball, you did not see
+the rep, and there is nothing to grade. Footage where the ball is played by a
+different person, or where the contact happens off-camera, behind another
+player, or while the subject is turned away, fails this test even when the
+picture is sharp and the action is exciting.
+
+SECOND: HOW MANY PEOPLE ARE PLAYING? Count them. A rep is one athlete's work.
+If the clip shows a match, a rally, a full-court drill, a warmup, a queue of
+players taking turns, or a competition with a crowd, scoreboard, officials or
+broadcast graphics, then several athletes are touching the ball and the footage
+is COVERAGE OF PLAY rather than a rep. Refuse it. This is the single most common
+kind of clip that gets scored when it should not be, and it does not look like a
+bad clip: it looks like great volleyball, sharply filmed, from a real match.
+
+Neither test is about whether the video is good. Broadcast footage of an
+international final is superb video and still contains no gradeable rep for one
+named athlete. Judge what you were asked to judge: one person, one skill, one
+contact you can point to.
+
+THREE THINGS THAT ARE NOT REASONS TO REFUSE.
+
+Measured against 68 clips a reviewer confirmed are real reps, the rule above
+wrongly refused twelve of them, and they failed in exactly three ways. Do not
+repeat these.
+
+1. A CASUAL GAME IS NOT "COVERAGE OF PLAY". Two, three or four friends rallying
+   on a grass or sand court, with the subject identifiable, IS the ordinary
+   footage this product exists to grade. That is not a match. What makes
+   footage coverage of play is a CROWD, a SCOREBOARD, OFFICIALS, broadcast
+   graphics, full six-a-side teams, or a queue of players taking turns at a
+   drill. A rally among a handful of people where you can follow one athlete is
+   ratable: grade the touch that athlete makes.
+
+2. DO NOT SAY THERE IS NO BALL UNTIL YOU HAVE LOOKED AT THE WHOLE CLIP. You see
+   about one image per second, so the ball is out of frame in many samples of a
+   perfectly normal rep: it is above the top edge, behind the athlete, or
+   travelling too fast to register. "No ball in this frame" is not "no ball in
+   this clip". Refuse for an absent ball only when the athlete is plainly
+   rehearsing a movement in empty space across the WHOLE sequence: no ball
+   anywhere, nobody feeding, nothing to play.
+
+3. SEVERAL REPS BY ONE ATHLETE IS A REP, NOT A MONTAGE. A drill where the same
+   person plays ball after ball is the best footage you will be given: grade
+   their technique across the attempts, or grade the clearest one. A montage is
+   several DIFFERENT people, or clips from different sessions cut together.
+   Same athlete, same court, same camera, repeated attempts, is one rep source
+   and must be rated.
+
+Refusing a real rep costs a player the analysis they came for. Refuse
+confidently when there is no rep, and only then.
+`;
+}
+
+/**
  * One checkpoint of the skill, as the prompt needs to name it.
  *
  * PASSED IN rather than imported, and that is deliberate. This module's only

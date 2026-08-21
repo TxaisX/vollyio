@@ -5693,3 +5693,51 @@ Developer API before writing a plan, and plan writes go through
 must resolve to one plan state, and a real `stripe_subscription_id` is never
 touched by the Play path (the D-124 discipline). Google's 15% cut on the first
 $1M/yr is accepted as the cost of being on Play at all.
+
+## D-126 - The rep gate: a clip with no rep in it is refused, not scored
+
+Date: 2026-08-21 · By: Orchestrator (owner direction: make scores mean what
+they say before widening them)
+
+**The measured problem.** A frame-by-frame review of all 180 corpus clips the
+shipped model scored (evals/CALIBRATION.md) found 113 of them, 62%, contain no
+gradeable rep: coverage of play (~40%), graphics and title cards (~30%),
+shadow drills with no ball (~10%), presenters talking (~10%). The shipped
+refusal rule caught 1 of the 113. Median score awarded to footage with no rep:
+81, the same as the corpus median for real reps; the review's two highest
+scores went to a slow-motion training diagram and to a presenter talking to
+camera, and the corpus's single highest score, 96, to a stroboscopic
+multi-exposure graphic cut from an instructional video. Not a
+sourced-footage artifact: 13 of 34 labeled production clips, 38%, are
+non-reps, among them a phone screen recording scored 72 and two broadcast
+tournament matches scored 92 and 90.
+
+**What ships.** evals/variants/refusal-v7.txt, verbatim, as a SECOND system
+block after the rubric: `repGate()` in lib/ai/simple-rubric.ts, sent
+identically by app/api/analyze/route.ts and scripts/video-eval.mjs. Two
+decisive tests: can you point to the subject's contact with the ball, and how
+many people are playing. Three carve-outs, each bought by a measured false
+refusal: a casual small-sided game is ratable, "no ball in this frame" is not
+"no ball in this clip" at one sample per second, and repeated attempts by one
+athlete are a rep source rather than a montage.
+
+**Why v7 over v4.** Over the 181-clip labeled set: shipped rule 38% correct;
+v4 77% (83/113 non-reps caught, 12/68 real reps wrongly refused); v7 75%
+(73/113 caught, 6/68 wrongly refused). A false refusal is the failure a
+player experiences directly, costs a refunded slot and a re-film, and 6 of 68
+is within reach of the 5% gate where 12 of 68 is not.
+
+**Why a second system block and not a merged paragraph.** Every variant was
+measured by scripts/video-eval.mjs --extra-system, which appends a separate
+system message after the rubric. Merged into the rubric it would be a prompt
+shape no measurement has seen. Tests assert repGate() equals the variant file
+and that route and harness both send it, so the measurement record and the
+shipped prompt cannot drift. Going forward --extra-system REPLACES the gate,
+so a candidate v8 is measured in the shape it would ship, never stacked on
+the v7 block it is meant to succeed.
+
+**What this does to the numbers.** Refusals return 422, refund the slot, and
+store nothing, so the visible effect is fewer fictional scores, not a
+different curve. The distribution work (multi-draw, coach labels, the
+lib/scale.ts map) is sequenced behind this deliberately: no calibration of
+fiction improves it.

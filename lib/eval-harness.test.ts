@@ -30,6 +30,10 @@ const client = await readFile(
 const pkg = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 ) as { scripts?: Record<string, string> };
+const route = await readFile(
+  new URL("../app/api/analyze/route.ts", import.meta.url),
+  "utf8",
+);
 
 // The harness hardcodes the model because it cannot import the module that
 // declares it. That copy is fine; a copy nothing compares is not. Change the
@@ -76,4 +80,15 @@ test("no npm script drives the deleted eval route", () => {
   for (const [name, command] of Object.entries(pkg.scripts ?? {})) {
     assert.doesNotMatch(command, /run-evals\.mjs/, `${name} runs the dead harness`);
   }
+});
+
+// The rep gate (D-126) is one function sent from two places. If either side
+// stops sending it, harness and production drift in exactly the way this file
+// exists to catch. Anchored to the SENDING position, not the bare name: a
+// comment or a dangling import that still says repGate() must not pass. The
+// harness match also pins the replacement semantics: --extra-system swaps the
+// gate out so a candidate is measured in ship shape, never stacked on v7.
+test("the rep gate ships in production and is measured by the harness", () => {
+  assert.match(route, /system: \[[^\]]*repGate\(\)\]/);
+  assert.match(harness, /content: EXTRA_SYSTEM \?\? repGate\(\)/);
 });

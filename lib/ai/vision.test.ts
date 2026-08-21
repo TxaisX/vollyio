@@ -94,3 +94,16 @@ test("an account or request problem is never retried", () => {
 test("the module states that nothing it produces reaches a player", () => {
   assert.match(SRC, /callers translate a failure into the vendor-neutral/);
 });
+
+// The rep gate rides as the SECOND entry of `system` (D-126), and the property
+// that makes that real lives here: each system string becomes its own system
+// message. A refactor that joins the array into one block would ship a merged
+// prompt shape no measurement has graded, while every prompt-content test
+// stayed green, because those assert on the strings and not on the boundary.
+test("every system entry is sent as its own system message", () => {
+  assert.match(
+    SRC,
+    /\.\.\.opts\.system\.map\(\(text\) => \(\{ role: "system", content: text \}\)\)/,
+    "opts.system must map one string to one system message",
+  );
+});
