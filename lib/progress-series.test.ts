@@ -220,3 +220,35 @@ test("splitting a real corpus loses no series", () => {
     rows.length,
   );
 });
+
+// A FAILED READ IS NOT A LOW SCORE, and charting it as one is a lie about the
+// player rather than a cosmetic glitch.
+//
+// Two rows in production carry overall_score 0, and both say what they are in
+// their own summary: "every frame of this clip is solid black... the overall
+// number reflects absence of evidence, not poor technique", with no
+// checkpoints, low_confidence set and the subject check reporting a mismatch.
+// The rubric floors every derived metric at 30, so a read with evidence in it
+// cannot come out at 0 anyway. On the line, that plotted as the player
+// collapsing to the axis on a day they had filmed in the dark.
+test("a zero score is a failed read and never becomes a point", () => {
+  const s = buildSeries([
+    rep("attack", "indoor", 70, 1),
+    rep("attack", "indoor", 0, 2),
+    rep("attack", "indoor", 78, 3),
+  ]);
+  assert.equal(s.length, 1);
+  assert.equal(s[0].reps, 2, "the failed read is excluded from the count");
+  assert.deepEqual(
+    s[0].points.map((p) => p.score),
+    [70, 78],
+    "the line runs 70 to 78 rather than diving through zero",
+  );
+  assert.equal(s[0].low, 70, "the window is not dragged to the axis by a non-measurement");
+});
+
+test("a negative target still clamps, because that is a different question", () => {
+  // Guards the separation: isFiniteScore answers "is this a number" for
+  // targetProgress, isMeasuredScore answers "is this a measurement" for points.
+  assert.equal(targetProgress(-5, 100), 0);
+});
