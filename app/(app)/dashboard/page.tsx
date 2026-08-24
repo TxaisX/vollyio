@@ -16,8 +16,10 @@ import { TesterInvite } from "@/components/tester-invite";
 import { TEST_COUNTS_TOWARD_PRODUCTION } from "@/lib/android-test";
 import { claimAchievements, readAchievements } from "@/lib/achievements";
 import { overallScore, scoreBand } from "@/lib/ratings";
+import { meanBySkill } from "@/lib/skill-trend";
 import { relativeDay } from "@/lib/relative-day";
 import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
+import { COACH_ENABLED } from "@/lib/flags";
 import {
   allowanceLine,
   allowanceTone,
@@ -49,7 +51,6 @@ export const metadata: Metadata = {
 };
 
 type RatingRow = { skill: Skill; rating: number };
-type BestRow = { skill: Skill; discipline: string; best: number };
 type AnalysisRow = {
   id: string;
   skill: Skill;
@@ -119,6 +120,24 @@ function ActionCard({
 }
 
 function FocusNowCard({ analysis }: { analysis: AnalysisRow }) {
+  // The two shipped features that never met. This card has known the priority
+  // fix since D-044 and coach chat went live on 2026-08-06, but a player who
+  // read the fix and did not understand it had nowhere on this page to say so:
+  // coach was a nav tab away, and arriving there meant retyping the fix from
+  // memory to ask about it.
+  //
+  // The composer is PREFILLED AND NOT SENT. Sending on arrival would spend one
+  // of the day's coach messages on a question the player never chose to ask,
+  // which is a paid call made on their behalf. Sliced to the same 600
+  // characters `/api/coach` caps a message at, so a long fix title cannot build
+  // a link the route would refuse.
+  const coachPrompt = `My latest ${SKILL_LABEL[
+    analysis.skill
+  ].toLowerCase()} rep says: "${analysis.fix}". Why does that keep happening, and what should I do about it?`.slice(
+    0,
+    600,
+  );
+
   return (
     <div className="card card-lift p-5">
       <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
@@ -134,6 +153,27 @@ function FocusNowCard({ analysis }: { analysis: AnalysisRow }) {
       <p className="mt-1 font-mono text-[11px] uppercase text-chalk-dim">
         {SKILL_LABEL[analysis.skill]} · from your latest rep
       </p>
+      {COACH_ENABLED && (
+        <Link
+          href={`/coach?s=new&q=${encodeURIComponent(coachPrompt)}`}
+          className="relative mt-3 inline-flex min-h-11 items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-gold-ink transition-colors hover:text-chalk"
+        >
+          Ask the coach about this
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="M6 3l5 5-5 5" />
+          </svg>
+          <LinkPending />
+        </Link>
+      )}
     </div>
   );
 }
@@ -170,7 +210,6 @@ export default async function Dashboard({
     { data: analysesData, error: analysesError },
     { data: goalsData, error: goalsError },
     { count: doneCountData },
-    { data: bestsData },
     earnedAchievements,
     progress,
     allowance,
@@ -213,11 +252,6 @@ export default async function Dashboard({
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId!)
       .eq("status", "done"),
-    // All-time high-water marks (D-079, migration 043): MAX over the caller's
-    // own analyses, derived on read so it can never drift from the reps. Not
-    // in fetchError below on purpose: a failed read renders no "best" line
-    // rather than failing the dashboard, the same posture as the allowance.
-    supabase.rpc("personal_bests"),
     // Quiet catch-up, then read: anything earned away from a celebration
     // moment (an old account's back catalog, a streak that crossed seven
     // overnight) lands on the shelf without a toast. Both calls fail soft, so
@@ -241,21 +275,11 @@ export default async function Dashboard({
   const goals = (goalsData as Goal[] | null) ?? [];
   const goalsDone = doneCountData ?? 0;
 
-  // Per-skill personal best within the discipline group being shown, so the
-  // best sits on the same axis as the rating beside it.
-  const groupSet = new Set<string>(GROUP_DISCIPLINES[disciplineGroup(discipline)]);
-  const bests: Partial<Record<Skill, number>> = {};
-  for (const b of (bestsData as BestRow[] | null) ?? []) {
-    if (!groupSet.has(b.discipline)) continue;
-    bests[b.skill] = Math.max(bests[b.skill] ?? 0, b.best);
-  }
-
-  // Latest priority fix per skill for the card's one-line fix history (D-044).
-  // analyses is ordered newest-first, so the first hit per skill is the latest.
-  const latestFix: Partial<Record<Skill, string>> = {};
-  for (const a of analyses) {
-    if (a.fix && !(a.skill in latestFix)) latestFix[a.skill] = a.fix;
-  }
+  // The newest rep that carried a priority fix, for the Focus now card. The
+  // per-skill fix history that sat beside it fed the skill meters and left with
+  // them; the personal-best read did too, and the `personal_bests` RPC is still
+  // called by the breakdown and milestones pages, which is where a best is
+  // actually the subject rather than a decoration on a rating.
   const newestFix = analyses.find((a) => a.fix) ?? null;
 
   // A spent month replaces the invitation rather than sitting under it: the
@@ -270,21 +294,18 @@ export default async function Dashboard({
   );
   const weekCount = thisWeek.length;
 
-  // The seven-day window of the skill meters, and deliberately NOT the rolling
-  // rating restricted to a date range: this is the plain mean of the reps
-  // actually filmed this week, which is what a player is asking for when they
-  // flip the switch after a week of work on one fix. The rating beside it under
-  // "All time" is the estimator (lib/ratings.ts) and is the slower, truer
-  // number. Both are labelled, so neither is passed off as the other.
-  const weekSums = new Map<Skill, { total: number; n: number }>();
-  for (const a of thisWeek) {
-    const acc = weekSums.get(a.skill) ?? { total: 0, n: 0 };
-    acc.total += a.overall_score;
-    acc.n += 1;
-    weekSums.set(a.skill, acc);
+  // The week's mean per skill. It decides each row's ARROW and is never shown
+  // as a number of its own: the two-window switch that used to display it is
+  // gone, and one number plus a direction is what replaced it.
+  const weekRatings = meanBySkill(thisWeek);
+
+  // Newest analysis id per skill, so a skill row opens the breakdown that
+  // explains its own number rather than a list of past ones. `analyses` is
+  // ordered newest-first, so the first hit per skill is the latest.
+  const latestId: Partial<Record<Skill, string>> = {};
+  for (const a of analyses) {
+    if (!(a.skill in latestId)) latestId[a.skill] = a.id;
   }
-  const weekRatings: Partial<Record<Skill, number>> = {};
-  for (const [skill, acc] of weekSums) weekRatings[skill] = acc.total / acc.n;
 
   const firstName = profile?.display_name?.split(" ")[0];
 
@@ -518,13 +539,35 @@ export default async function Dashboard({
         </div>
       </Reveal>
 
-      <div className="mt-4 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-6">
-        <div className="min-w-0">
-          {/* Today leads, at every width. The rating is evidence of what has
-              happened; the assignment is the only thing on this page a player
-              can act on right now, and a development product that opens on a
-              score is still an analytics product wearing a different word. */}
-          <div className="grid gap-3 md:grid-cols-2">
+      {/* THE BODY IS THREE BLOCKS, NOT A COLUMN BESIDE AN EMPTY RAIL.
+
+          What stood here split the page at xl into content plus a 20rem aside
+          that held exactly one card, the badge shelf, and that shelf was ALSO
+          rendered in the main column under `xl:hidden`. So on every screen
+          1280px and wider the page carried a 320px lane containing a duplicate
+          of something already on it, and roughly a thousand pixels of nothing
+          underneath. That gutter is the "void" this layout is fixing.
+
+          The three blocks below are placed rather than nested, so each one
+          renders ONCE and only changes column at xl. That is what keeps the
+          phone order intact (today, skills, badges, recent, goals) while giving
+          the wide layout a right lane with real content in it.
+
+          The glance block SPANS BOTH ROWS on purpose. If it sat in row 1 beside
+          today's work, the grid would size that row to the taller of the two
+          and open a fresh gap under the shorter one, which is the same bug in a
+          new place. Spanning lets the left stack flow at its own height. */}
+      <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        {/* Today leads, at every width. The rating is evidence of what has
+            happened; the assignment is the only thing on this page a player
+            can act on right now, and a development product that opens on a
+            score is still an analytics product wearing a different word. */}
+        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+          {/* Two columns only when there is a second card to put in them. The
+              fix card is conditional, so an account that has not filmed yet
+              used to get one card at half width beside an empty half, at every
+              width from 768px up. That was the first thing a new player saw. */}
+          <div className={`grid gap-3 ${newestFix ? "md:grid-cols-2" : ""}`}>
             <Reveal delay={100}>
               <DailyAssignmentCard
                 assignment={assignment}
@@ -540,24 +583,42 @@ export default async function Dashboard({
             )}
           </div>
 
+        </div>
+
+        {/* THE GLANCE COLUMN. Where you stand and what you have earned: two
+            blocks a player reads rather than works in, which is exactly what a
+            narrow lane is good for.
+
+            The six skills stay on this page rather than moving to the app
+            sidebar. That was tried and reverted: the sidebar is `hidden
+            md:flex`, so an at-a-glance read on whether you are climbing or
+            sliding would have existed only on desktop, and this product is used
+            on a phone at the side of a court. The window switch above them is
+            what actually went (see components/skill-meters.tsx); /progress
+            keeps the longer story, this keeps the glance. */}
+        <div className="flex flex-col gap-4 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+          <Reveal delay={180}>
+            <SkillMeters
+              ratings={ratings}
+              recent={weekRatings}
+              latestId={latestId}
+            />
+          </Reveal>
+          <Reveal delay={300}>
+            <BadgeShelf earned={earnedAchievements} />
+          </Reveal>
+        </div>
+
+        {/* THE WORKING COLUMN: what happened, and what you are aiming at.
+            Spacing comes from the flex gap rather than a margin on each child,
+            so nothing collapses or doubles when a conditional block drops out. */}
+        <div className="flex min-w-0 flex-col gap-6 xl:col-start-1 xl:row-start-2">
           {/* The "See this week's plan" link is hidden as of 2026-08-05, with
               the rest of the weekly plan's entry points: it was built as a
               training plan and is wanted as a dietary check-in instead. See
               components/section-nav.tsx for what restoring it takes. */}
-
-          <Reveal delay={180}>
-            <div className="mt-6">
-              <SkillMeters
-                ratings={ratings}
-                recent={weekRatings}
-                bests={bests}
-                latestFix={latestFix}
-              />
-            </div>
-          </Reveal>
-
           <Reveal delay={220}>
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="section-head section-head-teal">Recent activity</h2>
               {analyses.length > 0 && (
                 // Padded for a 44px tap target, negative-margined so the row
@@ -644,21 +705,14 @@ export default async function Dashboard({
             )}
           </Reveal>
 
-          {/* The board renders once, in the main column at every width: it
-              carries a form and mutating actions now, and two live copies of
-              one form is how duplicate-id bugs are born. The xl rail keeps the
-              glanceable shelf instead. */}
-          <div className="mt-6">
-            <Reveal delay={260}>
-              <GoalsBoard goals={goals} ratings={ratings} doneCount={goalsDone} />
-            </Reveal>
-          </div>
-
-          <div className="mt-4 xl:hidden">
-            <Reveal delay={300}>
-              <BadgeShelf earned={earnedAchievements} />
-            </Reveal>
-          </div>
+          {/* The board renders once and stays in the working column at every
+              width: it carries a form and mutating actions, and two live copies
+              of one form is how duplicate-id bugs are born. It is also why the
+              glance column holds the shelf and the skills rather than this: a
+              20rem lane is a bad place to type into. */}
+          <Reveal delay={260}>
+            <GoalsBoard goals={goals} ratings={ratings} doneCount={goalsDone} />
+          </Reveal>
 
           {/* The tester ask, on the page players actually return to. It used
               to live only on /welcome, which the quiz-first funnel SKIPS (the
@@ -668,23 +722,11 @@ export default async function Dashboard({
               Last on purpose: it is a favour, and a favour never sits above
               the player's own work. */}
           {TEST_COUNTS_TOWARD_PRODUCTION && (
-            <div className="mt-4">
-              <Reveal delay={340}>
-                <TesterInvite />
-              </Reveal>
-            </div>
+            <Reveal delay={340}>
+              <TesterInvite />
+            </Reveal>
           )}
         </div>
-
-        {/* The rail no longer repeats today's work, and no longer repeats the
-            week either: the assignment and the fix lead the main column at
-            every width, and the reps / streak / level counts the old "This
-            week" card carried now sit in the opening band above (D-116). */}
-        <aside className="hidden xl:flex xl:flex-col xl:gap-4">
-          <Reveal delay={300}>
-            <BadgeShelf earned={earnedAchievements} />
-          </Reveal>
-        </aside>
       </div>
     </section>
   );

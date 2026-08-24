@@ -311,17 +311,24 @@ export function CoachDrawer({ children }: { children: ReactNode }) {
 export function CoachChat({
   activeSessionId,
   initialMessages,
+  initialDraft = "",
   links,
 }: {
   activeSessionId: string | null;
   initialMessages: ChatMessage[];
+  /** A question handed over by whatever sent the player here, today the
+   *  dashboard's "Focus now" fix. It FILLS the composer and is never sent:
+   *  `/api/coach` spends a quota unit before the model is called, so an
+   *  auto-send would charge a player for a question they had not read. The
+   *  server has already capped it at the route's 600-character limit. */
+  initialDraft?: string;
   /** Built on the server so the drill and injury catalogs stay out of this
    *  bundle; see lib/coach-links.ts. */
   links: CoachLinkMap;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialDraft);
   const [streaming, setStreaming] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -359,6 +366,25 @@ export function CoachChat({
     const el = scrollRef.current;
     if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, waiting]);
+
+  // A handed-over draft has to be sized and reachable on arrival. The composer
+  // only grows in its change handler, so a prefilled question would render at
+  // one row with the rest of itself clipped, and the caret would sit at the
+  // start where an edit means arrowing past the whole sentence first.
+  //
+  // Runs once, keyed on nothing: this is an arrival state, not something to
+  // re-apply when the draft prop happens to match again later. Focus is safe
+  // here because the player pressed a link whose entire promise was that they
+  // were about to ask this, and the page itself does not scroll.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || !initialDraft) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_COMPOSER_HEIGHT)}px`;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function send(text: string, appendUser = true) {
     const trimmed = text.trim();

@@ -59,9 +59,18 @@ export function CinematicHero() {
               >
                 Analyze your first rep
               </Link>
-              <a href="#film" className="btn-ghost min-h-12 text-base">
-                Enter the film room
-              </a>
+              {/* THE SECOND DOOR, and it deliberately does not ask who you
+                  are. Every other call to action on this page leads to
+                  /start, which is a signup form, so a stranger had no way to
+                  watch this product work before handing over an email. The
+                  samples are three real breakdowns, public and account-free
+                  (lib/route-guard.ts), and they were reachable only from a
+                  small link buried inside the film section below. Score
+                  first, email second. The film room itself is one scroll
+                  down and still holds its slot in the nav. */}
+              <Link href="/samples" className="btn-ghost min-h-12 text-base">
+                See three real breakdowns
+              </Link>
             </div>
           </Reveal>
         </div>

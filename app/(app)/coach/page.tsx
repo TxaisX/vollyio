@@ -43,12 +43,23 @@ type Row = {
 export default async function Coach({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string }>;
+  searchParams: Promise<{ s?: string; q?: string }>;
 }) {
   if (!COACH_ENABLED) notFound();
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
-  const { s } = await searchParams;
+  const { s, q } = await searchParams;
+
+  // ?q= arrives from a card elsewhere in the app that already knows what the
+  // player wants to ask, today the dashboard's "Focus now" fix. It only ever
+  // FILLS THE COMPOSER: nothing is sent, because sending would spend one of
+  // the day's coach messages on a question the player has not read yet, and
+  // `/api/coach` charges the quota before the model is called.
+  //
+  // Trimmed to the route's own 600-character message cap so a hand-edited URL
+  // cannot seed a draft the send would immediately reject, and treated as
+  // absent when it is blank.
+  const draft = typeof q === "string" ? q.slice(0, 600).trim() : "";
 
   const { data: sessionsData, error: sessionsError } = await supabase
     .from("coach_sessions")
@@ -145,6 +156,7 @@ export default async function Coach({
             key={active?.id ?? "new"}
             activeSessionId={active?.id ?? null}
             initialMessages={messages}
+            initialDraft={draft}
             links={COACH_LINKS}
           />
         </div>

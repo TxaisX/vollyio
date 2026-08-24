@@ -25,6 +25,7 @@ import {
   allowanceSentence,
 } from "@/lib/plans";
 import { DRILLS } from "@/content/drills";
+import { COACH_ENABLED } from "@/lib/flags";
 
 // The homepage owns "/" as its canonical; the root layout deliberately sets
 // none, because a layout-level canonical leaks onto every page beneath it.
@@ -39,6 +40,27 @@ const PRO_PRICE = PRO_PRICE_LABEL.replace("/mo", "");
 
 // The bare numeric amount, for schema.org, which wants "9.99" and not "$9.99".
 const PRO_PRICE_AMOUNT = PRO_PRICE.replace(/[^0-9.]/g, "");
+
+// The tick beside every plan line. An SVG rather than a character entity for
+// two reasons: every other icon on this page is already one, and the policy
+// lint reads the numeric entity for a check mark as a hardcoded hex colour and
+// refuses it, which is a false positive worth simply not triggering.
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="mt-1.5 h-3.5 w-3.5 shrink-0 text-teal-ink"
+      aria-hidden="true"
+    >
+      <path d="M3 8.5l3.5 3.5L13 5" />
+    </svg>
+  );
+}
 
 const STEPS = [
   {
@@ -229,9 +251,12 @@ export default function Landing() {
       "Rolling skill rating",
       // Listed as of 2026-08-06, when coach chat stopped being dark. The rule
       // this line has to keep obeying is the one that kept it out before:
-      // structured data may only name a feature the product actually serves. If
-      // COACH_ENABLED is ever set to false, this entry comes out with it.
-      "Coach chat grounded in your own scores",
+      // structured data may only name a feature the product actually serves.
+      // The old comment here said "if COACH_ENABLED is ever set to false, this
+      // entry comes out with it" and then left the removal to whoever
+      // remembered. It is a condition now, so a deploy that darkens coach stops
+      // advertising it to answer engines in the same breath.
+      ...(COACH_ENABLED ? ["Coach chat grounded in your own scores"] : []),
     ],
     offers: {
       "@type": "AggregateOffer",
@@ -464,18 +489,33 @@ export default function Landing() {
                 </Reveal>
               ))}
             </SpotlightGroup>
+            {/* The library was one sentence of body copy, which is a strange
+                way to mention the largest free thing on the site. It is a real
+                asset and the count is quoted from the catalog itself, so it
+                cannot drift as drills are added. Deliberately NOT a row of
+                skill chips: components/learn-library.tsx records why the chip
+                rows came off the library pages (the hub strip above them was
+                already asking the same question), and duplicating that control
+                here would re-open a decision rather than inherit it. */}
             <Reveal delay={120}>
-              <p className="mt-8 text-center text-body text-chalk-dim">
-                Or go straight to the{" "}
-                <Link
-                  href="/drills"
-                  className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
-                >
-                  drill library
+              <div className="card mt-8 flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:justify-between sm:text-left">
+                <div>
+                  <p className="font-display text-xl font-bold">
+                    <span className="stat-num text-gold-ink">
+                      {DRILLS.length}
+                    </span>{" "}
+                    drills, free to read
+                  </p>
+                  <p className="mt-1 max-w-md text-body text-chalk-dim">
+                    Every skill, indoor, grass and sand, beginner to pro. Each
+                    one says what it fixes, and no account is needed to read a
+                    single word of it.
+                  </p>
+                </div>
+                <Link href="/drills" className="btn-ghost shrink-0 text-sm">
+                  Open the drill library
                 </Link>
-                : {DRILLS.length} drills across every skill, free to read
-                without an account.
-              </p>
+              </div>
             </Reveal>
           </div>
         </section>
@@ -617,22 +657,31 @@ export default function Landing() {
           </div>
         </section>
 
+      {/* COACH SHIPPED ON 2026-08-06 AND THIS SECTION KEPT SAYING IT HADN'T.
+          The badge here read "Coming soon" and the copy opened with "Next up
+          for Vollyio" while COACH_ENABLED defaulted to true, /coach sat in the
+          signed-in nav, and this same file's JSON-LD listed coach chat as a
+          live feature to every answer engine that asked. The page was hiding
+          the one thing on it a generic coaching video cannot imitate.
+
+          Gated on the flag rather than hardcoded to live, for the same reason
+          the featureList above is: the two claims now switch together, so a
+          deploy that darkens coach cannot leave a page behind that sells it. */}
+      {COACH_ENABLED && (
         <section className="border-t border-line">
           <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:items-center md:px-8 md:py-28">
             <div>
               <Reveal>
                 <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
-                  Coach chat{" "}
-                  <span className="ml-2 inline-block rounded-full border border-line-control px-2.5 py-0.5 text-[10px] tracking-[0.12em] text-chalk-dim">
-                    Coming soon
-                  </span>
+                  Coach chat
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
                   A coach that has actually seen you play.
                 </h2>
                 <p className="mt-4 max-w-md text-chalk-dim">
-                  Next up for Vollyio: ask anything, and the coach answers from
-                  your own scores, breakdowns, and goals, not generic tips.
+                  Ask anything. The answer comes from your own scores,
+                  breakdowns, and goals, and it cites the reps it read, so you
+                  can go back and check it. Not generic tips.
                 </p>
               </Reveal>
             </div>
@@ -649,12 +698,134 @@ export default function Landing() {
                     and re-film.
                   </div>
                 </div>
+                {/* The citation is the product's actual differentiator made
+                    visible: the answer above names three reps, and a player
+                    can open any of them and disagree. Labelled an example,
+                    like every other set of invented numbers on this page. */}
                 <div className="mt-4 border-t border-line pt-3">
                   <span className="font-mono text-[11px] uppercase text-chalk-dim">
-                    Coach · knows your film
+                    Example · read from your last three passing reps: 61 · 64 ·
+                    63
                   </span>
                 </div>
               </div>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+        {/* PRICING, ON THE PAGE. Until now the only number a stranger could
+            find was inside a collapsed FAQ answer and one line at the very
+            bottom of the closing band, so a parent scanning on a phone reached
+            the end of the site without ever seeing what it costs.
+
+            EVERY FIGURE IS INTERPOLATED, never typed. The same constants the
+            plan card, the 402 offer and the terms read: a price on the
+            marketing page that disagrees with the one at checkout is a false
+            statement about money, and this file's own header comment records
+            that it carried one for weeks.
+
+            STATED AS A DAY RATE, per D-110. The monthly equivalents are
+            arithmetically true and practically unreachable, because the wall
+            that binds is daily, so the sentence a player can act on is the one
+            `allowanceSentence` already writes. */}
+        <section id="pricing" className="scroll-mt-24 border-t border-line">
+          <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
+                Pricing
+              </p>
+              <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
+                Start free. Upgrade when you are filming every session.
+              </h2>
+              <p className="mt-4 max-w-xl text-chalk-dim">
+                Both limits are daily and reset at midnight UTC. Nothing is
+                saved up, and nothing expires unspent.
+              </p>
+            </Reveal>
+
+            <div className="mt-10 grid items-stretch gap-4 md:grid-cols-2">
+              <Reveal delay={100} className="h-full">
+                <div className="card flex h-full flex-col p-6">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-chalk-dim">
+                    {PLAN_LABEL.free}
+                  </p>
+                  <p className="mt-2 font-display text-4xl font-bold tracking-tight">
+                    $0
+                    <span className="ml-2 align-middle text-body font-normal text-chalk-dim">
+                      forever
+                    </span>
+                  </p>
+                  <p className="mt-2 text-body text-chalk">
+                    {allowanceSentence("free")}, with no card.
+                  </p>
+                  <ul className="mt-5 flex flex-col gap-2.5 text-body text-chalk-dim">
+                    {[
+                      "All six skills, every checkpoint",
+                      "One priority fix per rep",
+                      "Rolling skill rating and streaks",
+                      `${DRILLS.length} drills and the technique library`,
+                    ].map((line) => (
+                      <li key={line} className="flex gap-2.5">
+                        <CheckIcon />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/start" className="btn-primary mt-6 w-full">
+                    Analyze your first rep
+                  </Link>
+                </div>
+              </Reveal>
+
+              <Reveal delay={160} className="h-full">
+                <div className="card flex h-full flex-col p-6">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
+                    {PLAN_LABEL.pro}
+                  </p>
+                  <p className="mt-2 font-display text-4xl font-bold tracking-tight">
+                    {PRO_PRICE}
+                    <span className="ml-2 align-middle text-body font-normal text-chalk-dim">
+                      / month
+                    </span>
+                  </p>
+                  <p className="mt-2 text-body text-chalk">
+                    {allowanceSentence("pro")}.
+                  </p>
+                  <ul className="mt-5 flex flex-col gap-2.5 text-body text-chalk-dim">
+                    {[
+                      `Everything in ${PLAN_LABEL.free}`,
+                      ...(COACH_ENABLED
+                        ? ["Coach chat grounded in your own scores"]
+                        : []),
+                      "Renews on the day you subscribed, not the 1st",
+                      "Cancel any time from Settings",
+                    ].map((line) => (
+                      <li key={line} className="flex gap-2.5">
+                        <CheckIcon />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  {/* No checkout button here on purpose: buying requires an
+                      account, and a gold button that looks like a purchase and
+                      lands on a signup form is the kind of small lie this page
+                      does not tell. */}
+                  <p className="mt-6 text-body text-chalk-dim">
+                    Start on {PLAN_LABEL.free} and upgrade from Settings
+                    whenever you want. You are never charged without choosing{" "}
+                    {PLAN_LABEL.pro} yourself.
+                  </p>
+                </div>
+              </Reveal>
+            </div>
+
+            <Reveal delay={220}>
+              <p className="mt-6 max-w-2xl text-body text-chalk-dim">
+                {PLAN_LABEL.pro} is the same product with the daily wall moved:
+                three reads of every skill in a day, rather than three reads in
+                total.
+              </p>
             </Reveal>
           </div>
         </section>

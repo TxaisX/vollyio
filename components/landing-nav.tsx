@@ -4,14 +4,32 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+// THE NAV IS THE ONLY MAP A STRANGER GETS, so it spends its six slots on
+// destinations rather than on scroll positions. Samples, drills and technique
+// are public (lib/route-guard.ts PROTECTED lists none of them), free of an
+// account, and were previously reachable only from links buried in the body
+// copy, which meant the zero-cost way to evaluate this product was the hardest
+// thing on the page to find. Analytics, Skills and Progress lost their slots
+// because scrolling already reaches them and a route does not.
 const LINKS = [
   { href: "#film", label: "Film room" },
-  { href: "#how", label: "How it works" },
-  { href: "#analytics", label: "Analytics" },
-  { href: "#skills", label: "Skills" },
-  { href: "#progress", label: "Progress" },
+  { href: "/samples", label: "Samples" },
+  { href: "/drills", label: "Drills" },
+  { href: "/learn", label: "Learn" },
+  { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ] as const;
+
+// A route gets next/link so it prefetches and navigates client-side; an in-page
+// anchor stays a plain <a>, because handing a bare hash to the router is a
+// navigation rather than a scroll. One predicate, applied in both renders, so
+// the desktop bar and the overlay menu cannot disagree about what a link is.
+const isRoute = (href: string) => href.startsWith("/");
+
+const DESKTOP_LINK =
+  "flex min-h-11 items-center text-sm text-chalk-dim transition-colors hover:text-chalk";
+const MENU_LINK =
+  "flex min-h-12 items-center rounded-control px-3 text-base text-chalk-dim transition-colors hover:bg-navy-light hover:text-chalk";
 
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -114,15 +132,17 @@ export function LandingNav() {
           aria-label="Primary"
           className="hidden items-center gap-7 md:flex"
         >
-          {LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="flex min-h-11 items-center text-sm text-chalk-dim transition-colors hover:text-chalk"
-            >
-              {l.label}
-            </a>
-          ))}
+          {LINKS.map((l) =>
+            isRoute(l.href) ? (
+              <Link key={l.href} href={l.href} className={DESKTOP_LINK}>
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.href} href={l.href} className={DESKTOP_LINK}>
+                {l.label}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -176,16 +196,27 @@ export function LandingNav() {
           className="landing-menu-in absolute inset-x-0 top-full h-[calc(100svh-100%)] overflow-y-auto border-t border-line bg-navy/95 backdrop-blur-md md:hidden"
         >
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-5 pb-8 pt-4">
-            {LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={() => close()}
-                className="flex min-h-12 items-center rounded-control px-3 text-base text-chalk-dim transition-colors hover:bg-navy-light hover:text-chalk"
-              >
-                {l.label}
-              </a>
-            ))}
+            {LINKS.map((l) =>
+              isRoute(l.href) ? (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => close()}
+                  className={MENU_LINK}
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => close()}
+                  className={MENU_LINK}
+                >
+                  {l.label}
+                </a>
+              ),
+            )}
             <div className="mt-3 flex flex-col gap-2 border-t border-line pt-4">
               <Link
                 href="/login"
