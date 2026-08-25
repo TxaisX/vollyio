@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fragment, ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -33,6 +35,29 @@ type Row = {
   result: AnalysisResult;
 };
 
+// ONE read of the row per request, shared by `generateMetadata` and the page.
+//
+// Those are separate invocations of this module, and Next dedupes `fetch()`
+// between them but knows nothing about a supabase-js call, so every breakdown
+// view read the row twice AND pulled the multi-kilobyte `result` blob twice.
+// React's `cache()` scopes it to the request, keyed on the id and the verified
+// owner so one request can never serve another account's row.
+//
+// The projection is the WIDER of the two the page used to make. Metadata only
+// wants three of these columns, but it was already fetching `result`, which is
+// the expensive one, so widening it costs nothing and halves the round trips.
+const loadAnalysis = cache(
+  async (supabase: SupabaseClient, id: string, userId: string) =>
+    supabase
+      .from("analyses")
+      .select(
+        "id, skill, discipline, frame_paths, clip_path, overall_score, created_at, result",
+      )
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+);
+
 export async function generateMetadata({
   params,
 }: {
@@ -45,12 +70,7 @@ export async function generateMetadata({
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
 
-  const { data } = await supabase
-    .from("analyses")
-    .select("skill, overall_score, result")
-    .eq("id", id)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data } = await loadAnalysis(supabase, id, userId);
 
   if (!data) {
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
@@ -220,14 +240,7 @@ export default async function AnalysisDetail({
   // full region round trip to TTFB. Every read is still owner-scoped by RLS
   // plus its explicit filter; nothing about the security surface changes.
   const [{ data }, { data: liveLinks }, { data: fb }] = await Promise.all([
-    supabase
-      .from("analyses")
-      .select(
-        "id, skill, discipline, frame_paths, clip_path, overall_score, created_at, result",
-      )
-      .eq("id", id)
-      .eq("user_id", userId!)
-      .maybeSingle(),
+    loadAnalysis(supabase, id, userId!),
     // Whether any live share link exists, for the owner's control state. RLS
     // scopes the read to the owner; anonymous readers never touch this table.
     supabase

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,21 @@ import { SKILL_LABEL } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
 
+// ONE read per request, not two. `generateMetadata` and the component are
+// separate invocations of this module, and Next dedupes `fetch()` between them
+// but knows nothing about a supabase-js call, so this page was resolving the
+// share token through its SECURITY DEFINER RPC twice for every view. React's
+// `cache()` scopes the result to the request, which is exactly the lifetime a
+// share token's resolution should have.
+//
+// This is the page that matters most for it: a share link accounted for 74 of
+// the first 219 visitors, so it is the cheapest surface in the product to make
+// twice as expensive by accident.
+const loadShared = cache(async (token: string) => {
+  const supabase = await createClient();
+  return analysisByShareToken(supabase, token);
+});
+
 // The public face of one shared analysis (D-049): everything comes from the
 // bounded RPC projection, the clip streams through the token-validated route,
 // and the page dies with the link (revoked or expired reads as not found).
@@ -21,8 +37,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
-  const supabase = await createClient();
-  const shared = await analysisByShareToken(supabase, token);
+  const shared = await loadShared(token);
   if (!shared) {
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
@@ -55,8 +70,7 @@ export default async function SharedBreakdown({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const supabase = await createClient();
-  const shared = await analysisByShareToken(supabase, token);
+  const shared = await loadShared(token);
   if (!shared) notFound();
 
   const dateLabel = new Date(shared.created_at).toLocaleDateString(undefined, {

@@ -489,6 +489,14 @@ export async function POST(req: NextRequest) {
 
       const raw = read.parsed;
       if (!raw) {
+        // Refunded, for the same reason the abstain lane below refunds: this
+        // route's own comment on the re-read says failure here is STOCHASTIC,
+        // "a parse miss is more often a bad draw than a bad clip". Charging a
+        // player an hourly slot for the model's bad draw, after two paid reads
+        // they never see, is billing them for our variance. The monthly
+        // allowance counts stored ROWS and no row is written, so the hourly
+        // slot is the only thing to give back.
+        await refundApiQuota(createServiceClient(), user.id, "analyze");
         return NextResponse.json(
           { error: "The coaching service couldn't read that clip. Try again." },
           { status: 502 },
@@ -533,6 +541,9 @@ export async function POST(req: NextRequest) {
 
       const top = raw.improvements[0];
       if (!top) {
+        // A reply that parsed but carried no improvement is the same class of
+        // bad draw as one that did not parse at all, and gets the same refund.
+        await refundApiQuota(createServiceClient(), user.id, "analyze");
         return NextResponse.json(
           { error: "The coaching service couldn't read that clip. Try again." },
           { status: 502 },

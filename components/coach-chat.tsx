@@ -334,6 +334,19 @@ export function CoachChat({
   const [error, setError] = useState<string | null>(null);
   const [failedText, setFailedText] = useState<string | null>(null);
 
+  // THE IN-FLIGHT GUARD IS A REF, NOT THE `streaming` STATE.
+  //
+  // `setStreaming(true)` does not change the `streaming` value this closure
+  // already captured, so two Enter presses or a double tap dispatched inside
+  // the same frame both read `false` and both send. Coach has no reservation
+  // to catch that the way /api/analyze does, so both requests consume an
+  // hourly AND a daily unit and both make a paid call, and coach has no refund
+  // path by design (docs/security.md). A ref is written and read synchronously,
+  // so the second event sees the first.
+  //
+  // `streaming` stays as the state that DRIVES THE UI; this only decides
+  // whether a send is allowed to start.
+  const sendingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // The transcript, which is the ONLY thing on this page that scrolls. The
   // heading above it and the composer below it are fixed in place, so a player
@@ -388,7 +401,8 @@ export function CoachChat({
 
   async function send(text: string, appendUser = true) {
     const trimmed = text.trim();
-    if (!trimmed || streaming) return;
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
     setError(null);
     setFailedText(null);
     if (appendUser) {
@@ -479,6 +493,7 @@ export function CoachChat({
           : "Something went wrong. Try again.",
       );
     } finally {
+      sendingRef.current = false;
       setStreaming(false);
       setWaiting(false);
     }

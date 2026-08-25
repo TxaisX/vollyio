@@ -109,3 +109,52 @@ test("the coach call states its own timeout instead of inheriting the client def
       "rather than by accident.",
   );
 });
+
+/**
+ * A SERVER ACTION INHERITS ITS ROUTE SEGMENT'S CONFIG, NOT THE SEGMENT IT WAS
+ * WRITTEN FOR.
+ *
+ * `generateWeeklyPlan` lives under /plan, whose page declares maxDuration 180
+ * because the action's worst case is three 50s attempts plus backoff. Onboarding
+ * then imported the same action and ran it from /welcome, which declared no
+ * maxDuration at all, so it executed against the platform default of a few
+ * seconds.
+ *
+ * The cost is not a slow page. `reserve_weekly_plan` claims the row BEFORE the
+ * action spends, and a killed function never reaches `release_weekly_plan`, so
+ * a brand new account claimed its own first week and then lost it for the full
+ * ten minute expiry (D-072) on the least patient path in the product.
+ *
+ * `after()` work is bounded by the same segment ceiling, so scheduling it there
+ * does not escape this.
+ */
+test("every segment that runs the weekly-plan action declares enough time for it", async () => {
+  const planActions = await readFile(
+    new URL("../app/(app)/plan/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const perAttemptMs = num(planActions, /timeoutMs:\s*([\d_]+)/, "plan action timeout");
+  const retries = num(planActions, /maxRetries:\s*(\d+)/, "plan action retries");
+  const worstS = ((retries + 1) * perAttemptMs) / 1000;
+
+  // Every segment whose actions file reaches generateWeeklyPlan, including the
+  // one that only imports it. A new caller joins this list by existing.
+  const callers = ["plan", "welcome"];
+  for (const segment of callers) {
+    const page = await readFile(
+      new URL(`../app/(app)/${segment}/page.tsx`, import.meta.url),
+      "utf8",
+    );
+    const declared = page.match(/maxDuration\s*=\s*(\d+)/);
+    assert.ok(
+      declared,
+      `app/(app)/${segment}/page.tsx runs the weekly-plan action but declares no ` +
+        `maxDuration, so it inherits the platform default against a ${worstS}s worst case`,
+    );
+    assert.ok(
+      Number(declared[1]) > worstS,
+      `app/(app)/${segment}/page.tsx allows ${declared[1]}s for an action whose ` +
+        `worst case is ${worstS}s; the kill skips release_weekly_plan and locks the week`,
+    );
+  }
+});

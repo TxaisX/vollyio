@@ -8,6 +8,26 @@ import { FUNNEL_PENDING_COOKIE } from "@/lib/funnel";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { TesterInvite } from "@/components/tester-invite";
 
+// A server action inherits its route segment's config rather than declaring its
+// own, which is the rule `app/(app)/plan/page.tsx` spells out and this segment
+// was breaking. `applyAnswers` runs `personalizeGoal` inline (12s x 2 = 25s) and
+// then schedules `generateWeeklyPlan` in an `after()`, and that action's own
+// worst case is three 50 second attempts plus backoff, about 153s. Both were
+// running against whatever the platform's undeclared default happens to be,
+// which is a small number of seconds.
+//
+// The cost of the kill is not a slow page, it is a locked week: the plan action
+// claims its row through `reserve_weekly_plan` BEFORE it spends, and a killed
+// function never reaches the `release_weekly_plan` in its catch. So the very
+// first thing a brand new account did was claim its own first week and then
+// lose the claim for the full ten minute expiry (D-072), on the one path where
+// nobody has any patience left. `after()` work is bounded by this same ceiling.
+//
+// 180 matches /plan deliberately: it is the same action, so it should have the
+// same headroom, and the timeout that fires should be ours with a message
+// rather than the platform's with nothing.
+export const maxDuration = 180;
+
 export const metadata: Metadata = {
   title: "Welcome",
   description: "Tell the coaching service where you are and where you're headed.",

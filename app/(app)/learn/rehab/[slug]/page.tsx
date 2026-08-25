@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +23,13 @@ export async function generateStaticParams() {
   return REHAB.map((e) => ({ slug: e.slug }));
 }
 
-async function load(slug: string): Promise<RehabEntry | null> {
+// ONE read per request. `generateMetadata` and the component are separate
+// invocations of this module and Next does not dedupe a supabase-js call
+// between them, so every view of an entry resolved it twice. `cache()` scopes
+// the result to the request. This matters more now than it did yesterday: these
+// pages stopped serving noindex, so a crawler is about to start walking all 39
+// of them.
+const load = cache(async (slug: string): Promise<RehabEntry | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("rehab_entries")
@@ -32,7 +39,7 @@ async function load(slug: string): Promise<RehabEntry | null> {
   // Fall back to the authored module rather than 404ing on a read failure:
   // public reference content should not vanish because the database blinked.
   return (data as RehabEntry | null) ?? rehabBySlug(slug) ?? null;
-}
+});
 
 export async function generateMetadata({
   params,
