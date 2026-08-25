@@ -60,7 +60,10 @@ type AnalysisRow = {
   overall_score: number;
   created_at: string;
   fix: string | null;
+  /** The frames engine's checkpoint field. Null on every row since 2026-08-06. */
   metric: string | null;
+  /** The video engine's checkpoint field (D-099). Null on rows before that. */
+  checkpoint: string | null;
 };
 // The goals board itself is components/goals.tsx (GoalsBoard): create,
 // complete and abandon all happen here on the dashboard now (D-088), so the
@@ -228,12 +231,25 @@ export default async function Dashboard({
       // (D-044), so the skill card can show a one-line fix history without
       // pulling every full result blob.
       //
-      // metric: the checkpoint that fix targets, which is what today's
-      // assignment is chosen against. Read from changes[0], NOT from
+      // metric/checkpoint: the checkpoint that fix targets, which is what
+      // today's assignment is chosen against. Read from changes[0], NOT from
       // priority_fix.target_metric -- that field is null on every stored row,
       // so selecting it would silently target nothing forever.
+      //
+      // BOTH FIELDS, because the engine changed under this line. The frames
+      // path wrote `target_metric`; the video path that replaced it on
+      // 2026-08-06 writes `key` instead and deliberately never writes
+      // `target_metric`, because that field carried a numeric promise the
+      // video path does not make (D-097/D-099, lib/analysis-types.ts). This
+      // select was never updated, so for 19 days every current row resolved to
+      // a null checkpoint: the daily assignment stopped being able to target
+      // one, and `lib/priority-loop.ts` went dead with it. Measured before
+      // fixing: of 59 stored analyses, the 20 written since the switch carry
+      // `key` on 20 of 20 and `target_metric` on 0 of 20.
+      //
+      // The legacy field stays selected so the 39 older rows keep working.
       .select(
-        "id, skill, discipline, overall_score, created_at, fix:result->priority_fix->>title, metric:result->changes->0->>target_metric",
+        "id, skill, discipline, overall_score, created_at, fix:result->priority_fix->>title, metric:result->changes->0->>target_metric, checkpoint:result->changes->0->>key",
       )
       .eq("user_id", userId!)
       .in("discipline", [...GROUP_DISCIPLINES[disciplineGroup(discipline)]])
@@ -335,7 +351,7 @@ export default async function Dashboard({
   // functions of data already in hand: offering the court-free alternative
   // costs nothing and saves a round trip when the player taps for it.
   const weak: WeakPoint | null = newestFix
-    ? { skill: newestFix.skill, metricKey: newestFix.metric }
+    ? { skill: newestFix.skill, metricKey: newestFix.checkpoint ?? newestFix.metric }
     : null;
   const assignmentArgs = {
     userId: userId!,

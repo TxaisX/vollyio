@@ -12,6 +12,26 @@ import { SeamArcs } from "@/components/motif";
 import { logout } from "@/app/(auth)/actions";
 import { LogoutButton } from "./logout-button";
 
+// THE WHOLE GROUP GETS THE PLAN ACTION'S BUDGET, because `<FunnelHandoff />`
+// below mounts on EVERY page in it.
+//
+// A server action inherits the config of the segment it is INVOKED from, not
+// the one it was written in. `applyFunnel` runs `personalizeGoal` inline and
+// schedules `generateWeeklyPlan` in an `after()`, whose worst case is three 50
+// second attempts plus backoff, about 153s; `app/(app)/plan/page.tsx` declares
+// 180 for exactly that reason. Putting the same number only on /welcome missed
+// the point: the handoff fires from whichever authed page the player lands on
+// first, which is usually /dashboard or /analyze, and neither declares one.
+//
+// The cost of the kill is a locked week, not a slow page: `reserve_weekly_plan`
+// claims the row before it spends and a killed function never reaches
+// `release_weekly_plan`, so a brand new account claims its own first week and
+// loses it for the full ten minute expiry (D-072).
+//
+// A ceiling is not a reservation. Raising it costs nothing on the pages that
+// never approach it.
+export const maxDuration = 180;
+
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };

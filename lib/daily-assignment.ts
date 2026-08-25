@@ -13,7 +13,7 @@
 import { DRILLS } from "../content/drills.ts";
 import { drillsForMetric } from "../content/technique.ts";
 import { metricLabel } from "./ai/metrics.ts";
-import { SKILLS } from "./skills.ts";
+import { SKILLS, SKILL_LABEL } from "./skills.ts";
 import type { Drill } from "@/content/drills-types";
 import type { Skill, Level } from "@/lib/skills";
 
@@ -51,7 +51,20 @@ export type Assignment = {
   /** True when the choice is grounded in the player's own measured state
    *  rather than a fallback. Drives whether the card claims to be targeted. */
   targeted: boolean;
+  /** WHY this skill, precisely, so the copy cannot claim the wrong one.
+   *  `targeted` used to carry this job as a boolean and could not: it was true
+   *  both for "the last breakdown named it" and for "it is the lowest rating",
+   *  so the card printed the lowest-rating sentence about whichever skill the
+   *  player last filmed. */
+  reason: AssignmentReason;
 };
+
+/** In the order `targetSkill` prefers them. */
+export type AssignmentReason =
+  | "checkpoint"  // the last breakdown named a specific checkpoint
+  | "last-rep"    // the last breakdown's SKILL, with no checkpoint named
+  | "lowest"      // the lowest rating on the board
+  | "rotation";   // nothing measured yet
 
 /** FNV-1a. Stable across runs and machines, unlike anything seeded from the
  *  clock, so the same player sees the same assignment all day and a refresh
@@ -81,18 +94,27 @@ export function targetSkill(
   ratings: Partial<Record<Skill, number>>,
   weak: WeakPoint | null,
   seed: string,
-): { skill: Skill; targeted: boolean } {
-  if (weak) return { skill: weak.skill, targeted: true };
+): { skill: Skill; targeted: boolean; reason: AssignmentReason } {
+  if (weak) {
+    // A named checkpoint and a bare skill are BOTH grounded, and they are not
+    // the same claim. Separating them here is what stops the copy below
+    // describing the last rep's skill as the lowest rating on the board.
+    return {
+      skill: weak.skill,
+      targeted: true,
+      reason: weak.metricKey ? "checkpoint" : "last-rep",
+    };
+  }
 
   const rated = SKILLS.filter((s) => typeof ratings[s] === "number");
   if (rated.length > 0) {
     // Lowest first; ties broken by the fixed SKILLS order so the answer is
     // deterministic rather than dependent on object key iteration.
     const lowest = rated.reduce((a, b) => (ratings[b]! < ratings[a]! ? b : a));
-    return { skill: lowest, targeted: true };
+    return { skill: lowest, targeted: true, reason: "lowest" };
   }
 
-  return { skill: pick([...SKILLS], seed), targeted: false };
+  return { skill: pick([...SKILLS], seed), targeted: false, reason: "rotation" };
 }
 
 /** Does this drill need something a player at home on a Tuesday will not have? */
@@ -117,7 +139,7 @@ export function assignmentFor(opts: {
 }): Assignment {
   const { userId, dayKey, level, ratings, weak, courtFree = false } = opts;
   const seed = `${userId}:${dayKey}`;
-  const { skill, targeted } = targetSkill(ratings, weak, seed);
+  const { skill, targeted, reason } = targetSkill(ratings, weak, seed);
   const metricKey = weak && weak.skill === skill ? weak.metricKey : null;
   const allowed = LEVEL_POOL[level] ?? LEVEL_POOL.beginner;
 
@@ -146,11 +168,11 @@ export function assignmentFor(opts: {
     } else {
       // Nothing in this skill can be done alone today. Read instead of forcing
       // a drill the player cannot actually run.
-      return studyAssignment(skill, metricKey, targeted);
+      return studyAssignment(skill, metricKey, targeted, reason);
     }
   }
 
-  if (pool.length === 0) return studyAssignment(skill, metricKey, targeted);
+  if (pool.length === 0) return studyAssignment(skill, metricKey, targeted, reason);
 
   const drill = pick(pool, seed);
   return {
@@ -160,8 +182,9 @@ export function assignmentFor(opts: {
     drill,
     studyHref: null,
     title: drill.name,
-    why: whyLine(skill, metricKey, targeted, ratings),
+    why: whyLine(skill, reason, metricKey, ratings),
     targeted,
+    reason,
   };
 }
 
@@ -169,6 +192,7 @@ function studyAssignment(
   skill: Skill,
   metricKey: string | null,
   targeted: boolean,
+  reason: AssignmentReason,
 ): Assignment {
   return {
     kind: "study",
@@ -181,19 +205,25 @@ function studyAssignment(
       : `Study the ${skill} checkpoints`,
     why: "No court today. Read the checkpoint you are working on so the next rep has a target.",
     targeted,
+    reason,
   };
 }
 
 function whyLine(
   skill: Skill,
+  reason: AssignmentReason,
   metricKey: string | null,
-  targeted: boolean,
   ratings: Partial<Record<Skill, number>>,
 ): string {
-  if (metricKey) {
+  if (reason === "checkpoint" && metricKey) {
     return `Targets ${metricLabel(skill, metricKey).toLowerCase()}, the checkpoint your last breakdown flagged.`;
   }
-  if (targeted) {
+  if (reason === "last-rep") {
+    // Says what is actually true: this is the skill they last filmed. It used
+    // to borrow the lowest-rating sentence and print the WRONG skill's number.
+    return `Carries on from your last rep, which was ${SKILL_LABEL[skill].toLowerCase()}.`;
+  }
+  if (reason === "lowest") {
     const rating = ratings[skill];
     return rating != null
       ? `Your lowest rating right now (${Math.round(rating)}).`

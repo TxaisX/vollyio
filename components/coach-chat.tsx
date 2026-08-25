@@ -402,23 +402,39 @@ export function CoachChat({
   async function send(text: string, appendUser = true) {
     const trimmed = text.trim();
     if (!trimmed || sendingRef.current) return;
+    // Claimed synchronously, which is the whole point: `setStreaming(true)` does
+    // not change the value this closure already captured, so two Enter presses
+    // in one frame would both pass a state-based guard and both spend.
     sendingRef.current = true;
-    setError(null);
-    setFailedText(null);
-    if (appendUser) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "user",
-          content: trimmed,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+    // The setup below is guarded separately from the request, because a throw
+    // BEFORE the request's own try/finally would strand the flag `true` and
+    // deaden the composer until reload, which is strictly worse than the
+    // double-send it prevents. `crypto.randomUUID()` is the concrete hazard: it
+    // is undefined outside a secure context, which includes dev over a
+    // plain-http LAN address.
+    try {
+      setError(null);
+      setFailedText(null);
+      if (appendUser) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: trimmed,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      setStreaming(true);
+      setWaiting(true);
+      pinnedRef.current = true;
+    } catch (err) {
+      sendingRef.current = false;
+      setStreaming(false);
+      setWaiting(false);
+      throw err;
     }
-    setStreaming(true);
-    setWaiting(true);
-    pinnedRef.current = true;
 
     try {
       const wasNewSession = sessionRef.current == null;

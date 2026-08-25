@@ -14,7 +14,7 @@ Live: https://vollyio.com
 - Next.js 16 (App Router, React 19). Middleware is `proxy.ts`, not `middleware.ts`.
 - Supabase (auth + Postgres 17, row-level security on every table). Exactly one
   module can bypass row security: `lib/supabase/service.ts` reads
-  `SUPABASE_SERVICE_ROLE_KEY`, and its four importers (the payment webhook; the
+  `SUPABASE_SERVICE_ROLE_KEY`, and its four importers (the payment webhook; the Play verify and RTDN routes; the
   analyze route's telemetry and quota-refund calls) are each recorded with
   their reason in `docs/security.md` rule 10. Every other request runs as the
   signed-in player.

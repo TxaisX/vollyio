@@ -73,16 +73,27 @@ export default async function Progress() {
   const supabase = await createClient();
   const userId = await getAuthUserId(supabase);
 
-  // Ascending, because the series are read oldest-first and sorting once in SQL
-  // beats re-sorting per group. The 400 cap is generous against the real usage
-  // curve and keeps one heavy account from making this page unbounded.
+  // DESCENDING in SQL, reversed in JS, because ORDER BY runs BEFORE LIMIT.
+  //
+  // This read was `ascending: true` with the same cap, which does not mean
+  // "the 400 most recent, oldest first". It means the 400 OLDEST, full stop.
+  // Past 400 reps the chart would have frozen permanently: rep 401 onward
+  // simply never arrived, `series.last` would sit at a months-old date, and
+  // the page whose whole question is "am I getting better" would keep
+  // answering with data that stopped. The cap is the right idea and the sort
+  // was pointing the wrong way.
+  //
+  // Reversing here rather than in SQL keeps the "oldest first" shape
+  // buildSeries wants, and costs one pass over at most 400 rows. buildSeries
+  // sorts each group anyway (lib/progress-series.ts), so this is belt and
+  // braces rather than load-bearing.
   const [{ data: repData, error: repError }, { data: goalData, error: goalError }] =
     await Promise.all([
       supabase
         .from("analyses")
         .select("skill, discipline, overall_score, created_at")
         .eq("user_id", userId!)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(400),
       supabase
         .from("goals")

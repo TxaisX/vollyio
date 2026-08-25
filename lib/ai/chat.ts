@@ -81,6 +81,25 @@ export async function* streamChat(opts: {
   maxTokens: number;
   timeoutMs?: number;
   maxRetries?: number;
+  /**
+   * How long AFTER THE CALL STARTS a retry may still be launched.
+   *
+   * `maxRetries` on its own cannot be sized safely here, because the two
+   * failures it covers have wildly different costs. A gateway 429 or 502 comes
+   * back in milliseconds and retrying it is nearly free; a stalled upstream
+   * comes back only when `timeoutMs` aborts it, and retrying THAT starts a
+   * fresh full-length attempt the platform will kill the function in the
+   * middle of. One number cannot serve both.
+   *
+   * So the retry budget is a WINDOW rather than a count: retry freely while
+   * almost no time has passed, never once a long attempt has already burned
+   * the budget. Set it to (route maxDuration - timeoutMs) and the arithmetic
+   * is provable: the last retry a caller can launch still fits.
+   *
+   * Unset means no window, which is the previous behaviour for every caller
+   * that does not opt in.
+   */
+  retryWindowMs?: number;
 }): AsyncGenerator<string> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new ChatError("coaching service is not configured", null);
@@ -94,6 +113,13 @@ export async function* streamChat(opts: {
   });
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const retryWindowMs = opts.retryWindowMs ?? Number.POSITIVE_INFINITY;
+  const started = Date.now();
+  // A retry is allowed only while BOTH budgets hold. See `retryWindowMs`: this
+  // is what lets a fast 429 be retried on a route whose whole deadline is
+  // shorter than one attempt's timeout.
+  const mayRetry = (attempt: number) =>
+    attempt < maxRetries && Date.now() - started < retryWindowMs;
 
   for (let attempt = 0; ; attempt++) {
     let res: Response;
@@ -110,14 +136,14 @@ export async function* streamChat(opts: {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (attempt >= maxRetries) throw new ChatError(`chat request failed: ${message}`, null);
+      if (!mayRetry(attempt)) throw new ChatError(`chat request failed: ${message}`, null);
       await new Promise((r) => setTimeout(r, backoffMs(attempt, null)));
       continue;
     }
 
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
-      if (isRetryable(res.status) && attempt < maxRetries) {
+      if (isRetryable(res.status) && mayRetry(attempt)) {
         await new Promise((r) => setTimeout(r, backoffMs(attempt, res.headers.get("retry-after"))));
         continue;
       }

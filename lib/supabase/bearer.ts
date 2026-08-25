@@ -12,7 +12,7 @@ import { createClient as createSupabaseClient, type SupabaseClient } from "@supa
 //
 // It is NOT a second privileged client. The only thing it can do is what the
 // player whose token was presented can do, which is why it takes the anon key
-// and never SUPABASE_SERVICE_ROLE_KEY. Rule 10's two-importer limit is about
+// and never SUPABASE_SERVICE_ROLE_KEY. Rule 10's importer limit is about
 // lib/supabase/service.ts and is untouched by this file.
 
 /**

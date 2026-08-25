@@ -121,7 +121,7 @@ function checkpointsFrom(
 // the platform budget. A function the platform kills skips the refund below and
 // the entitlement release in the outer finally, silently costing the player an
 // hourly slot: that is what these two numbers exist to prevent.
-const READ_TIMEOUT_MS = 50_000;
+const READ_TIMEOUT_MS = 45_000;
 // Only re-read when there is room for the attempt to finish inside the budget.
 const RETRY_DEADLINE_MS = 55_000;
 // ONE attempt inside the re-read, and this is the number the deadline above was
@@ -135,9 +135,22 @@ const RETRY_DEADLINE_MS = 55_000;
 // entitlement release in the outer finally, which is exactly the cost these
 // constants exist to prevent.
 //
-// With one attempt the worst case is 55 + 50 = 105s plus the write, inside 120.
-// lib/analyze-budget.test.ts pins the arithmetic so the next person to tune a
-// timeout finds out here rather than in production.
+// AND THE BACKOFF COUNTS TOO, which the first repair here missed. `backoffMs`
+// in lib/ai/vision.ts honours an upstream `Retry-After` up to 20 seconds, so
+// the FIRST read, which keeps its one internal retry, is not 2 x 50 = 100s but
+// 50 + 20 + 50 = 120s: exactly the whole function budget, before the clip
+// download, the base64 encode, the two quota RPCs and every write after the
+// read. That is the same platform kill this block exists to prevent, still open
+// on the more common lane.
+//
+// 45 rather than 50 is what closes it. First read worst case 45 + 20 + 45 =
+// 110s; re-read path 55 (the deadline) + 45 = 100s. Both inside 120 with room
+// for the writes. The video read is a much smaller request than the frame read
+// that used 90s, so this is a trim rather than a squeeze.
+//
+// lib/ai-budget-contract.test.ts pins all of it, backoff included, so the next
+// person to tune a timeout finds out here rather than in production.
+const RETRY_AFTER_CEILING_MS = 20_000;
 const REREAD_MAX_RETRIES = 0;
 
 // Which plan the reservation just enforced against. An unrecognized plan

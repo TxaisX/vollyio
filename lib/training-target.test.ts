@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   MAX_TARGET_DAYS,
   TARGET_PHASES,
@@ -160,8 +161,24 @@ test("nothing in the runway claims a readiness percentage", () => {
   // The one rule this module exists to hold (D-127). If a field ever appears
   // that scores the player against the date, this fails and somebody has to
   // argue for it in the ledger rather than ship it quietly.
+  //
+  // Walks the whole shape, not just the top level: the first cut checked
+  // `Object.keys(runway)` alone, so a `segments[i].readinessPct` would have
+  // sailed straight through the test written to forbid exactly that.
+  const collectKeys = (value: unknown, into: string[] = []): string[] => {
+    if (Array.isArray(value)) {
+      for (const item of value) collectKeys(item, into);
+    } else if (value && typeof value === "object") {
+      for (const [k, v] of Object.entries(value)) {
+        into.push(k);
+        collectKeys(v, into);
+      }
+    }
+    return into;
+  };
   const runway = targetRunway("2026-08-25", "2026-12-01");
-  const keys = Object.keys(runway).join(" ").toLowerCase();
+  const keys = collectKeys(runway).join(" ").toLowerCase();
+  assert.ok(keys.includes("segments"), "the walk did not reach the nested shape");
   for (const banned of ["ready", "readiness", "percent", "pct", "projected", "forecast"]) {
     assert.equal(keys.includes(banned), false, `runway exposes "${banned}"`);
   }
@@ -171,8 +188,30 @@ test("nothing in the runway claims a readiness percentage", () => {
   }
 });
 
-test("the horizon is capped at a year", () => {
-  assert.equal(MAX_TARGET_DAYS, 365);
+test("the horizon cap is actually ENFORCED, not just declared", async () => {
+  // The first version of this asserted `MAX_TARGET_DAYS === 365`, which is a
+  // restatement of the line above it: deleting the refine in the server action
+  // left it green. The constant is worthless unless something rejects a date
+  // past it, so the assertion is against the action that does the rejecting.
+  //
+  // Read as source rather than imported: the action file is "use server" and
+  // pulls in next/cache and the Supabase client, neither of which resolves
+  // under `node --test`.
+  const actions = await readFile(
+    new URL("../app/(app)/dashboard/actions.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    actions,
+    /\.refine\(\s*\(d\) => d <= todayKey\(-MAX_TARGET_DAYS\)/,
+    "setTrainingTarget no longer refuses a date past MAX_TARGET_DAYS",
+  );
+  assert.match(
+    actions,
+    /\.refine\(\(d\) => d >= todayKey\(\)/,
+    "setTrainingTarget no longer refuses a date in the past",
+  );
+  assert.equal(MAX_TARGET_DAYS, 365, "the cap the action enforces");
 });
 
 test("the big number and the sentence agree about the unit", () => {

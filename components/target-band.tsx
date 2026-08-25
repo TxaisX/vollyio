@@ -63,7 +63,12 @@ function TargetForm({
 
   return (
     <form key={state?.key ?? 0} action={formAction} className="mt-4 space-y-4">
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)]">
+      {/* Base track stated, same rule as the dashboard grids: an implicit `auto`
+          track is at least its item's min-content, and a date input carries an
+          intrinsic width that does not shrink. The layout contract test reads
+          the page file, not this one, so this was the one grid on the dashboard
+          its own guard could not see. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)]">
         <div>
           <label htmlFor="target-title" className={LABEL_CLASS}>
             Event

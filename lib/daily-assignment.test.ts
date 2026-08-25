@@ -137,3 +137,49 @@ test("the hash is stable across runs, which is what keeps the day from reshuffli
   assert.equal(stableHash("a:2026-07-29"), stableHash("a:2026-07-29"));
   assert.notEqual(stableHash("a:2026-07-29"), stableHash("b:2026-07-29"));
 });
+
+// THE LIE THIS PINS. The video engine (D-097/D-099) names its checkpoint in
+// `changes[0].key`; the frames engine used `changes[0].target_metric`. The
+// dashboard kept selecting `target_metric`, so from 2026-08-06 every current
+// row carried a null metric and `weak.metricKey` was always null. The
+// assignment then fell into the branch below and told the player the last
+// rep's skill was "your lowest rating right now", printing that skill's
+// rating, while a genuinely lower one sat two rows down the same screen.
+//
+// Verified against production before writing this: of 59 stored analyses, the
+// 20 written since 2026-08-06 have `key` on 20 of 20 and `target_metric` on 0.
+test("the last rep's skill is never described as the lowest rating when it is not", () => {
+  const a = assignmentFor({
+    ...base,
+    // Serve is the last rep and is the player's BEST skill; block is worst.
+    ratings: { serve: 82, block: 41 },
+    weak: { skill: "serve", metricKey: null },
+  });
+  assert.equal(a.skill, "serve", "the last rep's skill still leads the day");
+  assert.doesNotMatch(
+    a.why,
+    /lowest rating/i,
+    `claimed "lowest rating" about serve 82 while block sits at 41: ${a.why}`,
+  );
+  assert.match(a.why, /last rep|latest rep|last breakdown/i);
+});
+
+test("the lowest-rating line is only used when the skill really is the lowest", () => {
+  const a = assignmentFor({
+    ...base,
+    ratings: { serve: 82, block: 41 },
+  });
+  assert.equal(a.skill, "block");
+  assert.match(a.why, /lowest rating/i);
+  assert.match(a.why, /41/);
+});
+
+test("a named checkpoint still outranks both, and says so", () => {
+  const a = assignmentFor({
+    ...base,
+    ratings: { serve: 82, block: 41 },
+    weak: { skill: "serve", metricKey: "contact" },
+  });
+  assert.equal(a.skill, "serve");
+  assert.match(a.why, /checkpoint/i);
+});

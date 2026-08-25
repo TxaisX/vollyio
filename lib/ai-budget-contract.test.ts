@@ -51,9 +51,20 @@ test("the analyze re-read cannot outlive the function that has to refund the slo
     "REREAD_MAX_RETRIES",
   );
 
+  // BACKOFF IS PART OF THE BUDGET. lib/ai/vision.ts honours an upstream
+  // Retry-After up to this ceiling between attempts, and the first cut of this
+  // test left it out, which is how the first read stayed over budget through a
+  // commit that claimed to have fixed it.
+  const backoffCeilingMs = num(
+    ANALYZE,
+    /RETRY_AFTER_CEILING_MS\s*=\s*([\d_]+)/,
+    "RETRY_AFTER_CEILING_MS",
+  );
+
   // The guard admits a re-read at any elapsed time strictly under the deadline,
   // so the worst start is the deadline itself.
-  const worstMs = deadlineMs + (rereadRetries + 1) * perAttemptMs;
+  const worstMs =
+    deadlineMs + (rereadRetries + 1) * perAttemptMs + rereadRetries * backoffCeilingMs;
   assert.ok(
     worstMs < maxDurationS * 1000,
     `a re-read starting at the ${deadlineMs / 1000}s deadline can run to ` +
@@ -64,9 +75,13 @@ test("the analyze re-read cannot outlive the function that has to refund the slo
   // And the first read, which is allowed its own internal retry, has to fit on
   // its own or the re-read never gets a chance to be the problem.
   const firstReadRetries = num(ANALYZE, /await readOnce\((\d+)\)/, "first-read retries");
+  const firstReadWorstMs =
+    (firstReadRetries + 1) * perAttemptMs + firstReadRetries * backoffCeilingMs;
   assert.ok(
-    (firstReadRetries + 1) * perAttemptMs < maxDurationS * 1000,
-    `the first read alone can run to ${((firstReadRetries + 1) * perAttemptMs) / 1000}s`,
+    firstReadWorstMs < maxDurationS * 1000,
+    `the first read alone can run to ${firstReadWorstMs / 1000}s (${firstReadRetries + 1} ` +
+      `attempts of ${perAttemptMs}ms plus ${firstReadRetries} backoff of up to ` +
+      `${backoffCeilingMs}ms), past maxDuration ${maxDurationS}s`,
   );
 });
 
@@ -79,7 +94,10 @@ test("a coach turn aborts before the platform kills it, so the transcript is sti
   const perAttemptMs = num(COACH, /^\s*timeoutMs:\s*([\d_]+),/m, "coach timeoutMs");
   const retries = num(COACH, /^\s*maxRetries:\s*(\d+),/m, "coach maxRetries");
 
-  const worstMs = (retries + 1) * perAttemptMs;
+  // Coach bounds its retries by a WINDOW rather than a count, so the worst case
+  // is "the last retry launched just inside the window, then a full attempt".
+  const windowMs = num(COACH, /^\s*retryWindowMs:\s*([\d_]+),/m, "coach retry window");
+  const worstMs = retries > 0 ? windowMs + perAttemptMs : perAttemptMs;
   assert.ok(
     worstMs < maxDurationS * 1000,
     `${retries + 1} attempts of ${perAttemptMs}ms run to ${worstMs / 1000}s, past ` +
@@ -95,7 +113,7 @@ test("the coach call states its own timeout instead of inheriting the client def
   // next to the retry count is what makes the assertion above possible at all.
   assert.match(
     COACH,
-    /timeoutMs:\s*[\d_]+,\s+maxRetries:/,
+    /timeoutMs:\s*[\d_]+,\s+retryWindowMs:\s*[\d_]+,\s+maxRetries:/,
     "the coach chat call must state timeoutMs next to maxRetries; inheriting " +
       "the client default is how the budget went unchecked in the first place",
   );
@@ -137,23 +155,30 @@ test("every segment that runs the weekly-plan action declares enough time for it
   const retries = num(planActions, /maxRetries:\s*(\d+)/, "plan action retries");
   const worstS = ((retries + 1) * perAttemptMs) / 1000;
 
-  // Every segment whose actions file reaches generateWeeklyPlan, including the
-  // one that only imports it. A new caller joins this list by existing.
-  const callers = ["plan", "welcome"];
-  for (const segment of callers) {
+  // THE (app) LAYOUT IS THE REAL CALLER and was missed the first time.
+  // `components/funnel-handoff.tsx` calls `applyFunnel`, and the layout mounts
+  // it on every page in the group, so the action can be invoked from
+  // /dashboard, /analyze or anywhere else under it. A per-page list could
+  // never be complete; the layout is what actually has to carry the budget.
+  const segments = [
+    "layout.tsx",
+    "plan/page.tsx",
+    "welcome/page.tsx",
+  ];
+  for (const segment of segments) {
     const page = await readFile(
-      new URL(`../app/(app)/${segment}/page.tsx`, import.meta.url),
+      new URL(`../app/(app)/${segment}`, import.meta.url),
       "utf8",
     );
     const declared = page.match(/maxDuration\s*=\s*(\d+)/);
     assert.ok(
       declared,
-      `app/(app)/${segment}/page.tsx runs the weekly-plan action but declares no ` +
+      `app/(app)/${segment} runs the weekly-plan action but declares no ` +
         `maxDuration, so it inherits the platform default against a ${worstS}s worst case`,
     );
     assert.ok(
       Number(declared[1]) > worstS,
-      `app/(app)/${segment}/page.tsx allows ${declared[1]}s for an action whose ` +
+      `app/(app)/${segment} allows ${declared[1]}s for an action whose ` +
         `worst case is ${worstS}s; the kill skips release_weekly_plan and locks the week`,
     );
   }

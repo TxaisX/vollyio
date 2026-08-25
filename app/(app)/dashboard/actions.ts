@@ -182,11 +182,22 @@ export async function setTrainingTarget(
     .maybeSingle();
 
   if (existing) {
-    await supabase
+    // Checked, because an unchecked archive is how the player silently loses a
+    // target. If this fails we have not lost anything yet: say so and stop,
+    // rather than carrying on to an insert the unique index will refuse anyway.
+    const { error: archiveError } = await supabase
       .from("training_targets")
       .update({ status: "archived" })
       .eq("id", existing.id)
       .eq("user_id", userId);
+    if (archiveError) {
+      return {
+        status: "error",
+        key: Date.now(),
+        errors: { title: "Could not replace your current target. Try again." },
+        values,
+      };
+    }
   }
 
   const { error } = await supabase.from("training_targets").insert({
@@ -197,14 +208,34 @@ export async function setTrainingTarget(
 
   if (error) {
     if (existing) {
-      // Best effort. If a concurrent tab already claimed the active slot this
-      // update is refused by the unique index, which is the correct outcome:
-      // that tab's target stands and the account still has exactly one.
-      await supabase
+      // If a concurrent tab already claimed the active slot this update is
+      // refused by the unique index, which is the correct outcome: that tab's
+      // target stands and the account still has exactly one.
+      const { error: restoreError } = await supabase
         .from("training_targets")
         .update({ status: "active" })
         .eq("id", existing.id)
         .eq("user_id", userId);
+      if (restoreError) {
+        // The archive landed, the insert failed, and the old row could not be
+        // put back. The account now has NO active target and the player is the
+        // only one who knows what it said, so tell them that plainly instead of
+        // "try again", which would have them retyping something they think is
+        // still there. Logged because it should never happen twice quietly.
+        console.error("[target] could not restore the archived target", {
+          userId,
+          message: restoreError.message,
+        });
+        revalidatePath("/dashboard");
+        return {
+          status: "error",
+          key: Date.now(),
+          errors: {
+            title: "Your previous target was cleared and the new one did not save. Please set it again.",
+          },
+          values,
+        };
+      }
     }
     return {
       status: "error",
