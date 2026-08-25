@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   title: "Volleyball Injuries & Recovery",
   description:
     "Volleyball injuries explained: jumper's knee, rolled ankles, shoulder pain and more. How the sport causes them, what recovery usually looks like, and the signs that mean stop and get seen. Education, not a diagnosis.",
+  // Overrides the (app) group's noindex, same reason as /learn. This index and
+  // its 39 entries are the pages app/sitemap.ts calls the highest-intent on the
+  // site, and every one of them was serving noindex.
+  robots: { index: true, follow: true },
   alternates: { canonical: "/learn/rehab" },
 };
 

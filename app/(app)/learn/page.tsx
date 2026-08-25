@@ -20,6 +20,14 @@ export const metadata: Metadata = {
   title: "Volleyball Technique",
   description:
     "What good volleyball technique looks like for every skill: serve, pass, set, attack, block and dig. Cut for the surface you play on, indoor or grass and sand.",
+  // OVERRIDES THE GROUP'S noindex, and must. `app/(app)/layout.tsx` sets
+  // `robots: { index: false, follow: false }` for the whole (app) group, which
+  // is right for the signed-in surfaces and wrong for the three public library
+  // pages that live in the same group. /drills, /drills/[slug] and
+  // /learn/[skill] each carry this line; this page, /learn/rehab and
+  // /learn/rehab/[slug] were missed, so `app/sitemap.ts` advertised 41 URLs
+  // that told Google not to index them. Verified against the live site.
+  robots: { index: true, follow: true },
   alternates: { canonical: "/learn" },
 };
 

@@ -41,10 +41,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const entry = await load(slug);
+  // A slug with no entry keeps the (app) group's inherited noindex, which is
+  // what should happen to a 404. Only a real entry overrides it.
   if (!entry) return { title: "Not found" };
   return {
     title: `${entry.name} in volleyball`,
     description: entry.summary,
+    // Overrides the (app) group's noindex, same reason as /learn. Someone set
+    // the canonical on all three library pages for SEO and missed the robots
+    // line, so every entry carried a canonical telling Google which URL to rank
+    // and a robots tag telling it not to.
+    robots: { index: true, follow: true },
     alternates: { canonical: `/learn/rehab/${slug}` },
   };
 }
