@@ -110,6 +110,32 @@ for (const absolute of sourceRoots.flatMap((dir) => walk(join(root, dir)))) {
   for (const match of text.matchAll(/—/g)) {
     report(file, source, match.index, "em dash is not allowed (vollyio rule); use a comma or hyphen");
   }
+
+  // THE SHAPE, NOT JUST THE LITERAL.
+  //
+  // The frame/timestamp rule above walks string LITERALS, which is how it
+  // caught the two escapes it was written for. It cannot see `Frame {rep.frame}`
+  // or `{rep.time}`, because the literal is "Frame " with no digit and the
+  // interpolation happens at render. Both shipped on the landing page for
+  // months inside a file this lint already swept, which is the whole reason
+  // this second pass tests the raw text for the SHAPE of the claim instead.
+  //
+  // Deliberately narrow: it matches an interpolated frame reference, a clip
+  // instant like 0:01.2, and the two prose formulations that promise
+  // per-moment evidence. Prose that merely contains the word "frame" is fine.
+  if (checksCopy) {
+    const shapes = [
+      [/frames?\s*[#:]?\s*\{/gi, "interpolated frame index; nothing behind it"],
+      [/\d:\d\d\.\d/g, "clip instant; the read samples ~1 image per second"],
+      [/points? at a frame/gi, "claims per-frame evidence the read cannot support"],
+      [/pinned to the moment/gi, "claims per-moment evidence the read cannot support"],
+    ];
+    for (const [pattern, message] of shapes) {
+      for (const match of text.matchAll(pattern)) {
+        report(file, source, match.index, message);
+      }
+    }
+  }
 }
 
 if (failures.length > 0) {

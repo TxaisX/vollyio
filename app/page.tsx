@@ -327,10 +327,10 @@ export default function Landing() {
                 Watch a rep get read.
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
-                This is the read itself: you tap your player, a gold ring
-                marks exactly who to analyze, the coach follows them through the
-                rep, scores every checkpoint, and hands back
-                the one fix that buys the most. The whole read, in a
+                This is the read itself: you tap your player, your tap tells it which
+                athlete to follow, the coach follows them through the
+                rep, says what it saw at each of the five checkpoints, and
+                hands back the one change worth making next. The whole read, in a
                 ten-second loop.
               </p>
               {/* The zero-cost way to evaluate the product (D-080): three
@@ -354,7 +354,7 @@ export default function Landing() {
                     src="/vollyio-court-vision.mp4"
                     srcWebm="/vollyio-court-vision.webm"
                     poster="/vollyio-court-vision-poster.webp"
-                    label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, spike checkpoints are scored, and the spike scores 82 with one priority fix."
+                    label="Ten-second loop: a two-player rep is scanned, the tapped hitter is ringed in gold, the five spike checkpoints are read, and the spike scores 82 with one priority fix."
                     posterAlt="A two-player volleyball spike: the tapped hitter ringed in gold, scored attack checkpoints, and a spike score of 82."
                     className="absolute inset-0"
                     controlCorner="bottom-4 right-4"
@@ -367,7 +367,7 @@ export default function Landing() {
               <div className="mt-6 flex flex-wrap gap-2">
                 {[
                   "Tap a player, mark the whole rep",
-                  "Every checkpoint scored",
+                  "Five checkpoints read",
                   "One priority fix",
                 ].map((chip) => (
                   <span key={chip} className="tag">
@@ -528,15 +528,16 @@ export default function Landing() {
                   Evidence, not vibes
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
-                  Every note points at a frame.
+                  Every note says what it saw.
                 </h2>
                 <p className="mt-4 max-w-md text-chalk-dim">
-                  No &ldquo;looks good&rdquo; feedback. Each insight is pinned
-                  to the moment it happened, so you can see exactly what the
-                  score saw, and argue with it if you want. Every skill is
-                  graded on the checkpoints a coach actually watches: on a
-                  serve, that&rsquo;s toss, arm swing, contact, and
-                  follow-through.
+                  No &ldquo;looks good&rdquo; feedback. Each note names what was
+                  visible in the rep, so you can play your own clip back against
+                  it and disagree. Every skill is read on the checkpoints a coach
+                  actually watches: on a serve, that&rsquo;s toss, arm swing,
+                  contact, and follow-through. It reads about one
+                  low-resolution sample a second, so it judges the rep as a
+                  whole rather than any single moment inside it.
                 </p>
               </Reveal>
             </div>
@@ -544,9 +545,13 @@ export default function Landing() {
               <div className="card p-6">
                 <div className="space-y-4">
                   {[
-                    ["0:00.4", "teal", "High, repeatable toss. Keep it."],
-                    ["0:01.2", "coral", "Elbow drops before contact. Power leaks here."],
-                    ["0:01.6", "teal", "Clean wrist snap through the ball."],
+                    // Checkpoint names, not clip instants. The read has no
+                    // moment to point at, so three clock readings under a
+                    // heading promising per-frame evidence were the same claim
+                    // in three more places.
+                    ["Toss", "teal", "High, repeatable toss. Keep it."],
+                    ["Contact", "coral", "Elbow drops before contact. Power leaks here."],
+                    ["Follow-through", "teal", "Clean wrist snap through the ball."],
                   ].map(([t, tone, text]) => (
                     <div key={t as string} className="flex gap-3">
                       <span
@@ -676,12 +681,12 @@ export default function Landing() {
                   Coach chat
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
-                  A coach that has actually seen you play.
+                  A coach that knows your numbers.
                 </h2>
                 <p className="mt-4 max-w-md text-chalk-dim">
                   Ask anything. The answer comes from your own scores,
-                  breakdowns, and goals, and it cites the reps it read, so you
-                  can go back and check it. Not generic tips.
+                  breakdowns, and goals, and it names the reps it drew on, so
+                  you can open them and check. Not generic tips.
                 </p>
               </Reveal>
             </div>
@@ -761,7 +766,7 @@ export default function Landing() {
                   </p>
                   <ul className="mt-5 flex flex-col gap-2.5 text-body text-chalk-dim">
                     {[
-                      "All six skills, every checkpoint",
+                      "All six skills, all five checkpoints",
                       "One priority fix per rep",
                       "Rolling skill rating and streaks",
                       `${DRILLS.length} drills and the technique library`,

@@ -63,10 +63,13 @@ export default function SamplesPage() {
           See exactly what you get, before you sign up.
         </h1>
         <p className="mt-3 max-w-prose text-body leading-relaxed text-chalk-dim">
-          Three real breakdowns, unedited. Every score is derived from a fixed
-          cue checklist and the full checklist renders under each number, so
-          you can audit every point. One of these reps scored 63, because the
-          product tells the truth, and that is the part worth checking.
+          Three real breakdowns, unedited. Each one scores the rep and says
+          what was seen at each of the five checkpoints a coach watches, so you
+          can play the clip back against it and disagree. One of these reps
+          scored 63, because the product tells the truth, and that is the part
+          worth checking. These three were read by an earlier version of the
+          engine, so they show a per-checkpoint checklist your own breakdowns
+          will not.
         </p>
       </Reveal>
 
@@ -100,8 +103,8 @@ export default function SamplesPage() {
       <Reveal delay={240}>
         <div className="card spot mt-10 flex flex-wrap items-center justify-between gap-4 p-6">
           <p className="max-w-prose text-body text-chalk-dim">
-            Ready to see your own? Film one rep, get the same read on your
-            mechanics.
+            Ready to see your own? Film one rep and get it scored the same
+            way.
           </p>
           <Link href="/signup" className="btn-primary min-h-11 px-5 py-2.5 text-sm">
             Analyze my rep

@@ -195,6 +195,20 @@ export function coachSystemPrompt(context: CoachContext): string {
     "- When technique_notes are present, use them as the reference for what elite technique looks like on the player's weakest skills, and teach from them in plain language.",
     "- If the player has no data for a skill or question, say so plainly and point them to the Analyze page to record a rep.",
     "- Never invent scores, ratings, drills, or history that are not in the data.",
+    // THE COACH HAS NEVER SEEN THEM PLAY, and every other rule here bans
+    // inventing a NUMBER while leaving inventing a PERCEPTION wide open.
+    // "Watching your last serve, your elbow drops before contact" cites nothing
+    // false and is still a fabricated observation: no clip, no frame and no
+    // image reaches this prompt (app/api/coach/route.ts sends JSON only).
+    // lib/ai/onboarding-brief.ts already says this to its own model in almost
+    // these words; the coach was the one that never got told.
+    "- You have never seen this player's footage. No clip, no frame and no image reaches you: what you have is the scores and the priority-fix titles their breakdowns produced. Never say you watched, saw, noticed or reviewed anything about how they move. Say what their reads said, not what you saw.",
+    // The same three bounds content/rehab.test.ts fails the build over and
+    // lib/weekly-plan.ts states outright. The coach produces more text than
+    // either, holds the same injury index, and answers the 11pm pain question.
+    "- Never give sets, reps, a weight or a load. Say what to work on and roughly how long to spend on it, and leave the dose to whoever is in the gym with them.",
+    "- Never name a drug, a painkiller, an anti-inflammatory, a cream or a supplement, by brand or generically. Not even to suggest one.",
+    "- When an injury entry's triage says urgent or get assessed, lead with that and keep the coaching short. Getting seen by someone who can examine them is the answer there, not a plan.",
     // The old rule was a NEGATIVE one: "never mention being an AI, you are
     // simply their coach". A denial is still a topic, and the model duly
     // produced lines like "I'm your coach, not a model", which raises the

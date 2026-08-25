@@ -677,7 +677,25 @@ export function AnalyzeFlow({
         startS = Math.max(0, endS - MAX_CLIP_SECONDS);
       }
     }
-    setTrim({ startS: snap(startS), endS: snap(endS) });
+    const next = { startS: snap(startS), endS: snap(endS) };
+    setTrim(next);
+    // A MARK OUTSIDE THE NEW WINDOW IS NO LONGER EVIDENCE OF ANYTHING.
+    //
+    // The mark is a position AND a moment: "this player, here, at this instant".
+    // Dragging a trim handle past that instant leaves the x,y measured against
+    // a frame the model will never be sent. Keeping it meant `confirmFraming`
+    // clamped the timestamp into the new window and shipped the OLD coordinates
+    // with it, so the coach was told to look at where somebody stood four
+    // seconds and one approach earlier. On a two-a-side clip that is a
+    // different athlete, and every score, strength and improvement stored on
+    // that row would be attributed to the wrong person with nothing recording
+    // that it happened.
+    //
+    // Dropping it puts the card back into "tap the player", which is a state it
+    // already renders with the reason spelled out (D-062). Scrubbing away from
+    // the mark already clears it for the same reason; this closes the other way
+    // the moment can move out from under it.
+    if (mark && (mark.t < next.startS || mark.t > next.endS)) setMark(null);
   }
 
   async function spotPlayers(frameB64: string, atT: number, signal?: AbortSignal) {
@@ -1356,6 +1374,16 @@ export function AnalyzeFlow({
     const picked = mark;
     if (!opening || !picked) return;
     const win = trim ?? undefined;
+    // REFUSE a mark the window no longer contains rather than clamping it in.
+    // `moveTrim` clears one when it falls outside, so reaching here with a stale
+    // mark means some other path moved the window; the safe answer is to make
+    // the player re-mark, never to rewrite the moment and keep the coordinates.
+    if (win && (picked.t < win.startS || picked.t > win.endS)) {
+      setMark(null);
+      return;
+    }
+    // Nudged off the exact boundary so the sampler lands inside the clip, which
+    // is a sub-frame adjustment rather than a move to a different moment.
     const t = win
       ? Math.min(
           Math.max(picked.t, win.startS + 0.02),
@@ -1390,7 +1418,7 @@ export function AnalyzeFlow({
       setStatus({
         kind: "error",
         message:
-          "That's a photo. Vollyio reads the movement between frames, so pick a video of the rep.",
+          "That's a photo. Vollyio needs the whole rep in motion, so pick a video.",
       });
       return;
     }
@@ -1736,8 +1764,8 @@ export function AnalyzeFlow({
                   {mark
                     ? "Marked. Scrub to double-check the ring is on your player, then analyze."
                     : spotted.length > 0
-                      ? "Pick your player from the list, or tap them directly. The gold ring tells the coach exactly who to analyze."
-                      : "Scrub to a moment where your player is easy to see, then tap them. The gold ring tells the coach exactly who to analyze."}
+                      ? "Pick your player from the list, or tap them directly. That tells the coach which athlete to follow through the rep."
+                      : "Scrub to a moment where your player is easy to see, then tap them. That tells the coach which athlete to follow through the rep."}
                 </p>
                 <div
                   ref={frameBoxRef}

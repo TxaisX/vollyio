@@ -381,3 +381,48 @@ test("the rep gate carries the contact test, the crowd test, and the carve-outs"
   assert.match(gate, /NO BALL UNTIL YOU HAVE LOOKED AT THE WHOLE CLIP/);
   assert.match(gate, /SEVERAL REPS BY ONE ATHLETE IS A REP, NOT A MONTAGE/);
 });
+
+// THE BOUNDS THE CORE OUTPUT SHIPPED WITHOUT.
+//
+// `priority_fix` and `changes` are rendered as an h1, as body copy, on the OG
+// share card and in the tab title. They are the single thing a player is most
+// likely to act on, and until 2026-08-25 nothing bounded them: not a schema
+// constraint, not an output filter, not a test. Meanwhile `content/rehab.ts`
+// cannot name ibuprofen or carry a "3x10" without failing the build, and
+// `lib/weekly-plan.ts` states its own limits to its own model.
+//
+// The asymmetry was the finding: the library that ships 39 careful entries was
+// guarded, and the path that writes something new on every single analysis was
+// not.
+test("the per-rep coaching text is bounded the way the injury library is", () => {
+  const prompt = simpleRubric("attack", "indoor", [], []);
+  assert.match(prompt, /Never give sets, reps, a weight, a load/i, "no dosing bound");
+  assert.match(
+    prompt,
+    /Never name a drug, a painkiller, an anti-inflammatory, a cream or a\s+supplement/i,
+    "no substance bound",
+  );
+  assert.match(
+    prompt,
+    /Never say what is medically wrong with them/i,
+    "nothing stops a mechanical read being written as a diagnosis",
+  );
+  assert.match(
+    prompt,
+    /pain, guarding or a limb not being used/i,
+    "no route from 'that looked wrong' to 'see someone who can examine you'",
+  );
+});
+
+test("the rubric does not ask for a rules verdict it cannot see", () => {
+  const prompt = simpleRubric("serve", "indoor", [], []);
+  // A lift, a double and a foot fault are sub-100ms or line-of-sight calls, and
+  // the same prompt forbids that class of claim forty lines further down. It
+  // asked for both until this was caught.
+  assert.match(prompt, /Do not call a rules violation/i);
+  assert.doesNotMatch(
+    prompt,
+    /Reference the rules where they are visibly relevant/i,
+    "the demand for a rules call is back",
+  );
+});

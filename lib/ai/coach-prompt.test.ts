@@ -313,3 +313,36 @@ test("the injury library travels as an index, not as prose", () => {
   // red_flags stays: "stop and get seen" has to reach somebody who will not tap.
   assert.match(entry, /red_flags:/);
 });
+
+// THE FOUR BOUNDS THE COACH SHIPPED WITHOUT.
+//
+// `content/rehab.test.ts` fails the build if an injury entry names a substance
+// or carries a dose, and `lib/weekly-plan.ts` states the same rules to its own
+// model. The coach holds the same injury index, produces more text than either,
+// and reaches the player at the moment they are most likely to act on it. It
+// had none of them, and it was never told the one thing that matters most about
+// its own position: it has not seen the footage.
+test("the coach is told it has never seen the player's film", () => {
+  const rules = coachSystemPrompt(context());
+  assert.match(
+    rules,
+    /never seen this player's footage/i,
+    "without this the coach may invent a perception; every other rule only bans inventing a number",
+  );
+  assert.match(rules, /watched, saw, noticed or reviewed/i);
+});
+
+test("the coach may not dose, medicate, or coach through an urgent triage", () => {
+  const rules = coachSystemPrompt(context());
+  assert.match(rules, /Never give sets, reps, a weight or a load/i, "no dosing bound");
+  assert.match(
+    rules,
+    /Never name a drug, a painkiller, an anti-inflammatory, a cream or a supplement/i,
+    "no substance bound",
+  );
+  assert.match(
+    rules,
+    /triage says urgent or get assessed/i,
+    "nothing routes an urgent red flag to a person who can examine them",
+  );
+});

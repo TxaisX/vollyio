@@ -9,8 +9,6 @@ const REPS = [
     short: "Base",
     score: 68,
     delta: 0,
-    frame: 8,
-    time: "0:00.8",
     insight: "The last two approach steps stay even instead of accelerating.",
     fix: "Make the penultimate step long and the final step fast.",
     metrics: [
@@ -25,8 +23,6 @@ const REPS = [
     short: "Focus",
     score: 76,
     delta: 8,
-    frame: 12,
-    time: "0:01.2",
     insight: "The faster close puts contact higher and farther forward.",
     fix: "Keep the same approach tempo. Reach through the top of the ball.",
     metrics: [
@@ -41,8 +37,6 @@ const REPS = [
     short: "Latest",
     score: 82,
     delta: 14,
-    frame: 15,
-    time: "0:01.5",
     insight: "Your full-reach contact window is becoming repeatable.",
     fix: "Bank this swing. Next, finish across your body through landing.",
     metrics: [
@@ -109,7 +103,11 @@ export function AnalyticsShowcase() {
                 The trace lifts as your timing locks in.
               </p>
             </div>
-            <span className="tag border-teal/40 text-teal-ink">{rep.time}</span>
+            {/* No clip instant here. The read samples about one
+                low-resolution image a second, so it has no moment to point at,
+                and a "0:01.2" tag on a marketing page is the same claim
+                scripts/lint.mjs exists to refuse. */}
+            <span className="tag border-teal/40 text-teal-ink">{rep.short}</span>
           </div>
 
           <svg
@@ -209,7 +207,7 @@ export function AnalyticsShowcase() {
 
           <div className="mt-auto rounded-control border-l-2 border-gold bg-navy/55 p-4">
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">
-              Frame {rep.frame} · next best move
+              Next best move
             </p>
             <p className="mt-2 text-sm font-medium text-chalk">{rep.fix}</p>
             <p className="mt-2 text-xs leading-relaxed text-chalk-dim">{rep.insight}</p>
