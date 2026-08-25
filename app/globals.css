@@ -1209,14 +1209,20 @@ body {
     transform: scale(0.97);
   }
 
+  /* `deep`, not `navy`. Under the light palette `navy` IS the sand page colour,
+     so sand-on-gold measured 2.10:1 here: a selected tab whose own label was
+     effectively invisible. `.chip-active` and `.segmented-option:checked` both
+     put `--color-deep` on this same gold for exactly this reason, and the theme
+     block says so in the accent-pair comment; this rule was the one that missed
+     it. Ink on gold measures 7.17:1. */
   .analytics-rep-tab-active {
-    color: var(--color-navy);
+    color: var(--color-deep);
     border-color: var(--color-gold);
     background: var(--color-gold);
   }
 
   .analytics-rep-tab-active:hover {
-    color: var(--color-navy);
+    color: var(--color-deep);
     border-color: var(--color-gold);
   }
 

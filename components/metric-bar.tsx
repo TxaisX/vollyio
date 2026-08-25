@@ -122,9 +122,24 @@ export function MetricBar({
                         : "border border-line bg-transparent"
                 }`}
               />
-              <span className={p.status === "not_visible" ? "text-chalk-dim/60" : "text-chalk-dim"}>
+              {/* EVERY STATUS CARRIES A WORD, because the dot above is
+                  `aria-hidden` and gold-vs-coral was the only thing separating
+                  "you hit this cue" from "you missed it". A screen reader got
+                  the same sentence for both, and so did anyone reading a 2mm
+                  dot in sun at the side of a court, which is the actual place
+                  this scorecard is read.
+
+                  `met` takes the word silently: the gold dot already reads as
+                  fine and appending "· met" to every satisfied cue is noise for
+                  the sighted majority. `missed` says it out loud, because it is
+                  the one the player has to act on. */}
+              <span className={p.status === "not_visible" ? "text-chalk-dim" : "text-chalk-dim"}>
                 {p.cue}
-                {p.status === "partial" && <span className="text-chalk-dim/70"> · partial</span>}
+                {p.status === "met" && <span className="sr-only"> · met</span>}
+                {p.status === "missed" && (
+                  <span className="text-coral-ink"> · missed</span>
+                )}
+                {p.status === "partial" && <span className="text-chalk-dim"> · partial</span>}
                 {p.status === "not_visible" && <span> · not visible</span>}
               </span>
             </li>
