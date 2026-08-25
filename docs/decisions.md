@@ -5741,3 +5741,65 @@ store nothing, so the visible effect is fewer fictional scores, not a
 different curve. The distribution work (multi-draw, coach labels, the
 lib/scale.ts map) is sequenced behind this deliberately: no calibration of
 fiction improves it.
+
+## D-127 - The season has a date: a countdown, not a readiness score
+
+Date: 2026-08-25 - By: Orchestrator (owner direction: "let's have some kind of
+timeline/dashboard so that we have a target")
+
+**The problem this closes.** The dashboard could say where a player stands
+(the ring, the six meters) and what to do today (the assignment, the priority
+fix). It could not say what any of it was FOR. The measured failure in
+docs/business-position.md is not that players score badly, it is that almost
+nobody comes back, and a rating with no horizon behind it is an analytics read
+rather than a reason to open an app on a Tuesday. One dated event turns today's
+rep into week nine of fourteen.
+
+**A new table, not a flag on `goals`.** A goal is a NUMBER on one skill and a
+player may hold six at once; a target is a DATE the whole season points at and
+there is exactly one. Folding the date into `goals` would have meant a nullable
+"this is the real one" column and a dashboard that had to guess which of six
+deadlines framed the page. `training_targets` (migration 063) stores a name and
+a date, and the partial unique index on `(user_id) where status = 'active'` is
+what makes "one horizon" a database rule rather than a UI convention.
+
+**THE BOUNDARY, and it is the reason this is a decision rather than a feature.
+The plan is a commitment device, not a readiness forecast.** "Fourteen weeks to
+your first tournament, this week is Base" is supportable, because both halves
+are simply true. "You are 72% ready for December" is not, because nothing this
+product measures predicts tournament performance, and it is exactly the claim
+`llms.txt` exists to refuse. TrainAsONE ships race-day modelling; we do not
+copy that part. `lib/training-target.ts` returns weeks and phases and nothing
+else, and `lib/training-target.test.ts` asserts that no field or phrase in it
+promises readiness, so a future percentage has to be argued for here rather
+than added quietly.
+
+**Phases are allocated backwards from the date**, one week of Compete, two of
+Sharpen, five of Build, and everything earlier is Base. A target six weeks out
+therefore has no Base phase and the strip shows three segments, because a phase
+with no weeks in it is not a phase the player gets. The segments always sum to
+exactly the headline number, which is what stops the band contradicting itself
+the way a rounded-per-segment split would.
+
+**Ahead only.** The strip shows the runway remaining and not the weeks behind.
+A record of reps filmed per past week was the alternative and was rejected for
+this slice: it is a second thing to read, it duplicates what /progress already
+tells better, and the point of the band is the horizon rather than the audit.
+
+**The countdown is computed from a SERVER day key on both sides of hydration.**
+The band renders on the server and again in the browser; a `new Date()` inside
+it would give two different answers for anyone whose device is not in Pacific,
+and the date is formatted from lookup tables rather than `toLocaleDateString`
+for the same reason. `lib/progression.ts` calendar arithmetic is reused whole,
+so the countdown cannot drift by a day across a clock change.
+
+**The read fails soft.** The dashboard does not fold the target query into its
+error aggregation, so a deployment that lands before migration 063 renders a
+dashboard with no band rather than throwing the page away. Same posture the
+badge shelf takes for migration 050.
+
+**What is deliberately NOT in this slice.** `lib/weekly-plan.ts` and
+`lib/daily-assignment.ts` are untouched. Making the generator horizon-aware, so
+what it prescribes at fourteen weeks out differs from what it prescribes at
+two, is the obvious next move and is a separate decision: it changes a paid
+model call and wants its own argument.

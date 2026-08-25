@@ -11,6 +11,7 @@ import { Reveal } from "@/components/motion";
 import { SeamArcs } from "@/components/motif";
 import { LimitNotice } from "@/components/limit-notice";
 import { GoalsBoard, type Goal } from "@/components/goals";
+import { TargetBand, type TrainingTarget } from "@/components/target-band";
 import { BadgeShelf } from "@/components/achievements";
 import { TesterInvite } from "@/components/tester-invite";
 import { TEST_COUNTS_TOWARD_PRODUCTION } from "@/lib/android-test";
@@ -38,7 +39,8 @@ import {
   type Level,
   type Discipline,
 } from "@/lib/skills";
-import { getProgress, todayKey, XP_AWARDS } from "@/lib/progression";
+import { getProgress, shiftDayKey, todayKey, XP_AWARDS } from "@/lib/progression";
+import { MAX_TARGET_DAYS } from "@/lib/training-target";
 import { assignmentFor, type WeakPoint } from "@/lib/daily-assignment";
 import { DailyAssignmentCard } from "@/components/daily-assignment-card";
 
@@ -210,6 +212,7 @@ export default async function Dashboard({
     { data: analysesData, error: analysesError },
     { data: goalsData, error: goalsError },
     { count: doneCountData },
+    { data: targetData },
     earnedAchievements,
     progress,
     allowance,
@@ -252,6 +255,17 @@ export default async function Dashboard({
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId!)
       .eq("status", "done"),
+    // The season's one dated target (D-127). Deliberately NOT folded into
+    // `fetchError` below: migration 063 is applied after the deploy, so a
+    // database that has not caught up yet must render a dashboard with no
+    // band on it rather than throwing the whole page away. Same fail-soft
+    // posture the badge shelf takes for migration 050.
+    supabase
+      .from("training_targets")
+      .select("id, title, event_date")
+      .eq("user_id", userId!)
+      .eq("status", "active")
+      .maybeSingle(),
     // Quiet catch-up, then read: anything earned away from a celebration
     // moment (an old account's back catalog, a streak that crossed seven
     // overnight) lands on the shelf without a toast. Both calls fail soft, so
@@ -274,6 +288,13 @@ export default async function Dashboard({
   const analyses = (analysesData as AnalysisRow[] | null) ?? [];
   const goals = (goalsData as Goal[] | null) ?? [];
   const goalsDone = doneCountData ?? 0;
+  const target = (targetData as TrainingTarget | null) ?? null;
+
+  // Both keys come from the server so the countdown is computed from the same
+  // Pacific day on both sides of hydration, and so the date picker's bounds
+  // match the bounds the server action will actually enforce.
+  const today = todayKey();
+  const maxTargetDate = shiftDayKey(today, -MAX_TARGET_DAYS);
 
   // The newest rep that carried a priority fix, for the Focus now card. The
   // per-skill fix history that sat beside it fed the skill meters and left with
@@ -318,7 +339,7 @@ export default async function Dashboard({
     : null;
   const assignmentArgs = {
     userId: userId!,
-    dayKey: todayKey(),
+    dayKey: today,
     level: (profile?.level ?? "beginner") as Level,
     ratings,
     weak,
@@ -452,6 +473,25 @@ export default async function Dashboard({
             )}
           </div>
         </div>
+      </Reveal>
+
+      {/* THE SEASON TARGET (D-127), directly under the opening band and above
+          every action on the page.
+
+          The dashboard could already say where a player stands and what to do
+          today; it could not say what any of it was FOR. A rating with no date
+          behind it is an analytics read, and the measured problem this product
+          has is not that players score badly, it is that they stop opening it.
+          One date turns today's rep into week nine of fourteen.
+
+          It sits ABOVE "Film a rep" on purpose: the frame has to be set before
+          the action, or the action is just a button again. */}
+      <Reveal delay={30} className="mt-4">
+        <TargetBand
+          target={target}
+          todayKey={today}
+          maxDateKey={maxTargetDate}
+        />
       </Reveal>
 
       {/* The one distribution surface that needs nobody's permission. A player

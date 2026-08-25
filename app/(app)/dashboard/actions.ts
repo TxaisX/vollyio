@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUserId } from "@/lib/supabase/user";
 import { todayKey } from "@/lib/progression";
+import { MAX_TARGET_DAYS } from "@/lib/training-target";
 import { claimAchievements, type AchievementKey } from "@/lib/achievements";
 import { SKILLS } from "@/lib/skills";
 import { drillBySlug } from "@/content/drills";
@@ -99,4 +100,138 @@ export async function completeChallenge(
 function emptyToNull(v: FormDataEntryValue | null): string | null {
   const s = typeof v === "string" ? v.trim() : "";
   return s.length > 0 ? s : null;
+}
+
+// ---------------------------------------------------------------------------
+// THE SEASON TARGET (D-127).
+//
+// One dated event per account, which is why every write here goes through the
+// archive-then-insert dance rather than a plain upsert: the partial unique
+// index in migration 063 is the authority on "one active", and this code is
+// what makes losing that race recoverable instead of destructive.
+// ---------------------------------------------------------------------------
+
+const TARGET_FIELDS = ["title", "event_date"] as const;
+type TargetField = (typeof TARGET_FIELDS)[number];
+
+export type TargetState =
+  | {
+      status: "error";
+      key: number;
+      errors: Partial<Record<TargetField, string>>;
+      values: { title: string; event_date: string };
+    }
+  | { status: "success"; key: number }
+  | null;
+
+const targetSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Name the event.")
+    .max(80, "Keep it under 80 characters."),
+  event_date: z.iso
+    .date("Pick a valid date.")
+    .refine((d) => d >= todayKey(), "The date has to be today or later.")
+    // A horizon longer than a season produces a strip that is one flat bar and
+    // a countdown nobody plans around, so the cap is a product rule rather
+    // than a storage one.
+    .refine(
+      (d) => d <= todayKey(-MAX_TARGET_DAYS),
+      "Pick a date within the next year.",
+    ),
+});
+
+export async function setTrainingTarget(
+  _prev: TargetState,
+  formData: FormData,
+): Promise<TargetState> {
+  const supabase = await createClient();
+  const userId = await getAuthUserId(supabase);
+  const values = {
+    title: str(formData.get("title")),
+    event_date: str(formData.get("event_date")),
+  };
+  if (!userId) {
+    return {
+      status: "error",
+      key: Date.now(),
+      errors: { title: "Sign in to set a target." },
+      values,
+    };
+  }
+
+  const parsed = targetSchema.safeParse(values);
+  if (!parsed.success) {
+    const flat = z.flattenError(parsed.error).fieldErrors;
+    const errors: Partial<Record<TargetField, string>> = {};
+    for (const field of TARGET_FIELDS) {
+      const message = flat[field]?.[0];
+      if (message) errors[field] = message;
+    }
+    return { status: "error", key: Date.now(), errors, values };
+  }
+
+  // Read the standing target before touching it, so a failed insert can put it
+  // back. Replacing a target must never be able to leave an account with none.
+  const { data: existing } = await supabase
+    .from("training_targets")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from("training_targets")
+      .update({ status: "archived" })
+      .eq("id", existing.id)
+      .eq("user_id", userId);
+  }
+
+  const { error } = await supabase.from("training_targets").insert({
+    user_id: userId,
+    title: parsed.data.title,
+    event_date: parsed.data.event_date,
+  });
+
+  if (error) {
+    if (existing) {
+      // Best effort. If a concurrent tab already claimed the active slot this
+      // update is refused by the unique index, which is the correct outcome:
+      // that tab's target stands and the account still has exactly one.
+      await supabase
+        .from("training_targets")
+        .update({ status: "active" })
+        .eq("id", existing.id)
+        .eq("user_id", userId);
+    }
+    return {
+      status: "error",
+      key: Date.now(),
+      errors: { title: "Could not save that target. Try again." },
+      values,
+    };
+  }
+
+  revalidatePath("/dashboard");
+  return { status: "success", key: Date.now() };
+}
+
+export async function clearTrainingTarget() {
+  const supabase = await createClient();
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return;
+
+  await supabase
+    .from("training_targets")
+    .update({ status: "archived" })
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  revalidatePath("/dashboard");
+}
+
+function str(v: FormDataEntryValue | null): string {
+  return typeof v === "string" ? v : "";
 }
