@@ -441,10 +441,34 @@ export async function POST(req: NextRequest) {
             // replies measured 900-1,900 characters at 512, 3,000 and 6,000
             // alike, all finishing on `stop` rather than the ceiling.
             maxTokens: 6000,
-            // Retries stop at the first byte by construction; see lib/ai/chat.ts
-            // for why resuming a started answer would splice two replies
-            // together and then store the result.
-            maxRetries: 3,
+            // THE RETRIES WERE NEVER REACHABLE, and the abort never fired.
+            //
+            // This passed `maxRetries: 3` and no `timeoutMs`, so lib/ai/chat.ts
+            // applied its 60s default against this route's `maxDuration = 60`.
+            // The first attempt's abort could therefore never fire before the
+            // platform killed the function, and attempts two through four were
+            // dead code: 4 x 60s = 240s of declared budget inside 60s of real
+            // budget. What actually happened on a stalled upstream was a
+            // platform kill, which lands inside the ReadableStream and skips
+            // the `finally` below, so the question and the partial answer were
+            // never written and the player was charged both quota units for a
+            // turn that left no trace. Coach has no refund path by design
+            // (docs/security.md), so those units are simply gone.
+            //
+            // 55s and no retry: one attempt, the same single attempt this route
+            // has really been making all along, but now the abort fires five
+            // seconds BEFORE the kill. That hands control back to the `catch`
+            // and `finally` below, which store whatever streamed. A normally
+            // finishing answer is untouched.
+            //
+            // Retries are not restored here on purpose. They only help when the
+            // upstream fails before the first byte, and buying that back means
+            // a short time-to-first-byte timeout separate from the total stream
+            // timeout, which lib/ai/chat.ts does not have. Shortening this one
+            // number instead would abort long answers mid-sentence, which is a
+            // regression a player would see. Backlogged rather than guessed at.
+            timeoutMs: 55_000,
+            maxRetries: 0,
           })) {
             reply += text;
             controller.enqueue(encoder.encode(text));

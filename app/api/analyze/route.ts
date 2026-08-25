@@ -124,6 +124,21 @@ function checkpointsFrom(
 const READ_TIMEOUT_MS = 50_000;
 // Only re-read when there is room for the attempt to finish inside the budget.
 const RETRY_DEADLINE_MS = 55_000;
+// ONE attempt inside the re-read, and this is the number the deadline above was
+// always assuming. `readVideo`'s `maxRetries` counts RETRIES, not attempts, so
+// `maxRetries: 1` runs the request twice: the first read can therefore take
+// 50 + backoff + 50 = ~100s, not the ~50s "there is room for one more attempt"
+// was reasoning about. A first read that failed fast, then aborted on its
+// internal retry, lands at ~54s, passes the deadline check by a second, and
+// starts a second two-attempt read that cannot finish before 154s. The platform
+// kills at 120, and a killed function skips BOTH the refund below and the
+// entitlement release in the outer finally, which is exactly the cost these
+// constants exist to prevent.
+//
+// With one attempt the worst case is 55 + 50 = 105s plus the write, inside 120.
+// lib/analyze-budget.test.ts pins the arithmetic so the next person to tune a
+// timeout finds out here rather than in production.
+const REREAD_MAX_RETRIES = 0;
 
 // Which plan the reservation just enforced against. An unrecognized plan
 // string resolves to free exactly as `monthlyAllowance()` does: fail toward
@@ -398,7 +413,7 @@ export async function POST(req: NextRequest) {
 
       const catalog = checkpointCatalog(skill, discipline);
       const startedAt = Date.now();
-      const readOnce = () =>
+      const readOnce = (retries: number) =>
         readVideo({
           model: VISION_MODEL,
           system: [simpleRubric(skill, discipline, drillSlugs(skill), catalog), repGate()],
@@ -418,10 +433,10 @@ export async function POST(req: NextRequest) {
           // saving tokens for.
           maxTokens: 8192,
           timeoutMs: READ_TIMEOUT_MS,
-          maxRetries: 1,
+          maxRetries: retries,
         });
 
-      let read = await readOnce();
+      let read = await readOnce(1);
       // One re-read on a reply that arrived and did not parse. This is not
       // belt-and-braces: two full passes over the same 38 clips produced one
       // abstention and two hard failures, then neither, with individual scores
@@ -435,7 +450,7 @@ export async function POST(req: NextRequest) {
           provider: read.usage.provider,
           reasoning_tokens: read.usage.reasoning_tokens,
         });
-        const retry = await readOnce();
+        const retry = await readOnce(REREAD_MAX_RETRIES);
         read = {
           parsed: retry.parsed,
           // Both attempts were billed, so both are recorded. A telemetry row
