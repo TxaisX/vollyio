@@ -1,0 +1,15 @@
+-- The `models` storage bucket is private, and now it is private in the TREE.
+--
+-- It was flipped from public to private in the console during the pass that
+-- shipped 061_drop_the_table_whose_writer_left.sql, whose comment records the
+-- change. What no migration recorded was the flip itself: 010_models.sql is
+-- still the last SQL to set the flag, and it sets it to TRUE.
+--
+-- So the live project was correct and the migration tree was not. Anyone
+-- rebuilding this project from `supabase/migrations/` alone got a PUBLIC bucket
+-- back, silently, with no failure to notice. A security posture that exists
+-- only as a console click is a posture that survives exactly as long as nobody
+-- rebuilds.
+--
+-- Idempotent and safe to re-apply: it asserts the state rather than toggling it.
+update storage.buckets set public = false where id = 'models';

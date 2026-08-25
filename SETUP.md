@@ -20,7 +20,7 @@ Copy `.env.example` to `.env.local` and fill in. **Secret** below means: never c
 | `NEXT_PUBLIC_SUPABASE_URL` | no | public by design |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | anon/publishable key; row security is what enforces access |
 | `OPENROUTER_API_KEY` | **yes** | the coaching service; server-side only. One key for every model call the app makes: the clip read, player spotting, coach chat and the weekly plan. It is prepaid, so the balance is the ceiling and the app cannot see it |
-| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone; its two importers (payment webhook; analyze telemetry/refund, D-065) are recorded in `docs/security.md` rule 10. Absent means the webhook fails closed and telemetry stays null |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | bypasses row security on every table. Read by `lib/supabase/service.ts` alone; its four importers (payment webhook; analyze telemetry/refund, D-065) are recorded in `docs/security.md` rule 10. Absent means the webhook fails closed and telemetry stays null |
 | `STRIPE_SECRET_KEY` | **yes** | the payment provider API key |
 | `STRIPE_WEBHOOK_SECRET` | **yes** | the endpoint signing secret. Absent means every event is rejected and no plan is ever written |
 | `STRIPE_PRICE_ID` | no, but server-only | the recurring price to charge. Not a secret and deliberately not `NEXT_PUBLIC_`: the browser has no use for it, and a client-visible price id is the shape of the bug where the caller decides what to charge |

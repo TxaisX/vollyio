@@ -9,15 +9,22 @@ import { createClient as createSupabaseClient, type SupabaseClient } from "@supa
 // a single careless import turns any bug in the calling route into a
 // cross-account read or write.
 //
-// It exists for exactly one reason: the payment webhook has to call
-// set_subscription_plan and user_id_for_billing_customer, both granted to
-// service_role only (migration 027), and the webhook has no player session to
-// run as because the caller is the payment provider, not a browser.
+// It exists because the plan writers (set_subscription_plan,
+// user_id_for_billing_customer) are granted to service_role only (migration
+// 027) and the routes that must call them have no player session to run as.
 //
-// Do not import this from anything that runs inside a request whose body the
-// user controls, other than the signature-verified webhook. A route that
-// accepts a user id and then acts on it with this client has no ownership check
-// left anywhere in the stack.
+// FOUR importers, each with a row in docs/security.md and an answer to "why can
+// this not run as the signed-in player": the Stripe webhook, /api/analyze
+// (telemetry and quota refunds the player must not be able to write),
+// /api/play/verify and /api/play/rtdn (D-125). Adding a fifth is a change to
+// that document, not a refactor.
+//
+// Do not import this from anything that lets the REQUEST BODY choose the target.
+// /api/play/verify is the closest call and shows the shape that makes it safe:
+// the body carries only a purchase token, the entitlement is re-derived from
+// Google's live resource, and the write is refused unless that resource names
+// the verified user id. A route that accepts a user id and then acts on it with
+// this client has no ownership check left anywhere in the stack.
 
 /**
  * Null when the service key is absent, so a deploy that lacks it denies the
