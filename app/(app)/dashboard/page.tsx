@@ -527,9 +527,25 @@ export default async function Dashboard({
           because the notice above already carries the only action left and a
           gold card whose whole job is to walk the player into a 402 is worse
           than no card. */}
+      {/* THE BASE TRACK IS minmax(0,1fr), NOT the implicit `auto`, and that is
+          the whole fix for a dashboard that scrolled sideways on a phone.
+
+          A grid item's min-width defaults to `auto`, so an `auto` track is at
+          least as wide as its item's MIN-CONTENT. `truncate` sets
+          `white-space: nowrap`, which makes the min-content of "Ten seconds,
+          one skill, scored against the checklist." the full unwrapped sentence:
+          measured at 360px, the single column computed to 450px inside a 335px
+          container and the document scrolled 470 against a 375 client width.
+          The `min-w-0` already on the card's inner span cannot help, because it
+          bounds the FLEX child and the track is sized from the grid item above
+          it.
+
+          The breakpoint variants below and on the two grids after this one were
+          always written as `minmax(0, ...)`, which is why this only ever showed
+          on a phone. The base track now says the same thing. */}
       <Reveal delay={60}>
         <div
-          className={`mt-4 grid gap-3 ${
+          className={`mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 ${
             spent ? "" : "sm:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
           }`}
         >
@@ -597,7 +613,7 @@ export default async function Dashboard({
           today's work, the grid would size that row to the taller of the two
           and open a fresh gap under the shorter one, which is the same bug in a
           new place. Spanning lets the left stack flow at its own height. */}
-      <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         {/* Today leads, at every width. The rating is evidence of what has
             happened; the assignment is the only thing on this page a player
             can act on right now, and a development product that opens on a
@@ -607,7 +623,11 @@ export default async function Dashboard({
               fix card is conditional, so an account that has not filmed yet
               used to get one card at half width beside an empty half, at every
               width from 768px up. That was the first thing a new player saw. */}
-          <div className={`grid gap-3 ${newestFix ? "md:grid-cols-2" : ""}`}>
+          <div
+            className={`grid grid-cols-[minmax(0,1fr)] gap-3 ${
+              newestFix ? "md:grid-cols-2" : ""
+            }`}
+          >
             <Reveal delay={100}>
               <DailyAssignmentCard
                 assignment={assignment}
