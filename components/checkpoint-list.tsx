@@ -125,15 +125,23 @@ export function CheckpointList({
                       tonight, and three more paragraphs per checkpoint is
                       fifteen on the page. */}
                   <div className={`mt-3 ${ADVANCED_ONLY}`}>
+                    {/* NOT "where it sits on the 100". No checkpoint carries a
+                        number: lib/ai/simple-rubric.ts forbids scoring one, and
+                        AnalysisCheckpoint holds only {key, visible,
+                        observation}. This heading promised a per-checkpoint
+                        position on a scale that does not exist, and the three
+                        floors under it were the RUBRIC's anchors (40/70/90),
+                        twelve points from the score bands rendered beside the
+                        ring on the same page. */}
                     <p className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-                      Where it sits on the 100
+                      What each level looks like
                     </p>
                     <dl className="mt-1 space-y-1.5 text-sm text-chalk-dim">
                       {(
                         [
-                          ["40 developing", knowledge.anchors.developing],
-                          ["70 solid", knowledge.anchors.solid],
-                          ["90 advanced", knowledge.anchors.advanced],
+                          ["Developing", knowledge.anchors.developing],
+                          ["Solid", knowledge.anchors.solid],
+                          ["Advanced", knowledge.anchors.advanced],
                         ] as const
                       ).map(([band, prose]) => (
                         <div key={band}>

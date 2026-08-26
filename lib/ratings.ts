@@ -49,11 +49,33 @@ export type ScoreBand = "Developing" | "Solid" | "Advanced" | "Elite";
  * One array now feeds both the naming and the caption, so they cannot drift
  * again.
  */
+/**
+ * THE FLOORS NOW MATCH WHAT THE MODEL WAS TOLD THEY MEAN.
+ *
+ * They did not. `lib/ai/output-spec.ts` instructs the read that 58-68 is
+ * developing execution, 70-84 is sound repeatable mechanics, 85-93 is standout
+ * and 94-100 is near-flawless. These floors said Solid began at 55 and Advanced
+ * at 80, so a rep the model judged faulted was labelled Solid, and a rep it
+ * judged merely sound was labelled Advanced. The label inverted the meaning of
+ * the number underneath it, which is the same class of drift this docblock was
+ * originally written to record.
+ *
+ * Measured against production before moving them: 20 reads from the shipped
+ * engine span 71 to 89, median 81. Under the old floors that was 0% Developing,
+ * 45% Solid and 55% Advanced, and the bottom 55 points of the scale had never
+ * once been used. Under these floors the same 20 reads read as mostly Solid
+ * with the strongest few Advanced, which is what "sound club mechanics, a few
+ * standout" should look like.
+ *
+ * This RE-LABELS EVERY HISTORICAL ROW, deliberately. A player who was told
+ * Advanced for an 81 will now read Solid for the same rep. The alternative is
+ * leaning harder on a label the engine's own instructions contradict.
+ */
 export const SCORE_BANDS: { readonly floor: number; readonly name: ScoreBand }[] = [
   { floor: 0, name: "Developing" },
-  { floor: 55, name: "Solid" },
-  { floor: 80, name: "Advanced" },
-  { floor: 92, name: "Elite" },
+  { floor: 70, name: "Solid" },
+  { floor: 85, name: "Advanced" },
+  { floor: 94, name: "Elite" },
 ];
 
 // These bands give the number its coach-honest name wherever a score renders,

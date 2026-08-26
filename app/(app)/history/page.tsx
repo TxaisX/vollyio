@@ -7,6 +7,7 @@ import { Reveal } from "@/components/motion";
 import { ProgressNav } from "@/components/section-nav";
 import { relativeDay } from "@/lib/relative-day";
 import { scoreBand } from "@/lib/ratings";
+import { displayScore } from "@/lib/score-precision";
 import {
   DISCIPLINE_LABEL,
   SKILLS,
@@ -185,7 +186,7 @@ export default async function History({
                   >
                     <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
                       <span className="stat-num text-lg text-gold-ink">
-                        {r.overall_score}
+                        {displayScore(r.overall_score)}
                       </span>
                       <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">
                         pts

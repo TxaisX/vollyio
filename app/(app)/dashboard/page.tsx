@@ -17,6 +17,7 @@ import { TesterInvite } from "@/components/tester-invite";
 import { TEST_COUNTS_TOWARD_PRODUCTION } from "@/lib/android-test";
 import { claimAchievements, readAchievements } from "@/lib/achievements";
 import { overallScore, scoreBand } from "@/lib/ratings";
+import { displayScore } from "@/lib/score-precision";
 import { meanBySkill } from "@/lib/skill-trend";
 import { relativeDay } from "@/lib/relative-day";
 import { shouldEnforceFreeTier, UPGRADE_URL } from "@/lib/billing";
@@ -735,7 +736,7 @@ export default async function Dashboard({
                       <ViewTransition name={`rep-${a.id}`} share="morph" default="none">
                         <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border border-gold/30 bg-gold/10">
                           <span className="stat-num text-lg text-gold-ink">
-                            {a.overall_score}
+                            {displayScore(a.overall_score)}
                           </span>
                           <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chalk-dim">
                             pts

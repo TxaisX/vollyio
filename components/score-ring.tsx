@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { displayScore } from "@/lib/score-precision";
 
 export function ScoreRing({
   score,
@@ -15,7 +16,14 @@ export function ScoreRing({
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = score == null ? null : Math.max(0, Math.min(100, score));
-  const display = clamped == null ? null : Math.round(clamped);
+  // WIDENED TO WHAT THE READ SUPPORTS. The units digit of a score is noise:
+  // re-read the same clip and it moves, measured sd 3.5 (lib/score-precision.ts).
+  // This ring was the loudest place that digit was shown, so it is the first
+  // place it stops being shown.
+  //
+  // The ARC still uses the exact value. The geometry is a shape, not a claim,
+  // and snapping it would make two genuinely different scores draw identically.
+  const display = clamped == null ? null : displayScore(clamped);
   const pct = clamped == null ? 0 : clamped / 100;
 
   const [drawn, setDrawn] = useState(false);
@@ -33,7 +41,9 @@ export function ScoreRing({
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / 900);
-      setShown(Math.round(clamped * (1 - Math.pow(1 - t, 3))));
+      // Counts in steps, so no frame of the animation shows a precision the
+      // final number does not have.
+      setShown(displayScore(clamped * (1 - Math.pow(1 - t, 3))));
       if (t < 1) counter = requestAnimationFrame(tick);
     };
     counter = requestAnimationFrame(tick);
@@ -43,13 +53,17 @@ export function ScoreRing({
     };
   }, [clamped, display]);
 
+  // "about", because the number is read to the nearest five and the thing it
+  // measures moves by more than that between two reads of one clip. A screen
+  // reader saying "eighty out of one hundred" flat is asserting a precision the
+  // sighted rounding is deliberately dropping.
   const ariaLabel = label
     ? display == null
       ? `${label}: not rated yet`
-      : `${label}: ${display} out of 100`
+      : `${label}: about ${display} out of 100`
     : display == null
       ? "No score yet"
-      : `Score ${display} out of 100`;
+      : `Score about ${display} out of 100`;
 
   return (
     <div

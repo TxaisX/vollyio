@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   updateRating,
   overallScore,
@@ -69,15 +70,19 @@ test("overall is null when nothing is rated", () => {
   assert.equal(overallScore([null, null]), null);
 });
 
-test("score bands follow the rubric anchors", () => {
+// The floors moved on 2026-08-25 to match lib/ai/output-spec.ts, which tells
+// the read that 70-84 is sound repeatable mechanics, 85-93 is standout and
+// 94-100 is near-flawless. They previously started Solid at 55 and Advanced at
+// 80, so the label contradicted the instruction the number came from.
+test("score bands follow the standard the read is scored against", () => {
   assert.equal(scoreBand(40), "Developing");
-  assert.equal(scoreBand(54), "Developing");
-  assert.equal(scoreBand(55), "Solid");
+  assert.equal(scoreBand(69), "Developing");
   assert.equal(scoreBand(70), "Solid");
-  assert.equal(scoreBand(79), "Solid");
-  assert.equal(scoreBand(80), "Advanced");
-  assert.equal(scoreBand(91), "Advanced");
-  assert.equal(scoreBand(92), "Elite");
+  assert.equal(scoreBand(81), "Solid", "the production median is sound mechanics, not advanced");
+  assert.equal(scoreBand(84), "Solid");
+  assert.equal(scoreBand(85), "Advanced");
+  assert.equal(scoreBand(93), "Advanced");
+  assert.equal(scoreBand(94), "Elite");
   assert.equal(scoreBand(100), "Elite");
 });
 
@@ -118,6 +123,52 @@ test("the printed scale names the boundary each band actually starts at", () => 
 });
 
 test("the caption never advertises the rubric anchors as band boundaries", () => {
-  // The exact string that was on screen. It is not a boundary set.
-  assert.doesNotMatch(scoreScaleCaption(), /40 developing|70 solid|90 advanced/);
+  // The exact string that was once on screen: 40/70/90 are the RUBRIC's
+  // anchors, the numbers the model is told a developing or solid rep looks
+  // like, and they were being printed as if they were band boundaries.
+  //
+  // Asserted as the whole triple rather than term by term, because "70 solid"
+  // is now a legitimate boundary in its own right (SCORE_BANDS starts Solid
+  // there). What must never come back is the anchor SET.
+  const caption = scoreScaleCaption();
+  assert.doesNotMatch(caption, /40 developing/);
+  assert.doesNotMatch(caption, /90 advanced/);
+  // And it is generated, never typed: every floor in the array appears.
+  for (const band of SCORE_BANDS.filter((b) => b.floor > 0)) {
+    assert.match(caption, new RegExp(`${band.floor} ${band.name.toLowerCase()}`));
+  }
+});
+
+// THE LABEL MUST MEAN WHAT THE MODEL WAS TOLD IT MEANS.
+//
+// `lib/ai/output-spec.ts` is the instruction the read is scored against: 70-84
+// is sound repeatable mechanics, 85-93 is standout, 94-100 is near-flawless.
+// The bands are what the player is shown. When they disagreed, a rep the model
+// judged merely sound came back labelled "Advanced", and a faulted one came
+// back "Solid". Nothing in the suite noticed, because each file was internally
+// consistent.
+test("the score bands line up with the scoring standard the model is given", async () => {
+  const spec = await readFile(new URL("./ai/output-spec.ts", import.meta.url), "utf8");
+  const floor = (name: string) =>
+    SCORE_BANDS.find((b) => b.name === name)?.floor ?? -1;
+
+  assert.equal(floor("Solid"), 70, "the standard calls 70-84 sound repeatable mechanics");
+  assert.equal(floor("Advanced"), 85, "the standard reserves 85-93 for standout execution");
+  assert.equal(floor("Elite"), 94, "the standard reserves 94-100 for near-flawless");
+
+  // And the standard still says those things. If someone retunes the prompt's
+  // numbers, this fails rather than letting the labels drift off them again.
+  assert.match(spec, /72-84/, "the sound-mechanics range moved in the prompt");
+  assert.match(spec, /85-93/, "the standout range moved in the prompt");
+  assert.match(spec, /94-100/, "the near-flawless range moved in the prompt");
+});
+
+test("no band claims territory the read has never once used", () => {
+  // Production, 20 reads from the shipped engine: 71 to 89. A band whose floor
+  // sits above the highest score ever produced is a label nobody can earn, and
+  // one whose ceiling sits below the lowest is a label nobody can avoid.
+  const solid = SCORE_BANDS.find((b) => b.name === "Solid")!.floor;
+  assert.ok(solid <= 71, "every real read would be Developing");
+  const elite = SCORE_BANDS.find((b) => b.name === "Elite")!.floor;
+  assert.ok(elite > 89, "Elite must stay genuinely out of reach of an ordinary rep");
 });

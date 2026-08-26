@@ -9,6 +9,7 @@ import { Reveal } from "@/components/motion";
 import { ReportContent } from "@/components/report-content";
 import { ScoreRing } from "@/components/score-ring";
 import { scoreBand, scoreScaleCaption } from "@/lib/ratings";
+import { displayScore, scorePrecisionNote } from "@/lib/score-precision";
 import { SKILL_LABEL } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +43,8 @@ export async function generateMetadata({
     return { title: "Breakdown not found", robots: { index: false, follow: false } };
   }
   const label = SKILL_LABEL[shared.skill];
-  const title = `${label} breakdown, ${shared.overall_score}/100`;
-  const description = `A ${label.toLowerCase()} rep scored ${shared.overall_score} out of 100 on Vollyio. Priority fix: ${shared.result.priority_fix.title}`;
+  const title = `${label} breakdown, about ${displayScore(shared.overall_score)}/100`;
+  const description = `A ${label.toLowerCase()} rep scored about ${displayScore(shared.overall_score)} out of 100 on Vollyio. Priority fix: ${shared.result.priority_fix.title}`;
   // openGraph and twitter are restated rather than left to inherit `title` and
   // `description` above. The ROOT layout sets openGraph.title explicitly, and an
   // explicit parent value wins over a child's plain `title`, so every shared
@@ -119,7 +120,15 @@ export default async function SharedBreakdown({
           </div>
         </div>
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
-          Scored like a coach · {scoreScaleCaption()}
+          {/* Not "scored like a coach". A stranger with no context reads that
+              as coach-equivalent judgement, and this model was disqualified as
+              a judge on the frame path for ceiling-pegging. The precision note
+              travels with the number, because this card is the one score
+              surface seen by people who cannot open the app and check. */}
+          Scored 0-100 on one rep · {scoreScaleCaption()}
+        </p>
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-chalk-dim">
+          {scorePrecisionNote()}
         </p>
         {typeof shared.result.coverage_pct === "number" && (
           <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">

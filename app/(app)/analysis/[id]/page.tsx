@@ -8,6 +8,7 @@ import { getAuthIdentity } from "@/lib/supabase/user";
 import { FunnelBeacon } from "@/app/(auth)/funnel-beacon";
 import { metricLabel } from "@/lib/ai/metrics";
 import { SCORE_BANDS, scoreBand, scoreScaleCaption } from "@/lib/ratings";
+import { beats, displayScore, scorePrecisionNote } from "@/lib/score-precision";
 import { BreakdownBody } from "@/components/breakdown-body";
 import { Reveal } from "@/components/motion";
 import { ScoreRing } from "@/components/score-ring";
@@ -89,10 +90,10 @@ export async function generateMetadata({
   // it stays out of the tab title's description too.
   const fix = isAnonymous ? undefined : meta.result?.priority_fix?.title;
   return {
-    title: `${label} breakdown, ${score}/100`,
+    title: `${label} breakdown, about ${displayScore(score)}/100`,
     description: fix
-      ? `Your ${label.toLowerCase()} rep scored ${score} out of 100. Priority fix: ${fix}`
-      : `Your ${label.toLowerCase()} rep scored ${score} out of 100.`,
+      ? `Your ${label.toLowerCase()} rep scored about ${displayScore(score)} out of 100. Priority fix: ${fix}`
+      : `Your ${label.toLowerCase()} rep scored about ${displayScore(score)} out of 100.`,
     robots: { index: false, follow: false },
   };
 }
@@ -490,6 +491,13 @@ export default async function AnalysisDetail({
                   </Fragment>
                 ))}
               </p>
+              {/* The number is shown to the nearest five and this says why, in
+                  the player's terms. Without it the widening reads as a product
+                  that cannot count rather than one being honest about a read
+                  whose noise is 3.5 points. */}
+              <p className="mt-1.5 max-w-[18ch] font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] text-chalk-dim">
+                {scorePrecisionNote()}
+              </p>
               {typeof result.coverage_pct === "number" && (
                 <p
                   className={`mt-1.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
@@ -517,9 +525,14 @@ export default async function AnalysisDetail({
             best rep gets named as one. */}
         {formRating != null && personalBest != null && (
           <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-chalk-dim">
-            {row.overall_score >= personalBest
+            {/* A BEST HAS TO ACTUALLY BEAT THE OLD ONE. This read `>=`, so a
+                79 becoming an 80 was announced as a personal best, and a tie
+                was announced as one too. Re-reading either clip would flip the
+                order: measured read noise is 3.5 points, so `beats` requires
+                more than 7 before the product will say it (lib/score-precision.ts). */}
+            {beats(row.overall_score, personalBest)
               ? `Your best ${SKILL_LABEL[row.skill].toLowerCase()} rep yet`
-              : `Your ${SKILL_LABEL[row.skill].toLowerCase()} form: ${Math.round(formRating)} · best ${personalBest}`}
+              : `Your ${SKILL_LABEL[row.skill].toLowerCase()} form: about ${displayScore(formRating)} · best about ${displayScore(personalBest)}`}
           </p>
         )}
       </Reveal>

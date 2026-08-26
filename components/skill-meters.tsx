@@ -3,6 +3,7 @@ import { SkillIcon } from "@/components/skill-icons";
 import { LinkPending } from "@/components/link-pending";
 import { skillTrend, type Trend } from "@/lib/skill-trend";
 import { SKILLS, SKILL_LABEL, type Skill } from "@/lib/skills";
+import { displayScore } from "@/lib/score-precision";
 
 /**
  * The six skills as one compact list: where each one stands, and which way it
@@ -40,7 +41,7 @@ export function SkillMeters({
   ratings: Partial<Record<Skill, number>>;
   /** Mean of the reps filmed in the last 7 days, per skill. Decides the arrow
    *  and is never itself displayed. */
-  recent: Partial<Record<Skill, number>>;
+  recent: Partial<Record<Skill, { mean: number; n: number }>>;
   /** Newest analysis id per skill, so a row can open the breakdown that
    *  explains its own number. */
   latestId: Partial<Record<Skill, string>>;
@@ -84,7 +85,7 @@ export function SkillMeters({
                         aria-valuenow={shown!}
                         aria-valuemin={0}
                         aria-valuemax={100}
-                        aria-valuetext={`${shown} out of 100`}
+                        aria-valuetext={`about ${displayScore(shown!)} out of 100`}
                         className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-line"
                       >
                         <span

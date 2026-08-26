@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
 import { analysisByShareToken } from "@/lib/share-read";
 import { SKILL_LABEL } from "@/lib/skills";
+import { scoreBand } from "@/lib/ratings";
+import { displayScore } from "@/lib/score-precision";
 
 export const runtime = "nodejs";
 export const alt = "Vollyio breakdown";
@@ -64,7 +66,7 @@ export default async function OgImage({
                 fontWeight: 700,
               }}
             >
-              {shared.overall_score}
+              {displayScore(shared.overall_score)}
             </div>
             <div style={{ display: "flex", flexDirection: "column", maxWidth: 720 }}>
               <div
@@ -79,6 +81,17 @@ export default async function OgImage({
               </div>
               <div style={{ marginTop: 16, fontSize: 46, fontWeight: 700, lineHeight: 1.2 }}>
                 {shared.result.priority_fix.title}
+              </div>
+              {/* THE NUMBER TRAVELS WITH ITS CONTEXT, or it does not travel.
+                  This card is the most-distributed artifact the product makes
+                  (share links were 74 of the first 219 visitors) and it is the
+                  only score surface whose audience cannot open the app and see
+                  the band, the scale or the caveat. It shipped as a bare 88 in
+                  a gold ring to people with none of that, who read it as a
+                  percentile. */}
+              <div style={{ marginTop: 18, fontSize: 26, color: chalkDim }}>
+                {scoreBand(shared.overall_score)} · one 10-second clip, read to
+                the nearest 5
               </div>
             </div>
           </div>
