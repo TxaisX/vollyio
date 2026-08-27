@@ -117,6 +117,11 @@ export default async function Progress() {
   }
 
   const totalReps = series.reduce((n, s) => n + s.reps, 0);
+  // A series is one skill on one SURFACE, so `series.length` counts buckets and
+  // not skills: four skills filmed indoors and on grass came back as "7 skills"
+  // for a product that has six of them. The chip counts skills, and the buckets
+  // get their own word only when the two numbers disagree.
+  const skillCount = new Set(series.map((s) => s.skill)).size;
 
   // Split rather than sort: a chart and a one-rep row are different shapes, and
   // interleaving them makes a stack that cannot be scanned down. buildSeries
@@ -152,9 +157,15 @@ export default async function Progress() {
                   {totalReps === 1 ? "" : "s"}
                 </span>
                 <span className="tag">
-                  <span className="text-chalk">{series.length}</span> skill
-                  {series.length === 1 ? "" : "s"}
+                  <span className="text-chalk">{skillCount}</span> skill
+                  {skillCount === 1 ? "" : "s"}
                 </span>
+                {series.length !== skillCount && (
+                  <span className="tag">
+                    <span className="text-chalk">{series.length}</span> line
+                    {series.length === 1 ? "" : "s"}
+                  </span>
+                )}
               </div>
             )}
             <div className="mt-4 border-t border-line pt-3.5">
