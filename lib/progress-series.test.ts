@@ -106,10 +106,17 @@ test("a real climb reads as up, with the delta and the span", () => {
     rep("attack", "grass", 65, 23),
   ]);
   assert.equal(s.trend, "up");
+  // The SERIES keeps the exact delta, because callers that compare or sort need
+  // the real number. Only the sentence a player reads is widened.
   assert.equal(s.delta, 17);
   assert.equal(s.spanDays, 6);
   const copy = progressCopy(s);
-  assert.match(copy, /\+17/);
+  // 48 displays as 50 and 65 displays as 65, so the climb a player is told about
+  // is +15, not +17. Quoting the raw delta beside surfaces that round to the
+  // nearest 5 was arithmetic the player could not reproduce from anything on
+  // their own screen.
+  assert.match(copy, /\+15/);
+  assert.doesNotMatch(copy, /\+17/);
   assert.match(copy, /6 days/);
   assert.match(copy, /4 reps/);
 });

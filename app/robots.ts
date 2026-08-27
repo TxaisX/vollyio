@@ -23,7 +23,6 @@ export default function robots(): MetadataRoute.Robots {
         "/share",
         "/offline",
         "/film",
-        "/zzpreview",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

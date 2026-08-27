@@ -62,7 +62,3 @@ export function metricKeys(skill: Skill): string[] {
 export function metricLabel(skill: Skill, key: string): string {
   return METRICS[skill].find((m) => m.key === key)?.label ?? key;
 }
-
-export function metricWeight(skill: Skill, key: string): number {
-  return METRICS[skill].find((m) => m.key === key)?.weight ?? 0;
-}

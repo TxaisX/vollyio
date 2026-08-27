@@ -57,7 +57,7 @@ export function SkillMeters({
           {SKILLS.map((skill) => {
             const rating = ratings[skill];
             const rated = rating != null;
-            const shown = rated ? Math.round(rating) : null;
+            const shown = rated ? displayScore(rating) : null;
             const trend = skillTrend(rating, recent[skill]);
             const id = latestId[skill];
             const href = rated && id ? `/analysis/${id}` : `/learn/${skill}`;
@@ -85,7 +85,7 @@ export function SkillMeters({
                         aria-valuenow={shown!}
                         aria-valuemin={0}
                         aria-valuemax={100}
-                        aria-valuetext={`about ${displayScore(shown!)} out of 100`}
+                        aria-valuetext={`about ${shown!} out of 100`}
                         className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-line"
                       >
                         <span

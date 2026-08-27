@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StickyClip } from "@/components/sticky-clip";
 import { metricLabel } from "@/lib/ai/metrics";
+import { displayScore, MEANINGFUL_SCORE_DELTA } from "@/lib/score-precision";
 import { pointerCue } from "@/lib/ai/pointers";
 import { metricKnowledge } from "@/content/technique";
 import { drillBySlug } from "@/content/drills";
@@ -149,17 +150,27 @@ export function BreakdownBody({
             {repScores.map((r) => (
               <div key={r.rep_index} className="flex items-baseline gap-3">
                 <span className="chip shrink-0">
-                  Rep {r.rep_index + 1} · {r.overall}
+                  Rep {r.rep_index + 1} · {displayScore(r.overall)}
                 </span>
                 <span className="min-w-0 text-xs text-chalk-dim">{r.note}</span>
               </div>
             ))}
-            <p className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
-              Spread:{" "}
-              {Math.max(...repScores.map((r) => r.overall)) -
-                Math.min(...repScores.map((r) => r.overall))}{" "}
-              pts · tighter is better
-            </p>
+            {/* Spread across the reps, quoted from the DISPLAYED numbers so it
+                agrees with the chips above it. A raw spread of 4 between reps
+                that both render as 80 reads as inconsistency the player cannot
+                see and the read cannot resolve, and anything inside the noise
+                floor is not a spread at all. */}
+            {(() => {
+              const shownReps = repScores.map((r) => displayScore(r.overall));
+              const spread = Math.max(...shownReps) - Math.min(...shownReps);
+              return (
+                <p className="font-mono text-[10px] uppercase tracking-wide text-chalk-dim">
+                  {spread < MEANINGFUL_SCORE_DELTA
+                    ? "Every rep read the same · that is consistency"
+                    : `Spread: ${spread} pts · tighter is better`}
+                </p>
+              );
+            })()}
           </div>
         </Reveal>
       )}
