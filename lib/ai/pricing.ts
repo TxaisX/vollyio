@@ -24,6 +24,15 @@ const PER_MTOK: Record<string, { input: number; output: number }> = {
   // cannot price, and the symptom is a calm 503 for every player at once. That
   // very gap shipped once, between the analyze route moving to the gateway and
   // this row landing. lib/ai/pricing.test.ts now pins the two together.
+  //
+  // Read from the gateway's model listing again on 2026-08-27, when the vision
+  // path moved to 3.7-flash. That listing now prices 3.6-flash at 0.75 / 3.75,
+  // half the row below, which was itself read from the same listing on
+  // 2026-08-06. Whether the price was cut or the first reading was wrong is not
+  // determinable after the fact, so the row STAYS at the higher pair: it prices
+  // history only now, an estimate may overstate and must never understate, and
+  // a row edited on a guess is worse than one left conservative.
+  "google/gemini-3.7-flash": { input: 0.375, output: 1.875 },
   "google/gemini-3.6-flash": { input: 1.5, output: 7.5 },
   // Rounded up from the listed 0.0882 / 0.1764: an estimate must never
   // understate, and the sub-cent precision buys nothing at this scale.

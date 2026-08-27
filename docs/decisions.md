@@ -5803,3 +5803,156 @@ badge shelf takes for migration 050.
 what it prescribes at fourteen weeks out differs from what it prescribes at
 two, is the obvious next move and is a separate decision: it changes a paid
 model call and wants its own argument.
+
+## D-128 - The vision id moves to 3.7-flash on price, and the bakeoff says it is not an upgrade
+
+Date: 2026-08-27 · By: Orchestrator (owner direction: move the vision model to
+gemini 3.7 flash)
+
+**What changed.** `VISION_MODEL` in `lib/ai/client.ts` moves from
+`google/gemini-3.6-flash` to `google/gemini-3.7-flash`. One constant. The rate
+row lands in `lib/ai/pricing.ts` in the same commit, because
+`lib/ai/pricing.test.ts` reads the ids out of `client.ts` and fails a constant
+that has no row: that pinning is D-098's, and it did its job here.
+
+**The case for it is price and only price.** Read off the gateway's own listing
+on 2026-08-27: 3.7-flash is $0.375 in / $1.875 out per MTok against 3.6-flash's
+$0.75 / $3.75. Same 1M context, same `text/image/video/file/audio` modalities,
+same 65,536 output ceiling. Half rate on the pixel path, which is the path that
+spends most and the one whose balance also funds coach chat and the weekly plan.
+
+**The case against it is the measurement.** `evals/arm-37-flash.json` replays
+the marked 32 through the shipped rubric, the same clips and the same prompt as
+`evals/marked-flash.json`:
+
+| arm | scored | refused | min | median | max | sd | range | full vis |
+|---|---|---|---|---|---|---|---|---|
+| 3.6-flash (was shipping) | 26 | 3 | 72 | 78 | 92 | 5.6 | 20 | 0.862 |
+| 3.7-flash (now shipping) | 24 | 7 | 66 | 74 | 79 | 3.1 | 13 | 0.774 |
+| 3.1-pro (rejected, D-127 era) | 29 | 2 | 38 | 58 | 90 | 17.2 | 52 | 0.935 |
+
+**3.7-flash compresses harder than the id it replaces.** Thirteen points of a
+hundred-point scale, sd 3.1. That is the failure `evals/CALIBRATION.md` was
+written about, made worse rather than better, and it is worth naming plainly
+because the swap was proposed on an assumption of parity that did not hold. It
+refuses more too, 7 of 32 against 3, on production footage a player filmed.
+
+It moves the other way on the two remaining gates: median 74 against 78 where
+the target is 50-70, and full-visibility 0.774 against 0.862 where the target is
+0.75. Both ids fail every distribution gate in `lib/eval-gate.ts`. Neither is a
+scale yet.
+
+**Why it ships anyway.** The ordering problem is not a model-selection problem
+and D-127's own conclusion is why: the wider-histogram candidate was measurably
+WRONG on the footage, so a swap bought on spread alone ships confident wrong low
+scores in place of confident wrong high ones. Nothing in this bakeoff validates
+either reader. Given that, the id that costs half as much is the better place to
+sit while the real fix is worked, and the change is one constant to revert if
+the compression shows up in a player-visible way.
+
+**What this change does NOT do**, and the reason no id change can: the gateway
+exposes no field for Gemini's `videoMetadata.fps`. Checked against
+`supported_parameters` for every video-capable model on the listing on
+2026-08-27, and none carries one. The roughly-1-fps low-resolution sampling
+D-097 measured, and the 60 tokens per second of footage D-106 corrected, are
+properties of the gateway and survive this commit intact.
+
+**One thing left unresolved.** The 3.6-flash rate row stays at $1.5 / $7.5, the
+pair read from the same listing on 2026-08-06, while that listing reads $0.75 /
+$3.75 today. Whether the price was cut or the first reading was wrong is not
+determinable now. The row prices stored telemetry only, an estimate may
+overstate and must never understate, so it stays at the higher pair.
+
+## D-129 - Slowing the clip gives the model four times the frames and does not help
+
+Date: 2026-08-27 · By: Orchestrator (owner direction: run the 4x stretch arm)
+
+**The hypothesis, and it was a good one.** The gateway samples video at exactly
+one low-resolution frame per second and bills `floor(duration_s) x 66` tokens for
+video plus `x 25` for audio -- measured across all 31 reads in
+`evals/arm-37-flash.json`, exact on every clip, a pure function of DURATION and
+nothing else. So a 4s rep reaches the model as four frames, a contact lasts about
+50ms, and D-097 has said since it landed that the modality is the constraint.
+Retiming the clip to run 4x slower should therefore land the sampler on four
+times as many distinct source frames for a rounding error in cost, and no id
+change can do that because nothing on the gateway accepts `videoMetadata.fps`.
+
+**The mechanism worked exactly as predicted.** `evals/corpus-4x` is the marked 32
+re-encoded with ffmpeg `setpts=4*PTS`, audio dropped. Mean video tokens went
+**672 -> 3,010**, a 4.5x increase in frames actually delivered. Cost went $0.0043
+-> $0.0052, up 21%. Median latency was unchanged, 14.9s -> 15.9s.
+
+**The result did not.** Paired over the 19 clips scored in both arms:
+
+| arm | n | min | median | max | mean | sd | range |
+|---|---|---|---|---|---|---|---|
+| 1x (`evals/arm-37-flash.json`) | 19 | 67 | 73 | 79 | 72.7 | 3.1 | 12 |
+| 4x (`evals/arm-37-flash-4x.json`) | 19 | 71 | 74 | 81 | 75.0 | 2.7 | 10 |
+
+Mean paired delta **+2.26 points** (sd of the deltas 3.74, so t is about 2.6 on
+18 df: a real shift, not read noise). The distribution got **higher and
+TIGHTER**, which is the wrong direction on both counts. Four and a half times the
+evidence made the model more confident and more uniform, not more discriminating.
+
+**What that rules out, and what it points at.** The compression is not an
+information shortage. The model is not failing to see the rep; it is failing to
+place the rep against anything, because it reads every clip in a vacuum with no
+notion of what a 60 looks like. That is an ANCHORING problem, and it is the same
+conclusion D-127's arm reached from the opposite direction. Spending tokens on
+more frames buys nothing until there is something to compare them to.
+
+**Second finding, unrelated and operational.** 6 of 32 reads errored, against 1
+in the 1x arm, and every one of them was the same 45 MB stretched file: two 502s,
+three upload timeouts, one dropped fetch. Retiming multiplies bytes as well as
+duration. Any future use of this trick has to re-encode down, not just slow down.
+
+**Third finding, which contaminates every arm run on this set.** The marked 32
+contains only **21 distinct videos**: one source file appears 6 times, another 4,
+a third 3, and two more twice. Deduplicating does not change D-128's conclusion
+(3.7-flash sd 3.2 against 3.6-flash's 5.3 on unique clips, still tighter) but it
+does mean n is smaller than it reads everywhere this corpus is quoted, including
+`evals/CALIBRATION.md`.
+
+## D-130 - The index that lets a rep be compared to something
+
+Date: 2026-08-27 · By: Orchestrator (owner direction: set up pgvector and the
+retrieval scaffold)
+
+**Why now.** D-129 ruled out an information shortage as the cause of the
+compression and left anchoring as the live hypothesis. Anchors need a memory to
+draw from, and there was none.
+
+**What exists now.** Migration 067 enables pgvector (0.8.2, was available and
+uninstalled), adds `public.analysis_embeddings` with a 384-dimension column and
+an HNSW `vector_ip_ops` index, RLS to owner-only in the posture 022 set, and
+`match_analyses(query_embedding, skill, k)`. All 59 existing analyses are
+backfilled via `scripts/backfill-embeddings.mjs`.
+
+`match_analyses` is **SECURITY INVOKER**, and that word is the whole security
+argument: a definer function would read past the policy and hand one player
+another player's private footage as a "similar example", through a helper nobody
+would think to audit. There is no cross-player retrieval, and adding one is a
+consent decision about private clips rather than a tuning knob.
+
+**Embeddings come from Supabase, not the gateway.** The model gateway serves ZERO
+embedding models -- checked against its own listing on 2026-08-27 -- so the
+choice was a second vendor and a second credential, or the `gte-small` model
+Supabase runs inside the Edge Function runtime. The `embed` function is the
+latter: 384 dimensions, no external call, no new secret, English only, input
+truncated at 512 tokens. It returns NORMALIZED vectors, which the `vector_ip_ops`
+index requires; inner product over unnormalized vectors ranks by magnitude and
+returns confident nonsense with nothing anywhere to notice it by.
+
+**A bug caught in its own smoke test, and worth recording because it would have
+looked like it was working.** The first `analysisSourceText` put the score into
+the embedded text. That makes the vector encode the score, so retrieval returns
+reps that scored ALIKE, which hands the model its own prior back as an example
+and tightens the very compression the index exists to loosen. Removing it widened
+the neighbour scores of one probe from a cluster around its own 81 to a 61-89
+span. The score still reaches the caller: `match_analyses` joins `analyses` and
+returns the real one.
+
+**Nothing is wired into a paid path.** `lib/ai/retrieval.ts` is built and unused
+on purpose. Changing what `/api/analyze` sends is a change to the read, and the
+standard for that here is a measured arm rather than an argument (D-034). The
+next step is an anchored arm against `evals/arm-37-flash.json`, not a deploy.

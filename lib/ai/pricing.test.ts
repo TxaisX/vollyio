@@ -96,7 +96,7 @@ test("gateway rates price a real read in the right ballpark", () => {
     cache_read_input_tokens: 0,
     cache_creation_input_tokens: 0,
   };
-  const cost = estimateCostUsd(read, "google/gemini-3.6-flash");
+  const cost = estimateCostUsd(read, "google/gemini-3.7-flash");
   assert.ok(cost > 0, "a real read must not price at zero");
   assert.ok(cost < 0.05, `a single clip read should be well under 5 cents, got ${cost}`);
 });

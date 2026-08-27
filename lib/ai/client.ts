@@ -22,16 +22,34 @@ import "server-only";
  * The one call path that READS PIXELS: the whole clip for `/api/analyze`
  * (D-097) and one frame for `/api/players` (D-093).
  *
- * The 2026-08-04 bakeoff put this model ahead of every tier it was measured
- * against on vision. What D-097 then established is that the MODALITY, not the
- * model, is the thing that has to be right: the same model reading video
- * against the 120-pointer catalog returns a median of 97, which is every player
- * being told they are near-perfect, because the provider samples video at
- * roughly one low-resolution image per second and per-checkpoint verdicts
- * cannot be produced honestly from about ten stills. The holistic rubric in
- * `lib/ai/simple-rubric.ts` is what this id is allowed to be asked.
+ * What D-097 established is that the MODALITY, not the model, is the thing that
+ * has to be right: a flash-tier model reading video against the 120-pointer
+ * catalog returns a median of 97, which is every player being told they are
+ * near-perfect, because the provider samples video at roughly one
+ * low-resolution image per second and per-checkpoint verdicts cannot be
+ * produced honestly from about ten stills. The holistic rubric in
+ * `lib/ai/simple-rubric.ts` is what this id is allowed to be asked. No id
+ * change alters that: nothing the gateway exposes accepts Gemini's
+ * `videoMetadata.fps`, checked across every video-capable model on the listing
+ * 2026-08-27, so the sampling floor is a property of the gateway.
+ *
+ * MOVED 3.6-flash -> 3.7-flash on 2026-08-27 (D-128), on price. Half the rate
+ * in both directions on the same listing, same 1M context, same modalities.
+ *
+ * IT IS NOT AN UPGRADE, and the bakeoff that says so is
+ * `evals/arm-37-flash.json`, the marked 32 replayed through this exact rubric
+ * against `evals/marked-flash.json`. 3.7-flash COMPRESSES HARDER than the id it
+ * replaces: sd 3.1 against 5.6, and 13 points of the scale used against 20. It
+ * also refuses more, 7 of 32 against 3. It moves toward target on the other
+ * two, median 74 against 78 (target 50-70) and full-visibility 0.774 against
+ * 0.862 (target 0.75). Both ids fail every distribution gate in
+ * `lib/eval-gate.ts`; this one fails the two that matter most by more.
+ *
+ * So the ordering problem D-126 and evals/CALIBRATION.md describe is untouched
+ * by this change and is still the thing to fix. Do not read a cheaper id as
+ * progress on it.
  */
-export const VISION_MODEL = "google/gemini-3.6-flash";
+export const VISION_MODEL = "google/gemini-3.7-flash";
 
 /**
  * The one call path that WRITES TEXT: coach chat (D-096) and the weekly plan
