@@ -5988,15 +5988,25 @@ The market picture with every source is recorded in the owner's vault
 
 **What changes in this entry.**
 
-- `VISION_MODEL` and `CHAT_MODEL` both become `minimax/minimax-m3:free`.
-  Chosen by elimination, not by measurement: of the four free video-capable
-  ids on the gateway on 2026-08-27, it is the only one that answers under the
-  `data_collection: deny` floor in `lib/ai/routing.ts` (Gemma 4 returned 429
-  on every probe; the Nvidia omni id has no endpoint that refuses training).
-  The floor stays, because the audience starts at 13 and nothing about closing
-  the product changes whose footage this is. Paid spend was about $1.36 in the
-  last 30 days; the swap buys a guarantee that the prepaid balance cannot be
-  drained once the repository is public, not savings.
+- **The free model was tried, measured, and does not work; the paid ids
+  stay.** Of the four free video-capable ids on the gateway on 2026-08-27,
+  exactly one answers under the `data_collection: deny` floor in
+  `lib/ai/routing.ts`: `minimax/minimax-m3:free` (Gemma 4 returned 429 on
+  every probe; the Nvidia omni id has no endpoint that refuses training). The
+  floor stays, because the audience starts at 13 and nothing about closing the
+  product changes whose footage this is. Shipped for forty minutes and
+  measured: on a simple three-field prompt it answers JSON (scores of 55 and
+  32 on the same clip); on the shipped rubric it answers a markdown essay that
+  ends "Rating: 72", so the route's schema parse fails and the player gets a
+  refunded 502. Told in words to answer JSON only (`JSON_ONLY` in the route
+  and the harness), five production clips produced zero usable reads: the
+  score omitted, a number where the schema wants a string, a gateway 502, a
+  50 s timeout, and empty lists, at 76 s where the paid id takes 10. The live
+  route failed 3 of 3 on a scratch account. So `VISION_MODEL` is back on
+  `google/gemini-3.7-flash` and `CHAT_MODEL` on `deepseek/deepseek-v4-flash`,
+  the ids that were shipping before the attempt: about $1.36 a month at the
+  product's current use, and the prepaid balance is the hard ceiling. The
+  owner's remaining choices are recorded under Open below.
 - The video read pins `google-vertex` only for a Google id
   (`lib/ai/vision.ts`); a non-Google id has no Vertex endpoint and the pin
   returned "no endpoints".
@@ -6031,11 +6041,13 @@ The market picture with every source is recorded in the owner's vault
   pauses a project after seven idle days; the site will then be down until the
   owner restores it, which is accepted.
 
-**What is deliberately NOT measured.** No bakeoff was run on the free id. Its
-score distribution, refusal rate and reliability are unknown, and
-evals/CALIBRATION.md describes the reader it replaced. This is stated rather
-than hidden because no number the product prints is sold any more, and a
-measurement that changes no decision is not owed.
+**Open, for the owner.** The instruction "no paid models" is unmet, because
+the only free reader that respects the privacy floor cannot run the task.
+Three ways to close it, none taken here: keep the paid pennies with the balance
+as the cap (the current state); loosen the floor to reach the free ids that
+train on footage, which changes the privacy policy and the Play declaration
+for a 13+ audience; or switch the analyze route off and leave the site as a
+read-only record of drills, injuries and past breakdowns.
 
 **What would reopen this.** A stranger paying, or a coach willing to put their
 name on reviews (the human-in-the-loop shape every product with traction

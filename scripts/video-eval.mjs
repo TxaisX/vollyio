@@ -41,7 +41,7 @@ import { SKILL_LABEL } from "../lib/skills.ts";
 // Mirrors lib/ai/client.ts VISION_MODEL and the route's readVideo options. Kept
 // as literals rather than imported because both of those modules are
 // `server-only` and throw outside a Next runtime.
-const DEFAULT_MODEL = "minimax/minimax-m3:free";
+const DEFAULT_MODEL = "google/gemini-3.7-flash";
 const MAX_TOKENS = 8192;
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const TIMEOUT_MS = 90_000;
@@ -165,6 +165,11 @@ async function readOnce(entry, clipB64, durationS) {
           {
             type: "text",
             text: `Discipline: ${entry.discipline}. Rate this ${SKILL_LABEL[entry.skill].toLowerCase()} rep across the whole clip.`,
+          },
+          {
+            type: "text",
+            // Mirrors JSON_ONLY in app/api/analyze/route.ts (D-131).
+            text: "Reply with ONLY the JSON object for the analysis schema: no prose before or after it, no headings, no markdown fences.",
           },
         ],
       },

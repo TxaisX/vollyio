@@ -54,6 +54,9 @@ export const maxDuration = 120;
 // The container the provider dispatches on, from the extension the request
 // declared. Both were validated by the request schema against the same closed
 // set, so this is a translation and never a decision.
+const JSON_ONLY =
+  "Reply with ONLY the JSON object for the analysis schema: no prose before or after it, no headings, no markdown fences.";
+
 const CLIP_MIME: Record<string, string> = {
   mp4: "video/mp4",
   webm: "video/webm",
@@ -422,6 +425,10 @@ export async function POST(req: NextRequest) {
       const instructions = [
         ...(marker ? [marker] : []),
         `Discipline: ${discipline}. Rate this ${SKILL_LABEL[skill].toLowerCase()} rep across the whole clip.`,
+        // Stated in words as well as in response_format, because the free
+        // reader (D-131) answers the full rubric as a markdown essay when only
+        // the schema asks for JSON, and an essay is a refunded 502.
+        JSON_ONLY,
       ];
 
       const catalog = checkpointCatalog(skill, discipline);
