@@ -69,11 +69,6 @@ for (const rel of MARKETING) {
       /allowanceSentence\("free"\)/,
       "the free plan's allowance must come from allowanceSentence",
     );
-    assert.match(
-      file,
-      /allowanceSentence\("pro"\)/,
-      "the pro plan's allowance must come from allowanceSentence",
-    );
   });
 }
 

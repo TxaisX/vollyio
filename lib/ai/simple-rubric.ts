@@ -119,10 +119,13 @@ export const simpleRatingSchema = z.object({
   // history chart or `personal_bests`. It was briefly 0-10; the wider scale also
   // gives the model somewhere to put a distinction, which a 10-point scale with
   // half steps did not (36 clips landed on 5 distinct values).
-  overall_score: z.number(),
+  // Optional from D-131: the free reader omits the score and the lists on a
+  // refusal, and a correct refusal must not fail the schema. The route refuses
+  // a ratable reply that lacks any of them, so nothing downstream sees a hole.
+  overall_score: z.number().optional(),
   // Free-form, not an enum: a mis-worded confidence must weaken the signal,
   // never fail the analysis.
-  confidence: z.string(),
+  confidence: z.string().optional(),
   // `key` names the checkpoint this point is about (D-099), because both lists
   // are now a RANKING over the observed checkpoints rather than free-form
   // praise and criticism. Optional in the SCHEMA and mandatory in the PROMPT,
@@ -131,7 +134,7 @@ export const simpleRatingSchema = z.object({
   // and a second paid read.
   strengths: z.array(
     z.object({ key: z.string().optional(), title: z.string(), detail: z.string() }),
-  ),
+  ).optional(),
   // Deliberately shaped like `Change` in lib/analysis-types.ts rather than as a
   // second bespoke type, because that is what lets the EXISTING breakdown UI
   // render this path unchanged: the numbered-changes section, the priority-fix
@@ -147,12 +150,12 @@ export const simpleRatingSchema = z.object({
       difficulty: z.string(),
       timeframe: z.string(),
     }),
-  ),
+  ).optional(),
   // Kept so the drills section survives the swap. Guided to the valid slugs but
   // not schema-bound, and the route drops any invented one, exactly as the
   // frame path already does.
-  drill_slugs: z.array(z.string()),
-  summary: z.string(),
+  drill_slugs: z.array(z.string()).optional(),
+  summary: z.string().optional(),
   // The named checkpoints of the skill, OBSERVED and never scored (D-099).
   //
   // Structure and types only, like everything else here: `key` is a plain

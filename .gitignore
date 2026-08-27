@@ -75,7 +75,6 @@ evals/RESULTS.json
 # Ignore new untracked archive content; keep the tracked items and the index.
 /archive/*
 !/archive/README.md
-!/archive/handoff-history.md
 
 # Local calibration corpus: real player clips pulled from storage, never committed.
 evals/corpus/
@@ -89,3 +88,7 @@ evals/arm-*.json
 evals/review/
 evals/marked-*.json
 evals/variant-*.json
+
+# Tester email lists: third-party addresses, never tracked (D-131).
+scripts/testers-emails.txt
+scripts/testers-members.txt

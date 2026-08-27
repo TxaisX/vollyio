@@ -44,7 +44,6 @@ test("the structured answers quote the price and allowance constants, never lite
   const cost = body.slice(body.indexOf("What does it cost"));
   const open = cost.indexOf("`");
   const costAnswer = cost.slice(open + 1, cost.indexOf("`", open + 1));
-  assert.match(costAnswer, /\$\{PRO_PRICE\}/, "the price must come from the constant");
   // The ALLOWANCE comes through allowanceSentence rather than a raw constant,
   // because the honest answer is a day rate and that helper is where the day
   // rate is phrased (D-110). The signup grant is deliberately absent: it is
@@ -54,11 +53,6 @@ test("the structured answers quote the price and allowance constants, never lite
     costAnswer,
     /\$\{allowanceSentence\("free"\)\}/,
     "the free allowance must come from allowanceSentence",
-  );
-  assert.match(
-    costAnswer,
-    /\$\{allowanceSentence\("pro"\)\}/,
-    "the Pro allowance must come from allowanceSentence",
   );
   assert.doesNotMatch(
     costAnswer.replace(/\$\{[^}]+\}/g, ""),

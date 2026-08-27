@@ -27,7 +27,11 @@ const OUT = path.resolve("G:/OneDrive/Documents/Projects/vollyio-android/play-as
 const WIDTH = 412;
 const HEIGHT = 892;
 const SCALE = 3;
-const ACCOUNT = process.env.SHOOT_EMAIL ?? "txiong530@gmail.com";
+const ACCOUNT = process.env.SHOOT_EMAIL;
+if (!ACCOUNT) {
+  console.error("shoot-store-panels: SHOOT_EMAIL is required.");
+  process.exit(1);
+}
 const MOBILE_UA =
   "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
 

@@ -1,0 +1,27 @@
+Vollyio source-available notice
+
+Copyright (c) 2026 Txais Xiong. All rights reserved.
+
+This repository is published so that anyone can read it, clone it, and learn
+from it. You may:
+
+- view, download and study the source code, documentation, decision log and
+  evaluation records;
+- quote short excerpts with attribution to this repository.
+
+You may not, without written permission from the copyright holder:
+
+- deploy, host or operate this software or any derivative of it, publicly or
+  privately, as a service or an application;
+- redistribute it, in whole or in substantial part, modified or unmodified;
+- use it, or any part of it, for a commercial purpose.
+
+The live site (vollyio.com) and the Android application are operated only by
+the copyright holder. Nothing in this repository grants access to them or to
+any account, data or infrastructure behind them.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.

@@ -95,8 +95,8 @@ test("an improvement makes no numeric promise about a checkpoint", () => {
     drill_slugs: [],
     summary: "Solid rep.",
   });
-  assert.equal("target_metric" in parsed.improvements[0], false);
-  assert.equal("expected_gain" in parsed.improvements[0], false);
+  assert.equal("target_metric" in parsed.improvements![0], false);
+  assert.equal("expected_gain" in parsed.improvements![0], false);
 });
 
 // The checkpoint section (D-099). Passed in rather than imported, because this
@@ -193,8 +193,8 @@ test("strengths and improvements carry the checkpoint key, and parse without it"
     summary: "Workable set.",
     checkpoints: [{ key: "hand_shape", visible: true, observation: "A clean window." }],
   });
-  assert.equal(keyed.strengths[0].key, "hand_shape");
-  assert.equal(keyed.improvements[0].key, "footwork");
+  assert.equal(keyed.strengths![0].key, "hand_shape");
+  assert.equal(keyed.improvements![0].key, "footwork");
   const unkeyed = simpleRatingSchema.safeParse({
     ratable: true,
     overall_score: 66,

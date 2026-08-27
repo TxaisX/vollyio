@@ -59,11 +59,12 @@ test("the video read pins its upstream and the frame read does not", () => {
   // The pin is now merged into the privacy floor rather than written as a bare
   // provider block, so that a pinned request keeps BOTH (lib/ai/routing.ts).
   assert.match(SRC, /withPrivateRouting\(\s*pinProvider \? \{ only: \["google-vertex"\] \}/);
-  // readFrames passes pinProvider false, readVideo passes true. Assert both
+  // readFrames passes pinProvider false; readVideo pins only for a Google id
+  // (D-131), because a non-Google id has no Vertex endpoint at all. Assert both
   // call sites rather than the flag's existence, because a default flip would
   // satisfy a weaker test and silently pin every image request.
   assert.match(SRC, /chatBody\(opts,\s*content,\s*false\)/);
-  assert.match(SRC, /chatBody\(opts,\s*content,\s*true\)/);
+  assert.match(SRC, /chatBody\(opts,\s*content,\s*opts\.model\.startsWith\("google\/"\)\)/);
 });
 
 // D-096: one model id resolves across several upstreams that behave

@@ -41,7 +41,7 @@ import { SKILL_LABEL } from "../lib/skills.ts";
 // Mirrors lib/ai/client.ts VISION_MODEL and the route's readVideo options. Kept
 // as literals rather than imported because both of those modules are
 // `server-only` and throw outside a Next runtime.
-const DEFAULT_MODEL = "google/gemini-3.7-flash";
+const DEFAULT_MODEL = "minimax/minimax-m3:free";
 const MAX_TOKENS = 8192;
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const TIMEOUT_MS = 90_000;

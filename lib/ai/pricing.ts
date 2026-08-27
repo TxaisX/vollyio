@@ -37,6 +37,10 @@ const PER_MTOK: Record<string, { input: number; output: number }> = {
   // Rounded up from the listed 0.0882 / 0.1764: an estimate must never
   // understate, and the sub-cent precision buys nothing at this scale.
   "deepseek/deepseek-v4-flash": { input: 0.09, output: 0.18 },
+  // The wind-down id (D-131). Listed at zero in both directions on the
+  // gateway; the row exists so the budget guard and the usage report keep
+  // pricing every stored row rather than throwing on the live one.
+  "minimax/minimax-m3:free": { input: 0, output: 0 },
   // The retired coaching-service tiers stay priced. Telemetry rows written
   // before D-098 carry these model strings, and estimateCostUsd throws on a
   // model with no row, so dropping them would make the month-to-date spend read

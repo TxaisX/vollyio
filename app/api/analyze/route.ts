@@ -552,8 +552,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const top = raw.improvements[0];
-      if (!top) {
+      const top = raw.improvements?.[0];
+      if (
+        !raw.improvements ||
+        !top ||
+        raw.overall_score == null ||
+        !raw.strengths ||
+        !raw.summary
+      ) {
         // A reply that parsed but carried no improvement is the same class of
         // bad draw as one that did not parse at all, and gets the same refund.
         await refundApiQuota(createServiceClient(), user.id, "analyze");
@@ -570,7 +576,7 @@ export async function POST(req: NextRequest) {
         // rating curve and a history chart that can never be read again.
         overall_score: Math.max(0, Math.min(100, Math.round(raw.overall_score))),
         result_version: RESULT_VERSION_VIDEO,
-        confidence: raw.confidence,
+        confidence: raw.confidence ?? "unstated",
         strengths: raw.strengths,
         // Shaped as `Change` so the numbered-changes section, the priority-fix
         // card and the drills list render unchanged. target_metric and
@@ -581,7 +587,7 @@ export async function POST(req: NextRequest) {
         priority_fix: { title: top.title, detail: top.detail },
         // The model is guided to the valid slugs but not hard-bound to them;
         // drop any it invents so drill lookups can't 404.
-        drill_slugs: raw.drill_slugs.filter((s) => drillSlugs(skill).includes(s)),
+        drill_slugs: (raw.drill_slugs ?? []).filter((s) => drillSlugs(skill).includes(s)),
         summary: raw.summary,
         // Observations, never scores (D-099). Nothing here reaches
         // overall_score above, and nothing here is a verdict: the label, the

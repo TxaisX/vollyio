@@ -433,7 +433,9 @@ export async function readVideo<T extends z.ZodType>(
     ...opts.instructions.map((text) => ({ type: "text", text })),
   ];
   return postChat(
-    chatBody(opts, content, true),
+    // The Vertex pin is a Google-only fact: a non-Google id has no Vertex
+    // endpoint at all, and pinning it there returns "no endpoints" (D-131).
+    chatBody(opts, content, opts.model.startsWith("google/")),
     opts.schema,
     opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     opts.maxRetries ?? DEFAULT_MAX_RETRIES,

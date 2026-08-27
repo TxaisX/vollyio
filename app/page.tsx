@@ -100,18 +100,13 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         <p>
-          {PLAN_LABEL.free} is {allowanceSentence("free")}, at no cost and with
-          no card. {PLAN_LABEL.pro} is {allowanceSentence("pro")} for{" "}
-          {PRO_PRICE}, and it renews on the day you subscribed rather than on
-          the 1st. Both limits are DAILY and reset at midnight UTC: the monthly
-          figures ({MONTHLY_ALLOWANCE.free} and {MONTHLY_ALLOWANCE.pro}) are
-          just those day rates across thirty days, so you cannot save them up
-          and spend a month&rsquo;s worth at one tournament.
+          Nothing. Vollyio is free: {allowanceSentence("free")}, no card and no
+          paid tier. The limit is daily and resets at midnight UTC, so it is a
+          day rate rather than a balance you can save up for one tournament.
         </p>
         <p>
-          You are never charged without choosing {PLAN_LABEL.pro} yourself, and
-          you can cancel from Settings at any time and keep it until the end of
-          the period you paid for. Full detail is in the{" "}
+          There is no subscription and nothing you can be charged for. Full
+          detail is in the{" "}
           <Link
             href="/terms"
             className="text-chalk underline decoration-line underline-offset-4 transition-colors hover:text-gold-ink"
@@ -193,7 +188,7 @@ const FAQ_PLAIN: { q: string; a: string }[] = [
   },
   {
     q: "What does it cost?",
-    a: `${PLAN_LABEL.free} is ${allowanceSentence("free")}, at no cost and with no card. ${PLAN_LABEL.pro} is ${allowanceSentence("pro")} for ${PRO_PRICE}, and it renews on the day you subscribed rather than on the 1st. Both limits are daily and reset at midnight UTC, so the monthly figures (${MONTHLY_ALLOWANCE.free} and ${MONTHLY_ALLOWANCE.pro}) are those day rates across thirty days rather than a balance you can save up. You are never charged without choosing ${PLAN_LABEL.pro} yourself, and you can cancel from Settings at any time and keep it until the end of the period you paid for.`,
+    a: `Nothing. Vollyio is free: ${allowanceSentence("free")}, no card and no paid tier. The limit is daily and resets at midnight UTC, so it is a day rate rather than a balance you can save up. There is no subscription and nothing you can be charged for.`,
   },
   {
     q: "What happens to my film?",
@@ -259,30 +254,10 @@ export default function Landing() {
       ...(COACH_ENABLED ? ["Coach chat grounded in your own scores"] : []),
     ],
     offers: {
-      "@type": "AggregateOffer",
+      "@type": "Offer",
+      price: "0",
       priceCurrency: "USD",
-      lowPrice: "0",
-      highPrice: PRO_PRICE_AMOUNT,
-      offerCount: 2,
-      offers: [
-        {
-          "@type": "Offer",
-          name: `${PLAN_LABEL.free} plan`,
-          price: "0",
-          priceCurrency: "USD",
-          description: `${allowanceSentence("free")}, no card required.`,
-        },
-        {
-          "@type": "Offer",
-          name: `${PLAN_LABEL.pro} plan`,
-          price: PRO_PRICE_AMOUNT,
-          priceCurrency: "USD",
-          // The free offer beside this one already quoted the day rate; this
-          // one quoted the month and was the only place left where a machine
-          // could read "540 a month" and repeat it as a monthly balance.
-          description: `${allowanceSentence("pro")}, billed monthly and renewing on the day you subscribe until cancelled.`,
-        },
-      ],
+      description: `${allowanceSentence("free")}, no card required. There is no paid tier.`,
     },
   };
   return (
@@ -738,18 +713,18 @@ export default function Landing() {
           <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
             <Reveal>
               <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold-ink">
-                Pricing
+                Free
               </p>
               <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-5xl">
-                Start free. Upgrade when you are filming every session.
+                Free. No card, no paid tier.
               </h2>
               <p className="mt-4 max-w-xl text-chalk-dim">
-                Both limits are daily and reset at midnight UTC. Nothing is
-                saved up, and nothing expires unspent.
+                The limit is daily and resets at midnight UTC. Nothing is saved
+                up, and nothing expires unspent.
               </p>
             </Reveal>
 
-            <div className="mt-10 grid items-stretch gap-4 md:grid-cols-2">
+            <div className="mt-10 grid items-stretch gap-4 md:max-w-md">
               <Reveal delay={100} className="h-full">
                 <div className="card flex h-full flex-col p-6">
                   <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-chalk-dim">
@@ -770,6 +745,9 @@ export default function Landing() {
                       "One priority fix per rep",
                       "Rolling skill rating and streaks",
                       `${DRILLS.length} drills and the technique library`,
+                      ...(COACH_ENABLED
+                        ? ["Coach chat grounded in your own scores"]
+                        : []),
                     ].map((line) => (
                       <li key={line} className="flex gap-2.5">
                         <CheckIcon />
@@ -782,56 +760,7 @@ export default function Landing() {
                   </Link>
                 </div>
               </Reveal>
-
-              <Reveal delay={160} className="h-full">
-                <div className="card flex h-full flex-col p-6">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold-ink">
-                    {PLAN_LABEL.pro}
-                  </p>
-                  <p className="mt-2 font-display text-4xl font-bold tracking-tight">
-                    {PRO_PRICE}
-                    <span className="ml-2 align-middle text-body font-normal text-chalk-dim">
-                      / month
-                    </span>
-                  </p>
-                  <p className="mt-2 text-body text-chalk">
-                    {allowanceSentence("pro")}.
-                  </p>
-                  <ul className="mt-5 flex flex-col gap-2.5 text-body text-chalk-dim">
-                    {[
-                      `Everything in ${PLAN_LABEL.free}`,
-                      ...(COACH_ENABLED
-                        ? ["Coach chat grounded in your own scores"]
-                        : []),
-                      "Renews on the day you subscribed, not the 1st",
-                      "Cancel any time from Settings",
-                    ].map((line) => (
-                      <li key={line} className="flex gap-2.5">
-                        <CheckIcon />
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                  {/* No checkout button here on purpose: buying requires an
-                      account, and a gold button that looks like a purchase and
-                      lands on a signup form is the kind of small lie this page
-                      does not tell. */}
-                  <p className="mt-6 text-body text-chalk-dim">
-                    Start on {PLAN_LABEL.free} and upgrade from Settings
-                    whenever you want. You are never charged without choosing{" "}
-                    {PLAN_LABEL.pro} yourself.
-                  </p>
-                </div>
-              </Reveal>
             </div>
-
-            <Reveal delay={220}>
-              <p className="mt-6 max-w-2xl text-body text-chalk-dim">
-                {PLAN_LABEL.pro} is the same product with the daily wall moved:
-                three reads of every skill in a day, rather than three reads in
-                total.
-              </p>
-            </Reveal>
           </div>
         </section>
 
@@ -912,10 +841,6 @@ export default function Landing() {
               <p className="mx-auto mt-6 max-w-md text-body">
                 <span className="text-chalk">
                   {PLAN_LABEL.free} is {allowanceSentence("free")}. No card.
-                </span>{" "}
-                <span className="text-chalk-dim">
-                  {PLAN_LABEL.pro} is {allowanceSentence("pro")} for {PRO_PRICE},
-                  cancel any time.
                 </span>
               </p>
               <p className="mx-auto mt-3 max-w-md text-body text-chalk-dim">
@@ -960,7 +885,7 @@ export default function Landing() {
                   href="#faq"
                   className="block text-chalk-dim transition-colors hover:text-chalk"
                 >
-                  Pricing &amp; FAQ
+                  FAQ
                 </a>
               </div>
               <div className="space-y-2.5">

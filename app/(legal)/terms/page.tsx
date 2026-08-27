@@ -84,6 +84,13 @@ export default function TermsPage() {
 
       <Section title="The short version">
         <p>
+          <strong className="text-chalk">Paid plans are not offered.</strong>{" "}
+          As of 27 August 2026 Vollyio has no paid tier and takes no payments.
+          Everything below about {PLAN_LABEL.pro}, prices and renewal applies
+          only to a subscription that already existed on that date, and is kept
+          here for the record.
+        </p>
+        <p>
           <strong className="text-chalk">What you get.</strong> Vollyio scores
           one rep from a short clip and hands you the single highest-leverage
           fix. {PLAN_LABEL.free} costs nothing and needs no payment card.

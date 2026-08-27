@@ -5956,3 +5956,87 @@ returns the real one.
 on purpose. Changing what `/api/analyze` sends is a change to the read, and the
 standard for that here is a measured arm rather than an argument (D-034). The
 next step is an anchored arm against `evals/arm-37-flash.json`, not a deploy.
+
+## D-131 - Vollyio closes as a product: free model, free hosting, public source, nothing for sale
+
+Date: 2026-08-27 · By: Orchestrator (owner direction: "stop working on this as
+a subscription or a payable application"; "take off all of the paid AI models
+and use a free model"; "open up the repo so that people can use that
+information as read-only")
+
+**The verdict, and the two reasons it rests on.** Vollyio does not work as a
+paid product, and more building will not change that. First, the grade cannot
+be made trustworthy by one person on evenings: the gateway samples video at
+about one low-resolution frame per second (D-097, D-106), single-read
+reliability is 0.64, beginner and pro footage score the same (evals/CALIBRATION.md),
+no coach has ever labeled a clip, and every product in any sport whose grade
+players trust either validated against lab motion capture with a funded team,
+runs a proprietary pose team with university partners, or puts a human on every
+report. Second, nobody has shown that individual volleyball players pay for an
+automated grade: six volleyball graders launched between Feb 2025 and Jun 2026
+and the largest has 74 App Store ratings at $9.99 a month; the volleyball
+product that won (Balltime, 125,000 athletes, sold to Hudl) sells match stats
+and highlights and no technique score; Flex AI shut down in March 2026 at a
+million users. What players demonstrably pay for is a human: lessons at $40 to
+$100 an hour, film review at $150 a session. Vollyio's own numbers on the day:
+9 accounts (one the owner's), 0 signups in 7 days, 59 analyses of which 41 the
+owner's, 1 of 8 strangers ever returned, $0 revenue, 10 visitors in the last
+week against 105 in late July. docs/demand-test.md (2026-08-11) predicted this
+in its last paragraph and was never run; D-118 through D-130 shipped instead.
+The market picture with every source is recorded in the owner's vault
+(Vollyio Verdict, 2026-08-27).
+
+**What changes in this entry.**
+
+- `VISION_MODEL` and `CHAT_MODEL` both become `minimax/minimax-m3:free`.
+  Chosen by elimination, not by measurement: of the four free video-capable
+  ids on the gateway on 2026-08-27, it is the only one that answers under the
+  `data_collection: deny` floor in `lib/ai/routing.ts` (Gemma 4 returned 429
+  on every probe; the Nvidia omni id has no endpoint that refuses training).
+  The floor stays, because the audience starts at 13 and nothing about closing
+  the product changes whose footage this is. Paid spend was about $1.36 in the
+  last 30 days; the swap buys a guarantee that the prepaid balance cannot be
+  drained once the repository is public, not savings.
+- The video read pins `google-vertex` only for a Google id
+  (`lib/ai/vision.ts`); a non-Google id has no Vertex endpoint and the pin
+  returned "no endpoints".
+- `simpleRatingSchema` lets a refusal omit the score and the lists. Measured
+  on one production clip, two draws: one empty reply (the route's re-read
+  covers it) and one CORRECT refusal that named the marked player as the
+  setter rather than the attacker, which the old schema rejected for lacking
+  `overall_score`. The route now refuses a ratable reply that lacks the score,
+  either list or the summary, as the same bad draw it already refunded.
+- Billing comes off by environment: `BILLING_ENABLED=false` in production, so
+  `billingOpen()` is false, the plan card sells nothing, checkout answers 503,
+  and the allowance cap is not enforced. The hourly quota (20 per account) is
+  the remaining guard on the free id's upstream rate limit.
+- The landing page, its JSON-LD offer and its FAQ describe one free plan and
+  no paid tier. The Terms open with a dated sentence that no paid plan is
+  offered. The two tests that pinned Pro's price and allowance onto the landing
+  page drop those assertions and keep the rest.
+- The repository goes public, source-available. `LICENSE` permits reading,
+  cloning and studying and forbids deploying, redistributing or commercial use;
+  the site and the app are operated only by the owner. Issues, wiki and
+  projects are disabled. Before the flip, `scripts/testers-emails.txt`,
+  `scripts/testers-members.txt` and `archive/handoff-history.md` (third-party
+  addresses) are removed from the whole history with `git filter-repo`, and the
+  first two are ignored going forward. Players' footage under `evals/corpus`,
+  `evals/review` and `evals/footage` was never tracked. The Android repository
+  stays private.
+- Hosting drops to free tiers at the owner's direction (Vercel Hobby, Supabase
+  Free). Both are dashboard actions the owner performs. Measured against the
+  free limits on 2026-08-27: storage 594 MB of 1 GB, database 18 MB of 500 MB,
+  the analyze route's 120 s fits Hobby's 300 s ceiling, and the Hobby plan's
+  non-commercial rule is satisfied because nothing is sold. Supabase Free
+  pauses a project after seven idle days; the site will then be down until the
+  owner restores it, which is accepted.
+
+**What is deliberately NOT measured.** No bakeoff was run on the free id. Its
+score distribution, refusal rate and reliability are unknown, and
+evals/CALIBRATION.md describes the reader it replaced. This is stated rather
+than hidden because no number the product prints is sold any more, and a
+measurement that changes no decision is not owed.
+
+**What would reopen this.** A stranger paying, or a coach willing to put their
+name on reviews (the human-in-the-loop shape every product with traction
+converged on). Neither is expected.
