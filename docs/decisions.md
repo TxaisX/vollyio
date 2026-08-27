@@ -6052,3 +6052,46 @@ read-only record of drills, injuries and past breakdowns.
 **What would reopen this.** A stranger paying, or a coach willing to put their
 name on reviews (the human-in-the-loop shape every product with traction
 converged on). Neither is expected.
+
+## D-132 - The free reader ships after all, behind a normalizer and a longer budget
+
+Date: 2026-08-27 · By: Orchestrator (owner direction, after D-131's measurement
+was put to him: "lets go with minimax for both coach and analysis")
+
+**What changed.** `VISION_MODEL` and `CHAT_MODEL` are both
+`minimax/minimax-m3:free`. D-131 measured this id at zero usable reads in five
+and reverted it; the owner reaffirmed the direction with that number in front
+of him, so this entry ships it and records what it took to make it hold.
+
+**What was actually wrong, read off the raw replies.** Not the reading. On the
+same production clips the free id produced the same kind of analysis the paid
+id does, spelled differently: `rating` instead of `overall_score`,
+`not_ratable: false` instead of `ratable: true`, `drills` instead of
+`drill_slugs`, `confidence` and `difficulty` as numbers, `checkpoints` as an
+object keyed by checkpoint, `strengths` as an object keyed by title, and on a
+refusal nothing but the two refusal fields. Every one failed the strict parse
+as a refunded 502. `normalizeSimpleRating` in `lib/ai/simple-rubric.ts` maps
+each spelling the model has been seen to use onto the schema's field, coerces
+the scalar types, and turns keyed objects into lists. It invents nothing: a
+reply with no score under any name still has no score, and the route still
+refuses it. `lib/ai/vision.ts` takes the function as an optional `normalize`
+and applies it before the schema parse; the harness applies the identical
+function, so the measurement and the product cannot drift.
+
+**The budget.** Reads take 16 to 100 s against the paid id's 10 to 16. The
+analyze route's per-read ceiling moves from 45 s to 100 s inside a 300 s
+function (Hobby's ceiling, D-131), and the re-read fires only when the first
+attempt failed inside 50 s, so the worst case stays under the Android client's
+150 s read timeout.
+
+**Measured before shipping**, six production clips, one at a time, with the
+normalizer: a correct refusal (handheld, rotating, no isolated rep), scores of
+62 and 41, and two failures that were the free endpoint rather than the reply:
+a gateway 502 HTML page and an upstream rate-limit. Both are retried with
+backoff by `lib/ai/vision.ts` and refunded when they never land. Roughly three
+usable reads in five is the honest rate; players will see "try again" more
+than they did.
+
+**Not measured.** The coach's streamed prose and the weekly plan's
+schema-bound reply on this id, beyond one live coach probe after deploy; the
+`/api/players` frame read; the score distribution. Nothing here is sold.

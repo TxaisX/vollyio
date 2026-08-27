@@ -11,8 +11,7 @@ import {
   repGate,
   simpleRatingSchema,
   simpleRubric,
-  type RubricCheckpoint,
-} from "@/lib/ai/simple-rubric";
+  type RubricCheckpoint, normalizeSimpleRating, } from "@/lib/ai/simple-rubric";
 import { mockResult } from "@/lib/ai/mock";
 import { METRICS } from "@/lib/ai/metrics";
 import { drillSlugs } from "@/content/drills";
@@ -49,7 +48,7 @@ import { formatRefusal, recordAnalysisTelemetry } from "@/lib/analysis-telemetry
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // The container the provider dispatches on, from the extension the request
 // declared. Both were validated by the request schema against the same closed
@@ -124,9 +123,9 @@ function checkpointsFrom(
 // the platform budget. A function the platform kills skips the refund below and
 // the entitlement release in the outer finally, silently costing the player an
 // hourly slot: that is what these two numbers exist to prevent.
-const READ_TIMEOUT_MS = 45_000;
+const READ_TIMEOUT_MS = 100_000;
 // Only re-read when there is room for the attempt to finish inside the budget.
-const RETRY_DEADLINE_MS = 55_000;
+const RETRY_DEADLINE_MS = 50_000;
 // ONE attempt inside the re-read, and this is the number the deadline above was
 // always assuming. `readVideo`'s `maxRetries` counts RETRIES, not attempts, so
 // `maxRetries: 1` runs the request twice: the first read can therefore take
@@ -444,6 +443,7 @@ export async function POST(req: NextRequest) {
           },
           instructions,
           schema: simpleRatingSchema,
+          normalize: normalizeSimpleRating,
           // Well above what this rubric's reply needs, because on this gateway
           // the ceiling is not an output budget: one model id resolves across
           // several upstreams and the ones that reason bill that reasoning

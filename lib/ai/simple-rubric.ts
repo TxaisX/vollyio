@@ -184,6 +184,117 @@ export const simpleRatingSchema = z.object({
 export type SimpleRating = z.infer<typeof simpleRatingSchema>;
 
 /**
+ * Bring a reply that MEANS the schema into the schema's shape (D-132).
+ *
+ * Measured on the free reader, 2026-08-27, four production clips: it names the
+ * score `rating` (the rubric's own word), returns `confidence` as a number,
+ * sends `difficulty` and `timeframe` as numbers, and on a refusal sends only
+ * `ratable` and `not_ratable_reason`. Every one of those is the same analysis
+ * the paid reader would have produced, spelled differently, and every one
+ * failed the strict parse as a refunded 502. This maps the spellings the
+ * model actually uses onto the fields the product reads, and nothing else:
+ * it invents no score, no strength and no fix. A reply with no score at all
+ * still fails downstream, as it should.
+ *
+ * Pure and import-free so `node --test` loads it directly and the eval
+ * harness applies the identical function before its own parse.
+ */
+export function normalizeSimpleRating(input: unknown): unknown {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const src = input as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...src };
+
+  const str = (v: unknown): unknown =>
+    typeof v === "number" || typeof v === "boolean" ? String(v) : v;
+  const bool = (v: unknown): unknown => {
+    if (typeof v === "string") {
+      const t = v.trim().toLowerCase();
+      if (t === "true" || t === "yes") return true;
+      if (t === "false" || t === "no") return false;
+    }
+    return v;
+  };
+  const num = (v: unknown): unknown => {
+    if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
+    return v;
+  };
+
+  // The verdict, under either polarity the reader has used for it.
+  if (out.ratable == null && src.not_ratable != null) {
+    const nr = bool(src.not_ratable);
+    if (typeof nr === "boolean") out.ratable = !nr;
+  }
+  out.ratable = bool(out.ratable);
+
+  // A keyed object where a list was asked for: {key: {...}} becomes [{key, ...}].
+  const listify = (v: unknown): unknown => {
+    if (v == null || Array.isArray(v) || typeof v !== "object") return v;
+    return Object.entries(v as Record<string, unknown>).map(([k, val]) =>
+      val && typeof val === "object" && !Array.isArray(val)
+        ? { key: k, ...(val as Record<string, unknown>) }
+        : { key: k, title: k, detail: val, observation: val },
+    );
+  };
+  for (const k of ["strengths", "improvements", "checkpoints"]) {
+    if (out[k] != null) out[k] = listify(out[k]);
+  }
+  if (out.drill_slugs == null && src.drills != null) out.drill_slugs = src.drills;
+  if (Array.isArray(out.drill_slugs)) {
+    out.drill_slugs = (out.drill_slugs as unknown[])
+      .map((d) => (d && typeof d === "object" ? (d as Record<string, unknown>).slug ?? (d as Record<string, unknown>).id : d))
+      .filter((d): d is string => typeof d === "string");
+  }
+
+  // The score, under the names the reader has used for it.
+  if (out.overall_score == null) {
+    for (const k of ["rating", "score", "overall", "overall_rating"]) {
+      if (src[k] != null) {
+        out.overall_score = src[k];
+        break;
+      }
+    }
+  }
+  out.overall_score = num(out.overall_score);
+  if (out.confidence != null) out.confidence = str(out.confidence);
+  if (out.summary != null && typeof out.summary !== "string") out.summary = str(out.summary);
+
+  const items = (v: unknown, change: boolean): unknown => {
+    if (!Array.isArray(v)) return v;
+    return v
+      .filter((it) => it && typeof it === "object")
+      .map((it) => {
+        const i = { ...(it as Record<string, unknown>) };
+        if (i.title != null) i.title = str(i.title);
+        if (i.detail == null && i.description != null) i.detail = i.description;
+        if (i.detail != null) i.detail = str(i.detail);
+        if (change) {
+          if (i.difficulty == null) i.difficulty = "unstated";
+          else i.difficulty = str(i.difficulty);
+          if (i.timeframe == null) i.timeframe = "unstated";
+          else i.timeframe = str(i.timeframe);
+        }
+        return i;
+      });
+  };
+  if (out.strengths != null) out.strengths = items(out.strengths, false);
+  if (out.improvements == null && src.fixes != null) out.improvements = src.fixes;
+  if (out.improvements != null) out.improvements = items(out.improvements, true);
+  if (out.drill_slugs != null && !Array.isArray(out.drill_slugs)) out.drill_slugs = [];
+  if (Array.isArray(out.checkpoints)) {
+    out.checkpoints = out.checkpoints
+      .filter((c) => c && typeof c === "object")
+      .map((c) => {
+        const cp = { ...(c as Record<string, unknown>) };
+        cp.visible = bool(cp.visible);
+        if (cp.observation == null) cp.observation = "";
+        else cp.observation = str(cp.observation);
+        return cp;
+      });
+  }
+  return out;
+}
+
+/**
  * The tap that marks the athlete, turned into an instruction.
  *
  * The frame path burns a gold ring into one JPEG (D-033). This path cannot:

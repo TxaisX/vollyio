@@ -11,9 +11,8 @@ weeks of building and measuring, the owner concluded that an automated
 technique grade cannot be made trustworthy alone from the footage players film,
 and that individual players have not been shown to pay for one. The full
 reasoning, with every number, is in `docs/decisions.md` D-131 and
-`docs/business-position.md`. The site stays up, free, on the same models it shipped
-with (about a dollar a month, capped by a prepaid balance), and is operated
-only by the owner. This repository is public and source-available so
+`docs/business-position.md`. The site stays up, free, on a free model (D-132), and is
+operated only by the owner. This repository is public and source-available so
 that anyone can read and learn from it; see `LICENSE` for what that does and
 does not permit.
 

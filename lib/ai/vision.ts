@@ -125,6 +125,8 @@ type ReadOptions<T extends z.ZodType> = {
   /** Text blocks appended after the frames, in order. */
   instructions: string[];
   schema: T;
+  /** Reshape a reply that means the schema into its shape before parsing (D-132). */
+  normalize?: (json: unknown) => unknown;
   maxTokens: number;
   /** Per-attempt ceiling. Bounded by the route's maxDuration, never by hope. */
   timeoutMs?: number;
@@ -247,6 +249,7 @@ async function postChat<T extends z.ZodType>(
   schema: T,
   timeoutMs: number,
   maxRetries: number,
+  normalize?: (json: unknown) => unknown,
 ): Promise<VisionRead<z.infer<T>>> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) {
@@ -369,7 +372,7 @@ async function postChat<T extends z.ZodType>(
     } catch {
       return { parsed: null, usage, ms };
     }
-    const validated = schema.safeParse(json);
+    const validated = schema.safeParse(normalize ? normalize(json) : json);
     return { parsed: validated.success ? validated.data : null, usage, ms };
   }
 }
@@ -439,5 +442,6 @@ export async function readVideo<T extends z.ZodType>(
     opts.schema,
     opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     opts.maxRetries ?? DEFAULT_MAX_RETRIES,
+    opts.normalize,
   );
 }

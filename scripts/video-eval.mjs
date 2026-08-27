@@ -30,8 +30,7 @@ import {
   simpleRubric,
   simpleRatingSchema,
   focusLabelInstruction,
-  repGate,
-} from "../lib/ai/simple-rubric.ts";
+  repGate, normalizeSimpleRating } from "../lib/ai/simple-rubric.ts";
 import { METRICS } from "../lib/ai/metrics.ts";
 import { metricKnowledge } from "../content/technique.ts";
 import { drillSlugs } from "../content/drills.ts";
@@ -41,10 +40,10 @@ import { SKILL_LABEL } from "../lib/skills.ts";
 // Mirrors lib/ai/client.ts VISION_MODEL and the route's readVideo options. Kept
 // as literals rather than imported because both of those modules are
 // `server-only` and throw outside a Next runtime.
-const DEFAULT_MODEL = "google/gemini-3.7-flash";
+const DEFAULT_MODEL = "minimax/minimax-m3:free";
 const MAX_TOKENS = 8192;
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-const TIMEOUT_MS = 90_000;
+const TIMEOUT_MS = 110_000;
 const MIME = { mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
 
 const args = {};
@@ -234,7 +233,7 @@ async function readOnce(entry, clipB64, durationS) {
   } catch {
     return { error: "reply was not JSON", ms };
   }
-  const parsed = simpleRatingSchema.safeParse(json);
+  const parsed = simpleRatingSchema.safeParse(normalizeSimpleRating(json));
   if (!parsed.success) return { error: `schema refused: ${parsed.error.issues[0]?.message}`, ms };
 
   const r = parsed.data;
@@ -253,8 +252,8 @@ async function readOnce(entry, clipB64, durationS) {
     confidence: r.confidence,
     visible,
     declared,
-    strengths: r.strengths.length,
-    improvements: r.improvements.length,
+    strengths: (r.strengths ?? []).length,
+    improvements: (r.improvements ?? []).length,
     summary: r.summary,
   };
 }

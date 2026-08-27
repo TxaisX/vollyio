@@ -9,15 +9,16 @@ Vollyio is no longer developed or sold. On 2026-08-27 the owner closed it as a
 paid product; the reasoning and the numbers are in `docs/decisions.md` D-131
 and in `docs/business-position.md`. The repository is public and
 source-available (see `LICENSE`): read it, clone it, learn from it. The live
-site stays up, free, on free hosting, and is operated only by the owner. A free
-model was tried and measured on 2026-08-27 and could not run the task (D-131),
-so the two paid ids stay at about a dollar a month, capped by the balance.
+site stays up, free, on free hosting and a free model (D-132: one id, a
+normalizer in front of the schema, about three usable reads in five), and is
+operated only by the owner.
 
 ## What still runs
 
-- `vollyio.com`: the web app, every feature, no paid tier. Analyses run on the
-  vision id in `lib/ai/client.ts` under the privacy floor in
-  `lib/ai/routing.ts`.
+- `vollyio.com`: the web app, every feature, no paid tier. Analyses and the
+  coach run on the free id in `lib/ai/client.ts` under the privacy floor in
+  `lib/ai/routing.ts`; reads take up to 100 s and fail more often than the
+  paid id did.
 - The Android app (separate private repository) talks to the same API.
 
 ## What does not
